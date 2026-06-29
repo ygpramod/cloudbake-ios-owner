@@ -25,6 +25,7 @@ Make the Inventory screen practically useful by tracking current stock, comparin
 - Capture current quantity in the add-item form.
 - Show current quantity and minimum quantity in the inventory list.
 - Add low-stock state when current quantity is below minimum quantity.
+- Warn before adding an item that appears to duplicate an existing inventory item.
 - Add tests for current quantity persistence, validation, and low-stock logic.
 
 ## Out of Scope
@@ -40,6 +41,7 @@ Make the Inventory screen practically useful by tracking current stock, comparin
 - Existing inventory rows must migrate safely with current quantity set to zero.
 - Current quantity must not be negative.
 - Low-stock state must be derived from current quantity and minimum quantity.
+- Duplicate or similar item names must warn before adding another row.
 - SwiftUI views must not access GRDB directly.
 - Tests must cover below-minimum and at-minimum behavior.
 
@@ -57,12 +59,15 @@ Migration `0003_add_inventory_current_quantity` adds `current_quantity` to exist
 
 The add-item sheet captures current quantity. The list row shows current and minimum quantities and displays a low-stock warning icon when needed.
 
+The add-item flow checks exact and simple plural/singular name matches against existing inventory. The first save shows a warning and does not add; saving again with the same name allows an intentional duplicate.
+
 ## Test Plan
 
 - Unit tests:
   - Low-stock when current quantity is below minimum.
   - Not low-stock when current quantity equals minimum.
   - View model rejects negative current quantity.
+  - View model warns before adding possible duplicate inventory names.
 
 - Integration tests:
   - Inventory item current quantity round-trips through GRDB.

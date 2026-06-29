@@ -108,6 +108,14 @@ private struct InventoryItemForm: View {
                         .accessibilityIdentifier("inventory.form.error")
                 }
             }
+
+            if let duplicateWarningMessage = viewModel.duplicateWarningMessage {
+                Section {
+                    Label(duplicateWarningMessage, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier("inventory.form.duplicateWarning")
+                }
+            }
         }
         .navigationTitle("Add Item")
         .toolbar {

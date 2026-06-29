@@ -73,6 +73,65 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.addItem())
         XCTAssertEqual(viewModel.errorMessage, "Current quantity cannot be negative.")
     }
+
+    func testAddItemWarnsBeforeAddingPossibleDuplicate() {
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-cake-flour",
+                name: "Cake flour",
+                unit: .gram,
+                currentQuantity: 250,
+                minimumQuantity: 500,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.load()
+        viewModel.draftName = "cake flours"
+        viewModel.draftCurrentQuantity = "100"
+        viewModel.draftMinimumQuantity = "250"
+
+        XCTAssertFalse(viewModel.addItem())
+        XCTAssertEqual(
+            viewModel.duplicateWarningMessage,
+            "Possible duplicate: Cake flour already exists. Tap Save again to add a separate item."
+        )
+        XCTAssertEqual(repository.items.count, 1)
+    }
+
+    func testAddItemAllowsDuplicateAfterWarningIsAcknowledged() {
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-cake-flour",
+                name: "Cake flour",
+                unit: .gram,
+                currentQuantity: 250,
+                minimumQuantity: 500,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        let now = Date(timeIntervalSince1970: 1_800_031_000)
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "inventory-cake-flours" },
+            dateProvider: { now }
+        )
+        viewModel.load()
+        viewModel.draftName = "cake flours"
+        viewModel.draftCurrentQuantity = "100"
+        viewModel.draftMinimumQuantity = "250"
+
+        XCTAssertFalse(viewModel.addItem())
+        XCTAssertTrue(viewModel.addItem())
+
+        XCTAssertEqual(repository.items.count, 2)
+        XCTAssertEqual(repository.items.last?.name, "cake flours")
+        XCTAssertNil(viewModel.duplicateWarningMessage)
+    }
 }
 
 private final class FakeInventoryItemRepository: InventoryItemRepository {

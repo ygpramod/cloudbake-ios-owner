@@ -6,7 +6,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
     }
 
     func testAppLaunchesToDashboard() throws {
-        let app = XCUIApplication()
+        let app = makeApp()
         app.launch()
 
         XCTAssertTrue(app.navigationBars["CloudBake"].waitForExistence(timeout: 5))
@@ -15,7 +15,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
     }
 
     func testPrimaryNavigationDestinationsAreReachable() throws {
-        let app = XCUIApplication()
+        let app = makeApp()
         app.launch()
 
         for title in ["Orders", "Inventory", "Recipes", "Designs", "Customers", "Settings"] {
@@ -31,7 +31,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
     }
 
     func testInventoryItemCanBeAdded() throws {
-        let app = XCUIApplication()
+        let app = makeApp()
         app.launch()
 
         app.staticTexts["Inventory"].tap()
@@ -51,5 +51,48 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Current 250 g"].exists)
         XCTAssertTrue(app.staticTexts["Minimum 500 g"].exists)
+    }
+
+    func testInventoryDuplicateNameShowsWarningBeforeAdding() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Inventory"].tap()
+        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
+        app.buttons["inventory.add"].tap()
+        XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
+
+        app.textFields["inventory.form.name"].tap()
+        app.textFields["inventory.form.name"].typeText("cake flours")
+        app.textFields["inventory.form.currentQuantity"].tap()
+        app.textFields["inventory.form.currentQuantity"].typeText("100")
+        app.textFields["inventory.form.minimumQuantity"].tap()
+        app.textFields["inventory.form.minimumQuantity"].typeText("250")
+        app.buttons["inventory.form.save"].tap()
+
+        XCTAssertTrue(app.staticTexts["Possible duplicate: Cake flour already exists. Tap Save again to add a separate item."].waitForExistence(timeout: 5))
+    }
+
+    private func makeApp() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"
+        return app
+    }
+
+    private func addInventoryItem(
+        named name: String,
+        currentQuantity: String,
+        minimumQuantity: String,
+        in app: XCUIApplication
+    ) {
+        app.buttons["inventory.add"].tap()
+        XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
+        app.textFields["inventory.form.name"].tap()
+        app.textFields["inventory.form.name"].typeText(name)
+        app.textFields["inventory.form.currentQuantity"].tap()
+        app.textFields["inventory.form.currentQuantity"].typeText(currentQuantity)
+        app.textFields["inventory.form.minimumQuantity"].tap()
+        app.textFields["inventory.form.minimumQuantity"].typeText(minimumQuantity)
+        app.buttons["inventory.form.save"].tap()
     }
 }
