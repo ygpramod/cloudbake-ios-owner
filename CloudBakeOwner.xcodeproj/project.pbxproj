@@ -24,6 +24,9 @@
 		41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000017 /* GRDBCoreDataRepository.swift */; };
 		410000000000000000000010 /* CoreModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000018 /* CoreModelsTests.swift */; };
 		410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000019 /* CoreDataRepositoryTests.swift */; };
+		410000000000000000000012 /* InventoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001A /* InventoryListView.swift */; };
+		410000000000000000000013 /* InventoryListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001B /* InventoryListViewModel.swift */; };
+		410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001C /* InventoryListViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,6 +66,9 @@
 		420000000000000000000017 /* GRDBCoreDataRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBCoreDataRepository.swift; sourceTree = "<group>"; };
 		420000000000000000000018 /* CoreModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreModelsTests.swift; sourceTree = "<group>"; };
 		420000000000000000000019 /* CoreDataRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataRepositoryTests.swift; sourceTree = "<group>"; };
+		42000000000000000000001A /* InventoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListView.swift; sourceTree = "<group>"; };
+		42000000000000000000001B /* InventoryListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModel.swift; sourceTree = "<group>"; };
+		42000000000000000000001C /* InventoryListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,6 +132,7 @@
 			isa = PBXGroup;
 			children = (
 				450000000000000000000005 /* Dashboard */,
+				450000000000000000000015 /* Inventory */,
 				450000000000000000000006 /* Placeholder */,
 			);
 			path = Features;
@@ -147,11 +154,21 @@
 			path = Placeholder;
 			sourceTree = "<group>";
 		};
+		450000000000000000000015 /* Inventory */ = {
+			isa = PBXGroup;
+			children = (
+				42000000000000000000001A /* InventoryListView.swift */,
+				42000000000000000000001B /* InventoryListViewModel.swift */,
+			);
+			path = Inventory;
+			sourceTree = "<group>";
+		};
 		450000000000000000000008 /* CloudBakeOwnerTests */ = {
 			isa = PBXGroup;
 			children = (
 				420000000000000000000006 /* AppDestinationTests.swift */,
 				450000000000000000000014 /* Domain */,
+				450000000000000000000016 /* Features */,
 				450000000000000000000012 /* Persistence */,
 			);
 			path = CloudBakeOwnerTests;
@@ -192,6 +209,22 @@
 				420000000000000000000019 /* CoreDataRepositoryTests.swift */,
 			);
 			path = Persistence;
+			sourceTree = "<group>";
+		};
+		450000000000000000000016 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				450000000000000000000017 /* Inventory */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		450000000000000000000017 /* Inventory */ = {
+			isa = PBXGroup;
+			children = (
+				42000000000000000000001C /* InventoryListViewModelTests.swift */,
+			);
+			path = Inventory;
 			sourceTree = "<group>";
 		};
 		450000000000000000000009 /* CloudBakeOwnerUITests */ = {
@@ -357,6 +390,8 @@
 				41000000000000000000000E /* CoreDataRepositories.swift in Sources */,
 				41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */,
 				41000000000000000000000A /* HealthCheckRepository.swift in Sources */,
+				410000000000000000000012 /* InventoryListView.swift in Sources */,
+				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -368,6 +403,7 @@
 				41000000000000000000000B /* AppDatabaseTests.swift in Sources */,
 				410000000000000000000010 /* CoreModelsTests.swift in Sources */,
 				410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
+				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

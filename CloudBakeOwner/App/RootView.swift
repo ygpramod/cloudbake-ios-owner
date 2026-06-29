@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct RootView: View {
+    let database: AppDatabase
+
     var body: some View {
         NavigationStack {
             DashboardView()
@@ -16,12 +18,26 @@ struct RootView: View {
         switch destination {
         case .dashboard:
             DashboardView()
-        case .orders, .inventory, .recipes, .designs, .customers, .settings:
+        case .inventory:
+            InventoryListView(
+                viewModel: InventoryListViewModel(
+                    repository: database.makeCoreDataRepository()
+                )
+            )
+        case .orders, .recipes, .designs, .customers, .settings:
             PlaceholderScreen(destination: destination)
         }
     }
 }
 
 #Preview {
-    RootView()
+    if let database = try? AppDatabase.makeInMemory() {
+        RootView(database: database)
+    } else {
+        ContentUnavailableView(
+            "CloudBake cannot open",
+            systemImage: "exclamationmark.triangle",
+            description: Text("The preview database could not be prepared.")
+        )
+    }
 }

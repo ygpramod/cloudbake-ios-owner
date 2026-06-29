@@ -8,6 +8,18 @@ final class AppDatabase {
         self.writer = writer
     }
 
+    static func openDefault() throws -> AppDatabase {
+        let applicationSupportURL = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let cloudBakeDirectory = applicationSupportURL.appendingPathComponent("CloudBakeOwner", isDirectory: true)
+        try FileManager.default.createDirectory(at: cloudBakeDirectory, withIntermediateDirectories: true)
+        return try open(at: cloudBakeDirectory.appendingPathComponent("cloudbake-owner.sqlite"))
+    }
+
     static func open(at databaseURL: URL) throws -> AppDatabase {
         let queue = try DatabaseQueue(path: databaseURL.path, configuration: configuration())
         try AppDatabaseMigrations.makeMigrator().migrate(queue)
