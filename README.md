@@ -11,6 +11,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0003: Core Data Model
 - Slice RFC-0004: Inventory List and Add Item
 - Slice RFC-0005: Inventory Quantity and Minimum Alert
+- Slice RFC-0006: iOS Test Workflow Split
 
 ## Engineering Guardrails
 
@@ -27,3 +28,17 @@ xcodebuild test -project CloudBakeOwner.xcodeproj -scheme CloudBakeOwner -destin
 ```
 
 The project uses Swift Package Manager for dependencies. Xcode should resolve `GRDB.swift` from the checked-in package lockfile. Local builds require an installed iOS platform/runtime that matches the active Xcode version.
+
+## Test Lanes
+
+During development, run the fast unit and integration lane first:
+
+```sh
+xcodebuild test -project CloudBakeOwner.xcodeproj -scheme CloudBakeOwner -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:CloudBakeOwnerTests
+```
+
+Before opening or merging implementation pull requests, run the full scheme test command or confirm CI has passed both jobs:
+
+```sh
+xcodebuild test -project CloudBakeOwner.xcodeproj -scheme CloudBakeOwner -destination 'platform=iOS Simulator,name=iPhone 17'
+```

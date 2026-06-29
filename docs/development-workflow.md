@@ -21,6 +21,37 @@ Pull requests must follow `docs/engineering-guardrails.md`.
 
 Implementation pull requests must include relevant unit, integration, and acceptance test evidence.
 
+## Local Test Lanes
+
+Use the fast lane while developing a slice:
+
+```sh
+xcodebuild test \
+  -project CloudBakeOwner.xcodeproj \
+  -scheme CloudBakeOwner \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -only-testing:CloudBakeOwnerTests
+```
+
+Use the full lane before an implementation PR is ready to merge, or rely on CI passing both the unit/integration and acceptance UI jobs:
+
+```sh
+xcodebuild test \
+  -project CloudBakeOwner.xcodeproj \
+  -scheme CloudBakeOwner \
+  -destination 'platform=iOS Simulator,name=iPhone 17'
+```
+
+Acceptance tests can also be run directly when UI behavior changes:
+
+```sh
+xcodebuild test \
+  -project CloudBakeOwner.xcodeproj \
+  -scheme CloudBakeOwner \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -only-testing:CloudBakeOwnerUITests
+```
+
 ## Main Branch Protection
 
 `main` should be protected in GitHub with these rules:

@@ -7,8 +7,8 @@ on:
       - main
 
 jobs:
-  test:
-    name: Build and Test
+  unit-integration-tests:
+    name: Unit and Integration Tests
     runs-on: macos-15
 
     steps:
@@ -18,7 +18,7 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Test
+      - name: Run unit and integration tests
         run: |
           SIMULATOR_NAME="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { gsub(/^ +| +$/, "", $1); print $1; exit }')"
           if [ -z "$SIMULATOR_NAME" ]; then
@@ -30,4 +30,31 @@ jobs:
           xcodebuild test \
             -project CloudBakeOwner.xcodeproj \
             -scheme CloudBakeOwner \
-            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME"
+            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" \
+            -only-testing:CloudBakeOwnerTests
+
+  acceptance-tests:
+    name: Acceptance UI Tests
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Run acceptance UI tests
+        run: |
+          SIMULATOR_NAME="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { gsub(/^ +| +$/, "", $1); print $1; exit }')"
+          if [ -z "$SIMULATOR_NAME" ]; then
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "Using iOS simulator: $SIMULATOR_NAME"
+
+          xcodebuild test \
+            -project CloudBakeOwner.xcodeproj \
+            -scheme CloudBakeOwner \
+            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" \
+            -only-testing:CloudBakeOwnerUITests
