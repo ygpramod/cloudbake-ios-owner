@@ -19,6 +19,11 @@
 		41000000000000000000000A /* HealthCheckRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000013 /* HealthCheckRepository.swift */; };
 		41000000000000000000000B /* AppDatabaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000014 /* AppDatabaseTests.swift */; };
 		41000000000000000000000C /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000001 /* GRDB */; };
+		41000000000000000000000D /* CoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000015 /* CoreModels.swift */; };
+		41000000000000000000000E /* CoreDataRepositories.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000016 /* CoreDataRepositories.swift */; };
+		41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000017 /* GRDBCoreDataRepository.swift */; };
+		410000000000000000000010 /* CoreModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000018 /* CoreModelsTests.swift */; };
+		410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000019 /* CoreDataRepositoryTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,6 +58,11 @@
 		420000000000000000000012 /* AppDatabaseMigrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseMigrations.swift; sourceTree = "<group>"; };
 		420000000000000000000013 /* HealthCheckRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckRepository.swift; sourceTree = "<group>"; };
 		420000000000000000000014 /* AppDatabaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseTests.swift; sourceTree = "<group>"; };
+		420000000000000000000015 /* CoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreModels.swift; sourceTree = "<group>"; };
+		420000000000000000000016 /* CoreDataRepositories.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataRepositories.swift; sourceTree = "<group>"; };
+		420000000000000000000017 /* GRDBCoreDataRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBCoreDataRepository.swift; sourceTree = "<group>"; };
+		420000000000000000000018 /* CoreModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreModelsTests.swift; sourceTree = "<group>"; };
+		420000000000000000000019 /* CoreDataRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataRepositoryTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,6 +105,7 @@
 			isa = PBXGroup;
 			children = (
 				450000000000000000000003 /* App */,
+				450000000000000000000013 /* Domain */,
 				450000000000000000000004 /* Features */,
 				450000000000000000000011 /* Persistence */,
 			);
@@ -140,9 +151,18 @@
 			isa = PBXGroup;
 			children = (
 				420000000000000000000006 /* AppDestinationTests.swift */,
+				450000000000000000000014 /* Domain */,
 				450000000000000000000012 /* Persistence */,
 			);
 			path = CloudBakeOwnerTests;
+			sourceTree = "<group>";
+		};
+		450000000000000000000013 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000015 /* CoreModels.swift */,
+			);
+			path = Domain;
 			sourceTree = "<group>";
 		};
 		450000000000000000000011 /* Persistence */ = {
@@ -150,15 +170,26 @@
 			children = (
 				420000000000000000000011 /* AppDatabase.swift */,
 				420000000000000000000012 /* AppDatabaseMigrations.swift */,
+				420000000000000000000016 /* CoreDataRepositories.swift */,
+				420000000000000000000017 /* GRDBCoreDataRepository.swift */,
 				420000000000000000000013 /* HealthCheckRepository.swift */,
 			);
 			path = Persistence;
+			sourceTree = "<group>";
+		};
+		450000000000000000000014 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000018 /* CoreModelsTests.swift */,
+			);
+			path = Domain;
 			sourceTree = "<group>";
 		};
 		450000000000000000000012 /* Persistence */ = {
 			isa = PBXGroup;
 			children = (
 				420000000000000000000014 /* AppDatabaseTests.swift */,
+				420000000000000000000019 /* CoreDataRepositoryTests.swift */,
 			);
 			path = Persistence;
 			sourceTree = "<group>";
@@ -322,6 +353,9 @@
 				410000000000000000000005 /* PlaceholderScreen.swift in Sources */,
 				410000000000000000000008 /* AppDatabase.swift in Sources */,
 				410000000000000000000009 /* AppDatabaseMigrations.swift in Sources */,
+				41000000000000000000000D /* CoreModels.swift in Sources */,
+				41000000000000000000000E /* CoreDataRepositories.swift in Sources */,
+				41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */,
 				41000000000000000000000A /* HealthCheckRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -332,6 +366,8 @@
 			files = (
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
 				41000000000000000000000B /* AppDatabaseTests.swift in Sources */,
+				410000000000000000000010 /* CoreModelsTests.swift in Sources */,
+				410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -24,6 +24,10 @@ final class AppDatabase {
         GRDBHealthCheckRepository(writer: writer)
     }
 
+    func makeCoreDataRepository() -> GRDBCoreDataRepository {
+        GRDBCoreDataRepository(writer: writer)
+    }
+
     private static func configuration() -> Configuration {
         var configuration = Configuration()
         configuration.prepareDatabase { db in
