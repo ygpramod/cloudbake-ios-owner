@@ -8,6 +8,14 @@ final class AppDatabase {
         self.writer = writer
     }
 
+    static func openConfigured() throws -> AppDatabase {
+        if ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1" {
+            return try makeInMemory()
+        }
+
+        return try openDefault()
+    }
+
     static func openDefault() throws -> AppDatabase {
         let applicationSupportURL = try FileManager.default.url(
             for: .applicationSupportDirectory,

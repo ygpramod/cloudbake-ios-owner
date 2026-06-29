@@ -10,6 +10,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0002: Local Persistence Foundation
 - Slice RFC-0003: Core Data Model
 - Slice RFC-0004: Inventory List and Add Item
+- Slice RFC-0005: Inventory Quantity and Minimum Alert
 
 ## Engineering Guardrails
 

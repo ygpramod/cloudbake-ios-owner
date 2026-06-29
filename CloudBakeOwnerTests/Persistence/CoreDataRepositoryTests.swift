@@ -13,6 +13,7 @@ final class CoreDataRepositoryTests: XCTestCase {
             id: "inventory-flour",
             name: "Cake flour",
             unit: .gram,
+            currentQuantity: 750,
             minimumQuantity: 500,
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt
@@ -124,6 +125,7 @@ final class CoreDataRepositoryTests: XCTestCase {
             id: "inventory-sugar",
             name: "Sugar",
             unit: .gram,
+            currentQuantity: 100,
             minimumQuantity: 250,
             createdAt: timestamp,
             updatedAt: timestamp
@@ -132,6 +134,7 @@ final class CoreDataRepositoryTests: XCTestCase {
             id: "inventory-butter",
             name: "Butter",
             unit: .gram,
+            currentQuantity: 600,
             minimumQuantity: 500,
             createdAt: timestamp,
             updatedAt: timestamp

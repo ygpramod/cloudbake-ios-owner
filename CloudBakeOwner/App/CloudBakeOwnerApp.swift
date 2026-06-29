@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct CloudBakeOwnerApp: App {
     private let database = Result {
-        try AppDatabase.openDefault()
+        try AppDatabase.openConfigured()
     }
 
     var body: some Scene {

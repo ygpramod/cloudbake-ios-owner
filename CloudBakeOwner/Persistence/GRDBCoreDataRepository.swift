@@ -21,13 +21,14 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             try db.execute(
                 sql: """
                     INSERT OR REPLACE INTO inventory_items
-                    (id, name, unit, minimum_quantity, created_at_unix_time, updated_at_unix_time)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    (id, name, unit, current_quantity, minimum_quantity, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                 arguments: arguments([
                     item.id,
                     item.name,
                     item.unit.rawValue,
+                    item.currentQuantity,
                     item.minimumQuantity,
                     item.createdAt.timeIntervalSince1970,
                     item.updatedAt.timeIntervalSince1970
@@ -388,6 +389,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             id: row["id"],
             name: row["name"],
             unit: unit,
+            currentQuantity: row["current_quantity"],
             minimumQuantity: row["minimum_quantity"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
