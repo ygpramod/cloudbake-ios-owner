@@ -21,6 +21,7 @@ Create the smallest useful owner app foundation: a SwiftUI iPhone/iPad app that 
 - Add placeholder screens only.
 - Add XCTest and XCUITest targets.
 - Add GitHub Actions CI that builds the app and runs initial tests.
+- Add repo-local engineering guardrails and ADRs required for owner app development.
 
 ## Out of Scope
 
@@ -40,6 +41,7 @@ Create the smallest useful owner app foundation: a SwiftUI iPhone/iPad app that 
 - The app must expose navigation destinations for Dashboard, Orders, Inventory, Recipes, Designs, Customers, and Settings.
 - Tests must exist from this slice.
 - CI must fail if the app does not build or launch tests fail.
+- Repo-local guardrails must document SwiftUI code quality, accessibility, testing, privacy, and future observability expectations.
 
 ## Acceptance Criteria
 

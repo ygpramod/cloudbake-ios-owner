@@ -8,6 +8,12 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 
 - Slice RFC-0001: Owner App Shell
 
+## Engineering Guardrails
+
+- Local guardrails: `docs/engineering-guardrails.md`
+- Architecture decisions: `docs/adr/`
+- Slice RFCs: `docs/rfc/slices/`
+
 ## Build
 
 Open `CloudBakeOwner.xcodeproj` in Xcode, or run:

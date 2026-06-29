@@ -17,6 +17,8 @@ Every pull request should include:
 - A test plan.
 - Notes for any behavior, migration, or follow-up risk.
 
+Pull requests must follow `docs/engineering-guardrails.md`.
+
 Implementation pull requests must include relevant unit, integration, and acceptance test evidence.
 
 ## Main Branch Protection
