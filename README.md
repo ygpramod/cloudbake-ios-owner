@@ -7,6 +7,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 ## Current Slice
 
 - Slice RFC-0001: Owner App Shell
+- Slice RFC-0002: Local Persistence Foundation
 
 ## Engineering Guardrails
 
@@ -21,3 +22,5 @@ Open `CloudBakeOwner.xcodeproj` in Xcode, or run:
 ```sh
 xcodebuild test -project CloudBakeOwner.xcodeproj -scheme CloudBakeOwner -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
+
+The project uses Swift Package Manager for dependencies. Xcode should resolve `GRDB.swift` from the checked-in package lockfile. Local builds require an installed iOS platform/runtime that matches the active Xcode version.

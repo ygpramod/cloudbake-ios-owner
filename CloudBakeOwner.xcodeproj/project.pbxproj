@@ -14,6 +14,11 @@
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
 		410000000000000000000007 /* CloudBakeOwnerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000007 /* CloudBakeOwnerUITests.swift */; };
+		410000000000000000000008 /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000011 /* AppDatabase.swift */; };
+		410000000000000000000009 /* AppDatabaseMigrations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000012 /* AppDatabaseMigrations.swift */; };
+		41000000000000000000000A /* HealthCheckRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000013 /* HealthCheckRepository.swift */; };
+		41000000000000000000000B /* AppDatabaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000014 /* AppDatabaseTests.swift */; };
+		41000000000000000000000C /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000001 /* GRDB */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +49,10 @@
 		420000000000000000000008 /* CloudBakeOwner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudBakeOwner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		420000000000000000000009 /* CloudBakeOwnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CloudBakeOwnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		420000000000000000000010 /* CloudBakeOwnerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CloudBakeOwnerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		420000000000000000000011 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
+		420000000000000000000012 /* AppDatabaseMigrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseMigrations.swift; sourceTree = "<group>"; };
+		420000000000000000000013 /* HealthCheckRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckRepository.swift; sourceTree = "<group>"; };
+		420000000000000000000014 /* AppDatabaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +60,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				41000000000000000000000C /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -86,6 +96,7 @@
 			children = (
 				450000000000000000000003 /* App */,
 				450000000000000000000004 /* Features */,
+				450000000000000000000011 /* Persistence */,
 			);
 			path = CloudBakeOwner;
 			sourceTree = "<group>";
@@ -129,8 +140,27 @@
 			isa = PBXGroup;
 			children = (
 				420000000000000000000006 /* AppDestinationTests.swift */,
+				450000000000000000000012 /* Persistence */,
 			);
 			path = CloudBakeOwnerTests;
+			sourceTree = "<group>";
+		};
+		450000000000000000000011 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000011 /* AppDatabase.swift */,
+				420000000000000000000012 /* AppDatabaseMigrations.swift */,
+				420000000000000000000013 /* HealthCheckRepository.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		450000000000000000000012 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000014 /* AppDatabaseTests.swift */,
+			);
+			path = Persistence;
 			sourceTree = "<group>";
 		};
 		450000000000000000000009 /* CloudBakeOwnerUITests */ = {
@@ -167,6 +197,9 @@
 			dependencies = (
 			);
 			name = CloudBakeOwner;
+			packageProductDependencies = (
+				4C0000000000000000000001 /* GRDB */,
+			);
 			productName = CloudBakeOwner;
 			productReference = 420000000000000000000008 /* CloudBakeOwner.app */;
 			productType = "com.apple.product-type.application";
@@ -239,6 +272,9 @@
 				Base,
 			);
 			mainGroup = 450000000000000000000001;
+			packageReferences = (
+				4D0000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+			);
 			productRefGroup = 450000000000000000000010 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -284,6 +320,9 @@
 				410000000000000000000003 /* RootView.swift in Sources */,
 				410000000000000000000004 /* DashboardView.swift in Sources */,
 				410000000000000000000005 /* PlaceholderScreen.swift in Sources */,
+				410000000000000000000008 /* AppDatabase.swift in Sources */,
+				410000000000000000000009 /* AppDatabaseMigrations.swift in Sources */,
+				41000000000000000000000A /* HealthCheckRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -292,6 +331,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
+				41000000000000000000000B /* AppDatabaseTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -576,6 +616,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4D0000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.11.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4C0000000000000000000001 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D0000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 470000000000000000000001 /* Project object */;
 }
