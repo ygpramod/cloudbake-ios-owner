@@ -8,6 +8,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 
 - Slice RFC-0001: Owner App Shell
 - Slice RFC-0002: Local Persistence Foundation
+- Slice RFC-0003: Core Data Model
 
 ## Engineering Guardrails
 

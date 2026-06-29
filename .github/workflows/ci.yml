@@ -20,7 +20,14 @@ jobs:
 
       - name: Test
         run: |
+          SIMULATOR_NAME="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { gsub(/^ +| +$/, "", $1); print $1; exit }')"
+          if [ -z "$SIMULATOR_NAME" ]; then
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "Using iOS simulator: $SIMULATOR_NAME"
+
           xcodebuild test \
             -project CloudBakeOwner.xcodeproj \
             -scheme CloudBakeOwner \
-            -destination 'platform=iOS Simulator,name=iPhone 16'
+            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME"
