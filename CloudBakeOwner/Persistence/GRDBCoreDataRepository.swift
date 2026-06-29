@@ -43,14 +43,22 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 return nil
             }
 
-            return InventoryItem(
-                id: row["id"],
-                name: row["name"],
-                unit: unit,
-                minimumQuantity: row["minimum_quantity"],
-                createdAt: date(row["created_at_unix_time"]),
-                updatedAt: date(row["updated_at_unix_time"])
-            )
+            return inventoryItem(from: row, unit: unit)
+        }
+    }
+
+    func fetchInventoryItems() throws -> [InventoryItem] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: "SELECT * FROM inventory_items ORDER BY lower(name), name"
+            ).compactMap { row in
+                guard let unit = InventoryUnit(rawValue: row["unit"]) else {
+                    return nil
+                }
+
+                return inventoryItem(from: row, unit: unit)
+            }
         }
     }
 
@@ -373,6 +381,17 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 
     private func arguments(_ values: [(any DatabaseValueConvertible)?]) -> StatementArguments {
         StatementArguments(values)
+    }
+
+    private func inventoryItem(from row: Row, unit: InventoryUnit) -> InventoryItem {
+        InventoryItem(
+            id: row["id"],
+            name: row["name"],
+            unit: unit,
+            minimumQuantity: row["minimum_quantity"],
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
     }
 
     private func date(_ timeInterval: Double) -> Date {

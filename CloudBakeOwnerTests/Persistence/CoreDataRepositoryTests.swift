@@ -116,6 +116,32 @@ final class CoreDataRepositoryTests: XCTestCase {
         try repository.save(pricingRule)
         XCTAssertEqual(try repository.fetchPricingRule(id: pricingRule.id), pricingRule)
     }
+
+    func testInventoryItemsFetchInNameOrder() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let sugar = InventoryItem(
+            id: "inventory-sugar",
+            name: "Sugar",
+            unit: .gram,
+            minimumQuantity: 250,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let butter = InventoryItem(
+            id: "inventory-butter",
+            name: "Butter",
+            unit: .gram,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(sugar)
+        try repository.save(butter)
+
+        XCTAssertEqual(try repository.fetchInventoryItems(), [butter, sugar])
+    }
 }
 
 private struct TestTimestamps {

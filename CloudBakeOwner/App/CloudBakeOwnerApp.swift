@@ -2,9 +2,22 @@ import SwiftUI
 
 @main
 struct CloudBakeOwnerApp: App {
+    private let database = Result {
+        try AppDatabase.openDefault()
+    }
+
     var body: some Scene {
         WindowGroup {
-            RootView()
+            switch database {
+            case .success(let database):
+                RootView(database: database)
+            case .failure:
+                ContentUnavailableView(
+                    "CloudBake cannot open",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text("The local database could not be prepared.")
+                )
+            }
         }
     }
 }

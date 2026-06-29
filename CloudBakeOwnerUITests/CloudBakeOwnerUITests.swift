@@ -29,4 +29,24 @@ final class CloudBakeOwnerUITests: XCTestCase {
             app.navigationBars.buttons["CloudBake"].tap()
         }
     }
+
+    func testInventoryItemCanBeAdded() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.staticTexts["Inventory"].tap()
+        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 5))
+
+        app.buttons["inventory.add"].tap()
+        XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
+
+        app.textFields["inventory.form.name"].tap()
+        app.textFields["inventory.form.name"].typeText("Cake flour")
+        app.textFields["inventory.form.minimumQuantity"].tap()
+        app.textFields["inventory.form.minimumQuantity"].typeText("500")
+        app.buttons["inventory.form.save"].tap()
+
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Minimum 500 g"].exists)
+    }
 }
