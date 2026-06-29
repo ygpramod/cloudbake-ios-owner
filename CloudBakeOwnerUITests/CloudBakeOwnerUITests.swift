@@ -19,8 +19,12 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         for title in ["Orders", "Inventory", "Recipes", "Designs", "Customers", "Settings"] {
-            XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 5), "Missing navigation link for \(title)")
-            app.staticTexts[title].tap()
+            let navigationLink = app.staticTexts[title]
+            if !navigationLink.waitForExistence(timeout: 2) {
+                app.swipeUp()
+            }
+            XCTAssertTrue(navigationLink.waitForExistence(timeout: 5), "Missing navigation link for \(title)")
+            navigationLink.tap()
             XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), "Missing screen for \(title)")
             app.navigationBars.buttons["CloudBake"].tap()
         }
