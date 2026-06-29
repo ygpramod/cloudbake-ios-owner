@@ -15,4 +15,32 @@ final class CoreModelsTests: XCTestCase {
         XCTAssertEqual(OrderStatus.draft.rawValue, "draft")
         XCTAssertEqual(OrderStatus.confirmed.rawValue, "confirmed")
     }
+
+    func testInventoryItemIsLowStockWhenCurrentQuantityIsBelowMinimumQuantity() {
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_040_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_040_000)
+        )
+
+        XCTAssertTrue(item.isLowStock)
+    }
+
+    func testInventoryItemIsNotLowStockWhenCurrentQuantityMeetsMinimumQuantity() {
+        let item = InventoryItem(
+            id: "inventory-sugar",
+            name: "Sugar",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_040_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_040_000)
+        )
+
+        XCTAssertFalse(item.isLowStock)
+    }
 }

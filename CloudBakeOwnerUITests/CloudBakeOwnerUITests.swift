@@ -42,11 +42,14 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         app.textFields["inventory.form.name"].tap()
         app.textFields["inventory.form.name"].typeText("Cake flour")
+        app.textFields["inventory.form.currentQuantity"].tap()
+        app.textFields["inventory.form.currentQuantity"].typeText("250")
         app.textFields["inventory.form.minimumQuantity"].tap()
         app.textFields["inventory.form.minimumQuantity"].typeText("500")
         app.buttons["inventory.form.save"].tap()
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Current 250 g"].exists)
         XCTAssertTrue(app.staticTexts["Minimum 500 g"].exists)
     }
 }

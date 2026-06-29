@@ -14,9 +14,14 @@ struct InventoryItem: Equatable {
     let id: String
     let name: String
     let unit: InventoryUnit
+    let currentQuantity: Double
     let minimumQuantity: Double
     let createdAt: Date
     let updatedAt: Date
+
+    var isLowStock: Bool {
+        currentQuantity < minimumQuantity
+    }
 }
 
 struct Recipe: Equatable {

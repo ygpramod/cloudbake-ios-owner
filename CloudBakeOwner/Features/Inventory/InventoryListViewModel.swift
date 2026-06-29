@@ -5,6 +5,7 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var items: [InventoryItem] = []
     @Published var draftName = ""
     @Published var draftUnit: InventoryUnit = .gram
+    @Published var draftCurrentQuantity = ""
     @Published var draftMinimumQuantity = ""
     @Published var errorMessage: String?
 
@@ -45,11 +46,19 @@ final class InventoryListViewModel: ObservableObject {
             return false
         }
 
+        let currentQuantityText = draftCurrentQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentQuantity = Double(currentQuantityText) ?? 0
+        guard currentQuantity >= 0 else {
+            errorMessage = "Current quantity cannot be negative."
+            return false
+        }
+
         let now = dateProvider()
         let item = InventoryItem(
             id: idGenerator(),
             name: name,
             unit: draftUnit,
+            currentQuantity: currentQuantity,
             minimumQuantity: minimumQuantity,
             createdAt: now,
             updatedAt: now
@@ -69,6 +78,7 @@ final class InventoryListViewModel: ObservableObject {
     private func resetDraft() {
         draftName = ""
         draftUnit = .gram
+        draftCurrentQuantity = ""
         draftMinimumQuantity = ""
         errorMessage = nil
     }

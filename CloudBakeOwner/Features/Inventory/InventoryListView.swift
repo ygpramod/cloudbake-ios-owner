@@ -49,12 +49,26 @@ private struct InventoryItemRow: View {
     let item: InventoryItem
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(item.name)
-                .font(.headline)
-            Text("Minimum \(item.minimumQuantity.formatted()) \(item.unit.displayName)")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.name)
+                    .font(.headline)
+                Text("Current \(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                    .font(.subheadline)
+                Text("Minimum \(item.minimumQuantity.formatted()) \(item.unit.displayName)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if item.isLowStock {
+                Label("Low stock", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .labelStyle(.iconOnly)
+                    .accessibilityIdentifier("inventory.item.lowStock.\(item.id)")
+            }
         }
         .accessibilityIdentifier("inventory.item.\(item.id)")
     }
@@ -77,6 +91,10 @@ private struct InventoryItemForm: View {
                     }
                 }
                 .accessibilityIdentifier("inventory.form.unit")
+
+                TextField("Current quantity", text: $viewModel.draftCurrentQuantity)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("inventory.form.currentQuantity")
 
                 TextField("Minimum quantity", text: $viewModel.draftMinimumQuantity)
                     .keyboardType(.decimalPad)
@@ -151,6 +169,7 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository {
             id: "preview-flour",
             name: "Cake flour",
             unit: .gram,
+            currentQuantity: 250,
             minimumQuantity: 500,
             createdAt: Date(),
             updatedAt: Date()

@@ -113,6 +113,12 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0003_add_inventory_current_quantity") { db in
+            try db.alter(table: "inventory_items") { table in
+                table.add(column: "current_quantity", .double).notNull().defaults(to: 0)
+            }
+        }
+
         return migrator
     }
 }

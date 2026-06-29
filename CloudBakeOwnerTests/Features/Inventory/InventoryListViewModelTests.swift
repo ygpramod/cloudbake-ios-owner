@@ -9,6 +9,7 @@ final class InventoryListViewModelTests: XCTestCase {
             id: "inventory-flour",
             name: "Cake flour",
             unit: .gram,
+            currentQuantity: 750,
             minimumQuantity: 500,
             createdAt: Date(timeIntervalSince1970: 1_800_020_000),
             updatedAt: Date(timeIntervalSince1970: 1_800_020_000)
@@ -31,6 +32,7 @@ final class InventoryListViewModelTests: XCTestCase {
         )
         viewModel.draftName = " Butter "
         viewModel.draftUnit = .gram
+        viewModel.draftCurrentQuantity = "100"
         viewModel.draftMinimumQuantity = "250"
 
         XCTAssertTrue(viewModel.addItem())
@@ -42,6 +44,7 @@ final class InventoryListViewModelTests: XCTestCase {
                     id: "inventory-butter",
                     name: "Butter",
                     unit: .gram,
+                    currentQuantity: 100,
                     minimumQuantity: 250,
                     createdAt: now,
                     updatedAt: now
@@ -50,6 +53,7 @@ final class InventoryListViewModelTests: XCTestCase {
         )
         XCTAssertEqual(viewModel.items, repository.items)
         XCTAssertEqual(viewModel.draftName, "")
+        XCTAssertEqual(viewModel.draftCurrentQuantity, "")
         XCTAssertNil(viewModel.errorMessage)
     }
 
@@ -59,6 +63,15 @@ final class InventoryListViewModelTests: XCTestCase {
 
         XCTAssertFalse(viewModel.addItem())
         XCTAssertEqual(viewModel.errorMessage, "Inventory item name is required.")
+    }
+
+    func testAddItemRejectsNegativeCurrentQuantity() {
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+        viewModel.draftName = "Sugar"
+        viewModel.draftCurrentQuantity = "-1"
+
+        XCTAssertFalse(viewModel.addItem())
+        XCTAssertEqual(viewModel.errorMessage, "Current quantity cannot be negative.")
     }
 }
 
