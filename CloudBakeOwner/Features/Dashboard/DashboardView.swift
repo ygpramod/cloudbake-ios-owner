@@ -51,7 +51,7 @@ private struct LowInventoryDashboardContent: View {
                 Text("Low inventory")
                     .font(.headline)
 
-                ForEach(viewModel.lowInventoryItems.prefix(3), id: \.id) { item in
+                ForEach(viewModel.displayedLowInventoryItems, id: \.id) { item in
                     HStack(alignment: .firstTextBaseline) {
                         Text(item.name)
                         Spacer()
@@ -62,8 +62,8 @@ private struct LowInventoryDashboardContent: View {
                     .accessibilityIdentifier("dashboard.lowInventory.item.\(item.id)")
                 }
 
-                if viewModel.lowInventoryItems.count > 3 {
-                    Text("+ \(viewModel.lowInventoryItems.count - 3) more")
+                if viewModel.additionalLowInventoryCount > 0 {
+                    Text("+ \(viewModel.additionalLowInventoryCount) more")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .accessibilityIdentifier("dashboard.lowInventory.more")

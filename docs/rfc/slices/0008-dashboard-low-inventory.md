@@ -59,9 +59,11 @@ Show low inventory alerts on the dashboard so the owner can see restock needs wi
 - Unit tests:
   - Dashboard view model includes low-stock items.
   - Dashboard view model excludes healthy items.
+  - Dashboard view model limits displayed low-stock items to three and counts additional alerts.
 
 - Acceptance tests:
   - Owner can add a low-stock inventory item and see it on the dashboard.
+  - Owner can add more than three low-stock items and see an overflow count.
 
 ## Acceptance Criteria
 

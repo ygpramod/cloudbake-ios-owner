@@ -112,6 +112,21 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["250 / 500 g"].waitForExistence(timeout: 5))
     }
 
+    func testDashboardShowsOverflowCountForMoreThanThreeLowInventoryItems() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Inventory"].tap()
+        addInventoryItem(named: "Cake flour", currentQuantity: "1", minimumQuantity: "10", in: app)
+        addInventoryItem(named: "Butter", currentQuantity: "2", minimumQuantity: "10", in: app)
+        addInventoryItem(named: "Sugar", currentQuantity: "3", minimumQuantity: "10", in: app)
+        addInventoryItem(named: "Cocoa", currentQuantity: "4", minimumQuantity: "10", in: app)
+        app.navigationBars.buttons["CloudBake"].tap()
+
+        XCTAssertTrue(app.navigationBars["CloudBake"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["+ 1 more"].waitForExistence(timeout: 5))
+    }
+
     private func makeApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"
