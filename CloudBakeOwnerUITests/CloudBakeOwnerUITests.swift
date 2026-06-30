@@ -73,6 +73,28 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Possible duplicate: Cake flour already exists. Tap Save again to add a separate item."].waitForExistence(timeout: 5))
     }
 
+    func testInventoryItemCanBeEdited() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Inventory"].tap()
+        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
+
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        app.staticTexts["Cake flour"].tap()
+        XCTAssertTrue(app.navigationBars["Edit Item"].waitForExistence(timeout: 5))
+
+        let currentQuantityField = app.textFields["inventory.form.currentQuantity"]
+        currentQuantityField.tap()
+        currentQuantityField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3))
+        currentQuantityField.typeText("750")
+        app.buttons["inventory.form.save"].tap()
+
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Current 750 g"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Current 250 g"].exists)
+    }
+
     private func makeApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"

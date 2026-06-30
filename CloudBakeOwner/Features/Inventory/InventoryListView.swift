@@ -3,6 +3,7 @@ import SwiftUI
 struct InventoryListView: View {
     @StateObject private var viewModel: InventoryListViewModel
     @State private var isAddingItem = false
+    @State private var isEditingItem = false
 
     init(viewModel: InventoryListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -19,7 +20,14 @@ struct InventoryListView: View {
             } else {
                 Section("Items") {
                     ForEach(viewModel.items, id: \.id) { item in
-                        InventoryItemRow(item: item)
+                        Button {
+                            viewModel.beginEditing(item)
+                            isEditingItem = true
+                        } label: {
+                            InventoryItemRow(item: item)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("inventory.item.edit.\(item.id)")
                     }
                 }
             }
@@ -35,7 +43,24 @@ struct InventoryListView: View {
         }
         .sheet(isPresented: $isAddingItem) {
             NavigationStack {
-                InventoryItemForm(viewModel: viewModel, isPresented: $isAddingItem)
+                InventoryItemForm(
+                    title: "Add Item",
+                    viewModel: viewModel,
+                    isPresented: $isAddingItem,
+                    onCancel: {},
+                    onSave: viewModel.addItem
+                )
+            }
+        }
+        .sheet(isPresented: $isEditingItem) {
+            NavigationStack {
+                InventoryItemForm(
+                    title: "Edit Item",
+                    viewModel: viewModel,
+                    isPresented: $isEditingItem,
+                    onCancel: viewModel.cancelEditing,
+                    onSave: viewModel.saveEditedItem
+                )
             }
         }
         .onAppear {
@@ -75,8 +100,11 @@ private struct InventoryItemRow: View {
 }
 
 private struct InventoryItemForm: View {
+    let title: String
     @ObservedObject var viewModel: InventoryListViewModel
     @Binding var isPresented: Bool
+    let onCancel: () -> Void
+    let onSave: () -> Bool
 
     var body: some View {
         Form {
@@ -117,17 +145,18 @@ private struct InventoryItemForm: View {
                 }
             }
         }
-        .navigationTitle("Add Item")
+        .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
+                    onCancel()
                     isPresented = false
                 }
             }
 
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if viewModel.addItem() {
+                    if onSave() {
                         isPresented = false
                     }
                 }
@@ -185,7 +214,11 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository {
     ]
 
     func save(_ item: InventoryItem) throws {
-        items.append(item)
+        if let existingIndex = items.firstIndex(where: { $0.id == item.id }) {
+            items[existingIndex] = item
+        } else {
+            items.append(item)
+        }
     }
 
     func fetchInventoryItem(id: String) throws -> InventoryItem? {
