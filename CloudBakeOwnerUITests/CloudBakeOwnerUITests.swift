@@ -117,6 +117,34 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Cake flour"].exists)
     }
 
+    func testArchivedInventoryItemCanBeRestored() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Inventory"].tap()
+        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
+
+        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.edit.")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.swipeLeft()
+        app.buttons["Archive"].tap()
+        XCTAssertTrue(app.staticTexts["No inventory yet"].waitForExistence(timeout: 5))
+
+        app.buttons["inventory.archived"].tap()
+        XCTAssertTrue(app.navigationBars["Archived"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+
+        let archivedItemName = app.staticTexts["Cake flour"]
+        XCTAssertTrue(archivedItemName.waitForExistence(timeout: 5))
+        archivedItemName.swipeLeft()
+        app.buttons["Restore"].tap()
+        XCTAssertTrue(app.staticTexts["No archived inventory"].waitForExistence(timeout: 5))
+        app.buttons["inventory.archived.done"].tap()
+
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Current 250 g"].waitForExistence(timeout: 5))
+    }
+
     func testDashboardShowsLowInventoryItems() throws {
         let app = makeApp()
         app.launch()

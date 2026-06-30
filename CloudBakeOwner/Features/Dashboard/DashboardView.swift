@@ -119,4 +119,8 @@ private final class PreviewDashboardInventoryItemRepository: InventoryItemReposi
             )
         ].filter { !$0.isArchived }
     }
+
+    func fetchArchivedInventoryItems() throws -> [InventoryItem] {
+        []
+    }
 }

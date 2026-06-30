@@ -4,6 +4,7 @@ protocol InventoryItemRepository {
     func save(_ item: InventoryItem) throws
     func fetchInventoryItem(id: String) throws -> InventoryItem?
     func fetchInventoryItems() throws -> [InventoryItem]
+    func fetchArchivedInventoryItems() throws -> [InventoryItem]
 }
 
 protocol RecipeRepository {

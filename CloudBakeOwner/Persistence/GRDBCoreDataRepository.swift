@@ -64,6 +64,21 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         }
     }
 
+    func fetchArchivedInventoryItems() throws -> [InventoryItem] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: "SELECT * FROM inventory_items WHERE archived_at_unix_time IS NOT NULL ORDER BY archived_at_unix_time DESC, lower(name), name"
+            ).compactMap { row in
+                guard let unit = InventoryUnit(rawValue: row["unit"]) else {
+                    return nil
+                }
+
+                return inventoryItem(from: row, unit: unit)
+            }
+        }
+    }
+
     func save(_ recipe: Recipe) throws {
         try writer.write { db in
             try db.execute(

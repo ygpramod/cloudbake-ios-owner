@@ -4,6 +4,7 @@ struct InventoryListView: View {
     @StateObject private var viewModel: InventoryListViewModel
     @State private var isAddingItem = false
     @State private var isEditingItem = false
+    @State private var isShowingArchivedItems = false
 
     init(viewModel: InventoryListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -44,12 +45,21 @@ struct InventoryListView: View {
         }
         .navigationTitle("Inventory")
         .toolbar {
-            Button {
-                isAddingItem = true
-            } label: {
-                Label("Add inventory item", systemImage: "plus")
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    isShowingArchivedItems = true
+                } label: {
+                    Label("Archived inventory", systemImage: "archivebox")
+                }
+                .accessibilityIdentifier("inventory.archived")
+
+                Button {
+                    isAddingItem = true
+                } label: {
+                    Label("Add inventory item", systemImage: "plus")
+                }
+                .accessibilityIdentifier("inventory.add")
             }
-            .accessibilityIdentifier("inventory.add")
         }
         .sheet(isPresented: $isAddingItem) {
             NavigationStack {
@@ -73,10 +83,69 @@ struct InventoryListView: View {
                 )
             }
         }
+        .sheet(isPresented: $isShowingArchivedItems) {
+            NavigationStack {
+                ArchivedInventoryView(viewModel: viewModel)
+            }
+        }
         .onAppear {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.inventory.screenAccessibilityIdentifier)
+    }
+}
+
+private struct ArchivedInventoryView: View {
+    @ObservedObject var viewModel: InventoryListViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            if viewModel.archivedItems.isEmpty {
+                ContentUnavailableView(
+                    "No archived inventory",
+                    systemImage: "archivebox",
+                    description: Text("Archived ingredients and supplies will appear here.")
+                )
+            } else {
+                Section("Archived Items") {
+                    ForEach(viewModel.archivedItems, id: \.id) { item in
+                        VStack(alignment: .leading, spacing: 4) {
+                            InventoryItemRow(item: item)
+
+                            if let archivedAt = item.archivedAt {
+                                Text("Archived \(archivedAt.formatted(date: .abbreviated, time: .omitted))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button {
+                                viewModel.restoreItem(item)
+                            } label: {
+                                Label("Restore", systemImage: "arrow.uturn.backward")
+                            }
+                            .tint(.green)
+                            .accessibilityIdentifier("inventory.archived.restore.\(item.id)")
+                        }
+                        .accessibilityIdentifier("inventory.archived.item.\(item.id)")
+                    }
+                }
+            }
+        }
+        .navigationTitle("Archived")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    dismiss()
+                }
+                .accessibilityIdentifier("inventory.archived.done")
+            }
+        }
+        .onAppear {
+            viewModel.loadArchivedItems()
+        }
+        .accessibilityIdentifier("inventory.archived.screen")
     }
 }
 
@@ -237,5 +306,9 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository {
 
     func fetchInventoryItems() throws -> [InventoryItem] {
         items.filter { !$0.isArchived }
+    }
+
+    func fetchArchivedInventoryItems() throws -> [InventoryItem] {
+        items.filter(\.isArchived)
     }
 }
