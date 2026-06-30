@@ -15,6 +15,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0007: Inventory Edit Item
 - Slice RFC-0008: Dashboard Low Inventory
 - Slice RFC-0009: Inventory Archive Item
+- Slice RFC-0010: Archived Inventory Restore
 
 ## Engineering Guardrails
 

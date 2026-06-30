@@ -103,4 +103,8 @@ private final class FakeDashboardInventoryItemRepository: InventoryItemRepositor
     func fetchInventoryItems() throws -> [InventoryItem] {
         items.filter { !$0.isArchived }
     }
+
+    func fetchArchivedInventoryItems() throws -> [InventoryItem] {
+        items.filter(\.isArchived)
+    }
 }

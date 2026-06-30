@@ -203,6 +203,39 @@ final class CoreDataRepositoryTests: XCTestCase {
 
         XCTAssertEqual(try repository.fetchInventoryItems(), [active])
         XCTAssertEqual(try repository.fetchInventoryItem(id: archived.id), archived)
+        XCTAssertEqual(try repository.fetchArchivedInventoryItems(), [archived])
+    }
+
+    func testRestoredInventoryItemMovesBackToActiveFetch() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_020_000)
+        let archivedAt = Date(timeIntervalSince1970: 1_800_020_100)
+        let restoredAt = Date(timeIntervalSince1970: 1_800_020_200)
+        let archived = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: archivedAt,
+            archivedAt: archivedAt
+        )
+        let restored = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: restoredAt
+        )
+
+        try repository.save(archived)
+        try repository.save(restored)
+
+        XCTAssertEqual(try repository.fetchInventoryItems(), [restored])
+        XCTAssertEqual(try repository.fetchArchivedInventoryItems(), [])
     }
 }
 

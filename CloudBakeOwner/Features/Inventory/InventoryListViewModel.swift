@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class InventoryListViewModel: ObservableObject {
     @Published private(set) var items: [InventoryItem] = []
+    @Published private(set) var archivedItems: [InventoryItem] = []
     @Published var draftName = ""
     @Published var draftUnit: InventoryUnit = .gram
     @Published var draftCurrentQuantity = ""
@@ -32,6 +33,15 @@ final class InventoryListViewModel: ObservableObject {
             errorMessage = nil
         } catch {
             errorMessage = "Inventory could not be loaded."
+        }
+    }
+
+    func loadArchivedItems() {
+        do {
+            archivedItems = try repository.fetchArchivedInventoryItems()
+            errorMessage = nil
+        } catch {
+            errorMessage = "Archived inventory could not be loaded."
         }
     }
 
@@ -157,6 +167,26 @@ final class InventoryListViewModel: ObservableObject {
             load()
         } catch {
             errorMessage = "Inventory item could not be archived."
+        }
+    }
+
+    func restoreItem(_ item: InventoryItem) {
+        let restoredItem = InventoryItem(
+            id: item.id,
+            name: item.name,
+            unit: item.unit,
+            currentQuantity: item.currentQuantity,
+            minimumQuantity: item.minimumQuantity,
+            createdAt: item.createdAt,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.save(restoredItem)
+            load()
+            loadArchivedItems()
+        } catch {
+            errorMessage = "Inventory item could not be restored."
         }
     }
 

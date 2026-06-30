@@ -345,6 +345,64 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.addItem())
         XCTAssertNil(viewModel.duplicateWarningMessage)
     }
+
+    func testLoadArchivedItemsFetchesArchivedInventory() {
+        let repository = FakeInventoryItemRepository()
+        let archived = InventoryItem(
+            id: "inventory-archived-flour",
+            name: "Archived flour",
+            unit: .gram,
+            currentQuantity: 0,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_100),
+            archivedAt: Date(timeIntervalSince1970: 1_800_030_200)
+        )
+        repository.items = [archived]
+        let viewModel = InventoryListViewModel(repository: repository)
+
+        viewModel.loadArchivedItems()
+
+        XCTAssertEqual(viewModel.archivedItems, [archived])
+    }
+
+    func testRestoreItemMovesArchivedItemBackToActiveInventory() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let archivedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let restoredAt = Date(timeIntervalSince1970: 1_800_030_200)
+        let archived = InventoryItem(
+            id: "inventory-archived-flour",
+            name: "Archived flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: archivedAt,
+            archivedAt: archivedAt
+        )
+        repository.items = [archived]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            dateProvider: { restoredAt }
+        )
+        viewModel.loadArchivedItems()
+
+        viewModel.restoreItem(archived)
+
+        let restored = InventoryItem(
+            id: "inventory-archived-flour",
+            name: "Archived flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: restoredAt
+        )
+        XCTAssertEqual(repository.items, [restored])
+        XCTAssertEqual(viewModel.items, [restored])
+        XCTAssertEqual(viewModel.archivedItems, [])
+    }
 }
 
 private final class FakeInventoryItemRepository: InventoryItemRepository {
@@ -364,5 +422,9 @@ private final class FakeInventoryItemRepository: InventoryItemRepository {
 
     func fetchInventoryItems() throws -> [InventoryItem] {
         items.filter { !$0.isArchived }
+    }
+
+    func fetchArchivedInventoryItems() throws -> [InventoryItem] {
+        items.filter(\.isArchived)
     }
 }
