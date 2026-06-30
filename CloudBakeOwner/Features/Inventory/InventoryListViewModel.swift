@@ -139,6 +139,27 @@ final class InventoryListViewModel: ObservableObject {
         resetDraft()
     }
 
+    func archiveItem(_ item: InventoryItem) {
+        let now = dateProvider()
+        let archivedItem = InventoryItem(
+            id: item.id,
+            name: item.name,
+            unit: item.unit,
+            currentQuantity: item.currentQuantity,
+            minimumQuantity: item.minimumQuantity,
+            createdAt: item.createdAt,
+            updatedAt: now,
+            archivedAt: now
+        )
+
+        do {
+            try repository.save(archivedItem)
+            load()
+        } catch {
+            errorMessage = "Inventory item could not be archived."
+        }
+    }
+
     private func shouldWarnAboutDuplicate(
         named name: String,
         excludingItemId: String?,

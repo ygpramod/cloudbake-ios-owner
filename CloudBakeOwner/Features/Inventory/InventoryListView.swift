@@ -30,6 +30,14 @@ struct InventoryListView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("inventory.item.edit.\(item.id)")
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                viewModel.archiveItem(item)
+                            } label: {
+                                Label("Archive", systemImage: "archivebox")
+                            }
+                            .accessibilityIdentifier("inventory.item.archive.\(item.id)")
+                        }
                     }
                 }
             }
@@ -228,6 +236,6 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository {
     }
 
     func fetchInventoryItems() throws -> [InventoryItem] {
-        items
+        items.filter { !$0.isArchived }
     }
 }

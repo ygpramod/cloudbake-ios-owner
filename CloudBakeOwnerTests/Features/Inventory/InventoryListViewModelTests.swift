@@ -276,6 +276,75 @@ final class InventoryListViewModelTests: XCTestCase {
         )
         XCTAssertEqual(repository.items, [flour, sugar])
     }
+
+    func testArchiveItemHidesItemFromLoadedInventoryAndStoresArchiveTimestamp() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let updatedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let archivedAt = Date(timeIntervalSince1970: 1_800_030_200)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+        repository.items = [item]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            dateProvider: { archivedAt }
+        )
+        viewModel.load()
+
+        viewModel.archiveItem(item)
+
+        XCTAssertEqual(viewModel.items, [])
+        XCTAssertEqual(
+            repository.items,
+            [
+                InventoryItem(
+                    id: "inventory-flour",
+                    name: "Cake flour",
+                    unit: .gram,
+                    currentQuantity: 250,
+                    minimumQuantity: 500,
+                    createdAt: createdAt,
+                    updatedAt: archivedAt,
+                    archivedAt: archivedAt
+                )
+            ]
+        )
+    }
+
+    func testAddItemDoesNotWarnAboutArchivedDuplicate() {
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-archived-flour",
+                name: "Cake flour",
+                unit: .gram,
+                currentQuantity: 0,
+                minimumQuantity: 500,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_100),
+                archivedAt: Date(timeIntervalSince1970: 1_800_030_200)
+            )
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "inventory-new-flour" },
+            dateProvider: { Date(timeIntervalSince1970: 1_800_030_300) }
+        )
+        viewModel.load()
+        viewModel.draftName = "Cake flour"
+        viewModel.draftCurrentQuantity = "250"
+        viewModel.draftMinimumQuantity = "500"
+
+        XCTAssertTrue(viewModel.addItem())
+        XCTAssertNil(viewModel.duplicateWarningMessage)
+    }
 }
 
 private final class FakeInventoryItemRepository: InventoryItemRepository {
@@ -294,6 +363,6 @@ private final class FakeInventoryItemRepository: InventoryItemRepository {
     }
 
     func fetchInventoryItems() throws -> [InventoryItem] {
-        items
+        items.filter { !$0.isArchived }
     }
 }

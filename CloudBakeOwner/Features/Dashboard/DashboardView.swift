@@ -117,6 +117,6 @@ private final class PreviewDashboardInventoryItemRepository: InventoryItemReposi
                 createdAt: Date(),
                 updatedAt: Date()
             )
-        ]
+        ].filter { !$0.isArchived }
     }
 }

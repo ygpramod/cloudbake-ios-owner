@@ -21,8 +21,8 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             try db.execute(
                 sql: """
                     INSERT OR REPLACE INTO inventory_items
-                    (id, name, unit, current_quantity, minimum_quantity, created_at_unix_time, updated_at_unix_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (id, name, unit, current_quantity, minimum_quantity, created_at_unix_time, updated_at_unix_time, archived_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                 arguments: arguments([
                     item.id,
@@ -31,7 +31,8 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                     item.currentQuantity,
                     item.minimumQuantity,
                     item.createdAt.timeIntervalSince1970,
-                    item.updatedAt.timeIntervalSince1970
+                    item.updatedAt.timeIntervalSince1970,
+                    item.archivedAt?.timeIntervalSince1970
                 ])
             )
         }
@@ -52,7 +53,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         try writer.read { db in
             try Row.fetchAll(
                 db,
-                sql: "SELECT * FROM inventory_items ORDER BY lower(name), name"
+                sql: "SELECT * FROM inventory_items WHERE archived_at_unix_time IS NULL ORDER BY lower(name), name"
             ).compactMap { row in
                 guard let unit = InventoryUnit(rawValue: row["unit"]) else {
                     return nil
@@ -392,11 +393,16 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             currentQuantity: row["current_quantity"],
             minimumQuantity: row["minimum_quantity"],
             createdAt: date(row["created_at_unix_time"]),
-            updatedAt: date(row["updated_at_unix_time"])
+            updatedAt: date(row["updated_at_unix_time"]),
+            archivedAt: optionalDate(row["archived_at_unix_time"])
         )
     }
 
     private func date(_ timeInterval: Double) -> Date {
         Date(timeIntervalSince1970: timeInterval)
+    }
+
+    private func optionalDate(_ timeInterval: Double?) -> Date? {
+        timeInterval.map(Date.init(timeIntervalSince1970:))
     }
 }
