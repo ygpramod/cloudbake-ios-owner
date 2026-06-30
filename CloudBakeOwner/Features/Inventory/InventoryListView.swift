@@ -5,6 +5,7 @@ struct InventoryListView: View {
     @State private var isAddingItem = false
     @State private var isEditingItem = false
     @State private var isShowingArchivedItems = false
+    @State private var isAdjustingStock = false
 
     init(viewModel: InventoryListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -31,6 +32,16 @@ struct InventoryListView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("inventory.item.edit.\(item.id)")
+                        .swipeActions(edge: .leading) {
+                            Button {
+                                viewModel.beginAdjusting(item)
+                                isAdjustingStock = true
+                            } label: {
+                                Label("Adjust", systemImage: "plusminus")
+                            }
+                            .tint(.blue)
+                            .accessibilityIdentifier("inventory.item.adjust.\(item.id)")
+                        }
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
                                 viewModel.archiveItem(item)
@@ -88,10 +99,67 @@ struct InventoryListView: View {
                 ArchivedInventoryView(viewModel: viewModel)
             }
         }
+        .sheet(isPresented: $isAdjustingStock) {
+            NavigationStack {
+                InventoryStockAdjustmentForm(
+                    viewModel: viewModel,
+                    isPresented: $isAdjustingStock
+                )
+            }
+        }
         .onAppear {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.inventory.screenAccessibilityIdentifier)
+    }
+}
+
+private struct InventoryStockAdjustmentForm: View {
+    @ObservedObject var viewModel: InventoryListViewModel
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        Form {
+            Section("Stock") {
+                if let item = viewModel.adjustingItem {
+                    LabeledContent("Item", value: item.name)
+                    LabeledContent("Current", value: "\(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                }
+
+                TextField("Quantity to add", text: $viewModel.draftAdjustmentQuantity)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("inventory.adjust.quantity")
+
+                TextField("Note", text: $viewModel.draftAdjustmentNote)
+                    .accessibilityIdentifier("inventory.adjust.note")
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("inventory.adjust.error")
+                }
+            }
+        }
+        .navigationTitle("Adjust Stock")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    viewModel.cancelStockAdjustment()
+                    isPresented = false
+                }
+            }
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    if viewModel.recordStockAdjustment() {
+                        isPresented = false
+                    }
+                }
+                .accessibilityIdentifier("inventory.adjust.save")
+            }
+        }
     }
 }
 
@@ -279,7 +347,7 @@ extension InventoryUnit {
     }
 }
 
-private final class PreviewInventoryItemRepository: InventoryItemRepository {
+private final class PreviewInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository {
     private var items: [InventoryItem] = [
         InventoryItem(
             id: "preview-flour",
@@ -291,6 +359,7 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository {
             updatedAt: Date()
         )
     ]
+    private var transactions: [InventoryTransaction] = []
 
     func save(_ item: InventoryItem) throws {
         if let existingIndex = items.firstIndex(where: { $0.id == item.id }) {
@@ -310,5 +379,17 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository {
 
     func fetchArchivedInventoryItems() throws -> [InventoryItem] {
         items.filter(\.isArchived)
+    }
+
+    func save(_ transaction: InventoryTransaction) throws {
+        if let existingIndex = transactions.firstIndex(where: { $0.id == transaction.id }) {
+            transactions[existingIndex] = transaction
+        } else {
+            transactions.append(transaction)
+        }
+    }
+
+    func fetchInventoryTransaction(id: String) throws -> InventoryTransaction? {
+        transactions.first { $0.id == id }
     }
 }

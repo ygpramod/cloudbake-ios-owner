@@ -11,14 +11,17 @@ final class InventoryListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var duplicateWarningMessage: String?
     @Published private(set) var editingItem: InventoryItem?
+    @Published private(set) var adjustingItem: InventoryItem?
+    @Published var draftAdjustmentQuantity = ""
+    @Published var draftAdjustmentNote = ""
 
-    private let repository: any InventoryItemRepository
+    private let repository: any InventoryItemRepository & InventoryTransactionRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private var acknowledgedDuplicateNameKey: String?
 
     init(
-        repository: any InventoryItemRepository,
+        repository: any InventoryItemRepository & InventoryTransactionRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init
     ) {
@@ -190,6 +193,64 @@ final class InventoryListViewModel: ObservableObject {
         }
     }
 
+    func beginAdjusting(_ item: InventoryItem) {
+        adjustingItem = item
+        draftAdjustmentQuantity = ""
+        draftAdjustmentNote = ""
+        errorMessage = nil
+    }
+
+    func recordStockAdjustment() -> Bool {
+        guard let adjustingItem else {
+            errorMessage = "Inventory item could not be found."
+            return false
+        }
+
+        let quantityText = draftAdjustmentQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
+        let quantity = Double(quantityText) ?? 0
+        guard quantity > 0 else {
+            errorMessage = "Adjustment quantity must be greater than zero."
+            return false
+        }
+
+        let note = draftAdjustmentNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        let now = dateProvider()
+        let updatedItem = InventoryItem(
+            id: adjustingItem.id,
+            name: adjustingItem.name,
+            unit: adjustingItem.unit,
+            currentQuantity: adjustingItem.currentQuantity + quantity,
+            minimumQuantity: adjustingItem.minimumQuantity,
+            createdAt: adjustingItem.createdAt,
+            updatedAt: now
+        )
+        let transaction = InventoryTransaction(
+            id: idGenerator(),
+            inventoryItemId: adjustingItem.id,
+            kind: .adjustment,
+            quantity: quantity,
+            occurredAt: now,
+            note: note.isEmpty ? nil : note,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        do {
+            try repository.save(updatedItem)
+            try repository.save(transaction)
+            resetAdjustmentDraft()
+            load()
+            return true
+        } catch {
+            errorMessage = "Stock adjustment could not be saved."
+            return false
+        }
+    }
+
+    func cancelStockAdjustment() {
+        resetAdjustmentDraft()
+    }
+
     private func shouldWarnAboutDuplicate(
         named name: String,
         excludingItemId: String?,
@@ -236,6 +297,13 @@ final class InventoryListViewModel: ObservableObject {
         duplicateWarningMessage = nil
         acknowledgedDuplicateNameKey = nil
         editingItem = nil
+    }
+
+    private func resetAdjustmentDraft() {
+        adjustingItem = nil
+        draftAdjustmentQuantity = ""
+        draftAdjustmentNote = ""
+        errorMessage = nil
     }
 
     private func matchingInventoryItem(for name: String, nameKey: String, excludingItemId: String?) -> InventoryItem? {

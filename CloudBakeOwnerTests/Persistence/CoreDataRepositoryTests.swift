@@ -237,6 +237,47 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchInventoryItems(), [restored])
         XCTAssertEqual(try repository.fetchArchivedInventoryItems(), [])
     }
+
+    func testInventoryAdjustmentStoresUpdatedQuantityAndTransaction() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_020_000)
+        let adjustedAt = Date(timeIntervalSince1970: 1_800_020_100)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        let adjustedItem = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 350,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: adjustedAt
+        )
+        let transaction = InventoryTransaction(
+            id: "transaction-flour-adjustment",
+            inventoryItemId: item.id,
+            kind: .adjustment,
+            quantity: 100,
+            occurredAt: adjustedAt,
+            note: "Restocked",
+            createdAt: adjustedAt,
+            updatedAt: adjustedAt
+        )
+
+        try repository.save(item)
+        try repository.save(adjustedItem)
+        try repository.save(transaction)
+
+        XCTAssertEqual(try repository.fetchInventoryItem(id: item.id), adjustedItem)
+        XCTAssertEqual(try repository.fetchInventoryTransaction(id: transaction.id), transaction)
+    }
 }
 
 private struct TestTimestamps {
