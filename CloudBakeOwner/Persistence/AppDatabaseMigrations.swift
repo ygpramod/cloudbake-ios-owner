@@ -119,6 +119,12 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0004_add_inventory_archive_timestamp") { db in
+            try db.alter(table: "inventory_items") { table in
+                table.add(column: "archived_at_unix_time", .double)
+            }
+        }
+
         return migrator
     }
 }

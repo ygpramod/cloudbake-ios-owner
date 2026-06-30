@@ -51,13 +51,32 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.displayedLowInventoryItems, Array(lowItems.prefix(3)))
         XCTAssertEqual(viewModel.additionalLowInventoryCount, 1)
     }
+
+    func testLoadDoesNotShowArchivedLowInventoryItems() {
+        let repository = FakeDashboardInventoryItemRepository()
+        repository.items = [
+            makeInventoryItem(
+                id: "inventory-archived-low",
+                name: "Archived low item",
+                currentQuantity: 1,
+                minimumQuantity: 10,
+                archivedAt: Date(timeIntervalSince1970: 1_800_040_100)
+            )
+        ]
+        let viewModel = DashboardViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.lowInventoryItems, [])
+    }
 }
 
 private func makeInventoryItem(
     id: String,
     name: String,
     currentQuantity: Double,
-    minimumQuantity: Double
+    minimumQuantity: Double,
+    archivedAt: Date? = nil
 ) -> InventoryItem {
     let timestamp = Date(timeIntervalSince1970: 1_800_040_000)
     return InventoryItem(
@@ -67,7 +86,8 @@ private func makeInventoryItem(
         currentQuantity: currentQuantity,
         minimumQuantity: minimumQuantity,
         createdAt: timestamp,
-        updatedAt: timestamp
+        updatedAt: timestamp,
+        archivedAt: archivedAt
     )
 }
 
@@ -81,6 +101,6 @@ private final class FakeDashboardInventoryItemRepository: InventoryItemRepositor
     }
 
     func fetchInventoryItems() throws -> [InventoryItem] {
-        items
+        items.filter { !$0.isArchived }
     }
 }

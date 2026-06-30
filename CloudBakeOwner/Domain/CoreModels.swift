@@ -18,9 +18,34 @@ struct InventoryItem: Equatable {
     let minimumQuantity: Double
     let createdAt: Date
     let updatedAt: Date
+    let archivedAt: Date?
+
+    init(
+        id: String,
+        name: String,
+        unit: InventoryUnit,
+        currentQuantity: Double,
+        minimumQuantity: Double,
+        createdAt: Date,
+        updatedAt: Date,
+        archivedAt: Date? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.unit = unit
+        self.currentQuantity = currentQuantity
+        self.minimumQuantity = minimumQuantity
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.archivedAt = archivedAt
+    }
 
     var isLowStock: Bool {
         currentQuantity < minimumQuantity
+    }
+
+    var isArchived: Bool {
+        archivedAt != nil
     }
 }
 

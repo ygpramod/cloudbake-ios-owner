@@ -98,6 +98,25 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Current 250 g"].exists)
     }
 
+    func testInventoryItemCanBeArchived() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Inventory"].tap()
+        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
+
+        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.edit.")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.swipeLeft()
+        app.buttons["Archive"].tap()
+
+        XCTAssertTrue(app.staticTexts["No inventory yet"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons["CloudBake"].tap()
+        XCTAssertTrue(app.navigationBars["CloudBake"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["No alerts yet"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Cake flour"].exists)
+    }
+
     func testDashboardShowsLowInventoryItems() throws {
         let app = makeApp()
         app.launch()
