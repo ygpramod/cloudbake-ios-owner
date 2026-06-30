@@ -34,7 +34,7 @@ The project uses Swift Package Manager for dependencies. Xcode should resolve `G
 During development, run the fast unit and integration lane first:
 
 ```sh
-xcodebuild test -project CloudBakeOwner.xcodeproj -scheme CloudBakeOwner -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:CloudBakeOwnerTests
+xcodebuild test -project CloudBakeOwner.xcodeproj -scheme CloudBakeOwnerUnitIntegration -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 Before opening or merging implementation pull requests, run the full scheme test command or confirm CI has passed both jobs:

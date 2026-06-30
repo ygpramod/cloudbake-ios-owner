@@ -29,9 +29,8 @@ jobs:
 
           xcodebuild test \
             -project CloudBakeOwner.xcodeproj \
-            -scheme CloudBakeOwner \
-            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" \
-            -only-testing:CloudBakeOwnerTests
+            -scheme CloudBakeOwnerUnitIntegration \
+            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME"
 
   acceptance-tests:
     name: Acceptance UI Tests
@@ -55,6 +54,5 @@ jobs:
 
           xcodebuild test \
             -project CloudBakeOwner.xcodeproj \
-            -scheme CloudBakeOwner \
-            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" \
-            -only-testing:CloudBakeOwnerUITests
+            -scheme CloudBakeOwnerAcceptance \
+            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME"

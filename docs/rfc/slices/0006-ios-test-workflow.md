@@ -21,18 +21,19 @@ It does not change product behavior, production code, persistence, or acceptance
 
 CI runs two jobs:
 
-- `Unit and Integration Tests` runs `CloudBakeOwnerTests`.
-- `Acceptance UI Tests` runs `CloudBakeOwnerUITests`.
+- `Unit and Integration Tests` runs the `CloudBakeOwnerUnitIntegration` scheme.
+- `Acceptance UI Tests` runs the `CloudBakeOwnerAcceptance` scheme.
 
 Local development should usually start with the unit/integration lane:
 
 ```sh
 xcodebuild test \
   -project CloudBakeOwner.xcodeproj \
-  -scheme CloudBakeOwner \
-  -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -only-testing:CloudBakeOwnerTests
+  -scheme CloudBakeOwnerUnitIntegration \
+  -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
+
+Focused schemes are used instead of only `-only-testing` filters because scheme-level test membership controls which test bundles Xcode builds.
 
 Implementation pull requests still require acceptance confidence through either the full local scheme test or passing CI jobs.
 

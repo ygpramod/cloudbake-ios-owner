@@ -28,9 +28,8 @@ Use the fast lane while developing a slice:
 ```sh
 xcodebuild test \
   -project CloudBakeOwner.xcodeproj \
-  -scheme CloudBakeOwner \
-  -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -only-testing:CloudBakeOwnerTests
+  -scheme CloudBakeOwnerUnitIntegration \
+  -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 Use the full lane before an implementation PR is ready to merge, or rely on CI passing both the unit/integration and acceptance UI jobs:
@@ -47,9 +46,8 @@ Acceptance tests can also be run directly when UI behavior changes:
 ```sh
 xcodebuild test \
   -project CloudBakeOwner.xcodeproj \
-  -scheme CloudBakeOwner \
-  -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -only-testing:CloudBakeOwnerUITests
+  -scheme CloudBakeOwnerAcceptance \
+  -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 ## Main Branch Protection
