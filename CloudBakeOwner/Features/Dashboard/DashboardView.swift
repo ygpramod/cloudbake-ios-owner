@@ -1,11 +1,17 @@
 import SwiftUI
 
 struct DashboardView: View {
+    @StateObject private var viewModel: DashboardViewModel
+
+    init(viewModel: DashboardViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
+
     var body: some View {
         List {
             Section("Today") {
                 DashboardRow(title: "Upcoming orders", detail: "No orders yet")
-                DashboardRow(title: "Low inventory", detail: "No alerts yet")
+                LowInventoryDashboardContent(viewModel: viewModel)
             }
 
             Section("Soon") {
@@ -23,7 +29,49 @@ struct DashboardView: View {
             }
         }
         .navigationTitle("CloudBake")
+        .onAppear {
+            viewModel.load()
+        }
         .accessibilityIdentifier(AppDestination.dashboard.screenAccessibilityIdentifier)
+    }
+}
+
+private struct LowInventoryDashboardContent: View {
+    @ObservedObject var viewModel: DashboardViewModel
+
+    var body: some View {
+        if let errorMessage = viewModel.errorMessage {
+            DashboardRow(title: "Low inventory", detail: errorMessage)
+                .accessibilityIdentifier("dashboard.lowInventory.error")
+        } else if viewModel.lowInventoryItems.isEmpty {
+            DashboardRow(title: "Low inventory", detail: "No alerts yet")
+                .accessibilityIdentifier("dashboard.lowInventory.empty")
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Low inventory")
+                    .font(.headline)
+
+                ForEach(viewModel.lowInventoryItems.prefix(3), id: \.id) { item in
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(item.name)
+                        Spacer()
+                        Text("\(item.currentQuantity.formatted()) / \(item.minimumQuantity.formatted()) \(item.unit.displayName)")
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.subheadline)
+                    .accessibilityIdentifier("dashboard.lowInventory.item.\(item.id)")
+                }
+
+                if viewModel.lowInventoryItems.count > 3 {
+                    Text("+ \(viewModel.lowInventoryItems.count - 3) more")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("dashboard.lowInventory.more")
+                }
+            }
+            .padding(.vertical, 4)
+            .accessibilityIdentifier("dashboard.lowInventory.alerts")
+        }
     }
 }
 
@@ -44,5 +92,31 @@ private struct DashboardRow: View {
 }
 
 #Preview {
-    DashboardView()
+    DashboardView(
+        viewModel: DashboardViewModel(
+            repository: PreviewDashboardInventoryItemRepository()
+        )
+    )
+}
+
+private final class PreviewDashboardInventoryItemRepository: InventoryItemRepository {
+    func save(_ item: InventoryItem) throws {}
+
+    func fetchInventoryItem(id: String) throws -> InventoryItem? {
+        nil
+    }
+
+    func fetchInventoryItems() throws -> [InventoryItem] {
+        [
+            InventoryItem(
+                id: "preview-flour",
+                name: "Cake flour",
+                unit: .gram,
+                currentQuantity: 250,
+                minimumQuantity: 500,
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+        ]
+    }
 }

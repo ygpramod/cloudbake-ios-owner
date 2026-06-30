@@ -13,6 +13,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0005: Inventory Quantity and Minimum Alert
 - Slice RFC-0006: iOS Test Workflow Split
 - Slice RFC-0007: Inventory Edit Item
+- Slice RFC-0008: Dashboard Low Inventory
 
 ## Engineering Guardrails
 

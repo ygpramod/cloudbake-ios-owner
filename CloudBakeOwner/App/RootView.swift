@@ -5,7 +5,11 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack {
-            DashboardView()
+            DashboardView(
+                viewModel: DashboardViewModel(
+                    repository: database.makeCoreDataRepository()
+                )
+            )
                 .navigationDestination(for: AppDestination.self) { destination in
                     destinationView(for: destination)
                 }
@@ -17,7 +21,11 @@ struct RootView: View {
     private func destinationView(for destination: AppDestination) -> some View {
         switch destination {
         case .dashboard:
-            DashboardView()
+            DashboardView(
+                viewModel: DashboardViewModel(
+                    repository: database.makeCoreDataRepository()
+                )
+            )
         case .inventory:
             InventoryListView(
                 viewModel: InventoryListViewModel(

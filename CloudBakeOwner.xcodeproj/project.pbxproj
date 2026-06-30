@@ -27,6 +27,8 @@
 		410000000000000000000012 /* InventoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001A /* InventoryListView.swift */; };
 		410000000000000000000013 /* InventoryListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001B /* InventoryListViewModel.swift */; };
 		410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001C /* InventoryListViewModelTests.swift */; };
+		410000000000000000000015 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001D /* DashboardViewModel.swift */; };
+		410000000000000000000016 /* DashboardViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001E /* DashboardViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +71,8 @@
 		42000000000000000000001A /* InventoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListView.swift; sourceTree = "<group>"; };
 		42000000000000000000001B /* InventoryListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModel.swift; sourceTree = "<group>"; };
 		42000000000000000000001C /* InventoryListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModelTests.swift; sourceTree = "<group>"; };
+		42000000000000000000001D /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		42000000000000000000001E /* DashboardViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -142,6 +146,7 @@
 			isa = PBXGroup;
 			children = (
 				420000000000000000000004 /* DashboardView.swift */,
+				42000000000000000000001D /* DashboardViewModel.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -214,9 +219,18 @@
 		450000000000000000000016 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				450000000000000000000018 /* Dashboard */,
 				450000000000000000000017 /* Inventory */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		450000000000000000000018 /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				42000000000000000000001E /* DashboardViewModelTests.swift */,
+			);
+			path = Dashboard;
 			sourceTree = "<group>";
 		};
 		450000000000000000000017 /* Inventory */ = {
@@ -383,6 +397,7 @@
 				410000000000000000000002 /* AppDestination.swift in Sources */,
 				410000000000000000000003 /* RootView.swift in Sources */,
 				410000000000000000000004 /* DashboardView.swift in Sources */,
+				410000000000000000000015 /* DashboardViewModel.swift in Sources */,
 				410000000000000000000005 /* PlaceholderScreen.swift in Sources */,
 				410000000000000000000008 /* AppDatabase.swift in Sources */,
 				410000000000000000000009 /* AppDatabaseMigrations.swift in Sources */,
@@ -404,6 +419,7 @@
 				410000000000000000000010 /* CoreModelsTests.swift in Sources */,
 				410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
+				410000000000000000000016 /* DashboardViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
