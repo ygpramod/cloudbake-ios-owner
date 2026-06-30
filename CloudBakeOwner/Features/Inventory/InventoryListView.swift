@@ -25,6 +25,8 @@ struct InventoryListView: View {
                             isEditingItem = true
                         } label: {
                             InventoryItemRow(item: item)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("inventory.item.edit.\(item.id)")

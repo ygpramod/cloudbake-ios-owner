@@ -81,7 +81,10 @@ final class CloudBakeOwnerUITests: XCTestCase {
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        app.staticTexts["Cake flour"].tap()
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.edit."))
+            .firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5))
+            .tap()
         XCTAssertTrue(app.navigationBars["Edit Item"].waitForExistence(timeout: 5))
 
         let currentQuantityField = app.textFields["inventory.form.currentQuantity"]
