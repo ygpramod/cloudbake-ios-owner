@@ -9,6 +9,7 @@ final class InventoryListViewModel: ObservableObject {
     @Published var draftMinimumQuantity = ""
     @Published var errorMessage: String?
     @Published var duplicateWarningMessage: String?
+    @Published private(set) var editingItem: InventoryItem?
 
     private let repository: any InventoryItemRepository
     private let idGenerator: () -> String
@@ -42,28 +43,15 @@ final class InventoryListViewModel: ObservableObject {
             return false
         }
 
-        let nameKey = duplicateKey(for: name)
-        if acknowledgedDuplicateNameKey != nameKey,
-           let matchingItem = matchingInventoryItem(for: name, nameKey: nameKey) {
-            duplicateWarningMessage = "Possible duplicate: \(matchingItem.name) already exists. Tap Save again to add a separate item."
-            errorMessage = nil
-            acknowledgedDuplicateNameKey = nameKey
+        if shouldWarnAboutDuplicate(
+            named: name,
+            excludingItemId: nil,
+            warningMessage: { "Possible duplicate: \($0.name) already exists. Tap Save again to add a separate item." }
+        ) {
             return false
         }
 
-        let minimumQuantityText = draftMinimumQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
-        let minimumQuantity = Double(minimumQuantityText) ?? 0
-        guard minimumQuantity >= 0 else {
-            errorMessage = "Minimum quantity cannot be negative."
-            duplicateWarningMessage = nil
-            return false
-        }
-
-        let currentQuantityText = draftCurrentQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
-        let currentQuantity = Double(currentQuantityText) ?? 0
-        guard currentQuantity >= 0 else {
-            errorMessage = "Current quantity cannot be negative."
-            duplicateWarningMessage = nil
+        guard let quantities = validatedDraftQuantities() else {
             return false
         }
 
@@ -72,8 +60,8 @@ final class InventoryListViewModel: ObservableObject {
             id: idGenerator(),
             name: name,
             unit: draftUnit,
-            currentQuantity: currentQuantity,
-            minimumQuantity: minimumQuantity,
+            currentQuantity: quantities.current,
+            minimumQuantity: quantities.minimum,
             createdAt: now,
             updatedAt: now
         )
@@ -89,6 +77,105 @@ final class InventoryListViewModel: ObservableObject {
         }
     }
 
+    func beginEditing(_ item: InventoryItem) {
+        editingItem = item
+        draftName = item.name
+        draftUnit = item.unit
+        draftCurrentQuantity = item.currentQuantity.formatted()
+        draftMinimumQuantity = item.minimumQuantity.formatted()
+        errorMessage = nil
+        duplicateWarningMessage = nil
+        acknowledgedDuplicateNameKey = nil
+    }
+
+    func saveEditedItem() -> Bool {
+        guard let editingItem else {
+            errorMessage = "Inventory item could not be found."
+            duplicateWarningMessage = nil
+            return false
+        }
+
+        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else {
+            errorMessage = "Inventory item name is required."
+            duplicateWarningMessage = nil
+            return false
+        }
+
+        if shouldWarnAboutDuplicate(
+            named: name,
+            excludingItemId: editingItem.id,
+            warningMessage: { "Possible duplicate: \($0.name) already exists. Tap Save again to keep this item separate." }
+        ) {
+            return false
+        }
+
+        guard let quantities = validatedDraftQuantities() else {
+            return false
+        }
+
+        let item = InventoryItem(
+            id: editingItem.id,
+            name: name,
+            unit: draftUnit,
+            currentQuantity: quantities.current,
+            minimumQuantity: quantities.minimum,
+            createdAt: editingItem.createdAt,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.save(item)
+            resetDraft()
+            load()
+            return true
+        } catch {
+            errorMessage = "Inventory item could not be saved."
+            return false
+        }
+    }
+
+    func cancelEditing() {
+        resetDraft()
+    }
+
+    private func shouldWarnAboutDuplicate(
+        named name: String,
+        excludingItemId: String?,
+        warningMessage: (InventoryItem) -> String
+    ) -> Bool {
+        let nameKey = duplicateKey(for: name)
+        if acknowledgedDuplicateNameKey != nameKey,
+           let matchingItem = matchingInventoryItem(for: name, nameKey: nameKey, excludingItemId: excludingItemId) {
+            duplicateWarningMessage = warningMessage(matchingItem)
+            errorMessage = nil
+            acknowledgedDuplicateNameKey = nameKey
+            return true
+        }
+
+        return false
+    }
+
+    private func validatedDraftQuantities() -> (current: Double, minimum: Double)? {
+        let minimumQuantityText = draftMinimumQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
+        let minimumQuantity = Double(minimumQuantityText) ?? 0
+        guard minimumQuantity >= 0 else {
+            errorMessage = "Minimum quantity cannot be negative."
+            duplicateWarningMessage = nil
+            return nil
+        }
+
+        let currentQuantityText = draftCurrentQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentQuantity = Double(currentQuantityText) ?? 0
+        guard currentQuantity >= 0 else {
+            errorMessage = "Current quantity cannot be negative."
+            duplicateWarningMessage = nil
+            return nil
+        }
+
+        return (current: currentQuantity, minimum: minimumQuantity)
+    }
+
     private func resetDraft() {
         draftName = ""
         draftUnit = .gram
@@ -97,10 +184,15 @@ final class InventoryListViewModel: ObservableObject {
         errorMessage = nil
         duplicateWarningMessage = nil
         acknowledgedDuplicateNameKey = nil
+        editingItem = nil
     }
 
-    private func matchingInventoryItem(for name: String, nameKey: String) -> InventoryItem? {
+    private func matchingInventoryItem(for name: String, nameKey: String, excludingItemId: String?) -> InventoryItem? {
         items.first { item in
+            if item.id == excludingItemId {
+                return false
+            }
+
             let existingKey = duplicateKey(for: item.name)
             return existingKey == nameKey || existingKey.contains(nameKey) || nameKey.contains(existingKey)
         }
