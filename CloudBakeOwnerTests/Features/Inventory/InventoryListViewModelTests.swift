@@ -549,6 +549,129 @@ final class InventoryListViewModelTests: XCTestCase {
             ]
         )
     }
+
+    func testBeginConsumingCopiesItemIntoConsumptionDraft() {
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+
+        viewModel.beginConsuming(item)
+
+        XCTAssertEqual(viewModel.consumingItem, item)
+        XCTAssertEqual(viewModel.draftConsumptionQuantity, "")
+        XCTAssertEqual(viewModel.draftConsumptionNote, "")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testRecordStockConsumptionDecreasesCurrentQuantityAndStoresTransaction() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let consumedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 350,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "transaction-flour-consumption" },
+            dateProvider: { consumedAt }
+        )
+        viewModel.load()
+        viewModel.beginConsuming(item)
+        viewModel.draftConsumptionQuantity = "100"
+        viewModel.draftConsumptionNote = " Vanilla sponge "
+
+        XCTAssertTrue(viewModel.recordStockConsumption())
+
+        let updatedItem = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: consumedAt
+        )
+        XCTAssertEqual(repository.items, [updatedItem])
+        XCTAssertEqual(viewModel.items, [updatedItem])
+        XCTAssertEqual(
+            repository.transactions,
+            [
+                InventoryTransaction(
+                    id: "transaction-flour-consumption",
+                    inventoryItemId: "inventory-flour",
+                    kind: .consumption,
+                    quantity: 100,
+                    occurredAt: consumedAt,
+                    note: "Vanilla sponge",
+                    createdAt: consumedAt,
+                    updatedAt: consumedAt
+                )
+            ]
+        )
+        XCTAssertNil(viewModel.consumingItem)
+        XCTAssertEqual(viewModel.draftConsumptionQuantity, "")
+        XCTAssertEqual(viewModel.draftConsumptionNote, "")
+    }
+
+    func testRecordStockConsumptionRejectsZeroQuantity() {
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let repository = FakeInventoryItemRepository()
+        repository.items = [item]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.beginConsuming(item)
+        viewModel.draftConsumptionQuantity = "0"
+
+        XCTAssertFalse(viewModel.recordStockConsumption())
+
+        XCTAssertEqual(viewModel.errorMessage, "Consumption quantity must be greater than zero.")
+        XCTAssertEqual(repository.items, [item])
+        XCTAssertEqual(repository.transactions, [])
+    }
+
+    func testRecordStockConsumptionRejectsQuantityGreaterThanCurrentStock() {
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let repository = FakeInventoryItemRepository()
+        repository.items = [item]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.beginConsuming(item)
+        viewModel.draftConsumptionQuantity = "251"
+
+        XCTAssertFalse(viewModel.recordStockConsumption())
+
+        XCTAssertEqual(viewModel.errorMessage, "Consumption quantity cannot be greater than current stock.")
+        XCTAssertEqual(repository.items, [item])
+        XCTAssertEqual(repository.transactions, [])
+    }
 }
 
 private final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository {
