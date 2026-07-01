@@ -503,6 +503,52 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.items, [item])
         XCTAssertEqual(repository.transactions, [])
     }
+
+    func testArchiveItemAfterStockAdjustmentHidesAdjustedItem() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let adjustedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let archivedAt = Date(timeIntervalSince1970: 1_800_030_200)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        var dates = [adjustedAt, archivedAt]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "transaction-flour-adjustment" },
+            dateProvider: { dates.removeFirst() }
+        )
+        viewModel.load()
+        viewModel.beginAdjusting(item)
+        viewModel.draftAdjustmentQuantity = "100"
+        XCTAssertTrue(viewModel.recordStockAdjustment())
+
+        viewModel.archiveItem(item)
+
+        XCTAssertEqual(viewModel.items, [])
+        XCTAssertEqual(
+            repository.items,
+            [
+                InventoryItem(
+                    id: "inventory-flour",
+                    name: "Cake flour",
+                    unit: .gram,
+                    currentQuantity: 350,
+                    minimumQuantity: 500,
+                    createdAt: createdAt,
+                    updatedAt: archivedAt,
+                    archivedAt: archivedAt
+                )
+            ]
+        )
+    }
 }
 
 private final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository {

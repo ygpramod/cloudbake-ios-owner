@@ -154,13 +154,14 @@ final class InventoryListViewModel: ObservableObject {
 
     func archiveItem(_ item: InventoryItem) {
         let now = dateProvider()
+        let currentItem = (try? repository.fetchInventoryItem(id: item.id)) ?? item
         let archivedItem = InventoryItem(
-            id: item.id,
-            name: item.name,
-            unit: item.unit,
-            currentQuantity: item.currentQuantity,
-            minimumQuantity: item.minimumQuantity,
-            createdAt: item.createdAt,
+            id: currentItem.id,
+            name: currentItem.name,
+            unit: currentItem.unit,
+            currentQuantity: currentItem.currentQuantity,
+            minimumQuantity: currentItem.minimumQuantity,
+            createdAt: currentItem.createdAt,
             updatedAt: now,
             archivedAt: now
         )

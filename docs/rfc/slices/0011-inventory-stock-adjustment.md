@@ -72,18 +72,23 @@ The Adjust Stock sheet shows the selected item name and current quantity, accept
 
 This slice reuses the existing `inventory_transactions` table and `InventoryTransactionRepository`. No schema migration is required.
 
+Inventory item saves must use a true update/upsert path rather than delete-and-reinsert semantics so adjustment transactions can continue to reference their inventory item when the item is later edited, archived, or restored.
+
 ## Test Plan
 
 - Unit tests:
   - Beginning an adjustment copies the selected item into adjustment state.
   - Recording an adjustment increases current quantity and stores an adjustment transaction.
   - Zero adjustment quantity is rejected without changing inventory or transactions.
+  - Archiving after a stock adjustment hides the adjusted item and preserves its adjusted quantity.
 
 - Integration tests:
   - Repository can persist an adjusted item and its adjustment transaction together.
+  - Repository can archive an item that already has an adjustment transaction.
 
 - Acceptance tests:
   - Owner can add an inventory item, adjust stock from the row, and see the updated current quantity.
+  - Owner can archive an item after adjusting its stock.
 
 ## Acceptance Criteria
 

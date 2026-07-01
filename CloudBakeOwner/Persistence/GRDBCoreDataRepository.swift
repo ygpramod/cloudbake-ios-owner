@@ -20,9 +20,17 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         try writer.write { db in
             try db.execute(
                 sql: """
-                    INSERT OR REPLACE INTO inventory_items
+                    INSERT INTO inventory_items
                     (id, name, unit, current_quantity, minimum_quantity, created_at_unix_time, updated_at_unix_time, archived_at_unix_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    unit = excluded.unit,
+                    current_quantity = excluded.current_quantity,
+                    minimum_quantity = excluded.minimum_quantity,
+                    created_at_unix_time = excluded.created_at_unix_time,
+                    updated_at_unix_time = excluded.updated_at_unix_time,
+                    archived_at_unix_time = excluded.archived_at_unix_time
                     """,
                 arguments: arguments([
                     item.id,
