@@ -14,6 +14,9 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var adjustingItem: InventoryItem?
     @Published var draftAdjustmentQuantity = ""
     @Published var draftAdjustmentNote = ""
+    @Published private(set) var consumingItem: InventoryItem?
+    @Published var draftConsumptionQuantity = ""
+    @Published var draftConsumptionNote = ""
 
     private let repository: any InventoryItemRepository & InventoryTransactionRepository
     private let idGenerator: () -> String
@@ -252,6 +255,69 @@ final class InventoryListViewModel: ObservableObject {
         resetAdjustmentDraft()
     }
 
+    func beginConsuming(_ item: InventoryItem) {
+        consumingItem = item
+        draftConsumptionQuantity = ""
+        draftConsumptionNote = ""
+        errorMessage = nil
+    }
+
+    func recordStockConsumption() -> Bool {
+        guard let consumingItem else {
+            errorMessage = "Inventory item could not be found."
+            return false
+        }
+
+        let quantityText = draftConsumptionQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
+        let quantity = Double(quantityText) ?? 0
+        guard quantity > 0 else {
+            errorMessage = "Consumption quantity must be greater than zero."
+            return false
+        }
+
+        guard consumingItem.currentQuantity - quantity >= 0 else {
+            errorMessage = "Consumption quantity cannot be greater than current stock."
+            return false
+        }
+
+        let note = draftConsumptionNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        let now = dateProvider()
+        let updatedItem = InventoryItem(
+            id: consumingItem.id,
+            name: consumingItem.name,
+            unit: consumingItem.unit,
+            currentQuantity: consumingItem.currentQuantity - quantity,
+            minimumQuantity: consumingItem.minimumQuantity,
+            createdAt: consumingItem.createdAt,
+            updatedAt: now
+        )
+        let transaction = InventoryTransaction(
+            id: idGenerator(),
+            inventoryItemId: consumingItem.id,
+            kind: .consumption,
+            quantity: quantity,
+            occurredAt: now,
+            note: note.isEmpty ? nil : note,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        do {
+            try repository.save(updatedItem)
+            try repository.save(transaction)
+            resetConsumptionDraft()
+            load()
+            return true
+        } catch {
+            errorMessage = "Stock consumption could not be saved."
+            return false
+        }
+    }
+
+    func cancelStockConsumption() {
+        resetConsumptionDraft()
+    }
+
     private func shouldWarnAboutDuplicate(
         named name: String,
         excludingItemId: String?,
@@ -270,18 +336,28 @@ final class InventoryListViewModel: ObservableObject {
     }
 
     private func validatedDraftQuantities() -> (current: Double, minimum: Double)? {
-        let minimumQuantityText = draftMinimumQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
-        let minimumQuantity = Double(minimumQuantityText) ?? 0
-        guard minimumQuantity >= 0 else {
-            errorMessage = "Minimum quantity cannot be negative."
+        let currentQuantityText = draftCurrentQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let currentQuantity = Double(currentQuantityText) else {
+            errorMessage = "Current quantity is required."
             duplicateWarningMessage = nil
             return nil
         }
 
-        let currentQuantityText = draftCurrentQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
-        let currentQuantity = Double(currentQuantityText) ?? 0
         guard currentQuantity >= 0 else {
             errorMessage = "Current quantity cannot be negative."
+            duplicateWarningMessage = nil
+            return nil
+        }
+
+        let minimumQuantityText = draftMinimumQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let minimumQuantity = Double(minimumQuantityText) else {
+            errorMessage = "Minimum quantity is required."
+            duplicateWarningMessage = nil
+            return nil
+        }
+
+        guard minimumQuantity >= 0 else {
+            errorMessage = "Minimum quantity cannot be negative."
             duplicateWarningMessage = nil
             return nil
         }
@@ -304,6 +380,13 @@ final class InventoryListViewModel: ObservableObject {
         adjustingItem = nil
         draftAdjustmentQuantity = ""
         draftAdjustmentNote = ""
+        errorMessage = nil
+    }
+
+    private func resetConsumptionDraft() {
+        consumingItem = nil
+        draftConsumptionQuantity = ""
+        draftConsumptionNote = ""
         errorMessage = nil
     }
 

@@ -95,6 +95,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Current 750 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Minimum 500 g"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Current 250 g"].exists)
     }
 
@@ -178,6 +179,41 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Cake flour"].exists)
     }
 
+    func testInventoryStockCanBeConsumed() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Inventory"].tap()
+        addInventoryItem(named: "Cake flour", currentQuantity: "350", minimumQuantity: "500", in: app)
+
+        consumeFirstInventoryItem(by: "100", in: app)
+
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Current 250 g"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Current 350 g"].exists)
+    }
+
+    func testInventoryStockConsumptionCannotExceedCurrentStock() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Inventory"].tap()
+        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
+
+        let row = firstEditableInventoryRow(in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.swipeRight()
+        app.buttons["Use"].tap()
+        XCTAssertTrue(app.navigationBars["Use Stock"].waitForExistence(timeout: 5))
+        app.textFields["inventory.consume.quantity"].tap()
+        app.textFields["inventory.consume.quantity"].typeText("251")
+        app.buttons["inventory.consume.save"].tap()
+
+        XCTAssertTrue(app.staticTexts["Consumption quantity cannot be greater than current stock."].waitForExistence(timeout: 5))
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.staticTexts["Current 250 g"].waitForExistence(timeout: 5))
+    }
+
     func testDashboardShowsLowInventoryItems() throws {
         let app = makeApp()
         app.launch()
@@ -239,6 +275,18 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.textFields["inventory.adjust.quantity"].tap()
         app.textFields["inventory.adjust.quantity"].typeText(quantity)
         app.buttons["inventory.adjust.save"].tap()
+        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 5))
+    }
+
+    private func consumeFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
+        let row = firstEditableInventoryRow(in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.swipeRight()
+        app.buttons["Use"].tap()
+        XCTAssertTrue(app.navigationBars["Use Stock"].waitForExistence(timeout: 5))
+        app.textFields["inventory.consume.quantity"].tap()
+        app.textFields["inventory.consume.quantity"].typeText(quantity)
+        app.buttons["inventory.consume.save"].tap()
         XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 5))
     }
 
