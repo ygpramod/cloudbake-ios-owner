@@ -336,18 +336,28 @@ final class InventoryListViewModel: ObservableObject {
     }
 
     private func validatedDraftQuantities() -> (current: Double, minimum: Double)? {
-        let minimumQuantityText = draftMinimumQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
-        let minimumQuantity = Double(minimumQuantityText) ?? 0
-        guard minimumQuantity >= 0 else {
-            errorMessage = "Minimum quantity cannot be negative."
+        let currentQuantityText = draftCurrentQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let currentQuantity = Double(currentQuantityText) else {
+            errorMessage = "Current quantity is required."
             duplicateWarningMessage = nil
             return nil
         }
 
-        let currentQuantityText = draftCurrentQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
-        let currentQuantity = Double(currentQuantityText) ?? 0
         guard currentQuantity >= 0 else {
             errorMessage = "Current quantity cannot be negative."
+            duplicateWarningMessage = nil
+            return nil
+        }
+
+        let minimumQuantityText = draftMinimumQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let minimumQuantity = Double(minimumQuantityText) else {
+            errorMessage = "Minimum quantity is required."
+            duplicateWarningMessage = nil
+            return nil
+        }
+
+        guard minimumQuantity >= 0 else {
+            errorMessage = "Minimum quantity cannot be negative."
             duplicateWarningMessage = nil
             return nil
         }

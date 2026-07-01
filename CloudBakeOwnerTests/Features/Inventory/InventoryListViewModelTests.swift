@@ -202,6 +202,46 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftName, "")
     }
 
+    func testSaveEditedItemPreservesMinimumWhenOnlyCurrentQuantityChanges() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let editedUpdatedAt = Date(timeIntervalSince1970: 1_800_030_200)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            dateProvider: { editedUpdatedAt }
+        )
+        viewModel.load()
+        viewModel.beginEditing(item)
+        viewModel.draftCurrentQuantity = "750"
+
+        XCTAssertTrue(viewModel.saveEditedItem())
+
+        XCTAssertEqual(
+            repository.items,
+            [
+                InventoryItem(
+                    id: "inventory-flour",
+                    name: "Cake flour",
+                    unit: .gram,
+                    currentQuantity: 750,
+                    minimumQuantity: 500,
+                    createdAt: createdAt,
+                    updatedAt: editedUpdatedAt
+                )
+            ]
+        )
+    }
+
     func testSaveEditedItemRejectsBlankName() {
         let item = InventoryItem(
             id: "inventory-flour",
@@ -218,6 +258,29 @@ final class InventoryListViewModelTests: XCTestCase {
 
         XCTAssertFalse(viewModel.saveEditedItem())
         XCTAssertEqual(viewModel.errorMessage, "Inventory item name is required.")
+    }
+
+    func testSaveEditedItemRejectsBlankMinimumQuantityWithoutSaving() {
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let repository = FakeInventoryItemRepository()
+        repository.items = [item]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.beginEditing(item)
+        viewModel.draftCurrentQuantity = "750"
+        viewModel.draftMinimumQuantity = " "
+
+        XCTAssertFalse(viewModel.saveEditedItem())
+
+        XCTAssertEqual(viewModel.errorMessage, "Minimum quantity is required.")
+        XCTAssertEqual(repository.items, [item])
     }
 
     func testSaveEditedItemDoesNotWarnWhenNameStillMatchesItself() {

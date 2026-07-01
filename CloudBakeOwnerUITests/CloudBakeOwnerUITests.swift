@@ -95,6 +95,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Current 750 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Minimum 500 g"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Current 250 g"].exists)
     }
 
