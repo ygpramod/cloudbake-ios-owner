@@ -403,10 +403,157 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.items, [restored])
         XCTAssertEqual(viewModel.archivedItems, [])
     }
+
+    func testBeginAdjustingCopiesItemIntoAdjustmentDraft() {
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+
+        viewModel.beginAdjusting(item)
+
+        XCTAssertEqual(viewModel.adjustingItem, item)
+        XCTAssertEqual(viewModel.draftAdjustmentQuantity, "")
+        XCTAssertEqual(viewModel.draftAdjustmentNote, "")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testRecordStockAdjustmentIncreasesCurrentQuantityAndStoresTransaction() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let adjustedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "transaction-flour-adjustment" },
+            dateProvider: { adjustedAt }
+        )
+        viewModel.load()
+        viewModel.beginAdjusting(item)
+        viewModel.draftAdjustmentQuantity = "100"
+        viewModel.draftAdjustmentNote = " Restocked from supplier "
+
+        XCTAssertTrue(viewModel.recordStockAdjustment())
+
+        let updatedItem = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 350,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: adjustedAt
+        )
+        XCTAssertEqual(repository.items, [updatedItem])
+        XCTAssertEqual(viewModel.items, [updatedItem])
+        XCTAssertEqual(
+            repository.transactions,
+            [
+                InventoryTransaction(
+                    id: "transaction-flour-adjustment",
+                    inventoryItemId: "inventory-flour",
+                    kind: .adjustment,
+                    quantity: 100,
+                    occurredAt: adjustedAt,
+                    note: "Restocked from supplier",
+                    createdAt: adjustedAt,
+                    updatedAt: adjustedAt
+                )
+            ]
+        )
+        XCTAssertNil(viewModel.adjustingItem)
+        XCTAssertEqual(viewModel.draftAdjustmentQuantity, "")
+        XCTAssertEqual(viewModel.draftAdjustmentNote, "")
+    }
+
+    func testRecordStockAdjustmentRejectsZeroQuantity() {
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let repository = FakeInventoryItemRepository()
+        repository.items = [item]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.beginAdjusting(item)
+        viewModel.draftAdjustmentQuantity = "0"
+
+        XCTAssertFalse(viewModel.recordStockAdjustment())
+
+        XCTAssertEqual(viewModel.errorMessage, "Adjustment quantity must be greater than zero.")
+        XCTAssertEqual(repository.items, [item])
+        XCTAssertEqual(repository.transactions, [])
+    }
+
+    func testArchiveItemAfterStockAdjustmentHidesAdjustedItem() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let adjustedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let archivedAt = Date(timeIntervalSince1970: 1_800_030_200)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        var dates = [adjustedAt, archivedAt]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "transaction-flour-adjustment" },
+            dateProvider: { dates.removeFirst() }
+        )
+        viewModel.load()
+        viewModel.beginAdjusting(item)
+        viewModel.draftAdjustmentQuantity = "100"
+        XCTAssertTrue(viewModel.recordStockAdjustment())
+
+        viewModel.archiveItem(item)
+
+        XCTAssertEqual(viewModel.items, [])
+        XCTAssertEqual(
+            repository.items,
+            [
+                InventoryItem(
+                    id: "inventory-flour",
+                    name: "Cake flour",
+                    unit: .gram,
+                    currentQuantity: 350,
+                    minimumQuantity: 500,
+                    createdAt: createdAt,
+                    updatedAt: archivedAt,
+                    archivedAt: archivedAt
+                )
+            ]
+        )
+    }
 }
 
-private final class FakeInventoryItemRepository: InventoryItemRepository {
+private final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository {
     var items: [InventoryItem] = []
+    var transactions: [InventoryTransaction] = []
 
     func save(_ item: InventoryItem) throws {
         if let existingIndex = items.firstIndex(where: { $0.id == item.id }) {
@@ -426,5 +573,17 @@ private final class FakeInventoryItemRepository: InventoryItemRepository {
 
     func fetchArchivedInventoryItems() throws -> [InventoryItem] {
         items.filter(\.isArchived)
+    }
+
+    func save(_ transaction: InventoryTransaction) throws {
+        if let existingIndex = transactions.firstIndex(where: { $0.id == transaction.id }) {
+            transactions[existingIndex] = transaction
+        } else {
+            transactions.append(transaction)
+        }
+    }
+
+    func fetchInventoryTransaction(id: String) throws -> InventoryTransaction? {
+        transactions.first { $0.id == id }
     }
 }
