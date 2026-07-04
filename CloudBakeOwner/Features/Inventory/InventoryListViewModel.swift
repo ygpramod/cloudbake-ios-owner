@@ -11,6 +11,8 @@ final class InventoryListViewModel: ObservableObject {
     @Published var draftExpiryDate = Date()
     @Published var errorMessage: String?
     @Published var duplicateWarningMessage: String?
+    @Published private(set) var selectedItem: InventoryItem?
+    @Published private(set) var selectedItemBatches: [InventoryStockBatch] = []
     @Published private(set) var editingItem: InventoryItem?
     @Published private(set) var adjustingItem: InventoryItem?
     @Published var draftAdjustmentQuantity = ""
@@ -145,29 +147,27 @@ final class InventoryListViewModel: ObservableObject {
             return false
         }
 
-        guard let quantities = validatedDraftQuantities() else {
+        guard let minimumQuantity = validatedMinimumQuantity() else {
             return false
         }
 
         let item = InventoryItem(
             id: editingItem.id,
             name: name,
-            unit: draftUnit,
-            currentQuantity: quantities.current,
-            minimumQuantity: quantities.minimum,
+            unit: editingItem.unit,
+            currentQuantity: editingItem.currentQuantity,
+            minimumQuantity: minimumQuantity,
+            earliestExpiryAt: editingItem.earliestExpiryAt,
+            hasExpiredStock: editingItem.hasExpiredStock,
             createdAt: editingItem.createdAt,
             updatedAt: dateProvider()
         )
 
         do {
             try repository.save(item)
-            try reconcileBatches(
-                inventoryItemId: item.id,
-                currentQuantity: editingItem.currentQuantity,
-                targetQuantity: quantities.current,
-                expiryDateForAddedStock: draftExpiryDate,
-                updatedAt: item.updatedAt
-            )
+            if selectedItem?.id == item.id {
+                beginViewingItem(item)
+            }
             resetDraft()
             load()
             return true
@@ -179,6 +179,35 @@ final class InventoryListViewModel: ObservableObject {
 
     func cancelEditing() {
         resetDraft()
+    }
+
+    func beginViewingItem(_ item: InventoryItem) {
+        selectedItem = item
+        loadSelectedItemBatches()
+    }
+
+    func loadSelectedItemBatches() {
+        guard let selectedItem else {
+            selectedItemBatches = []
+            return
+        }
+
+        do {
+            if let refreshedItem = try repository.fetchInventoryItem(id: selectedItem.id) {
+                self.selectedItem = refreshedItem
+            }
+            selectedItemBatches = try repository.fetchInventoryStockBatches(inventoryItemId: selectedItem.id)
+            errorMessage = nil
+        } catch {
+            selectedItemBatches = []
+            errorMessage = "Inventory item details could not be loaded."
+        }
+    }
+
+    func closeSelectedItem() {
+        selectedItem = nil
+        selectedItemBatches = []
+        errorMessage = nil
     }
 
     func archiveItem(_ item: InventoryItem) {
@@ -437,6 +466,23 @@ final class InventoryListViewModel: ObservableObject {
         }
 
         return (current: currentQuantity, minimum: minimumQuantity)
+    }
+
+    private func validatedMinimumQuantity() -> Double? {
+        let minimumQuantityText = draftMinimumQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let minimumQuantity = parsedQuantity(from: minimumQuantityText) else {
+            errorMessage = "Minimum quantity is required."
+            duplicateWarningMessage = nil
+            return nil
+        }
+
+        guard minimumQuantity >= 0 else {
+            errorMessage = "Minimum quantity cannot be negative."
+            duplicateWarningMessage = nil
+            return nil
+        }
+
+        return minimumQuantity
     }
 
     private func parsedQuantity(from text: String) -> Double? {

@@ -188,6 +188,45 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testBeginViewingItemLoadsStockBatches() {
+        let repository = FakeInventoryItemRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 320,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let olderBatch = InventoryStockBatch(
+            id: "batch-flour-older",
+            inventoryItemId: item.id,
+            remainingQuantity: 20,
+            expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let newerBatch = InventoryStockBatch(
+            id: "batch-flour-newer",
+            inventoryItemId: item.id,
+            remainingQuantity: 300,
+            expiresAt: Date(timeIntervalSince1970: 1_800_202_800),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.items = [item]
+        repository.batches = [newerBatch, olderBatch]
+        let viewModel = InventoryListViewModel(repository: repository)
+
+        viewModel.beginViewingItem(item)
+
+        XCTAssertEqual(viewModel.selectedItem, item)
+        XCTAssertEqual(viewModel.selectedItemBatches, [olderBatch, newerBatch])
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testSaveEditedItemUpdatesExistingItemAndPreservesCreatedAt() {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
@@ -222,8 +261,8 @@ final class InventoryListViewModelTests: XCTestCase {
                 InventoryItem(
                     id: "inventory-flour",
                     name: "Cake flour fine",
-                    unit: .kilogram,
-                    currentQuantity: 1.25,
+                    unit: .gram,
+                    currentQuantity: 250,
                     minimumQuantity: 2,
                     createdAt: createdAt,
                     updatedAt: editedUpdatedAt
@@ -235,7 +274,7 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftName, "")
     }
 
-    func testSaveEditedItemPreservesMinimumWhenOnlyCurrentQuantityChanges() {
+    func testSaveEditedItemPreservesCurrentQuantityWhenDraftCurrentQuantityChanges() {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
         let editedUpdatedAt = Date(timeIntervalSince1970: 1_800_030_200)
@@ -266,7 +305,7 @@ final class InventoryListViewModelTests: XCTestCase {
                     id: "inventory-flour",
                     name: "Cake flour",
                     unit: .gram,
-                    currentQuantity: 750,
+                    currentQuantity: 250,
                     minimumQuantity: 500,
                     createdAt: createdAt,
                     updatedAt: editedUpdatedAt
@@ -275,12 +314,11 @@ final class InventoryListViewModelTests: XCTestCase {
         )
     }
 
-    func testSaveEditedItemUpdatesEarliestBatchExpiryWhenQuantityDoesNotChange() {
+    func testSaveEditedItemDoesNotUpdateStockBatches() {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
         let editedUpdatedAt = Date(timeIntervalSince1970: 1_800_030_200)
         let originalExpiry = Date(timeIntervalSince1970: 1_800_116_400)
-        let editedExpiry = Date(timeIntervalSince1970: 1_800_202_800)
         let item = InventoryItem(
             id: "inventory-flour",
             name: "Cake flour",
@@ -308,7 +346,7 @@ final class InventoryListViewModelTests: XCTestCase {
         )
         viewModel.load()
         viewModel.beginEditing(item)
-        viewModel.draftExpiryDate = editedExpiry
+        viewModel.draftMinimumQuantity = "600"
 
         XCTAssertTrue(viewModel.saveEditedItem())
 
@@ -319,15 +357,15 @@ final class InventoryListViewModelTests: XCTestCase {
                     id: "batch-flour-old",
                     inventoryItemId: item.id,
                     remainingQuantity: 250,
-                    expiresAt: editedExpiry,
+                    expiresAt: originalExpiry,
                     createdAt: createdAt,
-                    updatedAt: editedUpdatedAt
+                    updatedAt: createdAt
                 )
             ]
         )
     }
 
-    func testSaveEditedItemAcceptsFormattedMinimumWhenOnlyCurrentQuantityChanges() {
+    func testSaveEditedItemAcceptsFormattedMinimum() {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
         let editedUpdatedAt = Date(timeIntervalSince1970: 1_800_030_200)
@@ -347,7 +385,6 @@ final class InventoryListViewModelTests: XCTestCase {
         )
         viewModel.load()
         viewModel.beginEditing(item)
-        viewModel.draftCurrentQuantity = "500"
         viewModel.draftMinimumQuantity = "5,000"
 
         XCTAssertTrue(viewModel.saveEditedItem())
@@ -359,7 +396,7 @@ final class InventoryListViewModelTests: XCTestCase {
                     id: "inventory-flour",
                     name: "Cake flour",
                     unit: .gram,
-                    currentQuantity: 500,
+                    currentQuantity: 50,
                     minimumQuantity: 5_000,
                     createdAt: createdAt,
                     updatedAt: editedUpdatedAt
