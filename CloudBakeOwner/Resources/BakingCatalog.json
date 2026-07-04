@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Cake Flour",
+    "aliases": ["flour", "plain flour", "maida", "all purpose flour"],
+    "category": "Ingredient",
+    "active": true
+  },
+  {
+    "name": "Sugar",
+    "aliases": ["caster sugar", "icing sugar", "powdered sugar", "brown sugar"],
+    "category": "Ingredient",
+    "active": true
+  },
+  {
+    "name": "Butter",
+    "aliases": ["unsalted butter", "salted butter"],
+    "category": "Ingredient",
+    "active": true
+  },
+  {
+    "name": "Cream",
+    "aliases": ["whipping cream", "heavy cream", "fresh cream"],
+    "category": "Ingredient",
+    "active": true
+  },
+  {
+    "name": "Cocoa Powder",
+    "aliases": ["cocoa", "dark cocoa"],
+    "category": "Ingredient",
+    "active": true
+  },
+  {
+    "name": "Baking Powder",
+    "aliases": ["bake powder"],
+    "category": "Ingredient",
+    "active": true
+  },
+  {
+    "name": "Baking Soda",
+    "aliases": ["bicarbonate soda", "sodium bicarbonate"],
+    "category": "Ingredient",
+    "active": true
+  },
+  {
+    "name": "Eggs",
+    "aliases": ["egg"],
+    "category": "Ingredient",
+    "active": true
+  },
+  {
+    "name": "Vanilla Extract",
+    "aliases": ["vanilla", "vanilla essence"],
+    "category": "Ingredient",
+    "active": true
+  },
+  {
+    "name": "Fondant",
+    "aliases": ["rolled fondant", "sugar paste"],
+    "category": "Decoration",
+    "active": true
+  },
+  {
+    "name": "Cake Board",
+    "aliases": ["cake boards", "cake base"],
+    "category": "Packaging",
+    "active": true
+  },
+  {
+    "name": "Cake Box",
+    "aliases": ["cake boxes", "pastry box"],
+    "category": "Packaging",
+    "active": true
+  }
+]

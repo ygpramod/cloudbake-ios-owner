@@ -29,6 +29,9 @@
 		410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001C /* InventoryListViewModelTests.swift */; };
 		410000000000000000000015 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001D /* DashboardViewModel.swift */; };
 		410000000000000000000016 /* DashboardViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001E /* DashboardViewModelTests.swift */; };
+		410000000000000000000017 /* BakingCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001F /* BakingCatalog.swift */; };
+		410000000000000000000018 /* BakingCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000020 /* BakingCatalogTests.swift */; };
+		410000000000000000000019 /* BakingCatalog.json in Resources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000021 /* BakingCatalog.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -73,6 +76,9 @@
 		42000000000000000000001C /* InventoryListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModelTests.swift; sourceTree = "<group>"; };
 		42000000000000000000001D /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		42000000000000000000001E /* DashboardViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModelTests.swift; sourceTree = "<group>"; };
+		42000000000000000000001F /* BakingCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BakingCatalog.swift; sourceTree = "<group>"; };
+		420000000000000000000020 /* BakingCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BakingCatalogTests.swift; sourceTree = "<group>"; };
+		420000000000000000000021 /* BakingCatalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BakingCatalog.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,6 +124,7 @@
 				450000000000000000000013 /* Domain */,
 				450000000000000000000004 /* Features */,
 				450000000000000000000011 /* Persistence */,
+				450000000000000000000019 /* Resources */,
 			);
 			path = CloudBakeOwner;
 			sourceTree = "<group>";
@@ -182,6 +189,7 @@
 		450000000000000000000013 /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				42000000000000000000001F /* BakingCatalog.swift */,
 				420000000000000000000015 /* CoreModels.swift */,
 			);
 			path = Domain;
@@ -202,9 +210,18 @@
 		450000000000000000000014 /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				420000000000000000000020 /* BakingCatalogTests.swift */,
 				420000000000000000000018 /* CoreModelsTests.swift */,
 			);
 			path = Domain;
+			sourceTree = "<group>";
+		};
+		450000000000000000000019 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000021 /* BakingCatalog.json */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		450000000000000000000012 /* Persistence */ = {
@@ -369,6 +386,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				410000000000000000000019 /* BakingCatalog.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -401,6 +419,7 @@
 				410000000000000000000005 /* PlaceholderScreen.swift in Sources */,
 				410000000000000000000008 /* AppDatabase.swift in Sources */,
 				410000000000000000000009 /* AppDatabaseMigrations.swift in Sources */,
+				410000000000000000000017 /* BakingCatalog.swift in Sources */,
 				41000000000000000000000D /* CoreModels.swift in Sources */,
 				41000000000000000000000E /* CoreDataRepositories.swift in Sources */,
 				41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */,
@@ -416,6 +435,7 @@
 			files = (
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
 				41000000000000000000000B /* AppDatabaseTests.swift in Sources */,
+				410000000000000000000018 /* BakingCatalogTests.swift in Sources */,
 				410000000000000000000010 /* CoreModelsTests.swift in Sources */,
 				410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
