@@ -389,9 +389,9 @@ private struct InventoryItemRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.name)
                     .font(.headline)
-                Text("Current \(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                Text("Current quantity: \(item.currentQuantity.formatted()) \(item.unit.displayName)")
                     .font(.subheadline)
-                Text("Minimum \(item.minimumQuantity.formatted()) \(item.unit.displayName)")
+                Text("Minimum quantity: \(item.minimumQuantity.formatted()) \(item.unit.displayName)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -420,9 +420,14 @@ private struct InventoryItemForm: View {
     var body: some View {
         Form {
             Section("Item") {
-                TextField("Name", text: $viewModel.draftName)
-                    .textInputAutocapitalization(.words)
-                    .accessibilityIdentifier("inventory.form.name")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Name")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("Name", text: $viewModel.draftName)
+                        .textInputAutocapitalization(.words)
+                        .accessibilityIdentifier("inventory.form.name")
+                }
 
                 Picker("Unit", selection: $viewModel.draftUnit) {
                     ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
@@ -431,13 +436,23 @@ private struct InventoryItemForm: View {
                 }
                 .accessibilityIdentifier("inventory.form.unit")
 
-                TextField("Current quantity", text: $viewModel.draftCurrentQuantity)
-                    .keyboardType(.decimalPad)
-                    .accessibilityIdentifier("inventory.form.currentQuantity")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Current quantity")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("Current quantity", text: $viewModel.draftCurrentQuantity)
+                        .keyboardType(.decimalPad)
+                        .accessibilityIdentifier("inventory.form.currentQuantity")
+                }
 
-                TextField("Minimum quantity", text: $viewModel.draftMinimumQuantity)
-                    .keyboardType(.decimalPad)
-                    .accessibilityIdentifier("inventory.form.minimumQuantity")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Minimum quantity")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("Minimum quantity", text: $viewModel.draftMinimumQuantity)
+                        .keyboardType(.decimalPad)
+                        .accessibilityIdentifier("inventory.form.minimumQuantity")
+                }
             }
 
             if let errorMessage = viewModel.errorMessage {
