@@ -89,7 +89,21 @@ A recipe describes the ingredients and steps needed to make a cake or component.
 Future recipe work should support converting recipe details from the owner's existing recipe book
 into app data.
 
-Important units include kg, ml, grams, teaspoons, tablespoons, and cups.
+Important units include kg, liters, ml, grams, teaspoons, tablespoons, and cups.
+
+## Unit Conversion
+
+Unit conversion lets the owner enter stock movement in a unit that is convenient at the moment while
+the app stores the result in the inventory item's own unit.
+
+Compatible conversion is supported within the same measurement family:
+
+1. kg and grams,
+2. liters, ml, teaspoons, tablespoons, and cups,
+3. each only to each.
+
+The app does not treat volume and weight as interchangeable because handmade cake ingredients need
+ingredient-specific density for that conversion.
 
 ## Cake Design
 
