@@ -275,6 +275,58 @@ final class InventoryListViewModelTests: XCTestCase {
         )
     }
 
+    func testSaveEditedItemUpdatesEarliestBatchExpiryWhenQuantityDoesNotChange() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let editedUpdatedAt = Date(timeIntervalSince1970: 1_800_030_200)
+        let originalExpiry = Date(timeIntervalSince1970: 1_800_116_400)
+        let editedExpiry = Date(timeIntervalSince1970: 1_800_202_800)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            earliestExpiryAt: originalExpiry,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-flour-old",
+                inventoryItemId: item.id,
+                remainingQuantity: 250,
+                expiresAt: originalExpiry,
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            dateProvider: { editedUpdatedAt }
+        )
+        viewModel.load()
+        viewModel.beginEditing(item)
+        viewModel.draftExpiryDate = editedExpiry
+
+        XCTAssertTrue(viewModel.saveEditedItem())
+
+        XCTAssertEqual(
+            repository.batches,
+            [
+                InventoryStockBatch(
+                    id: "batch-flour-old",
+                    inventoryItemId: item.id,
+                    remainingQuantity: 250,
+                    expiresAt: editedExpiry,
+                    createdAt: createdAt,
+                    updatedAt: editedUpdatedAt
+                )
+            ]
+        )
+    }
+
     func testSaveEditedItemAcceptsFormattedMinimumWhenOnlyCurrentQuantityChanges() {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
