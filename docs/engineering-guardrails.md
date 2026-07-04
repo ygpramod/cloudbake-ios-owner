@@ -94,6 +94,16 @@ A slice is done only when:
 - CI failures must be fixed or explicitly justified before merge.
 - `main` should be protected and should not accept direct commits.
 
+## Review And Merge Agent Guardrails
+
+- Automated reviewer agents must follow `AGENTS.md`.
+- Review agents must inspect the PR diff, tests, docs, CI status, and related RFC or ADR before approving.
+- Review agents must request changes for blocking correctness, migration, privacy, testing, accessibility, documentation, or architecture issues.
+- Review agents may approve only when no blocking findings remain and CI is green, unless the user explicitly accepts a documented CI exception.
+- Merge agents must use rebase merge by default.
+- Merge agents must pass the expected head SHA to the merge operation so moved PR heads are not merged accidentally.
+- Merge agents must stop instead of merging when CI is failing, required review comments are unresolved, or the reviewed head SHA no longer matches.
+
 ## Evolution
 
 These guardrails should evolve through ADRs. When a rule becomes too strict, too vague, or too weak, update it intentionally rather than bypassing it silently.
