@@ -337,7 +337,7 @@ final class InventoryListViewModel: ObservableObject {
 
     private func validatedDraftQuantities() -> (current: Double, minimum: Double)? {
         let currentQuantityText = draftCurrentQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let currentQuantity = Double(currentQuantityText) else {
+        guard let currentQuantity = parsedQuantity(from: currentQuantityText) else {
             errorMessage = "Current quantity is required."
             duplicateWarningMessage = nil
             return nil
@@ -350,7 +350,7 @@ final class InventoryListViewModel: ObservableObject {
         }
 
         let minimumQuantityText = draftMinimumQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let minimumQuantity = Double(minimumQuantityText) else {
+        guard let minimumQuantity = parsedQuantity(from: minimumQuantityText) else {
             errorMessage = "Minimum quantity is required."
             duplicateWarningMessage = nil
             return nil
@@ -363,6 +363,23 @@ final class InventoryListViewModel: ObservableObject {
         }
 
         return (current: currentQuantity, minimum: minimumQuantity)
+    }
+
+    private func parsedQuantity(from text: String) -> Double? {
+        guard !text.isEmpty else {
+            return nil
+        }
+
+        if let quantity = Double(text) {
+            return quantity
+        }
+
+        let groupingSeparator = Locale.current.groupingSeparator ?? ","
+        let normalizedText = text
+            .replacingOccurrences(of: groupingSeparator, with: "")
+            .replacingOccurrences(of: ",", with: "")
+
+        return Double(normalizedText)
     }
 
     private func resetDraft() {
