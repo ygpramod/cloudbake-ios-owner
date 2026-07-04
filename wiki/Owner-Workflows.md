@@ -55,6 +55,9 @@ Examples:
 
 The app updates current quantity and records an adjustment transaction.
 
+The adjustment unit defaults to the item's unit. The owner can choose another compatible unit, such
+as kg for a flour item stored in grams or liters for a cream item stored in ml.
+
 Each adjustment also captures an expiry date and creates a separate stock batch. This keeps older
 and newer stock distinct when their expiry dates differ.
 
@@ -69,6 +72,9 @@ Examples:
 3. corrected stock after counting and found less quantity.
 
 The app rejects usage greater than current stock so inventory does not go below zero.
+
+The usage unit defaults to the item's unit. The owner can choose another compatible unit before
+saving, and the app converts the entry back to the item's stored unit.
 
 When stock is used, the app deducts from the oldest-expiring batch first and then moves into newer
 batches.

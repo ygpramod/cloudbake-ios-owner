@@ -21,14 +21,24 @@ The product should support practical bakery units.
 Important units from the owner workflow:
 
 1. kg,
-2. ml,
-3. grams,
-4. teaspoons,
-5. tablespoons,
-6. cups.
+2. liters,
+3. ml,
+4. grams,
+5. teaspoons,
+6. tablespoons,
+7. cups.
 
-When future recipe conversion is added, unit handling must be careful because handwritten or book
-recipes may use mixed units.
+Stock adjustment and stock consumption can be entered in compatible units. The app stores inventory
+in the item's own unit after conversion.
+
+Conversion is supported within the same measurement family:
+
+1. kg and grams,
+2. liters, ml, teaspoons, tablespoons, and cups,
+3. each only to each.
+
+The app does not convert between weight and volume because that requires ingredient-specific
+density, such as flour grams per cup.
 
 ## Low Inventory
 
@@ -91,6 +101,9 @@ Adjustment examples:
 2. added 2 cups cocoa powder,
 3. corrected stock upward after counting.
 
+The adjustment unit defaults to the item's unit, but the owner can choose another compatible unit.
+For example, a flour item stored in grams can be adjusted by entering kg.
+
 ## Stock Consumption
 
 Use consumption to reduce stock and keep a transaction record.
@@ -102,6 +115,10 @@ Consumption examples:
 3. corrected stock downward after counting.
 
 The app does not allow consumption greater than current stock.
+
+The consumption unit defaults to the item's unit, but the owner can choose another compatible unit.
+For example, a cream item stored in ml can be used by entering liters, tablespoons, teaspoons, or
+cups.
 
 Consumption also updates stock batches. The oldest-expiring remaining stock is reduced before newer
 stock.
@@ -126,7 +143,7 @@ Archive is preferred over delete because inventory history can matter later.
 Inventory does not yet support:
 
 1. recipe-driven automatic reduction,
-2. unit conversion,
+2. ingredient-density conversion between weight and volume,
 3. inventory delete,
 4. supplier tracking,
 5. purchase planning,
