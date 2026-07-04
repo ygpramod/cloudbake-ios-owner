@@ -37,6 +37,8 @@ It must:
 - Avoid vague commit messages such as `fix review comments`; review-fix commits must describe the
   actual change made.
 - Push a branch and open a PR with a clear test plan.
+- After the PR is generated, start or hand off to the review and merge agent with the PR URL, branch,
+  head commit SHA, changed scope, and local test results.
 
 It must not:
 
@@ -48,6 +50,9 @@ It must not:
 
 The review and merge agent is a gatekeeper. Its default job is to find problems, not to defend the
 implementation.
+
+The implementation agent should invoke this agent after creating each implementation PR. The review
+and merge agent may review immediately, but it may merge only when the merge rules below are met.
 
 ### Review Inputs
 
