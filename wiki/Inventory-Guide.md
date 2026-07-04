@@ -58,6 +58,20 @@ one quantity if the expiry dates differ.
 When stock is used, the app deducts from the oldest-expiring batch first. After that batch reaches
 zero, usage continues into the next oldest batch.
 
+## Inventory Detail
+
+Tap an inventory row to inspect the item before changing it.
+
+The detail view shows:
+
+1. name,
+2. unit,
+3. current quantity,
+4. minimum quantity,
+5. remaining stock batches with quantity and expiry date.
+
+Use the expiry table to see how much stock expires on each date.
+
 ## Duplicate Warning
 
 When adding inventory, the app checks for same or similar names before creating another item.
@@ -115,4 +129,5 @@ Inventory does not yet support:
 4. supplier tracking,
 5. purchase planning,
 6. editing individual stock batches directly,
-7. expiry reminder notifications.
+7. editing unit, current quantity, or expiry from item edit mode,
+8. expiry reminder notifications.

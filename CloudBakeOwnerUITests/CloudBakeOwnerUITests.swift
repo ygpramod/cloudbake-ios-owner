@@ -78,28 +78,38 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         app.staticTexts["Inventory"].tap()
-        addInventoryItem(named: "Cake flour", currentQuantity: "50", minimumQuantity: "5000", in: app)
+        addInventoryItem(named: "Cake flour", currentQuantity: "50", minimumQuantity: "500", in: app)
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.edit."))
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view."))
             .firstMatch
             .coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5))
             .tap()
-        XCTAssertTrue(app.navigationBars["Edit Item"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Unit"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Current Quantity"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Minimum Quantity"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Expiry"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Quantity"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["50 g"].waitForExistence(timeout: 5))
 
-        let currentQuantityField = app.textFields["inventory.form.currentQuantity"]
-        currentQuantityField.tap()
-        currentQuantityField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 2))
-        currentQuantityField.typeText("500")
+        app.buttons["inventory.detail.edit"].tap()
+        XCTAssertTrue(app.navigationBars["Edit Item"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Minimum Quantity"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textFields["inventory.form.currentQuantity"].exists)
+        XCTAssertFalse(app.buttons["inventory.form.unit"].exists)
+
+        let minimumQuantityField = app.textFields["inventory.form.minimumQuantity"]
+        minimumQuantityField.tap()
+        minimumQuantityField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3))
+        minimumQuantityField.typeText("600")
         app.buttons["inventory.form.save"].tap()
 
-        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current Quantity: 500 g"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Minimum Quantity: 5,000 g"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Current Quantity: 50 g"].exists)
+        XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
+        app.buttons["inventory.detail.done"].tap()
+        XCTAssertTrue(app.staticTexts["Minimum Quantity: 600 g"].waitForExistence(timeout: 5))
     }
 
     func testInventoryItemCanBeArchived() throws {
@@ -109,7 +119,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.staticTexts["Inventory"].tap()
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
 
-        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.edit.")).firstMatch
+        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view.")).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.swipeLeft()
         app.buttons["Archive"].tap()
@@ -128,7 +138,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.staticTexts["Inventory"].tap()
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
 
-        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.edit.")).firstMatch
+        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view.")).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.swipeLeft()
         app.buttons["Archive"].tap()
@@ -316,6 +326,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
     }
 
     private func firstEditableInventoryRow(in app: XCUIApplication) -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.edit.")).firstMatch
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view.")).firstMatch
     }
 }

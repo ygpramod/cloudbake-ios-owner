@@ -3,7 +3,7 @@ import SwiftUI
 struct InventoryListView: View {
     @StateObject private var viewModel: InventoryListViewModel
     @State private var isAddingItem = false
-    @State private var isEditingItem = false
+    @State private var isViewingItem = false
     @State private var isShowingArchivedItems = false
     @State private var isAdjustingStock = false
     @State private var isConsumingStock = false
@@ -25,15 +25,15 @@ struct InventoryListView: View {
                 Section("Items") {
                     ForEach(viewModel.items, id: \.id) { item in
                         Button {
-                            viewModel.beginEditing(item)
-                            isEditingItem = true
+                            viewModel.beginViewingItem(item)
+                            isViewingItem = true
                         } label: {
                             InventoryItemRow(item: item)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .accessibilityIdentifier("inventory.item.edit.\(item.id)")
+                        .accessibilityIdentifier("inventory.item.view.\(item.id)")
                         .swipeActions(edge: .leading) {
                             Button {
                                 viewModel.beginViewingHistory(item)
@@ -98,21 +98,19 @@ struct InventoryListView: View {
                     title: "Add Item",
                     viewModel: viewModel,
                     isPresented: $isAddingItem,
+                    showsUnit: true,
+                    showsCurrentQuantity: true,
                     showsExpiryDate: true,
                     onCancel: {},
                     onSave: viewModel.addItem
                 )
             }
         }
-        .sheet(isPresented: $isEditingItem) {
+        .sheet(isPresented: $isViewingItem) {
             NavigationStack {
-                InventoryItemForm(
-                    title: "Edit Item",
+                InventoryItemDetailView(
                     viewModel: viewModel,
-                    isPresented: $isEditingItem,
-                    showsExpiryDate: true,
-                    onCancel: viewModel.cancelEditing,
-                    onSave: viewModel.saveEditedItem
+                    isPresented: $isViewingItem
                 )
             }
         }
@@ -149,6 +147,101 @@ struct InventoryListView: View {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.inventory.screenAccessibilityIdentifier)
+    }
+}
+
+private struct InventoryItemDetailView: View {
+    @ObservedObject var viewModel: InventoryListViewModel
+    @Binding var isPresented: Bool
+    @State private var isEditingItem = false
+
+    var body: some View {
+        List {
+            if let item = viewModel.selectedItem {
+                Section("Item") {
+                    LabeledContent("Name", value: item.name)
+                    LabeledContent("Unit", value: item.unit.displayName)
+                    LabeledContent("Current Quantity", value: "\(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                    LabeledContent("Minimum Quantity", value: "\(item.minimumQuantity.formatted()) \(item.unit.displayName)")
+                }
+
+                Section("Expiry") {
+                    if viewModel.selectedItemBatches.filter({ $0.remainingQuantity > 0 }).isEmpty {
+                        ContentUnavailableView(
+                            "No stock batches",
+                            systemImage: "calendar.badge.exclamationmark",
+                            description: Text("Stock added with expiry dates will appear here.")
+                        )
+                    } else {
+                        HStack {
+                            Text("Quantity")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("Expiry")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        ForEach(viewModel.selectedItemBatches.filter { $0.remainingQuantity > 0 }, id: \.id) { batch in
+                            HStack {
+                                Text("\(batch.remainingQuantity.formatted()) \(item.unit.displayName)")
+                                Spacer()
+                                Text(batch.expiryDisplayText)
+                                    .foregroundStyle(batch.isExpired ? .red : .primary)
+                            }
+                            .accessibilityIdentifier("inventory.detail.batch.\(batch.id)")
+                        }
+                    }
+                }
+
+                if let errorMessage = viewModel.errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                            .accessibilityIdentifier("inventory.detail.error")
+                    }
+                }
+            }
+        }
+        .navigationTitle("Inventory Item")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Done") {
+                    viewModel.closeSelectedItem()
+                    isPresented = false
+                }
+                .accessibilityIdentifier("inventory.detail.done")
+            }
+
+            ToolbarItem(placement: .confirmationAction) {
+                if let item = viewModel.selectedItem {
+                    Button("Edit") {
+                        viewModel.beginEditing(item)
+                        isEditingItem = true
+                    }
+                    .accessibilityIdentifier("inventory.detail.edit")
+                }
+            }
+        }
+        .sheet(isPresented: $isEditingItem) {
+            NavigationStack {
+                InventoryItemForm(
+                    title: "Edit Item",
+                    viewModel: viewModel,
+                    isPresented: $isEditingItem,
+                    showsUnit: false,
+                    showsCurrentQuantity: false,
+                    showsExpiryDate: false,
+                    onCancel: viewModel.cancelEditing,
+                    onSave: viewModel.saveEditedItem
+                )
+            }
+        }
+        .onAppear {
+            viewModel.loadSelectedItemBatches()
+        }
+        .accessibilityIdentifier("inventory.detail.screen")
     }
 }
 
@@ -429,6 +522,8 @@ private struct InventoryItemForm: View {
     let title: String
     @ObservedObject var viewModel: InventoryListViewModel
     @Binding var isPresented: Bool
+    let showsUnit: Bool
+    let showsCurrentQuantity: Bool
     let showsExpiryDate: Bool
     let onCancel: () -> Void
     let onSave: () -> Bool
@@ -445,20 +540,24 @@ private struct InventoryItemForm: View {
                         .accessibilityIdentifier("inventory.form.name")
                 }
 
-                Picker("Unit", selection: $viewModel.draftUnit) {
-                    ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
-                        Text(unit.displayName).tag(unit)
+                if showsUnit {
+                    Picker("Unit", selection: $viewModel.draftUnit) {
+                        ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
+                            Text(unit.displayName).tag(unit)
+                        }
                     }
+                    .accessibilityIdentifier("inventory.form.unit")
                 }
-                .accessibilityIdentifier("inventory.form.unit")
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Current Quantity")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    TextField("Current Quantity", text: $viewModel.draftCurrentQuantity)
-                        .keyboardType(.decimalPad)
-                        .accessibilityIdentifier("inventory.form.currentQuantity")
+                if showsCurrentQuantity {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Current Quantity")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextField("Current Quantity", text: $viewModel.draftCurrentQuantity)
+                            .keyboardType(.decimalPad)
+                            .accessibilityIdentifier("inventory.form.currentQuantity")
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -574,6 +673,24 @@ private extension InventoryTransaction {
         }
 
         return "\(sign)\(quantity.formatted()) \(unit.displayName)"
+    }
+}
+
+private extension InventoryStockBatch {
+    var expiryDisplayText: String {
+        guard let expiresAt else {
+            return "No expiry"
+        }
+
+        return expiresAt.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    var isExpired: Bool {
+        guard let expiresAt else {
+            return false
+        }
+
+        return expiresAt < Date()
     }
 }
 

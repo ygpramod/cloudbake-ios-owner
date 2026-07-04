@@ -14,16 +14,18 @@ The app currently supports:
 6. current quantity and minimum quantity tracking,
 7. low-inventory detection,
 8. duplicate inventory warning,
-9. inventory item editing,
-10. inventory archiving,
-11. archived inventory restore,
-12. stock adjustment,
-13. stock consumption,
-14. stock history for active inventory items,
-15. stock batches with expiry dates,
-16. expiry-driven low inventory alerts,
-17. oldest-expiry-first stock consumption,
-18. unit, integration, and acceptance test lanes.
+9. inventory item detail view,
+10. inventory item editing for name and minimum quantity,
+11. inventory archiving,
+12. archived inventory restore,
+13. stock adjustment,
+14. stock consumption,
+15. stock history for active inventory items,
+16. stock batches with expiry dates,
+17. expiry table for remaining stock batches,
+18. expiry-driven low inventory alerts,
+19. oldest-expiry-first stock consumption,
+20. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 

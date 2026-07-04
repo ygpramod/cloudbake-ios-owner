@@ -25,13 +25,21 @@ duplicates like multiple cake flour rows.
 
 When starting quantity is entered, the owner also captures an expiry date for that starting stock.
 
+## View Inventory
+
+Tap an inventory row to view the item.
+
+The view mode shows name, unit, current quantity, minimum quantity, and an expiry table. The expiry
+table lists each remaining stock batch by quantity and expiry date.
+
 ## Edit Inventory
 
-Use edit inventory when the item name, unit, current quantity, minimum quantity, or expiry needs
-correction.
+Use edit inventory when the item name or minimum quantity needs correction.
 
-Editing is for correcting the item record. Stock movement should usually be represented by
-adjustment or consumption when the reason matters.
+Editing is reached from the inventory detail view.
+
+Current quantity should be changed through stock adjustment or stock consumption. Unit and expiry
+are not edited from item edit mode.
 
 ## Adjust Stock
 
