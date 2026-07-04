@@ -8,6 +8,8 @@ Agents must:
 
 - Follow `docs/engineering-guardrails.md`, ADRs, RFC slices, and wiki source.
 - Keep changes small, meaningful, and truthful.
+- Keep commits atomic: each commit should do one thing and use a message that describes the actual
+  behavior, test, refactor, or documentation change.
 - Reduce complexity where possible.
 - Improve readability, maintainability, and modularity as part of each slice.
 - Make code and test improvements that materially improve reliability and maintainability.
@@ -31,6 +33,9 @@ It must:
 - Run the fastest relevant local test lane before handoff.
 - Run targeted acceptance tests for touched owner workflows when practical.
 - Update RFCs, wiki pages, README, ADRs, or guardrails when durable truth changes.
+- Split independent behavior changes into separate commits, even when they ship in one PR.
+- Avoid vague commit messages such as `fix review comments`; review-fix commits must describe the
+  actual change made.
 - Push a branch and open a PR with a clear test plan.
 
 It must not:

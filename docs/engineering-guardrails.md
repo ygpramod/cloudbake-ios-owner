@@ -94,6 +94,20 @@ A slice is done only when:
 - CI failures must be fixed or explicitly justified before merge.
 - `main` should be protected and should not accept direct commits.
 
+## Commit Discipline
+
+- Each commit should do one thing: one behavior, one refactor, one documentation update, or one test
+  correction.
+- Keep commits as small as practical while preserving a buildable and reviewable state.
+- Split independent behavior changes into separate commits, even when they are delivered in the same
+  PR. For example, expiry alerts and expiry editing should be separate commits.
+- Commit messages must describe the behavior or repository truth that changed.
+- Avoid vague messages such as `fix review comments`, `changes`, `updates`, or `misc`.
+- Review-fix commits should name the actual change, such as `Preserve batch quantities when editing
+  expiry`.
+- Do not mix unrelated cleanup with feature behavior unless the cleanup is required for that behavior;
+  when cleanup is useful but independent, commit it separately.
+
 ## Review And Merge Agent Guardrails
 
 - Automated reviewer agents must follow `AGENTS.md`.
