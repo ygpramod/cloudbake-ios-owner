@@ -24,6 +24,10 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Local guardrails: `docs/engineering-guardrails.md`
 - Architecture decisions: `docs/adr/`
 - Slice RFCs: `docs/rfc/slices/`
+- Wiki source: `wiki/`
+
+The repo-local `wiki/` directory is the authored source for GitHub Wiki pages. Update it in the
+same PR when owner-facing, operator-facing, or cross-repository guidance changes.
 
 ## Build
 
