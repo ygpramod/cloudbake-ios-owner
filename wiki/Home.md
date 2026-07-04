@@ -8,13 +8,13 @@ proposals in `docs/rfc/slices/`, and repo-local quality rules in `docs/engineeri
 
 ## Pages
 
-1. [Completed Work](Completed-Work.md)
+1. [Owner App Current State](Owner-App-Current-State.md)
 
 ## Source Of Truth
 
 Repo-local `wiki/` is the source of truth. The GitHub Wiki is the publication target after changes
 are merged to `main`.
 
-For each future slice, update wiki source when the slice changes owner-facing behavior,
-operator-facing workflow, cross-repository guidance, or durable product truth. If no wiki update is
-needed, record that decision in the PR or final handoff.
+For each future slice, update wiki source when the slice changes the current app state,
+owner-facing behavior, operator-facing workflow, cross-repository guidance, or durable product
+truth. If no wiki update is needed, record that decision in the PR or final handoff.
