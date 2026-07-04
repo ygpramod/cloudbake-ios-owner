@@ -69,6 +69,23 @@ final class DashboardViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.lowInventoryItems, [])
     }
+
+    func testLoadShowsExpiredInventoryItemsEvenWhenQuantityIsAboveMinimum() {
+        let repository = FakeDashboardInventoryItemRepository()
+        let expiredItem = makeInventoryItem(
+            id: "inventory-expired-flour",
+            name: "Expired flour",
+            currentQuantity: 900,
+            minimumQuantity: 500,
+            hasExpiredStock: true
+        )
+        repository.items = [expiredItem]
+        let viewModel = DashboardViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.lowInventoryItems, [expiredItem])
+    }
 }
 
 private func makeInventoryItem(
@@ -76,6 +93,7 @@ private func makeInventoryItem(
     name: String,
     currentQuantity: Double,
     minimumQuantity: Double,
+    hasExpiredStock: Bool = false,
     archivedAt: Date? = nil
 ) -> InventoryItem {
     let timestamp = Date(timeIntervalSince1970: 1_800_040_000)
@@ -85,6 +103,7 @@ private func makeInventoryItem(
         unit: .gram,
         currentQuantity: currentQuantity,
         minimumQuantity: minimumQuantity,
+        hasExpiredStock: hasExpiredStock,
         createdAt: timestamp,
         updatedAt: timestamp,
         archivedAt: archivedAt

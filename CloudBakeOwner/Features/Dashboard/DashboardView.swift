@@ -55,7 +55,7 @@ private struct LowInventoryDashboardContent: View {
                     HStack(alignment: .firstTextBaseline) {
                         Text(item.name)
                         Spacer()
-                        Text("\(item.currentQuantity.formatted()) / \(item.minimumQuantity.formatted()) \(item.unit.displayName)")
+                        Text(item.lowInventoryDetail)
                             .foregroundStyle(.secondary)
                     }
                     .font(.subheadline)
@@ -72,6 +72,16 @@ private struct LowInventoryDashboardContent: View {
             .padding(.vertical, 4)
             .accessibilityIdentifier("dashboard.lowInventory.alerts")
         }
+    }
+}
+
+private extension InventoryItem {
+    var lowInventoryDetail: String {
+        if hasExpiredStock {
+            return "Expired stock"
+        }
+
+        return "\(currentQuantity.formatted()) / \(minimumQuantity.formatted()) \(unit.displayName)"
     }
 }
 

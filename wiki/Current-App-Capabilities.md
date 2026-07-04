@@ -20,7 +20,10 @@ The app currently supports:
 12. stock adjustment,
 13. stock consumption,
 14. stock history for active inventory items,
-15. unit, integration, and acceptance test lanes.
+15. stock batches with expiry dates,
+16. expiry-driven low inventory alerts,
+17. oldest-expiry-first stock consumption,
+18. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 

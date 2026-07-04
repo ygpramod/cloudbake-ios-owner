@@ -43,6 +43,11 @@ protocol InventoryTransactionRepository {
     func fetchInventoryTransactions(inventoryItemId: String) throws -> [InventoryTransaction]
 }
 
+protocol InventoryStockBatchRepository {
+    func save(_ batch: InventoryStockBatch) throws
+    func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch]
+}
+
 protocol PricingRuleRepository {
     func save(_ rule: PricingRule) throws
     func fetchPricingRule(id: String) throws -> PricingRule?

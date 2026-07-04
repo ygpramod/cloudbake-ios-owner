@@ -34,6 +34,7 @@ final class InventoryListViewModelTests: XCTestCase {
         viewModel.draftUnit = .gram
         viewModel.draftCurrentQuantity = "100"
         viewModel.draftMinimumQuantity = "250"
+        viewModel.draftExpiryDate = Date(timeIntervalSince1970: 1_800_116_400)
 
         XCTAssertTrue(viewModel.addItem())
 
@@ -55,6 +56,38 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftName, "")
         XCTAssertEqual(viewModel.draftCurrentQuantity, "")
         XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testAddItemStoresInitialStockBatchWithExpiry() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        let expiresAt = Date(timeIntervalSince1970: 1_800_116_400)
+        var ids = ["inventory-butter", "batch-butter-initial"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.draftName = "Butter"
+        viewModel.draftCurrentQuantity = "100"
+        viewModel.draftMinimumQuantity = "250"
+        viewModel.draftExpiryDate = expiresAt
+
+        XCTAssertTrue(viewModel.addItem())
+
+        XCTAssertEqual(
+            repository.batches,
+            [
+                InventoryStockBatch(
+                    id: "batch-butter-initial",
+                    inventoryItemId: "inventory-butter",
+                    remainingQuantity: 100,
+                    expiresAt: expiresAt,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            ]
+        )
     }
 
     func testAddItemRejectsBlankName() {
@@ -542,6 +575,16 @@ final class InventoryListViewModelTests: XCTestCase {
             updatedAt: createdAt
         )
         repository.items = [item]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-flour-initial",
+                inventoryItemId: item.id,
+                remainingQuantity: 250,
+                expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
         let viewModel = InventoryListViewModel(
             repository: repository,
             idGenerator: { "transaction-flour-adjustment" },
@@ -550,6 +593,7 @@ final class InventoryListViewModelTests: XCTestCase {
         viewModel.load()
         viewModel.beginAdjusting(item)
         viewModel.draftAdjustmentQuantity = "100"
+        viewModel.draftAdjustmentExpiryDate = Date(timeIntervalSince1970: 1_800_202_800)
         viewModel.draftAdjustmentNote = " Restocked from supplier "
 
         XCTAssertTrue(viewModel.recordStockAdjustment())
@@ -579,6 +623,17 @@ final class InventoryListViewModelTests: XCTestCase {
                     updatedAt: adjustedAt
                 )
             ]
+        )
+        XCTAssertEqual(
+            repository.batches.last,
+            InventoryStockBatch(
+                id: "transaction-flour-adjustment",
+                inventoryItemId: "inventory-flour",
+                remainingQuantity: 100,
+                expiresAt: Date(timeIntervalSince1970: 1_800_202_800),
+                createdAt: adjustedAt,
+                updatedAt: adjustedAt
+            )
         )
         XCTAssertNil(viewModel.adjustingItem)
         XCTAssertEqual(viewModel.draftAdjustmentQuantity, "")
@@ -623,6 +678,16 @@ final class InventoryListViewModelTests: XCTestCase {
             updatedAt: createdAt
         )
         repository.items = [item]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-flour-old",
+                inventoryItemId: item.id,
+                remainingQuantity: 250,
+                expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
         var dates = [adjustedAt, archivedAt]
         let viewModel = InventoryListViewModel(
             repository: repository,
@@ -688,6 +753,24 @@ final class InventoryListViewModelTests: XCTestCase {
             updatedAt: createdAt
         )
         repository.items = [item]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-flour-old",
+                inventoryItemId: item.id,
+                remainingQuantity: 150,
+                expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            ),
+            InventoryStockBatch(
+                id: "batch-flour-new",
+                inventoryItemId: item.id,
+                remainingQuantity: 200,
+                expiresAt: Date(timeIntervalSince1970: 1_800_202_800),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
         let viewModel = InventoryListViewModel(
             repository: repository,
             idGenerator: { "transaction-flour-consumption" },
@@ -726,9 +809,77 @@ final class InventoryListViewModelTests: XCTestCase {
                 )
             ]
         )
+        XCTAssertEqual(
+            repository.batches,
+            [
+                InventoryStockBatch(
+                    id: "batch-flour-old",
+                    inventoryItemId: item.id,
+                    remainingQuantity: 50,
+                    expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+                    createdAt: createdAt,
+                    updatedAt: consumedAt
+                ),
+                InventoryStockBatch(
+                    id: "batch-flour-new",
+                    inventoryItemId: item.id,
+                    remainingQuantity: 200,
+                    expiresAt: Date(timeIntervalSince1970: 1_800_202_800),
+                    createdAt: createdAt,
+                    updatedAt: createdAt
+                )
+            ]
+        )
         XCTAssertNil(viewModel.consumingItem)
         XCTAssertEqual(viewModel.draftConsumptionQuantity, "")
         XCTAssertEqual(viewModel.draftConsumptionNote, "")
+    }
+
+    func testRecordStockConsumptionContinuesIntoNewerBatchAfterOldBatchIsUsed() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let consumedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 350,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-flour-old",
+                inventoryItemId: item.id,
+                remainingQuantity: 150,
+                expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            ),
+            InventoryStockBatch(
+                id: "batch-flour-new",
+                inventoryItemId: item.id,
+                remainingQuantity: 200,
+                expiresAt: Date(timeIntervalSince1970: 1_800_202_800),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "transaction-flour-consumption" },
+            dateProvider: { consumedAt }
+        )
+        viewModel.beginConsuming(item)
+        viewModel.draftConsumptionQuantity = "200"
+
+        XCTAssertTrue(viewModel.recordStockConsumption())
+
+        XCTAssertEqual(repository.batches[0].remainingQuantity, 0)
+        XCTAssertEqual(repository.batches[1].remainingQuantity, 150)
+        XCTAssertEqual(repository.items.first?.currentQuantity, 150)
     }
 
     func testRecordStockConsumptionRejectsZeroQuantity() {
@@ -862,9 +1013,10 @@ final class InventoryListViewModelTests: XCTestCase {
     }
 }
 
-private final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository {
+private final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository {
     var items: [InventoryItem] = []
     var transactions: [InventoryTransaction] = []
+    var batches: [InventoryStockBatch] = []
 
     func save(_ item: InventoryItem) throws {
         if let existingIndex = items.firstIndex(where: { $0.id == item.id }) {
@@ -907,6 +1059,35 @@ private final class FakeInventoryItemRepository: InventoryItemRepository, Invent
                 }
 
                 return $0.occurredAt > $1.occurredAt
+            }
+    }
+
+    func save(_ batch: InventoryStockBatch) throws {
+        if let existingIndex = batches.firstIndex(where: { $0.id == batch.id }) {
+            batches[existingIndex] = batch
+        } else {
+            batches.append(batch)
+        }
+    }
+
+    func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
+        batches
+            .filter { $0.inventoryItemId == inventoryItemId }
+            .sorted {
+                switch ($0.expiresAt, $1.expiresAt) {
+                case let (.some(left), .some(right)):
+                    if left == right {
+                        return $0.createdAt < $1.createdAt
+                    }
+
+                    return left < right
+                case (.some, .none):
+                    return true
+                case (.none, .some):
+                    return false
+                case (.none, .none):
+                    return $0.createdAt < $1.createdAt
+                }
             }
     }
 }

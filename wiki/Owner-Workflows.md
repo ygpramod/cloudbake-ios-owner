@@ -11,7 +11,8 @@ The owner can use inventory to answer:
 3. what is running low,
 4. did I add stock,
 5. did I use stock,
-6. should an old item be hidden or restored.
+6. what stock expires first,
+7. should an old item be hidden or restored.
 
 Today, inventory changes are manual. Recipe-driven stock reduction is future work.
 
@@ -22,9 +23,12 @@ Use add inventory when a new ingredient or supply needs to be tracked.
 Before adding, the app warns when an existing item has the same or similar name. This helps avoid
 duplicates like multiple cake flour rows.
 
+When starting quantity is entered, the owner also captures an expiry date for that starting stock.
+
 ## Edit Inventory
 
-Use edit inventory when the item name, unit, current quantity, or minimum quantity needs correction.
+Use edit inventory when the item name, unit, current quantity, minimum quantity, or expiry needs
+correction.
 
 Editing is for correcting the item record. Stock movement should usually be represented by
 adjustment or consumption when the reason matters.
@@ -41,6 +45,9 @@ Examples:
 
 The app updates current quantity and records an adjustment transaction.
 
+Each adjustment also captures an expiry date and creates a separate stock batch. This keeps older
+and newer stock distinct when their expiry dates differ.
+
 ## Use Stock
 
 Use stock consumption when stock decreases manually.
@@ -52,6 +59,9 @@ Examples:
 3. corrected stock after counting and found less quantity.
 
 The app rejects usage greater than current stock so inventory does not go below zero.
+
+When stock is used, the app deducts from the oldest-expiring batch first and then moves into newer
+batches.
 
 ## Review Stock History
 
@@ -76,6 +86,8 @@ Archived items can be restored.
 ## Dashboard Workflow
 
 Use the dashboard to quickly see inventory that needs attention.
+
+Dashboard low inventory includes items below minimum quantity and items with expired remaining stock.
 
 The dashboard is expected to become more useful as orders, reminders, and recipes are added.
 
