@@ -105,6 +105,17 @@ final class CoreDataRepositoryTests: XCTestCase {
         try repository.save(transaction)
         XCTAssertEqual(try repository.fetchInventoryTransaction(id: transaction.id), transaction)
 
+        let stockBatch = InventoryStockBatch(
+            id: "batch-flour-purchase",
+            inventoryItemId: inventoryItem.id,
+            remainingQuantity: 750,
+            expiresAt: Date(timeIntervalSince1970: 1_800_086_400),
+            createdAt: timestamps.createdAt,
+            updatedAt: timestamps.updatedAt
+        )
+        try repository.save(stockBatch)
+        XCTAssertEqual(try repository.fetchInventoryStockBatches(inventoryItemId: inventoryItem.id), [stockBatch])
+
         let pricingRule = PricingRule(
             id: "pricing-base-cake",
             name: "Base cake",
@@ -277,6 +288,84 @@ final class CoreDataRepositoryTests: XCTestCase {
 
         XCTAssertEqual(try repository.fetchInventoryItem(id: item.id), adjustedItem)
         XCTAssertEqual(try repository.fetchInventoryTransaction(id: transaction.id), transaction)
+    }
+
+    func testInventoryStockBatchesFetchOldestExpiryFirstWithNoExpiryLast() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 350,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let newer = InventoryStockBatch(
+            id: "batch-newer",
+            inventoryItemId: item.id,
+            remainingQuantity: 100,
+            expiresAt: Date(timeIntervalSince1970: 1_800_202_800),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let older = InventoryStockBatch(
+            id: "batch-older",
+            inventoryItemId: item.id,
+            remainingQuantity: 100,
+            expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let noExpiry = InventoryStockBatch(
+            id: "batch-no-expiry",
+            inventoryItemId: item.id,
+            remainingQuantity: 150,
+            expiresAt: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(item)
+        try repository.save(newer)
+        try repository.save(noExpiry)
+        try repository.save(older)
+
+        XCTAssertEqual(
+            try repository.fetchInventoryStockBatches(inventoryItemId: item.id),
+            [older, newer, noExpiry]
+        )
+        XCTAssertEqual(try repository.fetchInventoryItem(id: item.id)?.earliestExpiryAt, older.expiresAt)
+    }
+
+    func testExpiredRemainingBatchMarksInventoryItemAsLowStock() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 900,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let expiredBatch = InventoryStockBatch(
+            id: "batch-expired",
+            inventoryItemId: item.id,
+            remainingQuantity: 100,
+            expiresAt: Date(timeIntervalSince1970: 1),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(item)
+        try repository.save(expiredBatch)
+
+        let fetchedItem = try XCTUnwrap(repository.fetchInventoryItem(id: item.id))
+        XCTAssertTrue(fetchedItem.hasExpiredStock)
+        XCTAssertTrue(fetchedItem.isLowStock)
     }
 
     func testInventoryItemWithTransactionCanBeArchived() throws {

@@ -9,6 +9,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     CustomerRepository,
     OrderRepository,
     InventoryTransactionRepository,
+    InventoryStockBatchRepository,
     PricingRuleRepository {
     private let writer: any DatabaseWriter
 
@@ -53,7 +54,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 return nil
             }
 
-            return inventoryItem(from: row, unit: unit)
+            return try inventoryItem(from: row, unit: unit, db: db)
         }
     }
 
@@ -67,7 +68,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                     return nil
                 }
 
-                return inventoryItem(from: row, unit: unit)
+                return try inventoryItem(from: row, unit: unit, db: db)
             }
         }
     }
@@ -82,7 +83,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                     return nil
                 }
 
-                return inventoryItem(from: row, unit: unit)
+                return try inventoryItem(from: row, unit: unit, db: db)
             }
         }
     }
@@ -374,6 +375,46 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         }
     }
 
+    func save(_ batch: InventoryStockBatch) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO inventory_stock_batches
+                    (id, inventory_item_id, remaining_quantity, expires_at_unix_time, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                    inventory_item_id = excluded.inventory_item_id,
+                    remaining_quantity = excluded.remaining_quantity,
+                    expires_at_unix_time = excluded.expires_at_unix_time,
+                    created_at_unix_time = excluded.created_at_unix_time,
+                    updated_at_unix_time = excluded.updated_at_unix_time
+                    """,
+                arguments: arguments([
+                    batch.id,
+                    batch.inventoryItemId,
+                    batch.remainingQuantity,
+                    batch.expiresAt?.timeIntervalSince1970,
+                    batch.createdAt.timeIntervalSince1970,
+                    batch.updatedAt.timeIntervalSince1970
+                ])
+            )
+        }
+    }
+
+    func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM inventory_stock_batches
+                    WHERE inventory_item_id = ?
+                    ORDER BY expires_at_unix_time IS NULL, expires_at_unix_time ASC, created_at_unix_time ASC, id
+                    """,
+                arguments: [inventoryItemId]
+            ).map(inventoryStockBatch(from:))
+        }
+    }
+
     func save(_ rule: PricingRule) throws {
         try writer.write { db in
             try db.execute(
@@ -419,16 +460,53 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         StatementArguments(values)
     }
 
-    private func inventoryItem(from row: Row, unit: InventoryUnit) -> InventoryItem {
-        InventoryItem(
+    private func inventoryItem(from row: Row, unit: InventoryUnit, db: Database) throws -> InventoryItem {
+        let expiryState = try inventoryExpiryState(in: db, inventoryItemId: row["id"])
+        return InventoryItem(
             id: row["id"],
             name: row["name"],
             unit: unit,
             currentQuantity: row["current_quantity"],
             minimumQuantity: row["minimum_quantity"],
+            earliestExpiryAt: expiryState.earliestExpiryAt,
+            hasExpiredStock: expiryState.hasExpiredStock,
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"]),
             archivedAt: optionalDate(row["archived_at_unix_time"])
+        )
+    }
+
+    private func inventoryExpiryState(
+        in db: Database,
+        inventoryItemId: String
+    ) throws -> (earliestExpiryAt: Date?, hasExpiredStock: Bool) {
+        let earliestExpiryUnixTime = try Double.fetchOne(
+            db,
+            sql: """
+                SELECT MIN(expires_at_unix_time)
+                FROM inventory_stock_batches
+                WHERE inventory_item_id = ?
+                AND remaining_quantity > 0
+                AND expires_at_unix_time IS NOT NULL
+                """,
+            arguments: [inventoryItemId]
+        )
+        let expiredBatchCount = try Int.fetchOne(
+            db,
+            sql: """
+                SELECT COUNT(*)
+                FROM inventory_stock_batches
+                WHERE inventory_item_id = ?
+                AND remaining_quantity > 0
+                AND expires_at_unix_time IS NOT NULL
+                AND expires_at_unix_time < ?
+                """,
+            arguments: [inventoryItemId, Date().timeIntervalSince1970]
+        ) ?? 0
+
+        return (
+            earliestExpiryAt: earliestExpiryUnixTime.map(Date.init(timeIntervalSince1970:)),
+            hasExpiredStock: expiredBatchCount > 0
         )
     }
 
@@ -440,6 +518,17 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             quantity: row["quantity"],
             occurredAt: date(row["occurred_at_unix_time"]),
             note: row["note"],
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    private func inventoryStockBatch(from row: Row) -> InventoryStockBatch {
+        InventoryStockBatch(
+            id: row["id"],
+            inventoryItemId: row["inventory_item_id"],
+            remainingQuantity: row["remaining_quantity"],
+            expiresAt: optionalDate(row["expires_at_unix_time"]),
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )

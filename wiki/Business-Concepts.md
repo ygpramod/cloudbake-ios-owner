@@ -15,7 +15,25 @@ Examples:
 5. cake boxes,
 6. fondant.
 
-An inventory item has a name, unit, current quantity, and minimum quantity.
+An inventory item has a name, unit, current quantity, minimum quantity, and stock batches.
+
+## Stock Batch
+
+A stock batch is one portion of an inventory item with its own remaining quantity and expiry date.
+
+Example:
+
+1. cake flour, 500 g, expires July 15,
+2. cake flour, 1000 g, expires August 10.
+
+These are the same inventory item but different stock batches. This matters because handmade cake
+work needs the older stock to be used before newer stock.
+
+## Expiry Date
+
+Expiry date is captured for new stock when inventory is added or adjusted upward.
+
+The app uses expiry to warn the owner and to decide which batch should be consumed first.
 
 ## Current Quantity
 
@@ -34,7 +52,11 @@ If current quantity is below minimum quantity, the item is treated as low invent
 
 Low inventory means the owner should consider restocking.
 
-Low inventory is calculated from current quantity and minimum quantity. It is not manually assigned.
+Low inventory is calculated from current quantity, minimum quantity, and remaining expired stock.
+It is not manually assigned.
+
+An item can be low inventory even when current quantity is above minimum if any remaining stock has
+expired.
 
 ## Inventory Transaction
 

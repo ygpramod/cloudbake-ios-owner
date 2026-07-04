@@ -11,7 +11,8 @@ Inventory tracks active items with:
 3. current quantity,
 4. minimum quantity,
 5. archived state,
-6. transaction records for stock changes.
+6. stock batches with expiry dates,
+7. transaction records for stock changes.
 
 ## Units
 
@@ -31,13 +32,31 @@ recipes may use mixed units.
 
 ## Low Inventory
 
-An item is low inventory when current quantity is below minimum quantity.
+An item is low inventory when current quantity is below minimum quantity or when it has expired
+remaining stock.
 
 Example:
 
 1. current quantity: 500 g,
 2. minimum quantity: 1000 g,
 3. result: low inventory.
+
+Expiry example:
+
+1. current quantity: 2000 g,
+2. minimum quantity: 1000 g,
+3. remaining batch expired yesterday,
+4. result: low inventory.
+
+## Stock Batches And Expiry
+
+Each new stock quantity is tracked as a batch with its own expiry date.
+
+When newer stock is added for the same item, the app keeps both batches. It does not merge them into
+one quantity if the expiry dates differ.
+
+When stock is used, the app deducts from the oldest-expiring batch first. After that batch reaches
+zero, usage continues into the next oldest batch.
 
 ## Duplicate Warning
 
@@ -68,6 +87,9 @@ Consumption examples:
 
 The app does not allow consumption greater than current stock.
 
+Consumption also updates stock batches. The oldest-expiring remaining stock is reduced before newer
+stock.
+
 ## Stock History
 
 Use stock history to review why an active inventory item's quantity changed.
@@ -91,4 +113,6 @@ Inventory does not yet support:
 2. unit conversion,
 3. inventory delete,
 4. supplier tracking,
-5. purchase planning.
+5. purchase planning,
+6. editing individual stock batches directly,
+7. expiry reminder notifications.

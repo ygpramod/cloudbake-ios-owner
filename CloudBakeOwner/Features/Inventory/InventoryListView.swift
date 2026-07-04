@@ -98,6 +98,7 @@ struct InventoryListView: View {
                     title: "Add Item",
                     viewModel: viewModel,
                     isPresented: $isAddingItem,
+                    showsExpiryDate: true,
                     onCancel: {},
                     onSave: viewModel.addItem
                 )
@@ -109,6 +110,7 @@ struct InventoryListView: View {
                     title: "Edit Item",
                     viewModel: viewModel,
                     isPresented: $isEditingItem,
+                    showsExpiryDate: true,
                     onCancel: viewModel.cancelEditing,
                     onSave: viewModel.saveEditedItem
                 )
@@ -294,6 +296,13 @@ private struct InventoryStockAdjustmentForm: View {
                     .keyboardType(.decimalPad)
                     .accessibilityIdentifier("inventory.adjust.quantity")
 
+                DatePicker(
+                    "Expiry Date",
+                    selection: $viewModel.draftAdjustmentExpiryDate,
+                    displayedComponents: .date
+                )
+                .accessibilityIdentifier("inventory.adjust.expiryDate")
+
                 TextField("Note", text: $viewModel.draftAdjustmentNote)
                     .accessibilityIdentifier("inventory.adjust.note")
             }
@@ -394,12 +403,18 @@ private struct InventoryItemRow: View {
                 Text("Minimum Quantity: \(item.minimumQuantity.formatted()) \(item.unit.displayName)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+
+                if let earliestExpiryAt = item.earliestExpiryAt {
+                    Text("Expires: \(earliestExpiryAt.formatted(date: .abbreviated, time: .omitted))")
+                        .font(.caption)
+                        .foregroundStyle(item.hasExpiredStock ? .red : .secondary)
+                }
             }
 
             Spacer()
 
             if item.isLowStock {
-                Label("Low stock", systemImage: "exclamationmark.triangle.fill")
+                Label(item.hasExpiredStock ? "Expired stock" : "Low stock", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.red)
                     .labelStyle(.iconOnly)
@@ -414,6 +429,7 @@ private struct InventoryItemForm: View {
     let title: String
     @ObservedObject var viewModel: InventoryListViewModel
     @Binding var isPresented: Bool
+    let showsExpiryDate: Bool
     let onCancel: () -> Void
     let onSave: () -> Bool
 
@@ -452,6 +468,15 @@ private struct InventoryItemForm: View {
                     TextField("Minimum Quantity", text: $viewModel.draftMinimumQuantity)
                         .keyboardType(.decimalPad)
                         .accessibilityIdentifier("inventory.form.minimumQuantity")
+                }
+
+                if showsExpiryDate {
+                    DatePicker(
+                        "Expiry Date",
+                        selection: $viewModel.draftExpiryDate,
+                        displayedComponents: .date
+                    )
+                    .accessibilityIdentifier("inventory.form.expiryDate")
                 }
             }
 
@@ -562,7 +587,7 @@ private extension InventoryTransaction {
     }
 }
 
-private final class PreviewInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository {
+private final class PreviewInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository {
     private var items: [InventoryItem] = [
         InventoryItem(
             id: "preview-flour",
@@ -575,6 +600,7 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository, Inv
         )
     ]
     private var transactions: [InventoryTransaction] = []
+    private var batches: [InventoryStockBatch] = []
 
     func save(_ item: InventoryItem) throws {
         if let existingIndex = items.firstIndex(where: { $0.id == item.id }) {
@@ -617,6 +643,35 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository, Inv
                 }
 
                 return $0.occurredAt > $1.occurredAt
+            }
+    }
+
+    func save(_ batch: InventoryStockBatch) throws {
+        if let existingIndex = batches.firstIndex(where: { $0.id == batch.id }) {
+            batches[existingIndex] = batch
+        } else {
+            batches.append(batch)
+        }
+    }
+
+    func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
+        batches
+            .filter { $0.inventoryItemId == inventoryItemId }
+            .sorted {
+                switch ($0.expiresAt, $1.expiresAt) {
+                case let (.some(left), .some(right)):
+                    if left == right {
+                        return $0.createdAt < $1.createdAt
+                    }
+
+                    return left < right
+                case (.some, .none):
+                    return true
+                case (.none, .some):
+                    return false
+                case (.none, .none):
+                    return $0.createdAt < $1.createdAt
+                }
             }
     }
 }

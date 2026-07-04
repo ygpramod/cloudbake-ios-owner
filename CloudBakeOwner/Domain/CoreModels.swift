@@ -16,6 +16,8 @@ struct InventoryItem: Equatable {
     let unit: InventoryUnit
     let currentQuantity: Double
     let minimumQuantity: Double
+    let earliestExpiryAt: Date?
+    let hasExpiredStock: Bool
     let createdAt: Date
     let updatedAt: Date
     let archivedAt: Date?
@@ -26,6 +28,8 @@ struct InventoryItem: Equatable {
         unit: InventoryUnit,
         currentQuantity: Double,
         minimumQuantity: Double,
+        earliestExpiryAt: Date? = nil,
+        hasExpiredStock: Bool = false,
         createdAt: Date,
         updatedAt: Date,
         archivedAt: Date? = nil
@@ -35,18 +39,29 @@ struct InventoryItem: Equatable {
         self.unit = unit
         self.currentQuantity = currentQuantity
         self.minimumQuantity = minimumQuantity
+        self.earliestExpiryAt = earliestExpiryAt
+        self.hasExpiredStock = hasExpiredStock
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.archivedAt = archivedAt
     }
 
     var isLowStock: Bool {
-        currentQuantity < minimumQuantity
+        currentQuantity < minimumQuantity || hasExpiredStock
     }
 
     var isArchived: Bool {
         archivedAt != nil
     }
+}
+
+struct InventoryStockBatch: Equatable {
+    let id: String
+    let inventoryItemId: String
+    let remainingQuantity: Double
+    let expiresAt: Date?
+    let createdAt: Date
+    let updatedAt: Date
 }
 
 struct Recipe: Equatable {

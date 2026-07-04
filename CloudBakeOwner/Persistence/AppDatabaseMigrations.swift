@@ -125,6 +125,35 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0005_create_inventory_stock_batches") { db in
+            try db.create(table: "inventory_stock_batches") { table in
+                table.column("id", .text).primaryKey()
+                table.column("inventory_item_id", .text)
+                    .notNull()
+                    .references("inventory_items", onDelete: .restrict)
+                table.column("remaining_quantity", .double).notNull()
+                table.column("expires_at_unix_time", .double)
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+
+            try db.execute(
+                sql: """
+                    INSERT INTO inventory_stock_batches
+                    (id, inventory_item_id, remaining_quantity, expires_at_unix_time, created_at_unix_time, updated_at_unix_time)
+                    SELECT
+                    'legacy-batch-' || id,
+                    id,
+                    current_quantity,
+                    NULL,
+                    created_at_unix_time,
+                    updated_at_unix_time
+                    FROM inventory_items
+                    WHERE current_quantity > 0
+                    """
+            )
+        }
+
         return migrator
     }
 }
