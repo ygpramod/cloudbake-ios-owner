@@ -470,6 +470,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             minimumQuantity: row["minimum_quantity"],
             earliestExpiryAt: expiryState.earliestExpiryAt,
             hasExpiredStock: expiryState.hasExpiredStock,
+            hasExpiringSoonStock: expiryState.hasExpiringSoonStock,
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"]),
             archivedAt: optionalDate(row["archived_at_unix_time"])
@@ -479,7 +480,10 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     private func inventoryExpiryState(
         in db: Database,
         inventoryItemId: String
-    ) throws -> (earliestExpiryAt: Date?, hasExpiredStock: Bool) {
+    ) throws -> (earliestExpiryAt: Date?, hasExpiredStock: Bool, hasExpiringSoonStock: Bool) {
+        let now = Date()
+        let nowUnixTime = now.timeIntervalSince1970
+        let expiringSoonThreshold = Calendar.current.date(byAdding: .month, value: 1, to: now) ?? now.addingTimeInterval(30 * 24 * 60 * 60)
         let earliestExpiryUnixTime = try Double.fetchOne(
             db,
             sql: """
@@ -501,12 +505,26 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 AND expires_at_unix_time IS NOT NULL
                 AND expires_at_unix_time < ?
                 """,
-            arguments: [inventoryItemId, Date().timeIntervalSince1970]
+            arguments: [inventoryItemId, nowUnixTime]
+        ) ?? 0
+        let expiringSoonBatchCount = try Int.fetchOne(
+            db,
+            sql: """
+                SELECT COUNT(*)
+                FROM inventory_stock_batches
+                WHERE inventory_item_id = ?
+                AND remaining_quantity > 0
+                AND expires_at_unix_time IS NOT NULL
+                AND expires_at_unix_time >= ?
+                AND expires_at_unix_time <= ?
+                """,
+            arguments: [inventoryItemId, nowUnixTime, expiringSoonThreshold.timeIntervalSince1970]
         ) ?? 0
 
         return (
             earliestExpiryAt: earliestExpiryUnixTime.map(Date.init(timeIntervalSince1970:)),
-            hasExpiredStock: expiredBatchCount > 0
+            hasExpiredStock: expiredBatchCount > 0,
+            hasExpiringSoonStock: expiringSoonBatchCount > 0
         )
     }
 

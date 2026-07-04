@@ -94,6 +94,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Quantity"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["50 g"].waitForExistence(timeout: 5))
 
+        let batchExpiryRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.detail.batch.edit.")).firstMatch
+        XCTAssertTrue(batchExpiryRow.waitForExistence(timeout: 5))
+        batchExpiryRow.tap()
+        XCTAssertTrue(app.navigationBars["Edit Expiry"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Stock Batch"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Quantity"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["50 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.datePickers["inventory.batchExpiry.expiryDate"].waitForExistence(timeout: 5))
+        app.buttons["inventory.batchExpiry.save"].tap()
+        XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
+
         app.buttons["inventory.detail.edit"].tap()
         XCTAssertTrue(app.navigationBars["Edit Item"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))

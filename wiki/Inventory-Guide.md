@@ -32,8 +32,8 @@ recipes may use mixed units.
 
 ## Low Inventory
 
-An item is low inventory when current quantity is below minimum quantity or when it has expired
-remaining stock.
+An item is low inventory when current quantity is below minimum quantity, when it has expired
+remaining stock, or when remaining stock expires within one month.
 
 Example:
 
@@ -45,7 +45,7 @@ Expiry example:
 
 1. current quantity: 2000 g,
 2. minimum quantity: 1000 g,
-3. remaining batch expired yesterday,
+3. remaining batch expires within one month,
 4. result: low inventory.
 
 ## Stock Batches And Expiry
@@ -71,6 +71,8 @@ The detail view shows:
 5. remaining stock batches with quantity and expiry date.
 
 Use the expiry table to see how much stock expires on each date.
+
+Tap a stock batch row from the expiry table to correct that batch's expiry date.
 
 ## Duplicate Warning
 
@@ -128,6 +130,7 @@ Inventory does not yet support:
 3. inventory delete,
 4. supplier tracking,
 5. purchase planning,
-6. editing individual stock batches directly,
-7. editing unit, current quantity, or expiry from item edit mode,
-8. expiry reminder notifications.
+6. editing stock batch quantities directly,
+7. deleting stock batches,
+8. editing unit, current quantity, or expiry from item edit mode,
+9. expiry reminder notifications.

@@ -154,6 +154,7 @@ private struct InventoryItemDetailView: View {
     @ObservedObject var viewModel: InventoryListViewModel
     @Binding var isPresented: Bool
     @State private var isEditingItem = false
+    @State private var isEditingBatchExpiry = false
 
     var body: some View {
         List {
@@ -184,13 +185,21 @@ private struct InventoryItemDetailView: View {
                         }
 
                         ForEach(viewModel.selectedItemBatches.filter { $0.remainingQuantity > 0 }, id: \.id) { batch in
-                            HStack {
-                                Text("\(batch.remainingQuantity.formatted()) \(item.unit.displayName)")
-                                Spacer()
-                                Text(batch.expiryDisplayText)
-                                    .foregroundStyle(batch.isExpired ? .red : .primary)
+                            Button {
+                                viewModel.beginEditingBatchExpiry(batch)
+                                isEditingBatchExpiry = true
+                            } label: {
+                                HStack {
+                                    Text("\(batch.remainingQuantity.formatted()) \(item.unit.displayName)")
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    Text(batch.expiryDisplayText)
+                                        .foregroundStyle(batch.expiryColor)
+                                    Image(systemName: "calendar")
+                                        .foregroundStyle(.secondary)
+                                }
                             }
-                            .accessibilityIdentifier("inventory.detail.batch.\(batch.id)")
+                            .accessibilityIdentifier("inventory.detail.batch.edit.\(batch.id)")
                         }
                     }
                 }
@@ -238,10 +247,67 @@ private struct InventoryItemDetailView: View {
                 )
             }
         }
+        .sheet(isPresented: $isEditingBatchExpiry) {
+            NavigationStack {
+                InventoryBatchExpiryForm(
+                    viewModel: viewModel,
+                    isPresented: $isEditingBatchExpiry
+                )
+            }
+        }
         .onAppear {
             viewModel.loadSelectedItemBatches()
         }
         .accessibilityIdentifier("inventory.detail.screen")
+    }
+}
+
+private struct InventoryBatchExpiryForm: View {
+    @ObservedObject var viewModel: InventoryListViewModel
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        Form {
+            if let item = viewModel.selectedItem,
+               let batch = viewModel.editingBatch {
+                Section("Stock Batch") {
+                    LabeledContent("Item", value: item.name)
+                    LabeledContent("Quantity", value: "\(batch.remainingQuantity.formatted()) \(item.unit.displayName)")
+                    DatePicker(
+                        "Expiry Date",
+                        selection: $viewModel.draftBatchExpiryDate,
+                        displayedComponents: .date
+                    )
+                    .accessibilityIdentifier("inventory.batchExpiry.expiryDate")
+                }
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("inventory.batchExpiry.error")
+                }
+            }
+        }
+        .navigationTitle("Edit Expiry")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    viewModel.cancelEditingBatchExpiry()
+                    isPresented = false
+                }
+            }
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    if viewModel.saveEditedBatchExpiry() {
+                        isPresented = false
+                    }
+                }
+                .accessibilityIdentifier("inventory.batchExpiry.save")
+            }
+        }
     }
 }
 
@@ -500,16 +566,16 @@ private struct InventoryItemRow: View {
                 if let earliestExpiryAt = item.earliestExpiryAt {
                     Text("Expires: \(earliestExpiryAt.formatted(date: .abbreviated, time: .omitted))")
                         .font(.caption)
-                        .foregroundStyle(item.hasExpiredStock ? .red : .secondary)
+                        .foregroundStyle(item.expiryColor)
                 }
             }
 
             Spacer()
 
             if item.isLowStock {
-                Label(item.hasExpiredStock ? "Expired stock" : "Low stock", systemImage: "exclamationmark.triangle.fill")
+                Label(item.lowStockLabel, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(item.alertColor)
                     .labelStyle(.iconOnly)
                     .accessibilityIdentifier("inventory.item.lowStock.\(item.id)")
             }
@@ -691,6 +757,58 @@ private extension InventoryStockBatch {
         }
 
         return expiresAt < Date()
+    }
+
+    var isExpiringSoon: Bool {
+        guard let expiresAt else {
+            return false
+        }
+
+        let now = Date()
+        let threshold = Calendar.current.date(byAdding: .month, value: 1, to: now) ?? now.addingTimeInterval(30 * 24 * 60 * 60)
+        return expiresAt >= now && expiresAt <= threshold
+    }
+
+    var expiryColor: Color {
+        if isExpired {
+            return .red
+        }
+
+        if isExpiringSoon {
+            return .orange
+        }
+
+        return .primary
+    }
+}
+
+private extension InventoryItem {
+    var lowStockLabel: String {
+        if hasExpiredStock {
+            return "Expired stock"
+        }
+
+        if hasExpiringSoonStock {
+            return "Expiring soon"
+        }
+
+        return "Low stock"
+    }
+
+    var alertColor: Color {
+        hasExpiringSoonStock && !hasExpiredStock ? .orange : .red
+    }
+
+    var expiryColor: Color {
+        if hasExpiredStock {
+            return .red
+        }
+
+        if hasExpiringSoonStock {
+            return .orange
+        }
+
+        return .secondary
     }
 }
 

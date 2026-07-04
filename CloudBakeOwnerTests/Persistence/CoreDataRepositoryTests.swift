@@ -368,6 +368,66 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertTrue(fetchedItem.isLowStock)
     }
 
+    func testRemainingBatchExpiringWithinOneMonthMarksInventoryItemAsLowStock() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-butter",
+            name: "Butter",
+            unit: .gram,
+            currentQuantity: 900,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let expiringSoonBatch = InventoryStockBatch(
+            id: "batch-expiring-soon",
+            inventoryItemId: item.id,
+            remainingQuantity: 100,
+            expiresAt: Calendar.current.date(byAdding: .day, value: 7, to: Date()),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(item)
+        try repository.save(expiringSoonBatch)
+
+        let fetchedItem = try XCTUnwrap(repository.fetchInventoryItem(id: item.id))
+        XCTAssertFalse(fetchedItem.hasExpiredStock)
+        XCTAssertTrue(fetchedItem.hasExpiringSoonStock)
+        XCTAssertTrue(fetchedItem.isLowStock)
+    }
+
+    func testRemainingBatchExpiringAfterOneMonthDoesNotMarkInventoryItemAsLowStock() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-sugar",
+            name: "Sugar",
+            unit: .gram,
+            currentQuantity: 900,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let laterBatch = InventoryStockBatch(
+            id: "batch-later",
+            inventoryItemId: item.id,
+            remainingQuantity: 100,
+            expiresAt: Calendar.current.date(byAdding: .day, value: 45, to: Date()),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(item)
+        try repository.save(laterBatch)
+
+        let fetchedItem = try XCTUnwrap(repository.fetchInventoryItem(id: item.id))
+        XCTAssertFalse(fetchedItem.hasExpiredStock)
+        XCTAssertFalse(fetchedItem.hasExpiringSoonStock)
+        XCTAssertFalse(fetchedItem.isLowStock)
+    }
+
     func testInventoryItemWithTransactionCanBeArchived() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_020_000)
