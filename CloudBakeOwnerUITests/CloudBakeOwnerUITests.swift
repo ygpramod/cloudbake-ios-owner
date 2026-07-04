@@ -49,8 +49,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.buttons["inventory.form.save"].tap()
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current quantity: 250 g"].exists)
-        XCTAssertTrue(app.staticTexts["Minimum quantity: 500 g"].exists)
+        XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].exists)
+        XCTAssertTrue(app.staticTexts["Minimum Quantity: 500 g"].exists)
     }
 
     func testInventoryDuplicateNameShowsWarningBeforeAdding() throws {
@@ -87,8 +87,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
             .tap()
         XCTAssertTrue(app.navigationBars["Edit Item"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current quantity"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Minimum quantity"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Current Quantity"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Minimum Quantity"].waitForExistence(timeout: 5))
 
         let currentQuantityField = app.textFields["inventory.form.currentQuantity"]
         currentQuantityField.tap()
@@ -97,9 +97,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.buttons["inventory.form.save"].tap()
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current quantity: 500 g"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Minimum quantity: 5,000 g"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Current quantity: 50 g"].exists)
+        XCTAssertTrue(app.staticTexts["Current Quantity: 500 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Minimum Quantity: 5,000 g"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Current Quantity: 50 g"].exists)
     }
 
     func testInventoryItemCanBeArchived() throws {
@@ -146,7 +146,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.buttons["inventory.archived.done"].tap()
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current quantity: 250 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: 5))
     }
 
     func testInventoryStockCanBeAdjusted() throws {
@@ -159,8 +159,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
         adjustFirstInventoryItem(by: "100", in: app)
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current quantity: 350 g"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Current quantity: 250 g"].exists)
+        XCTAssertTrue(app.staticTexts["Current Quantity: 350 g"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Current Quantity: 250 g"].exists)
     }
 
     func testInventoryItemCanBeArchivedAfterStockAdjustment() throws {
@@ -192,8 +192,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
         consumeFirstInventoryItem(by: "100", in: app)
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current quantity: 250 g"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Current quantity: 350 g"].exists)
+        XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Current Quantity: 350 g"].exists)
     }
 
     func testInventoryStockConsumptionCannotExceedCurrentStock() throws {
@@ -214,7 +214,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Consumption quantity cannot be greater than current stock."].waitForExistence(timeout: 5))
         app.buttons["Cancel"].tap()
-        XCTAssertTrue(app.staticTexts["Current quantity: 250 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: 5))
     }
 
     func testInventoryStockHistoryShowsAdjustmentAndConsumption() throws {
