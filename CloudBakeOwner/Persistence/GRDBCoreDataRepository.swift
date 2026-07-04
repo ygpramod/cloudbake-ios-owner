@@ -350,16 +350,27 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 return nil
             }
 
-            return InventoryTransaction(
-                id: row["id"],
-                inventoryItemId: row["inventory_item_id"],
-                kind: kind,
-                quantity: row["quantity"],
-                occurredAt: date(row["occurred_at_unix_time"]),
-                note: row["note"],
-                createdAt: date(row["created_at_unix_time"]),
-                updatedAt: date(row["updated_at_unix_time"])
-            )
+            return inventoryTransaction(from: row, kind: kind)
+        }
+    }
+
+    func fetchInventoryTransactions(inventoryItemId: String) throws -> [InventoryTransaction] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM inventory_transactions
+                    WHERE inventory_item_id = ?
+                    ORDER BY occurred_at_unix_time DESC, created_at_unix_time DESC, id
+                    """,
+                arguments: [inventoryItemId]
+            ).compactMap { row in
+                guard let kind = InventoryTransactionKind(rawValue: row["kind"]) else {
+                    return nil
+                }
+
+                return inventoryTransaction(from: row, kind: kind)
+            }
         }
     }
 
@@ -418,6 +429,19 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"]),
             archivedAt: optionalDate(row["archived_at_unix_time"])
+        )
+    }
+
+    private func inventoryTransaction(from row: Row, kind: InventoryTransactionKind) -> InventoryTransaction {
+        InventoryTransaction(
+            id: row["id"],
+            inventoryItemId: row["inventory_item_id"],
+            kind: kind,
+            quantity: row["quantity"],
+            occurredAt: date(row["occurred_at_unix_time"]),
+            note: row["note"],
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
         )
     }
 

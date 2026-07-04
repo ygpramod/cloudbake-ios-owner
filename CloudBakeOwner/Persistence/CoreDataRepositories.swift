@@ -40,6 +40,7 @@ protocol OrderRepository {
 protocol InventoryTransactionRepository {
     func save(_ transaction: InventoryTransaction) throws
     func fetchInventoryTransaction(id: String) throws -> InventoryTransaction?
+    func fetchInventoryTransactions(inventoryItemId: String) throws -> [InventoryTransaction]
 }
 
 protocol PricingRuleRepository {
