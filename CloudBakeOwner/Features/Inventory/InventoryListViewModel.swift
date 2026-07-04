@@ -18,10 +18,12 @@ final class InventoryListViewModel: ObservableObject {
     @Published var draftBatchExpiryDate = Date()
     @Published private(set) var adjustingItem: InventoryItem?
     @Published var draftAdjustmentQuantity = ""
+    @Published var draftAdjustmentUnit: InventoryUnit = .gram
     @Published var draftAdjustmentExpiryDate = Date()
     @Published var draftAdjustmentNote = ""
     @Published private(set) var consumingItem: InventoryItem?
     @Published var draftConsumptionQuantity = ""
+    @Published var draftConsumptionUnit: InventoryUnit = .gram
     @Published var draftConsumptionNote = ""
     @Published private(set) var historyItem: InventoryItem?
     @Published private(set) var historyTransactions: [InventoryTransaction] = []
@@ -302,6 +304,7 @@ final class InventoryListViewModel: ObservableObject {
     func beginAdjusting(_ item: InventoryItem) {
         adjustingItem = item
         draftAdjustmentQuantity = ""
+        draftAdjustmentUnit = item.unit
         draftAdjustmentExpiryDate = defaultExpiryDate()
         draftAdjustmentNote = ""
         errorMessage = nil
@@ -319,6 +322,10 @@ final class InventoryListViewModel: ObservableObject {
             errorMessage = "Adjustment quantity must be greater than zero."
             return false
         }
+        guard let itemQuantity = draftAdjustmentUnit.convertedQuantity(quantity, to: adjustingItem.unit) else {
+            errorMessage = "Adjustment unit must be compatible with the inventory item unit."
+            return false
+        }
 
         let note = draftAdjustmentNote.trimmingCharacters(in: .whitespacesAndNewlines)
         let now = dateProvider()
@@ -326,7 +333,7 @@ final class InventoryListViewModel: ObservableObject {
             id: adjustingItem.id,
             name: adjustingItem.name,
             unit: adjustingItem.unit,
-            currentQuantity: adjustingItem.currentQuantity + quantity,
+            currentQuantity: adjustingItem.currentQuantity + itemQuantity,
             minimumQuantity: adjustingItem.minimumQuantity,
             earliestExpiryAt: adjustingItem.earliestExpiryAt,
             hasExpiredStock: adjustingItem.hasExpiredStock,
@@ -338,7 +345,7 @@ final class InventoryListViewModel: ObservableObject {
             id: idGenerator(),
             inventoryItemId: adjustingItem.id,
             kind: .adjustment,
-            quantity: quantity,
+            quantity: itemQuantity,
             occurredAt: now,
             note: note.isEmpty ? nil : note,
             createdAt: now,
@@ -351,7 +358,7 @@ final class InventoryListViewModel: ObservableObject {
                 InventoryStockBatch(
                     id: idGenerator(),
                     inventoryItemId: adjustingItem.id,
-                    remainingQuantity: quantity,
+                    remainingQuantity: itemQuantity,
                     expiresAt: draftAdjustmentExpiryDate,
                     createdAt: now,
                     updatedAt: now
@@ -374,6 +381,7 @@ final class InventoryListViewModel: ObservableObject {
     func beginConsuming(_ item: InventoryItem) {
         consumingItem = item
         draftConsumptionQuantity = ""
+        draftConsumptionUnit = item.unit
         draftConsumptionNote = ""
         errorMessage = nil
     }
@@ -390,8 +398,12 @@ final class InventoryListViewModel: ObservableObject {
             errorMessage = "Consumption quantity must be greater than zero."
             return false
         }
+        guard let itemQuantity = draftConsumptionUnit.convertedQuantity(quantity, to: consumingItem.unit) else {
+            errorMessage = "Consumption unit must be compatible with the inventory item unit."
+            return false
+        }
 
-        guard consumingItem.currentQuantity - quantity >= 0 else {
+        guard consumingItem.currentQuantity - itemQuantity >= 0 else {
             errorMessage = "Consumption quantity cannot be greater than current stock."
             return false
         }
@@ -402,7 +414,7 @@ final class InventoryListViewModel: ObservableObject {
             id: consumingItem.id,
             name: consumingItem.name,
             unit: consumingItem.unit,
-            currentQuantity: consumingItem.currentQuantity - quantity,
+            currentQuantity: consumingItem.currentQuantity - itemQuantity,
             minimumQuantity: consumingItem.minimumQuantity,
             earliestExpiryAt: consumingItem.earliestExpiryAt,
             hasExpiredStock: consumingItem.hasExpiredStock,
@@ -414,7 +426,7 @@ final class InventoryListViewModel: ObservableObject {
             id: idGenerator(),
             inventoryItemId: consumingItem.id,
             kind: .consumption,
-            quantity: quantity,
+            quantity: itemQuantity,
             occurredAt: now,
             note: note.isEmpty ? nil : note,
             createdAt: now,
@@ -425,12 +437,12 @@ final class InventoryListViewModel: ObservableObject {
             let batches = try repository.fetchInventoryStockBatches(inventoryItemId: consumingItem.id)
             if !batches.isEmpty {
                 let availableBatchQuantity = batches.reduce(0) { $0 + $1.remainingQuantity }
-                guard availableBatchQuantity - quantity >= 0 else {
+                guard availableBatchQuantity - itemQuantity >= 0 else {
                     errorMessage = "Consumption quantity cannot be greater than current stock."
                     return false
                 }
 
-                try consume(quantity: quantity, from: batches, updatedAt: now)
+                try consume(quantity: itemQuantity, from: batches, updatedAt: now)
             }
             try repository.save(updatedItem)
             try repository.save(transaction)
@@ -576,6 +588,7 @@ final class InventoryListViewModel: ObservableObject {
     private func resetAdjustmentDraft() {
         adjustingItem = nil
         draftAdjustmentQuantity = ""
+        draftAdjustmentUnit = .gram
         draftAdjustmentExpiryDate = defaultExpiryDate()
         draftAdjustmentNote = ""
         errorMessage = nil
@@ -584,6 +597,7 @@ final class InventoryListViewModel: ObservableObject {
     private func resetConsumptionDraft() {
         consumingItem = nil
         draftConsumptionQuantity = ""
+        draftConsumptionUnit = .gram
         draftConsumptionNote = ""
         errorMessage = nil
     }
