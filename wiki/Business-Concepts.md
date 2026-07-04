@@ -31,9 +31,11 @@ work needs the older stock to be used before newer stock.
 
 ## Expiry Date
 
-Expiry date is captured for new stock when inventory is added or adjusted upward.
+Expiry date is captured for new stock when inventory is added or adjusted upward. The owner can
+correct a stock batch expiry date from inventory detail.
 
-The app uses expiry to warn the owner and to decide which batch should be consumed first.
+The app uses expiry to warn the owner one month before expiry and to decide which batch should be
+consumed first.
 
 ## Current Quantity
 
@@ -52,11 +54,11 @@ If current quantity is below minimum quantity, the item is treated as low invent
 
 Low inventory means the owner should consider restocking.
 
-Low inventory is calculated from current quantity, minimum quantity, and remaining expired stock.
-It is not manually assigned.
+Low inventory is calculated from current quantity, minimum quantity, remaining expired stock, and
+stock expiring within one month. It is not manually assigned.
 
 An item can be low inventory even when current quantity is above minimum if any remaining stock has
-expired.
+expired or is close to expiry.
 
 ## Inventory Transaction
 

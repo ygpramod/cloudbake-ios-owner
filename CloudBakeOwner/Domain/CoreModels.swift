@@ -18,6 +18,7 @@ struct InventoryItem: Equatable {
     let minimumQuantity: Double
     let earliestExpiryAt: Date?
     let hasExpiredStock: Bool
+    let hasExpiringSoonStock: Bool
     let createdAt: Date
     let updatedAt: Date
     let archivedAt: Date?
@@ -30,6 +31,7 @@ struct InventoryItem: Equatable {
         minimumQuantity: Double,
         earliestExpiryAt: Date? = nil,
         hasExpiredStock: Bool = false,
+        hasExpiringSoonStock: Bool = false,
         createdAt: Date,
         updatedAt: Date,
         archivedAt: Date? = nil
@@ -41,13 +43,14 @@ struct InventoryItem: Equatable {
         self.minimumQuantity = minimumQuantity
         self.earliestExpiryAt = earliestExpiryAt
         self.hasExpiredStock = hasExpiredStock
+        self.hasExpiringSoonStock = hasExpiringSoonStock
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.archivedAt = archivedAt
     }
 
     var isLowStock: Bool {
-        currentQuantity < minimumQuantity || hasExpiredStock
+        currentQuantity < minimumQuantity || hasExpiredStock || hasExpiringSoonStock
     }
 
     var isArchived: Bool {

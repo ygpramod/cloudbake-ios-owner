@@ -81,6 +81,10 @@ private extension InventoryItem {
             return "Expired stock"
         }
 
+        if hasExpiringSoonStock {
+            return "Expiring soon"
+        }
+
         return "\(currentQuantity.formatted()) / \(minimumQuantity.formatted()) \(unit.displayName)"
     }
 }

@@ -32,14 +32,16 @@ Tap an inventory row to view the item.
 The view mode shows name, unit, current quantity, minimum quantity, and an expiry table. The expiry
 table lists each remaining stock batch by quantity and expiry date.
 
+Tap a batch in the expiry table when only that batch's expiry date needs correction.
+
 ## Edit Inventory
 
 Use edit inventory when the item name or minimum quantity needs correction.
 
 Editing is reached from the inventory detail view.
 
-Current quantity should be changed through stock adjustment or stock consumption. Unit and expiry
-are not edited from item edit mode.
+Current quantity should be changed through stock adjustment or stock consumption. Unit and item-level
+expiry are not edited from item edit mode.
 
 ## Adjust Stock
 
@@ -95,7 +97,8 @@ Archived items can be restored.
 
 Use the dashboard to quickly see inventory that needs attention.
 
-Dashboard low inventory includes items below minimum quantity and items with expired remaining stock.
+Dashboard low inventory includes items below minimum quantity, items with expired remaining stock,
+and items with remaining stock expiring within one month.
 
 The dashboard is expected to become more useful as orders, reminders, and recipes are added.
 

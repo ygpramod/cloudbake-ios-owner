@@ -44,6 +44,21 @@ final class CoreModelsTests: XCTestCase {
         XCTAssertFalse(item.isLowStock)
     }
 
+    func testInventoryItemIsLowStockWhenStockIsExpiringSoon() {
+        let item = InventoryItem(
+            id: "inventory-butter",
+            name: "Butter",
+            unit: .gram,
+            currentQuantity: 750,
+            minimumQuantity: 500,
+            hasExpiringSoonStock: true,
+            createdAt: Date(timeIntervalSince1970: 1_800_040_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_040_000)
+        )
+
+        XCTAssertTrue(item.isLowStock)
+    }
+
     func testInventoryItemIsArchivedWhenArchivedAtIsPresent() {
         let item = InventoryItem(
             id: "inventory-old-flour",

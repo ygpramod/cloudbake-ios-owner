@@ -24,8 +24,10 @@ The app currently supports:
 16. stock batches with expiry dates,
 17. expiry table for remaining stock batches,
 18. expiry-driven low inventory alerts,
-19. oldest-expiry-first stock consumption,
-20. unit, integration, and acceptance test lanes.
+19. one-month upcoming expiry alerts,
+20. stock batch expiry editing,
+21. oldest-expiry-first stock consumption,
+22. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
