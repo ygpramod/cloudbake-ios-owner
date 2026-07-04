@@ -19,7 +19,8 @@ The app currently supports:
 11. archived inventory restore,
 12. stock adjustment,
 13. stock consumption,
-14. unit, integration, and acceptance test lanes.
+14. stock history for active inventory items,
+15. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 

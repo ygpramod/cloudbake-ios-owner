@@ -53,6 +53,14 @@ Examples:
 
 The app rejects usage greater than current stock so inventory does not go below zero.
 
+## Review Stock History
+
+Use stock history when the owner needs to understand why an item's quantity changed.
+
+The history includes manual stock adjustments and manual stock usage for the selected inventory
+item. This is useful before recipe-driven stock changes exist, and it becomes more important once
+recipes start reducing inventory automatically.
+
 ## Archive Inventory
 
 Use archive when an item should not appear in the active inventory list anymore.

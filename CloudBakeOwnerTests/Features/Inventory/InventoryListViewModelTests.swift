@@ -776,6 +776,90 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.items, [item])
         XCTAssertEqual(repository.transactions, [])
     }
+
+    func testBeginViewingHistoryLoadsTransactionsNewestFirstForSelectedItem() {
+        let repository = FakeInventoryItemRepository()
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let olderTransaction = InventoryTransaction(
+            id: "transaction-older",
+            inventoryItemId: item.id,
+            kind: .adjustment,
+            quantity: 100,
+            occurredAt: Date(timeIntervalSince1970: 1_800_030_100),
+            note: "Restocked",
+            createdAt: Date(timeIntervalSince1970: 1_800_030_100),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_100)
+        )
+        let otherItemTransaction = InventoryTransaction(
+            id: "transaction-other",
+            inventoryItemId: "inventory-sugar",
+            kind: .adjustment,
+            quantity: 200,
+            occurredAt: Date(timeIntervalSince1970: 1_800_030_300),
+            note: nil,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_300),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_300)
+        )
+        let newerTransaction = InventoryTransaction(
+            id: "transaction-newer",
+            inventoryItemId: item.id,
+            kind: .consumption,
+            quantity: 50,
+            occurredAt: Date(timeIntervalSince1970: 1_800_030_200),
+            note: "Vanilla sponge",
+            createdAt: Date(timeIntervalSince1970: 1_800_030_200),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_200)
+        )
+        repository.transactions = [olderTransaction, otherItemTransaction, newerTransaction]
+        let viewModel = InventoryListViewModel(repository: repository)
+
+        viewModel.beginViewingHistory(item)
+
+        XCTAssertEqual(viewModel.historyItem, item)
+        XCTAssertEqual(viewModel.historyTransactions, [newerTransaction, olderTransaction])
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testCloseHistoryClearsSelectedItemAndTransactions() {
+        let repository = FakeInventoryItemRepository()
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        repository.transactions = [
+            InventoryTransaction(
+                id: "transaction-flour",
+                inventoryItemId: item.id,
+                kind: .adjustment,
+                quantity: 100,
+                occurredAt: Date(timeIntervalSince1970: 1_800_030_100),
+                note: nil,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_100),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_100)
+            )
+        ]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.beginViewingHistory(item)
+
+        viewModel.closeHistory()
+
+        XCTAssertNil(viewModel.historyItem)
+        XCTAssertEqual(viewModel.historyTransactions, [])
+        XCTAssertNil(viewModel.errorMessage)
+    }
 }
 
 private final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository {
@@ -812,5 +896,17 @@ private final class FakeInventoryItemRepository: InventoryItemRepository, Invent
 
     func fetchInventoryTransaction(id: String) throws -> InventoryTransaction? {
         transactions.first { $0.id == id }
+    }
+
+    func fetchInventoryTransactions(inventoryItemId: String) throws -> [InventoryTransaction] {
+        transactions
+            .filter { $0.inventoryItemId == inventoryItemId }
+            .sorted {
+                if $0.occurredAt == $1.occurredAt {
+                    return $0.createdAt > $1.createdAt
+                }
+
+                return $0.occurredAt > $1.occurredAt
+            }
     }
 }

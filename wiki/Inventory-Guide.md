@@ -68,6 +68,13 @@ Consumption examples:
 
 The app does not allow consumption greater than current stock.
 
+## Stock History
+
+Use stock history to review why an active inventory item's quantity changed.
+
+History shows adjustment and consumption records newest first. Adjustments display as stock added.
+Consumption displays as stock used.
+
 ## Archive And Restore
 
 Archive inventory when it should not appear in the active list.
@@ -82,7 +89,6 @@ Inventory does not yet support:
 
 1. recipe-driven automatic reduction,
 2. unit conversion,
-3. transaction history screens,
-4. inventory delete,
-5. supplier tracking,
-6. purchase planning.
+3. inventory delete,
+4. supplier tracking,
+5. purchase planning.

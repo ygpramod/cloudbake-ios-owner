@@ -18,6 +18,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0010: Archived Inventory Restore
 - Slice RFC-0011: Inventory Stock Adjustment
 - Slice RFC-0012: Inventory Stock Consumption
+- Slice RFC-0013: Inventory Transaction History
 
 ## Engineering Guardrails
 

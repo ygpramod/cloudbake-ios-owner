@@ -363,6 +363,70 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchInventoryItem(id: item.id), consumedItem)
         XCTAssertEqual(try repository.fetchInventoryTransaction(id: transaction.id), transaction)
     }
+
+    func testInventoryTransactionsFetchForItemNewestFirst() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let flour = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let sugar = InventoryItem(
+            id: "inventory-sugar",
+            name: "Sugar",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let olderFlourTransaction = InventoryTransaction(
+            id: "transaction-flour-adjustment",
+            inventoryItemId: flour.id,
+            kind: .adjustment,
+            quantity: 100,
+            occurredAt: Date(timeIntervalSince1970: 1_800_020_100),
+            note: "Restocked",
+            createdAt: Date(timeIntervalSince1970: 1_800_020_100),
+            updatedAt: Date(timeIntervalSince1970: 1_800_020_100)
+        )
+        let sugarTransaction = InventoryTransaction(
+            id: "transaction-sugar-adjustment",
+            inventoryItemId: sugar.id,
+            kind: .adjustment,
+            quantity: 100,
+            occurredAt: Date(timeIntervalSince1970: 1_800_020_300),
+            note: nil,
+            createdAt: Date(timeIntervalSince1970: 1_800_020_300),
+            updatedAt: Date(timeIntervalSince1970: 1_800_020_300)
+        )
+        let newerFlourTransaction = InventoryTransaction(
+            id: "transaction-flour-consumption",
+            inventoryItemId: flour.id,
+            kind: .consumption,
+            quantity: 50,
+            occurredAt: Date(timeIntervalSince1970: 1_800_020_200),
+            note: "Vanilla sponge",
+            createdAt: Date(timeIntervalSince1970: 1_800_020_200),
+            updatedAt: Date(timeIntervalSince1970: 1_800_020_200)
+        )
+
+        try repository.save(flour)
+        try repository.save(sugar)
+        try repository.save(olderFlourTransaction)
+        try repository.save(sugarTransaction)
+        try repository.save(newerFlourTransaction)
+
+        XCTAssertEqual(
+            try repository.fetchInventoryTransactions(inventoryItemId: flour.id),
+            [newerFlourTransaction, olderFlourTransaction]
+        )
+    }
 }
 
 private struct TestTimestamps {

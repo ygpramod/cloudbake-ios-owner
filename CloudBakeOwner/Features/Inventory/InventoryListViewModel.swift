@@ -17,6 +17,8 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var consumingItem: InventoryItem?
     @Published var draftConsumptionQuantity = ""
     @Published var draftConsumptionNote = ""
+    @Published private(set) var historyItem: InventoryItem?
+    @Published private(set) var historyTransactions: [InventoryTransaction] = []
 
     private let repository: any InventoryItemRepository & InventoryTransactionRepository
     private let idGenerator: () -> String
@@ -316,6 +318,33 @@ final class InventoryListViewModel: ObservableObject {
 
     func cancelStockConsumption() {
         resetConsumptionDraft()
+    }
+
+    func beginViewingHistory(_ item: InventoryItem) {
+        historyItem = item
+        loadHistory()
+    }
+
+    func loadHistory() {
+        guard let historyItem else {
+            historyTransactions = []
+            errorMessage = "Inventory item could not be found."
+            return
+        }
+
+        do {
+            historyTransactions = try repository.fetchInventoryTransactions(inventoryItemId: historyItem.id)
+            errorMessage = nil
+        } catch {
+            historyTransactions = []
+            errorMessage = "Inventory history could not be loaded."
+        }
+    }
+
+    func closeHistory() {
+        historyItem = nil
+        historyTransactions = []
+        errorMessage = nil
     }
 
     private func shouldWarnAboutDuplicate(
