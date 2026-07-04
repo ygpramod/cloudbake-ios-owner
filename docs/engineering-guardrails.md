@@ -56,6 +56,10 @@ A slice is done only when:
 - Unit tests cover pure logic and edge cases.
 - Integration tests cover persistence, migrations, repositories, and framework wiring.
 - XCUITest acceptance tests cover critical navigation and owner workflows as they are implemented.
+- Acceptance tests should stay journey-level and avoid duplicating detailed behavior already covered
+  by unit or integration tests.
+- Prefer consolidating repeated UI setup into fewer meaningful owner journeys instead of adding a new
+  end-to-end test for every slice.
 - Tests should be deterministic and not depend on wall-clock time unless time is injected.
 - Bugs should usually be fixed by first adding a failing test.
 - Snapshot tests may be introduced later if visual regressions become hard to review manually.
