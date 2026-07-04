@@ -91,6 +91,18 @@ When adding inventory, the app checks for same or similar names before creating 
 This is meant to avoid accidental duplicates. The owner can still intentionally add a duplicate if
 the warning is reviewed and accepted.
 
+## Baking Catalog
+
+The baking catalog is a JSON config that lists ingredients, decorations, and packaging that are
+relevant to baking.
+
+The catalog includes names, aliases, categories, and an active flag. It is used as the foundation
+for future purchase bill scanning, where the app should draft inventory only for baking-related
+bill lines.
+
+Today the catalog is bundled with the app as `BakingCatalog.json`. Future slices can add an owner
+editing screen or a local editable copy.
+
 ## Stock Adjustment
 
 Use adjustment to increase stock and keep a transaction record.
@@ -144,10 +156,12 @@ Inventory does not yet support:
 
 1. recipe-driven automatic reduction,
 2. ingredient-density conversion between weight and volume,
-3. inventory delete,
-4. supplier tracking,
-5. purchase planning,
-6. editing stock batch quantities directly,
-7. deleting stock batches,
-8. editing unit, current quantity, or expiry from item edit mode,
-9. expiry reminder notifications.
+3. purchase bill scanning into inventory drafts,
+4. in-app baking catalog editing,
+5. inventory delete,
+6. supplier tracking,
+7. purchase planning,
+8. editing stock batch quantities directly,
+9. deleting stock batches,
+10. editing unit, current quantity, or expiry from item edit mode,
+11. expiry reminder notifications.

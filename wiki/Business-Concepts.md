@@ -105,6 +105,17 @@ Compatible conversion is supported within the same measurement family:
 The app does not treat volume and weight as interchangeable because handmade cake ingredients need
 ingredient-specific density for that conversion.
 
+## Baking Catalog
+
+The baking catalog is a curated list of items that matter to baking workflows.
+
+Each catalog item has a name, aliases, category, and active flag. Examples include cake flour,
+butter, whipping cream, cocoa powder, fondant, cake boards, and cake boxes.
+
+Future purchase bill scanning should use this catalog to decide which bill lines become draft
+inventory items. Non-baking household or grocery lines should be ignored unless the owner adds them
+to the catalog.
+
 ## Cake Design
 
 A cake design is a record of a cake style the owner has made or wants to reference.

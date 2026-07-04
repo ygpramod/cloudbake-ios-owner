@@ -28,7 +28,8 @@ The app currently supports:
 20. stock batch expiry editing,
 21. oldest-expiry-first stock consumption,
 22. compatible unit conversion for stock adjustment and stock usage,
-23. unit, integration, and acceptance test lanes.
+23. bundled baking catalog config for future purchase bill filtering,
+24. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -40,7 +41,8 @@ The app has domain foundations for:
 4. cake designs,
 5. pricing,
 6. reminders,
-7. inventory transactions.
+7. inventory transactions,
+8. purchase bill filtering by baking catalog.
 
 These are not all owner-facing workflows yet.
 
@@ -51,13 +53,14 @@ Planned product areas include:
 1. recipe storage,
 2. recipe-book conversion into app recipes,
 3. recipe-driven inventory reduction,
-4. customer likes, dislikes, allergies, and preferences,
-5. order calendar,
-6. delivery reminders,
-7. cake photo storage,
-8. pricing calculator,
-9. customer-facing cake browsing,
-10. sync through iCloud or backend when needed.
+4. purchase bill scanning into inventory drafts,
+5. customer likes, dislikes, allergies, and preferences,
+6. order calendar,
+7. delivery reminders,
+8. cake photo storage,
+9. pricing calculator,
+10. customer-facing cake browsing,
+11. sync through iCloud or backend when needed.
 
 ## Source References
 
