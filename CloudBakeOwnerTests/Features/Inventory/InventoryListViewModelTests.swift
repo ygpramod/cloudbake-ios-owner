@@ -697,6 +697,7 @@ final class InventoryListViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.adjustingItem, item)
         XCTAssertEqual(viewModel.draftAdjustmentQuantity, "")
+        XCTAssertEqual(viewModel.draftAdjustmentUnit, .gram)
         XCTAssertEqual(viewModel.draftAdjustmentNote, "")
         XCTAssertNil(viewModel.errorMessage)
     }
@@ -778,6 +779,37 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.adjustingItem)
         XCTAssertEqual(viewModel.draftAdjustmentQuantity, "")
         XCTAssertEqual(viewModel.draftAdjustmentNote, "")
+    }
+
+    func testRecordStockAdjustmentConvertsDraftUnitToItemUnit() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let adjustedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        var ids = ["transaction-flour-adjustment", "batch-flour-adjustment"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { adjustedAt }
+        )
+        viewModel.beginAdjusting(item)
+        viewModel.draftAdjustmentQuantity = "1.25"
+        viewModel.draftAdjustmentUnit = .kilogram
+
+        XCTAssertTrue(viewModel.recordStockAdjustment())
+
+        XCTAssertEqual(repository.items.first?.currentQuantity, 1_750)
+        XCTAssertEqual(repository.transactions.first?.quantity, 1_250)
+        XCTAssertEqual(repository.batches.first?.remainingQuantity, 1_250)
     }
 
     func testRecordStockAdjustmentRejectsZeroQuantity() {
@@ -875,6 +907,7 @@ final class InventoryListViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.consumingItem, item)
         XCTAssertEqual(viewModel.draftConsumptionQuantity, "")
+        XCTAssertEqual(viewModel.draftConsumptionUnit, .gram)
         XCTAssertEqual(viewModel.draftConsumptionNote, "")
         XCTAssertNil(viewModel.errorMessage)
     }
@@ -1020,6 +1053,55 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.batches[0].remainingQuantity, 0)
         XCTAssertEqual(repository.batches[1].remainingQuantity, 150)
         XCTAssertEqual(repository.items.first?.currentQuantity, 150)
+    }
+
+    func testRecordStockConsumptionConvertsDraftUnitToItemUnitBeforeDeductingBatches() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let consumedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = InventoryItem(
+            id: "inventory-oil",
+            name: "Vegetable oil",
+            unit: .milliliter,
+            currentQuantity: 1_000,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-oil-old",
+                inventoryItemId: item.id,
+                remainingQuantity: 600,
+                expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            ),
+            InventoryStockBatch(
+                id: "batch-oil-new",
+                inventoryItemId: item.id,
+                remainingQuantity: 400,
+                expiresAt: Date(timeIntervalSince1970: 1_800_202_800),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "transaction-oil-consumption" },
+            dateProvider: { consumedAt }
+        )
+        viewModel.beginConsuming(item)
+        viewModel.draftConsumptionQuantity = "0.75"
+        viewModel.draftConsumptionUnit = .liter
+
+        XCTAssertTrue(viewModel.recordStockConsumption())
+
+        XCTAssertEqual(repository.items.first?.currentQuantity, 250)
+        XCTAssertEqual(repository.transactions.first?.quantity, 750)
+        XCTAssertEqual(repository.batches[0].remainingQuantity, 0)
+        XCTAssertEqual(repository.batches[1].remainingQuantity, 250)
     }
 
     func testRecordStockConsumptionRejectsZeroQuantity() {

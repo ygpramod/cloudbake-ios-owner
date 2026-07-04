@@ -406,6 +406,15 @@ private struct InventoryStockConsumptionForm: View {
                     .keyboardType(.decimalPad)
                     .accessibilityIdentifier("inventory.consume.quantity")
 
+                if let item = viewModel.consumingItem {
+                    Picker("Unit", selection: $viewModel.draftConsumptionUnit) {
+                        ForEach(item.unit.compatibleUnits, id: \.self) { unit in
+                            Text(unit.displayName).tag(unit)
+                        }
+                    }
+                    .accessibilityIdentifier("inventory.consume.unit")
+                }
+
                 TextField("Note", text: $viewModel.draftConsumptionNote)
                     .accessibilityIdentifier("inventory.consume.note")
             }
@@ -454,6 +463,15 @@ private struct InventoryStockAdjustmentForm: View {
                 TextField("Quantity to add", text: $viewModel.draftAdjustmentQuantity)
                     .keyboardType(.decimalPad)
                     .accessibilityIdentifier("inventory.adjust.quantity")
+
+                if let item = viewModel.adjustingItem {
+                    Picker("Unit", selection: $viewModel.draftAdjustmentUnit) {
+                        ForEach(item.unit.compatibleUnits, id: \.self) { unit in
+                            Text(unit.displayName).tag(unit)
+                        }
+                    }
+                    .accessibilityIdentifier("inventory.adjust.unit")
+                }
 
                 DatePicker(
                     "Expiry Date",
@@ -686,6 +704,7 @@ extension InventoryUnit {
     static let inventoryInputCases: [InventoryUnit] = [
         .kilogram,
         .gram,
+        .liter,
         .milliliter,
         .teaspoon,
         .tablespoon,
@@ -697,6 +716,7 @@ extension InventoryUnit {
         switch self {
         case .kilogram: "kg"
         case .gram: "g"
+        case .liter: "L"
         case .milliliter: "ml"
         case .teaspoon: "tsp"
         case .tablespoon: "tbsp"

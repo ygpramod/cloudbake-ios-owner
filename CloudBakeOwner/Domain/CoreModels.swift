@@ -3,11 +3,90 @@ import Foundation
 enum InventoryUnit: String, Equatable {
     case kilogram
     case gram
+    case liter
     case milliliter
     case teaspoon
     case tablespoon
     case cup
     case each
+
+    var compatibleUnits: [InventoryUnit] {
+        switch measurementFamily {
+        case .weight:
+            return [.kilogram, .gram]
+        case .volume:
+            return [.liter, .milliliter, .teaspoon, .tablespoon, .cup]
+        case .count:
+            return [.each]
+        }
+    }
+
+    func convertedQuantity(_ quantity: Double, to targetUnit: InventoryUnit) -> Double? {
+        guard measurementFamily == targetUnit.measurementFamily else {
+            return nil
+        }
+
+        switch measurementFamily {
+        case .weight:
+            guard let sourceGrams = gramsPerUnit, let targetGrams = targetUnit.gramsPerUnit else {
+                return nil
+            }
+            return quantity * sourceGrams / targetGrams
+        case .volume:
+            guard let sourceMilliliters = millilitersPerUnit,
+                  let targetMilliliters = targetUnit.millilitersPerUnit else {
+                return nil
+            }
+            return quantity * sourceMilliliters / targetMilliliters
+        case .count:
+            return quantity
+        }
+    }
+
+    private var measurementFamily: MeasurementFamily {
+        switch self {
+        case .kilogram, .gram:
+            return .weight
+        case .liter, .milliliter, .teaspoon, .tablespoon, .cup:
+            return .volume
+        case .each:
+            return .count
+        }
+    }
+
+    private var gramsPerUnit: Double? {
+        switch self {
+        case .kilogram:
+            return 1_000
+        case .gram:
+            return 1
+        case .liter, .milliliter, .teaspoon, .tablespoon, .cup, .each:
+            return nil
+        }
+    }
+
+    private var millilitersPerUnit: Double? {
+        switch self {
+        case .liter:
+            return 1_000
+        case .milliliter:
+            return 1
+        case .teaspoon:
+            return 5
+        case .tablespoon:
+            return 15
+        case .cup:
+            return 240
+        case .kilogram, .gram, .each:
+            return nil
+        }
+    }
+}
+
+private enum MeasurementFamily {
+    case weight
+    case volume
+    case count
 }
 
 struct InventoryItem: Equatable {
