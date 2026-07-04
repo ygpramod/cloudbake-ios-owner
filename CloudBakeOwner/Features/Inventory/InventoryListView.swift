@@ -389,9 +389,9 @@ private struct InventoryItemRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.name)
                     .font(.headline)
-                Text("Current quantity: \(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                Text("Current Quantity: \(item.currentQuantity.formatted()) \(item.unit.displayName)")
                     .font(.subheadline)
-                Text("Minimum quantity: \(item.minimumQuantity.formatted()) \(item.unit.displayName)")
+                Text("Minimum Quantity: \(item.minimumQuantity.formatted()) \(item.unit.displayName)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -437,19 +437,19 @@ private struct InventoryItemForm: View {
                 .accessibilityIdentifier("inventory.form.unit")
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Current quantity")
+                    Text("Current Quantity")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    TextField("Current quantity", text: $viewModel.draftCurrentQuantity)
+                    TextField("Current Quantity", text: $viewModel.draftCurrentQuantity)
                         .keyboardType(.decimalPad)
                         .accessibilityIdentifier("inventory.form.currentQuantity")
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Minimum quantity")
+                    Text("Minimum Quantity")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    TextField("Minimum quantity", text: $viewModel.draftMinimumQuantity)
+                    TextField("Minimum Quantity", text: $viewModel.draftMinimumQuantity)
                         .keyboardType(.decimalPad)
                         .accessibilityIdentifier("inventory.form.minimumQuantity")
                 }
