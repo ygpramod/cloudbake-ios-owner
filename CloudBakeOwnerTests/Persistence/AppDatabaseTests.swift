@@ -1,4 +1,5 @@
 import XCTest
+import GRDB
 @testable import CloudBakeOwner
 
 final class AppDatabaseTests: XCTestCase {
@@ -40,5 +41,48 @@ final class AppDatabaseTests: XCTestCase {
 
         XCTAssertEqual(try repository.fetch(id: entry.id), entry)
         XCTAssertTrue(FileManager.default.fileExists(atPath: databaseURL.path))
+    }
+
+    func testInventoryStockBatchMigrationPreservesExistingCurrentQuantity() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0004_add_inventory_archive_timestamp")
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO inventory_items
+                    (id, name, unit, minimum_quantity, created_at_unix_time, updated_at_unix_time, current_quantity, archived_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "inventory-flour",
+                    "Cake flour",
+                    InventoryUnit.gram.rawValue,
+                    500,
+                    1_800_020_000,
+                    1_800_020_100,
+                    750,
+                    nil
+                ]
+            )
+        }
+
+        try migrator.migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+
+        XCTAssertEqual(
+            try repository.fetchInventoryStockBatches(inventoryItemId: "inventory-flour"),
+            [
+                InventoryStockBatch(
+                    id: "legacy-batch-inventory-flour",
+                    inventoryItemId: "inventory-flour",
+                    remainingQuantity: 750,
+                    expiresAt: nil,
+                    createdAt: Date(timeIntervalSince1970: 1_800_020_000),
+                    updatedAt: Date(timeIntervalSince1970: 1_800_020_100)
+                )
+            ]
+        )
     }
 }

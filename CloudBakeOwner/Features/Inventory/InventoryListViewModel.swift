@@ -534,6 +534,45 @@ final class InventoryListViewModel: ObservableObject {
         } else if delta < 0 {
             let batches = try repository.fetchInventoryStockBatches(inventoryItemId: inventoryItemId)
             try consume(quantity: abs(delta), from: batches, updatedAt: updatedAt)
+        } else {
+            try updateEarliestBatchExpiry(
+                inventoryItemId: inventoryItemId,
+                targetQuantity: targetQuantity,
+                expiresAt: expiryDateForAddedStock,
+                updatedAt: updatedAt
+            )
+        }
+    }
+
+    private func updateEarliestBatchExpiry(
+        inventoryItemId: String,
+        targetQuantity: Double,
+        expiresAt: Date,
+        updatedAt: Date
+    ) throws {
+        let batches = try repository.fetchInventoryStockBatches(inventoryItemId: inventoryItemId)
+        if let earliestRemainingBatch = batches.first(where: { $0.remainingQuantity > 0 }) {
+            try repository.save(
+                InventoryStockBatch(
+                    id: earliestRemainingBatch.id,
+                    inventoryItemId: earliestRemainingBatch.inventoryItemId,
+                    remainingQuantity: earliestRemainingBatch.remainingQuantity,
+                    expiresAt: expiresAt,
+                    createdAt: earliestRemainingBatch.createdAt,
+                    updatedAt: updatedAt
+                )
+            )
+        } else if targetQuantity > 0 {
+            try repository.save(
+                InventoryStockBatch(
+                    id: idGenerator(),
+                    inventoryItemId: inventoryItemId,
+                    remainingQuantity: targetQuantity,
+                    expiresAt: expiresAt,
+                    createdAt: updatedAt,
+                    updatedAt: updatedAt
+                )
+            )
         }
     }
 

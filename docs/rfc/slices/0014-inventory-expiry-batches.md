@@ -87,7 +87,8 @@ Consuming stock validates available batch quantity and drains batches in oldest-
 saving the item summary and consumption transaction.
 
 Editing current quantity remains supported for corrections. Increases create a correction batch with
-the selected expiry date. Decreases drain oldest batches.
+the selected expiry date. Decreases drain oldest batches. Editing expiry without changing quantity
+updates the earliest remaining batch, matching the expiry shown on the inventory row.
 
 ### UI
 
