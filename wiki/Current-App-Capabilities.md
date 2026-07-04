@@ -27,7 +27,8 @@ The app currently supports:
 19. one-month upcoming expiry alerts,
 20. stock batch expiry editing,
 21. oldest-expiry-first stock consumption,
-22. unit, integration, and acceptance test lanes.
+22. compatible unit conversion for stock adjustment and stock usage,
+23. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 

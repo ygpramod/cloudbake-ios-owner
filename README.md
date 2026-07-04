@@ -22,6 +22,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0014: Inventory Expiry and Stock Batches
 - Slice RFC-0015: Inventory Detail View
 - Slice RFC-0016: Inventory Upcoming Expiry and Batch Edit
+- Slice RFC-0017: Inventory Unit Conversion
 
 ## Engineering Guardrails
 
