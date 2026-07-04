@@ -17,12 +17,17 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0009: Inventory Archive Item
 - Slice RFC-0010: Archived Inventory Restore
 - Slice RFC-0011: Inventory Stock Adjustment
+- Slice RFC-0012: Inventory Stock Consumption
 
 ## Engineering Guardrails
 
 - Local guardrails: `docs/engineering-guardrails.md`
 - Architecture decisions: `docs/adr/`
 - Slice RFCs: `docs/rfc/slices/`
+- Wiki source: `wiki/`
+
+The repo-local `wiki/` directory is the authored source for GitHub Wiki pages. Update it in the
+same PR when owner-facing, operator-facing, or cross-repository guidance changes.
 
 ## Build
 

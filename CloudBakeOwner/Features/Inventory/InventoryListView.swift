@@ -6,6 +6,7 @@ struct InventoryListView: View {
     @State private var isEditingItem = false
     @State private var isShowingArchivedItems = false
     @State private var isAdjustingStock = false
+    @State private var isConsumingStock = false
 
     init(viewModel: InventoryListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -33,6 +34,15 @@ struct InventoryListView: View {
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("inventory.item.edit.\(item.id)")
                         .swipeActions(edge: .leading) {
+                            Button {
+                                viewModel.beginConsuming(item)
+                                isConsumingStock = true
+                            } label: {
+                                Label("Use", systemImage: "minus")
+                            }
+                            .tint(.orange)
+                            .accessibilityIdentifier("inventory.item.consume.\(item.id)")
+
                             Button {
                                 viewModel.beginAdjusting(item)
                                 isAdjustingStock = true
@@ -107,10 +117,67 @@ struct InventoryListView: View {
                 )
             }
         }
+        .sheet(isPresented: $isConsumingStock) {
+            NavigationStack {
+                InventoryStockConsumptionForm(
+                    viewModel: viewModel,
+                    isPresented: $isConsumingStock
+                )
+            }
+        }
         .onAppear {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.inventory.screenAccessibilityIdentifier)
+    }
+}
+
+private struct InventoryStockConsumptionForm: View {
+    @ObservedObject var viewModel: InventoryListViewModel
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        Form {
+            Section("Stock") {
+                if let item = viewModel.consumingItem {
+                    LabeledContent("Item", value: item.name)
+                    LabeledContent("Current", value: "\(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                }
+
+                TextField("Quantity used", text: $viewModel.draftConsumptionQuantity)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("inventory.consume.quantity")
+
+                TextField("Note", text: $viewModel.draftConsumptionNote)
+                    .accessibilityIdentifier("inventory.consume.note")
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("inventory.consume.error")
+                }
+            }
+        }
+        .navigationTitle("Use Stock")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    viewModel.cancelStockConsumption()
+                    isPresented = false
+                }
+            }
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    if viewModel.recordStockConsumption() {
+                        isPresented = false
+                    }
+                }
+                .accessibilityIdentifier("inventory.consume.save")
+            }
+        }
     }
 }
 
