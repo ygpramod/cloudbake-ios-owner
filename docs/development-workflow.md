@@ -50,6 +50,10 @@ xcodebuild test \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
+Keep the acceptance lane focused on critical owner journeys. When a slice adds detailed business
+behavior, prefer unit or integration tests for the detailed cases and update an existing journey only
+when the owner-facing workflow changes.
+
 ## Main Branch Protection
 
 `main` should be protected in GitHub with these rules:

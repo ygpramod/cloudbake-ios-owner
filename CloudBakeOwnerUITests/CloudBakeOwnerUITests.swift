@@ -30,29 +30,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         }
     }
 
-    func testInventoryItemCanBeAdded() throws {
-        let app = makeApp()
-        app.launch()
-
-        app.staticTexts["Inventory"].tap()
-        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 5))
-
-        app.buttons["inventory.add"].tap()
-        XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
-
-        app.textFields["inventory.form.name"].tap()
-        app.textFields["inventory.form.name"].typeText("Cake flour")
-        app.textFields["inventory.form.currentQuantity"].tap()
-        app.textFields["inventory.form.currentQuantity"].typeText("250")
-        app.textFields["inventory.form.minimumQuantity"].tap()
-        app.textFields["inventory.form.minimumQuantity"].typeText("500")
-        app.buttons["inventory.form.save"].tap()
-
-        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].exists)
-        XCTAssertTrue(app.staticTexts["Minimum Quantity: 500 g"].exists)
-    }
-
     func testInventoryDuplicateNameShowsWarningBeforeAdding() throws {
         let app = makeApp()
         app.launch()
@@ -73,12 +50,12 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Possible duplicate: Cake flour already exists. Tap Save again to add a separate item."].waitForExistence(timeout: 5))
     }
 
-    func testInventoryItemCanBeEdited() throws {
+    func testInventoryOwnerJourneyShowsDetailEditsStockHistoryAndDashboard() throws {
         let app = makeApp()
         app.launch()
 
         app.staticTexts["Inventory"].tap()
-        addInventoryItem(named: "Cake flour", currentQuantity: "50", minimumQuantity: "500", in: app)
+        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view."))
@@ -92,7 +69,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Minimum Quantity"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Expiry"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Quantity"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["50 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
 
         let batchExpiryRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.detail.batch.edit.")).firstMatch
         XCTAssertTrue(batchExpiryRow.waitForExistence(timeout: 5))
@@ -100,7 +77,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Edit Expiry"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Stock Batch"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Quantity"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["50 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.datePickers["inventory.batchExpiry.expiryDate"].waitForExistence(timeout: 5))
         app.buttons["inventory.batchExpiry.save"].tap()
         XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
@@ -121,35 +98,41 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
         app.buttons["inventory.detail.done"].tap()
         XCTAssertTrue(app.staticTexts["Minimum Quantity: 600 g"].waitForExistence(timeout: 5))
-    }
 
-    func testInventoryItemCanBeArchived() throws {
-        let app = makeApp()
-        app.launch()
+        adjustFirstInventoryItem(by: "100", in: app)
+        XCTAssertTrue(app.staticTexts["Current Quantity: 350 g"].waitForExistence(timeout: 5))
 
-        app.staticTexts["Inventory"].tap()
-        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
+        consumeFirstInventoryItem(by: "50", in: app)
+        XCTAssertTrue(app.staticTexts["Current Quantity: 300 g"].waitForExistence(timeout: 5))
 
-        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view.")).firstMatch
+        let row = firstEditableInventoryRow(in: app)
         XCTAssertTrue(row.waitForExistence(timeout: 5))
-        row.swipeLeft()
-        app.buttons["Archive"].tap()
+        row.swipeRight()
+        app.buttons["History"].tap()
 
-        XCTAssertTrue(app.staticTexts["No inventory yet"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Stock History"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Used"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["-50 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Adjustment"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["+100 g"].waitForExistence(timeout: 5))
+        app.buttons["inventory.history.done"].tap()
         app.navigationBars.buttons["CloudBake"].tap()
+
         XCTAssertTrue(app.navigationBars["CloudBake"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["No alerts yet"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Cake flour"].exists)
+        XCTAssertTrue(app.staticTexts["Low inventory"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Expiring soon"].waitForExistence(timeout: 5))
     }
 
-    func testArchivedInventoryItemCanBeRestored() throws {
+    func testInventoryCanBeArchivedAndRestored() throws {
         let app = makeApp()
         app.launch()
 
         app.staticTexts["Inventory"].tap()
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
 
-        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view.")).firstMatch
+        let row = firstEditableInventoryRow(in: app)
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.swipeLeft()
         app.buttons["Archive"].tap()
@@ -168,125 +151,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: 5))
-    }
-
-    func testInventoryStockCanBeAdjusted() throws {
-        let app = makeApp()
-        app.launch()
-
-        app.staticTexts["Inventory"].tap()
-        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
-
-        adjustFirstInventoryItem(by: "100", in: app)
-
-        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current Quantity: 350 g"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Current Quantity: 250 g"].exists)
-    }
-
-    func testInventoryItemCanBeArchivedAfterStockAdjustment() throws {
-        let app = makeApp()
-        app.launch()
-
-        app.staticTexts["Inventory"].tap()
-        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
-        adjustFirstInventoryItem(by: "100", in: app)
-
-        let row = firstEditableInventoryRow(in: app)
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
-        row.swipeLeft()
-        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.archive."))
-            .firstMatch
-            .tap()
-
-        XCTAssertTrue(app.staticTexts["No inventory yet"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Cake flour"].exists)
-    }
-
-    func testInventoryStockCanBeConsumed() throws {
-        let app = makeApp()
-        app.launch()
-
-        app.staticTexts["Inventory"].tap()
-        addInventoryItem(named: "Cake flour", currentQuantity: "350", minimumQuantity: "500", in: app)
-
-        consumeFirstInventoryItem(by: "100", in: app)
-
-        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["Current Quantity: 350 g"].exists)
-    }
-
-    func testInventoryStockConsumptionCannotExceedCurrentStock() throws {
-        let app = makeApp()
-        app.launch()
-
-        app.staticTexts["Inventory"].tap()
-        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
-
-        let row = firstEditableInventoryRow(in: app)
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
-        row.swipeRight()
-        app.buttons["Use"].tap()
-        XCTAssertTrue(app.navigationBars["Use Stock"].waitForExistence(timeout: 5))
-        app.textFields["inventory.consume.quantity"].tap()
-        app.textFields["inventory.consume.quantity"].typeText("251")
-        app.buttons["inventory.consume.save"].tap()
-
-        XCTAssertTrue(app.staticTexts["Consumption quantity cannot be greater than current stock."].waitForExistence(timeout: 5))
-        app.buttons["Cancel"].tap()
-        XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: 5))
-    }
-
-    func testInventoryStockHistoryShowsAdjustmentAndConsumption() throws {
-        let app = makeApp()
-        app.launch()
-
-        app.staticTexts["Inventory"].tap()
-        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
-        adjustFirstInventoryItem(by: "100", in: app)
-        consumeFirstInventoryItem(by: "50", in: app)
-
-        let row = firstEditableInventoryRow(in: app)
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
-        row.swipeRight()
-        app.buttons["History"].tap()
-
-        XCTAssertTrue(app.navigationBars["Stock History"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Used"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["-50 g"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Adjustment"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["+100 g"].waitForExistence(timeout: 5))
-    }
-
-    func testDashboardShowsLowInventoryItems() throws {
-        let app = makeApp()
-        app.launch()
-
-        app.staticTexts["Inventory"].tap()
-        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
-        app.navigationBars.buttons["CloudBake"].tap()
-
-        XCTAssertTrue(app.navigationBars["CloudBake"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Low inventory"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Expiring soon"].waitForExistence(timeout: 5))
-    }
-
-    func testDashboardShowsOverflowCountForMoreThanThreeLowInventoryItems() throws {
-        let app = makeApp()
-        app.launch()
-
-        app.staticTexts["Inventory"].tap()
-        addInventoryItem(named: "Cake flour", currentQuantity: "1", minimumQuantity: "10", in: app)
-        addInventoryItem(named: "Butter", currentQuantity: "2", minimumQuantity: "10", in: app)
-        addInventoryItem(named: "Sugar", currentQuantity: "3", minimumQuantity: "10", in: app)
-        addInventoryItem(named: "Cocoa", currentQuantity: "4", minimumQuantity: "10", in: app)
-        app.navigationBars.buttons["CloudBake"].tap()
-
-        XCTAssertTrue(app.navigationBars["CloudBake"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["+ 1 more"].waitForExistence(timeout: 5))
     }
 
     private func makeApp() -> XCUIApplication {
