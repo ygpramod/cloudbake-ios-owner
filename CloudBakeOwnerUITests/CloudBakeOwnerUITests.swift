@@ -271,7 +271,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["CloudBake"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Low inventory"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["250 / 500 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Expiring soon"].waitForExistence(timeout: 5))
     }
 
     func testDashboardShowsOverflowCountForMoreThanThreeLowInventoryItems() throws {
