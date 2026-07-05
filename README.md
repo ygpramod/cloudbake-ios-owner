@@ -41,6 +41,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0033: Inventory Detail Actions
 - Slice RFC-0034: Customer List Add And Detail
 - Slice RFC-0035: Customer Edit
+- Slice RFC-0036: Customer Contacts Import Draft
 
 ## Base RFCs
 

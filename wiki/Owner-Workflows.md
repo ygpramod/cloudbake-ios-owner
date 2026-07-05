@@ -212,8 +212,12 @@ Use Customers to remember customer name, address, phone, important dates, likes,
 allergies, dietary restrictions, and order history. `docs/rfc/customers.md` is the base product RFC
 for this area.
 
-Today, the owner can manually add, view, and edit customers. Name and phone are required. Address,
-email, important dates, likes, dislikes, allergies, dietary restrictions, and notes are optional.
+Today, the owner can add customers manually or start from an Apple Contacts import draft. Contacts
+import is owner initiated, copies one selected contact into the add form, and does not save anything
+until the owner reviews the draft and taps Save.
+
+Name and phone are required. Address, email, important dates, likes, dislikes, allergies, dietary
+restrictions, and notes are optional.
 
 Customer edit updates contact details and preference fields. Important date correction is future
 work.
