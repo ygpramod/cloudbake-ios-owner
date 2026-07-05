@@ -25,8 +25,13 @@ The current recipe workflow stores:
 1. recipe name,
 2. owner notes.
 
-This is the first owner-facing recipe slice. Recipe components, ingredients, scaling, recipe-book
-conversion, and recipe-driven inventory reduction are future work.
+The owner can also import a recipe from paper or a recipe book by taking a photo, retaking the
+photo, choosing an image from the photo library, or manually entering recognized text. The app reads
+the image locally with Apple Vision OCR, creates an editable draft, and saves it only after the
+owner reviews it.
+
+Recipe components, ingredients, scaling, structured ingredient quantity extraction, and
+recipe-driven inventory reduction are future work.
 
 ## Add Inventory
 

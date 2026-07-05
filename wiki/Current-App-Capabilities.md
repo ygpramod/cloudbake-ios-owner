@@ -40,7 +40,9 @@ The app currently supports:
 32. local expiry reminder notifications for stock expiring within one month,
 33. recipe list,
 34. recipe creation with name and owner notes,
-35. unit, integration, and acceptance test lanes.
+35. recipe paper/book photo import into editable drafts,
+36. local Apple Vision OCR service for recipe text recognition,
+37. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -58,7 +60,8 @@ The app has domain foundations or partial workflows for:
 10. purchase bill text recognition through Apple Vision,
 11. purchase bill draft review flow,
 12. purchase bill camera import flow,
-13. purchase bill duplicate matching.
+13. purchase bill duplicate matching,
+14. recipe ingredient quantity extraction.
 
 These are not all owner-facing workflows yet.
 
