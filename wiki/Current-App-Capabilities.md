@@ -55,7 +55,8 @@ The app currently supports:
 47. customer duplicate warning,
 48. customer important dates,
 49. customer editing from detail,
-50. unit, integration, and acceptance test lanes.
+50. Contacts import into editable customer drafts,
+51. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -74,7 +75,7 @@ The app has domain foundations or partial workflows for:
 11. purchase bill camera import flow,
 12. purchase bill duplicate matching,
 13. recipe ingredient quantity extraction,
-14. Contacts import for customers.
+14. customer selection from orders.
 
 These are not all owner-facing workflows yet.
 
@@ -85,7 +86,7 @@ Planned product areas include:
 1. stronger OCR cleanup and page correction for scanned recipes,
 2. optional LLM-assisted recipe interpretation,
 3. recipe-driven inventory reduction,
-4. Contacts import for customers,
+4. customer selection from orders,
 5. order calendar,
 6. delivery reminders,
 7. cake photo storage,

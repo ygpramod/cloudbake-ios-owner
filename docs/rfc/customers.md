@@ -138,6 +138,8 @@ customer.
 - Likes, dislikes, allergies, dietary restrictions, and owner notes are optional.
 - Duplicate detection is required when adding customers.
 - Archive and delete are not required for the first customer implementation.
+- Contacts import uses Apple's explicit contact picker for one owner-selected contact.
+- Contacts import must create an editable draft and must not save until the owner taps Save.
 
 ## Order Relationship
 
@@ -204,7 +206,8 @@ The first implementation slice should create the minimum useful customer foundat
 - capture likes, dislikes, allergies, dietary restrictions, and notes,
 - include focused unit, integration, and acceptance coverage.
 
-Contacts import should be the next slice unless the order foundation needs customer selection first.
+Contacts import is implemented as an editable draft flow. Customer selection for orders should be
+the next customer-dependent slice when order implementation begins.
 
 ## Open Questions
 
