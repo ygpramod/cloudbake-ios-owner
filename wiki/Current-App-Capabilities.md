@@ -34,8 +34,10 @@ The app currently supports:
 26. local Apple Vision OCR service for purchase bill text recognition,
 27. purchase bill draft review and save into inventory,
 28. purchase bill camera capture into editable inventory drafts,
-29. duplicate matching for purchase bill draft save,
-30. unit, integration, and acceptance test lanes.
+29. purchase bill photo retake and selected-photo preview,
+30. purchase bill photo library import,
+31. duplicate matching for purchase bill draft save,
+32. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 

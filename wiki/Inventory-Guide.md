@@ -114,8 +114,12 @@ the device for the first version, and there is no OCR subscription or per-scan s
 The parser reads bill text line by line, keeps only lines that match the baking catalog, and captures
 common quantity/unit pairs such as `1 kg`, `500g`, `250 ml`, `12 pcs`, `2 tsp`, or `1 cup`.
 
-The owner can open Import Bill, take a purchase bill photo, and let the app read the bill text using
-local Vision OCR. The recognized text is parsed into draft inventory rows.
+The owner can open Import Bill, take a purchase bill photo, retake the photo, or choose an existing
+bill image from the photo library. The app reads the selected image using local Vision OCR and
+parses the recognized text into draft inventory rows.
+
+The selected bill image is previewed in the import flow so the owner can quickly spot the wrong
+photo before saving drafts.
 
 The owner can review draft items before saving. Draft review supports selecting which items to save,
 editing recognized text, names, quantities, units, minimum quantities, and expiry dates.

@@ -32,7 +32,6 @@ the recognized bill text.
 
 ## Out Of Scope
 
-- Photo library import.
 - Multi-page bill capture.
 - Cropping, perspective correction, or document-edge detection.
 - Merging scanned drafts into existing inventory.
@@ -61,6 +60,9 @@ clears stale drafts if OCR fails.
 
 The implementation keeps a multiline text entry area in the import sheet so the owner can correct OCR text or
 enter bill text manually when camera OCR is not suitable.
+
+Photo library import and selected-photo preview are added by
+`docs/rfc/slices/0026-purchase-bill-photo-retake-library-import.md`.
 
 ## Test Plan
 

@@ -90,6 +90,16 @@ it and reduces the inventory item's current quantity by the deleted amount.
 Batch correction is different from stock usage. Use stock usage when stock was actually consumed;
 use batch correction when the saved data is wrong.
 
+## Import Purchase Bills
+
+Use Import Bill when newly purchased baking stock should become inventory drafts.
+
+The owner can take a bill photo, retake the photo, or choose an existing bill image from the photo
+library. The selected image is previewed, read locally with Apple Vision OCR, and turned into
+editable draft inventory rows.
+
+Manual bill text entry remains available when an image is unclear.
+
 ## Review Stock History
 
 Use stock history when the owner needs to understand why an item's quantity changed.
