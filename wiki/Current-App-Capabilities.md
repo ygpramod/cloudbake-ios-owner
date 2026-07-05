@@ -45,7 +45,9 @@ The app currently supports:
 37. recipe detail view,
 38. manually linked recipe ingredient rows with quantity, unit, and note,
 39. recipe ingredient editing and deletion,
-40. unit, integration, and acceptance test lanes.
+40. structured recipe import drafts with parsed ingredient rows,
+41. simple inventory matching for imported recipe ingredients,
+42. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -72,8 +74,8 @@ These are not all owner-facing workflows yet.
 
 Planned product areas include:
 
-1. parsing scanned recipe text into ingredient rows,
-2. recipe-book conversion into app recipes,
+1. stronger OCR cleanup and page correction for scanned recipes,
+2. optional LLM-assisted recipe interpretation,
 3. recipe-driven inventory reduction,
 4. customer likes, dislikes, allergies, and preferences,
 5. order calendar,

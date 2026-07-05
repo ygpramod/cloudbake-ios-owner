@@ -28,11 +28,11 @@ The current recipe workflow stores:
 
 The owner can also import a recipe from paper or a recipe book by taking a photo, retaking the
 photo, choosing an image from the photo library, or manually entering recognized text. The app reads
-the image locally with Apple Vision OCR, creates an editable draft, and saves it only after the
-owner reviews it.
+the image locally with Apple Vision OCR, creates an editable draft, parses likely ingredient rows,
+and saves it only after the owner reviews it.
 
-Recipe scaling, structured ingredient quantity extraction from scanned text, richer component
-grouping, and recipe-driven inventory reduction are future work.
+Recipe scaling, stronger OCR cleanup, richer component grouping, optional LLM-assisted
+interpretation, and recipe-driven inventory reduction are future work.
 
 ## Recipe Ingredients
 
@@ -46,6 +46,17 @@ ingredient row to edit it, or swipe to delete a mistaken row.
 
 Recipe ingredient rows do not reduce inventory yet. They prepare the app for a future Use Recipe
 flow that will deduct stock from oldest-expiring batches first.
+
+## Import Recipe Review
+
+Recipe import is a review workflow.
+
+When recognized text contains lines like `Flour - 250 g` or `BP - 1/2 tsp`, the app turns them into
+draft ingredient rows. The owner can edit the ingredient name, quantity, unit, inventory item link,
+and note before saving.
+
+Imported ingredient rows must be linked to inventory items before save. Lines that do not look like
+ingredients are kept as recipe notes.
 
 ## Add Inventory
 
