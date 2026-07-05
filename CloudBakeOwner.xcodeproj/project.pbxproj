@@ -34,6 +34,7 @@
 		410000000000000000000019 /* BakingCatalog.json in Resources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000021 /* BakingCatalog.json */; };
 		41000000000000000000001A /* PurchaseBillDraftParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000022 /* PurchaseBillDraftParser.swift */; };
 		41000000000000000000001B /* PurchaseBillDraftParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000023 /* PurchaseBillDraftParserTests.swift */; };
+		41000000000000000000001C /* PurchaseBillTextRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000024 /* PurchaseBillTextRecognizer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -83,6 +84,7 @@
 		420000000000000000000021 /* BakingCatalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BakingCatalog.json; sourceTree = "<group>"; };
 		420000000000000000000022 /* PurchaseBillDraftParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseBillDraftParser.swift; sourceTree = "<group>"; };
 		420000000000000000000023 /* PurchaseBillDraftParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseBillDraftParserTests.swift; sourceTree = "<group>"; };
+		420000000000000000000024 /* PurchaseBillTextRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseBillTextRecognizer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -138,6 +140,7 @@
 			children = (
 				420000000000000000000002 /* AppDestination.swift */,
 				420000000000000000000001 /* CloudBakeOwnerApp.swift */,
+				420000000000000000000024 /* PurchaseBillTextRecognizer.swift */,
 				420000000000000000000003 /* RootView.swift */,
 			);
 			path = App;
@@ -433,6 +436,7 @@
 				410000000000000000000012 /* InventoryListView.swift in Sources */,
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
 				41000000000000000000001A /* PurchaseBillDraftParser.swift in Sources */,
+				41000000000000000000001C /* PurchaseBillTextRecognizer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
