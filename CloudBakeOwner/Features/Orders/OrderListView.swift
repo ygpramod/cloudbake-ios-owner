@@ -429,32 +429,4 @@ private struct OrderForm: View {
 
 private extension OrderStatus {
     static let addOptions: [OrderStatus] = [.draft, .confirmed]
-
-    var displayName: String {
-        switch self {
-        case .draft:
-            return "Draft"
-        case .confirmed:
-            return "Confirmed"
-        case .inProgress:
-            return "In Progress"
-        case .ready:
-            return "Ready"
-        case .completed:
-            return "Completed"
-        case .cancelled:
-            return "Cancelled"
-        }
-    }
-}
-
-private extension OrderFulfillmentType {
-    var displayName: String {
-        switch self {
-        case .pickup:
-            return "Pickup"
-        case .delivery:
-            return "Delivery"
-        }
-    }
 }
