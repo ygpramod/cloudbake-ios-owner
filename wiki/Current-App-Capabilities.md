@@ -42,7 +42,10 @@ The app currently supports:
 34. recipe creation with name and owner notes,
 35. recipe paper/book photo import into editable drafts,
 36. local Apple Vision OCR service for recipe text recognition,
-37. unit, integration, and acceptance test lanes.
+37. recipe detail view,
+38. manually linked recipe ingredient rows with quantity, unit, and note,
+39. recipe ingredient editing and deletion,
+40. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -69,7 +72,7 @@ These are not all owner-facing workflows yet.
 
 Planned product areas include:
 
-1. recipe components and ingredients,
+1. parsing scanned recipe text into ingredient rows,
 2. recipe-book conversion into app recipes,
 3. recipe-driven inventory reduction,
 4. customer likes, dislikes, allergies, and preferences,

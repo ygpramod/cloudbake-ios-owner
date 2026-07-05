@@ -23,15 +23,29 @@ Use Recipes to start moving trusted cake recipes from the owner's book into Clou
 The current recipe workflow stores:
 
 1. recipe name,
-2. owner notes.
+2. owner notes,
+3. linked ingredient rows with inventory item, quantity, unit, and optional note.
 
 The owner can also import a recipe from paper or a recipe book by taking a photo, retaking the
 photo, choosing an image from the photo library, or manually entering recognized text. The app reads
 the image locally with Apple Vision OCR, creates an editable draft, and saves it only after the
 owner reviews it.
 
-Recipe components, ingredients, scaling, structured ingredient quantity extraction, and
-recipe-driven inventory reduction are future work.
+Recipe scaling, structured ingredient quantity extraction from scanned text, richer component
+grouping, and recipe-driven inventory reduction are future work.
+
+## Recipe Ingredients
+
+Tap a recipe to view its detail.
+
+Recipe detail shows notes and ingredient rows. Each ingredient row is linked to an active inventory
+item and stores the quantity, unit, and optional preparation note needed for that recipe.
+
+Use Add Ingredient when the owner wants to manually define the stock needed by a recipe. Tap an
+ingredient row to edit it, or swipe to delete a mistaken row.
+
+Recipe ingredient rows do not reduce inventory yet. They prepare the app for a future Use Recipe
+flow that will deduct stock from oldest-expiring batches first.
 
 ## Add Inventory
 

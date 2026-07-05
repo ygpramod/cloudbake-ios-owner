@@ -99,10 +99,11 @@ Restoring moves an archived inventory item back to the active inventory list.
 
 A recipe describes the ingredients and steps needed to make a cake or component.
 
-The current app can store recipe names and owner notes. It can also use local Apple Vision OCR to
-turn a paper or book recipe image into an editable recipe draft. Future recipe work should add
-components, ingredients, method details, structured ingredient extraction, and inventory deduction
-when a recipe is used.
+The current app can store recipe names, owner notes, and manually linked ingredient rows. Each
+ingredient row points to an inventory item and records quantity, unit, and optional note. The app
+can also use local Apple Vision OCR to turn a paper or book recipe image into an editable recipe
+draft. Future recipe work should add structured ingredient extraction, richer component grouping,
+method details, scaling, and inventory deduction when a recipe is used.
 
 Important units include kg, liters, ml, grams, teaspoons, tablespoons, and cups.
 
