@@ -31,6 +31,7 @@ stock before it becomes unusable.
 
 ## Out Of Scope
 
+- In-app expiry reminder popups and snooze controls.
 - Remote push notifications.
 - Notification settings UI.
 - Custom reminder times.

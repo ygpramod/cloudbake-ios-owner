@@ -38,7 +38,9 @@ The app currently supports:
 30. purchase bill photo library import,
 31. duplicate matching for purchase bill draft save,
 32. local expiry reminder notifications for stock expiring within one month,
-33. unit, integration, and acceptance test lanes.
+33. in-app expiry reminder popup for expired stock and stock expiring within one week,
+34. one-to-seven-day expiry reminder snooze,
+35. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 

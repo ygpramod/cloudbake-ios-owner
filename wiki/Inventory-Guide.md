@@ -48,6 +48,10 @@ remaining stock, or when remaining stock expires within one month.
 The app also uses local notifications for remaining stock expiring within one month after the owner
 grants notification permission.
 
+When the app opens, it also shows an in-app reminder for expired stock or stock expiring within one
+week. The owner can snooze that in-app reminder from one to seven days; the default snooze is one
+day.
+
 Example:
 
 1. current quantity: 500 g,
@@ -74,6 +78,10 @@ zero, usage continues into the next oldest batch.
 Expiry reminders are local to the device. The reminder message names the item, remaining batch
 quantity, unit, and expiry date. Expired batches, empty batches, no-expiry batches, and batches
 expiring later than one month are not scheduled for expiry reminder notifications.
+
+In-app expiry reminders are stricter than background notifications: they focus only on expired stock
+and stock expiring within one week. Snoozing is stored per stock batch, so the same batch can appear
+again after the snooze period ends if it is still expired or expiring soon.
 
 ## Inventory Detail
 

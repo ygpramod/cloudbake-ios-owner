@@ -88,6 +88,10 @@ the foreground.
 
 The reminder names the inventory item, remaining quantity, unit, and expiry date.
 
+CloudBake also shows an in-app reminder when the app opens if stock is already expired or expiring
+within one week. The owner can snooze this reminder from one to seven days. The default snooze is
+one day.
+
 ## Correct Stock Batches
 
 Use stock batch correction when a remaining batch was entered incorrectly.
