@@ -68,7 +68,9 @@ struct RecipeListView: View {
             NavigationStack {
                 RecipeForm(
                     viewModel: viewModel,
-                    isPresented: $isAddingRecipe
+                    isPresented: $isAddingRecipe,
+                    onCancel: viewModel.cancelAddRecipe,
+                    onSave: viewModel.addRecipe
                 )
             }
         }
@@ -99,6 +101,7 @@ private struct RecipeDetailView: View {
     @ObservedObject var viewModel: RecipeListViewModel
     @Binding var isPresented: Bool
     @State private var isEditingIngredient = false
+    @State private var isEditingRecipe = false
 
     var body: some View {
         List {
@@ -158,14 +161,33 @@ private struct RecipeDetailView: View {
                 .accessibilityIdentifier("recipes.detail.done")
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    viewModel.beginEditingRecipe()
+                    isEditingRecipe = true
+                } label: {
+                    Label("Edit Recipe", systemImage: "pencil")
+                }
+                .accessibilityIdentifier("recipes.detail.edit")
+
                 Button {
                     viewModel.beginAddingIngredient()
                     isEditingIngredient = true
                 } label: {
-                    Label("Add ingredient", systemImage: "plus")
+                    Label("Add Ingredient", systemImage: "plus")
                 }
                 .accessibilityIdentifier("recipes.ingredient.add")
+            }
+        }
+        .sheet(isPresented: $isEditingRecipe, onDismiss: viewModel.cancelAddRecipe) {
+            NavigationStack {
+                RecipeForm(
+                    title: "Edit Recipe",
+                    viewModel: viewModel,
+                    isPresented: $isEditingRecipe,
+                    onCancel: viewModel.cancelAddRecipe,
+                    onSave: viewModel.saveEditedRecipe
+                )
             }
         }
         .sheet(isPresented: $isEditingIngredient, onDismiss: viewModel.cancelIngredientEdit) {
@@ -517,8 +539,25 @@ private struct RecipeCameraView: UIViewControllerRepresentable {
 }
 
 private struct RecipeForm: View {
+    let title: String
     @ObservedObject var viewModel: RecipeListViewModel
     @Binding var isPresented: Bool
+    let onCancel: () -> Void
+    let onSave: () -> Bool
+
+    init(
+        title: String = "Add Recipe",
+        viewModel: RecipeListViewModel,
+        isPresented: Binding<Bool>,
+        onCancel: @escaping () -> Void,
+        onSave: @escaping () -> Bool
+    ) {
+        self.title = title
+        self.viewModel = viewModel
+        _isPresented = isPresented
+        self.onCancel = onCancel
+        self.onSave = onSave
+    }
 
     var body: some View {
         Form {
@@ -540,11 +579,11 @@ private struct RecipeForm: View {
                 }
             }
         }
-        .navigationTitle("Add Recipe")
+        .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
-                    viewModel.cancelAddRecipe()
+                    onCancel()
                     isPresented = false
                 }
                 .accessibilityIdentifier("recipes.form.cancel")
@@ -552,7 +591,7 @@ private struct RecipeForm: View {
 
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if viewModel.addRecipe() {
+                    if onSave() {
                         isPresented = false
                     }
                 }

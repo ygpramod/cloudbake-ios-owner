@@ -64,6 +64,44 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertTrue(repository.recipes.isEmpty)
     }
 
+    func testSaveEditedRecipePersistsNameAndNotes() {
+        let repository = FakeRecipeRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let updatedAt = Date(timeIntervalSince1970: 1_800_031_000)
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla Sponge",
+            notes: "Book page 12",
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.recipes = [recipe]
+        let viewModel = RecipeListViewModel(
+            repository: repository,
+            dateProvider: { updatedAt }
+        )
+        viewModel.beginViewingRecipe(recipe)
+        viewModel.beginEditingRecipe()
+        viewModel.draftName = "Vanilla Sponge Cake"
+        viewModel.draftNotes = "Use two tins"
+
+        XCTAssertTrue(viewModel.saveEditedRecipe())
+
+        let edited = Recipe(
+            id: recipe.id,
+            name: "Vanilla Sponge Cake",
+            notes: "Use two tins",
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+        XCTAssertEqual(repository.recipes, [edited])
+        XCTAssertEqual(viewModel.selectedRecipe, edited)
+        XCTAssertEqual(viewModel.recipes, [edited])
+        XCTAssertEqual(viewModel.draftName, "")
+        XCTAssertEqual(viewModel.draftNotes, "")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testCreateRecipeDraftFromRecognizedTextCopiesTextIntoDraftFields() {
         let repository = FakeRecipeRepository()
         repository.inventoryItems = [
