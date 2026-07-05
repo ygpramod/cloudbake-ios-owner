@@ -47,6 +47,17 @@ final class RecipeListViewModel: ObservableObject {
         loadRecipeDetail()
     }
 
+    func beginEditingRecipe() {
+        guard let selectedRecipe else {
+            errorMessage = "Recipe could not be found."
+            return
+        }
+
+        draftName = selectedRecipe.name
+        draftNotes = selectedRecipe.notes ?? ""
+        errorMessage = nil
+    }
+
     func closeRecipeDetail() {
         selectedRecipe = nil
         recipeIngredients = []
@@ -76,6 +87,40 @@ final class RecipeListViewModel: ObservableObject {
             try repository.save(recipe)
             resetDraft()
             load()
+            return true
+        } catch {
+            errorMessage = "Recipe could not be saved."
+            return false
+        }
+    }
+
+    func saveEditedRecipe() -> Bool {
+        guard let selectedRecipe else {
+            errorMessage = "Recipe could not be found."
+            return false
+        }
+
+        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else {
+            errorMessage = "Recipe name is required."
+            return false
+        }
+
+        let notes = draftNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let recipe = Recipe(
+            id: selectedRecipe.id,
+            name: name,
+            notes: notes.isEmpty ? nil : notes,
+            createdAt: selectedRecipe.createdAt,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.save(recipe)
+            self.selectedRecipe = recipe
+            resetDraft()
+            load()
+            loadRecipeDetail()
             return true
         } catch {
             errorMessage = "Recipe could not be saved."

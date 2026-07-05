@@ -253,6 +253,30 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Sift"].waitForExistence(timeout: 5))
     }
 
+    func testRecipeNotesCanBeEditedFromDetail() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Recipes"].tap()
+        addRecipe(named: "Vanilla Sponge", notes: "Book page 12", in: app)
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
+            .firstMatch
+            .tap()
+        XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: 5))
+
+        app.buttons["recipes.detail.edit"].tap()
+        XCTAssertTrue(app.navigationBars["Edit Recipe"].waitForExistence(timeout: 5))
+        let notesField = app.textFields["recipes.form.notes"]
+        XCTAssertTrue(notesField.waitForExistence(timeout: 5))
+        notesField.tap()
+        notesField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20))
+        notesField.typeText("Use two tins")
+        app.buttons["recipes.form.save"].tap()
+
+        XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Use two tins")).firstMatch.waitForExistence(timeout: 5))
+    }
+
     private func makeApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"
