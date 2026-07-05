@@ -185,11 +185,24 @@ struct CakeDesign: Equatable {
 
 struct Customer: Equatable {
     let id: String
-    let displayName: String
+    let name: String
+    let phone: String
+    let email: String?
+    let address: String?
     let likes: String?
     let dislikes: String?
     let allergies: String?
+    let dietaryRestrictions: String?
     let notes: String?
+    let createdAt: Date
+    let updatedAt: Date
+}
+
+struct CustomerImportantDate: Equatable {
+    let id: String
+    let customerId: String
+    let label: String
+    let date: Date
     let createdAt: Date
     let updatedAt: Date
 }

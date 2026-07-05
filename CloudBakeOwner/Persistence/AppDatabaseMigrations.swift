@@ -154,6 +154,27 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0006_expand_customers") { db in
+            try db.alter(table: "customers") { table in
+                table.rename(column: "display_name", to: "name")
+                table.add(column: "phone", .text).notNull().defaults(to: "")
+                table.add(column: "email", .text)
+                table.add(column: "address", .text)
+                table.add(column: "dietary_restrictions", .text)
+            }
+
+            try db.create(table: "customer_important_dates") { table in
+                table.column("id", .text).primaryKey()
+                table.column("customer_id", .text)
+                    .notNull()
+                    .references("customers", onDelete: .cascade)
+                table.column("label", .text).notNull()
+                table.column("date_unix_time", .double).notNull()
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+        }
+
         return migrator
     }
 }

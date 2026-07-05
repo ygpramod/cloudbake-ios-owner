@@ -70,16 +70,31 @@ final class CoreDataRepositoryTests: XCTestCase {
 
         let customer = Customer(
             id: "customer-amy",
-            displayName: "Amy",
+            name: "Amy",
+            phone: "5550101",
+            email: "amy@example.com",
+            address: "10 Cake Street",
             likes: "Vanilla, pink flowers",
             dislikes: "Too much fondant",
             allergies: "Nuts",
+            dietaryRestrictions: "Eggless",
             notes: "Prefers less sweet frosting",
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt
         )
         try repository.save(customer)
         XCTAssertEqual(try repository.fetchCustomer(id: customer.id), customer)
+
+        let importantDate = CustomerImportantDate(
+            id: "customer-date-birthday",
+            customerId: customer.id,
+            label: "Birthday",
+            date: Date(timeIntervalSince1970: 1_800_030_000),
+            createdAt: timestamps.createdAt,
+            updatedAt: timestamps.updatedAt
+        )
+        try repository.save(importantDate)
+        XCTAssertEqual(try repository.fetchCustomerImportantDates(customerId: customer.id), [importantDate])
 
         let order = Order(
             id: "order-rose-garden",
@@ -229,6 +244,44 @@ final class CoreDataRepositoryTests: XCTestCase {
         try repository.save(chocolate)
 
         XCTAssertEqual(try repository.fetchRecipes(), [chocolate, vanilla])
+    }
+
+    func testCustomersFetchInNameOrder() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let zoe = Customer(
+            id: "customer-zoe",
+            name: "Zoe",
+            phone: "5550102",
+            email: nil,
+            address: nil,
+            likes: nil,
+            dislikes: nil,
+            allergies: nil,
+            dietaryRestrictions: nil,
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let amy = Customer(
+            id: "customer-amy",
+            name: "Amy",
+            phone: "5550101",
+            email: nil,
+            address: nil,
+            likes: nil,
+            dislikes: nil,
+            allergies: nil,
+            dietaryRestrictions: nil,
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(zoe)
+        try repository.save(amy)
+
+        XCTAssertEqual(try repository.fetchCustomers(), [amy, zoe])
     }
 
     func testInventoryItemSaveUpdatesExistingItemWithSameId() throws {
