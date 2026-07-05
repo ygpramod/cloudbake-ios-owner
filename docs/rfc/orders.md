@@ -137,6 +137,8 @@ add, and detail foundations.
 The first order slice is implemented in `docs/rfc/slices/0037-orders-list-add-detail.md`. Order
 editing and manual status changes are implemented in `docs/rfc/slices/0038-order-edit-status.md`.
 The calendar-oriented order view is implemented in `docs/rfc/slices/0039-orders-calendar-view.md`.
+Linked customer preference and allergy details in order detail are implemented in
+`docs/rfc/slices/0040-order-customer-preferences.md`.
 
 ## Reminder Model
 
@@ -243,6 +245,8 @@ pricing, and recipe links.
 - The first implemented order foundation supports list, add, detail, customer name snapshots,
   optional customer record links, due date/time, draft or confirmed status, pickup or delivery,
   optional delivery address, and cake notes.
+- Order detail now surfaces non-empty allergies, dietary restrictions, likes, dislikes, and notes
+  from the linked customer record for owner visibility.
 
 ## Open Questions
 

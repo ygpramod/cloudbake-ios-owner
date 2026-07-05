@@ -45,6 +45,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0037: Orders List Add And Detail
 - Slice RFC-0038: Order Edit And Status Changes
 - Slice RFC-0039: Orders Calendar View
+- Slice RFC-0040: Order Customer Preferences
 
 ## Base RFCs
 
