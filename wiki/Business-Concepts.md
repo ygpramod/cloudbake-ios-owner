@@ -112,9 +112,8 @@ The baking catalog is a curated list of items that matter to baking workflows.
 Each catalog item has a name, aliases, category, and active flag. Examples include cake flour,
 butter, whipping cream, cocoa powder, fondant, cake boards, and cake boxes.
 
-Future purchase bill scanning should use this catalog to decide which bill lines become draft
-inventory items. Non-baking household or grocery lines should be ignored unless the owner adds them
-to the catalog.
+Purchase bill scanning uses this catalog to decide which bill lines become draft inventory items.
+Non-baking household or grocery lines should be ignored unless the owner adds them to the catalog.
 
 ## Purchase Bill Draft
 
