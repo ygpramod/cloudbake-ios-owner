@@ -63,7 +63,8 @@ The app currently supports:
 55. order due date/time, status, fulfillment type, delivery address, and cake notes,
 56. order editing from detail,
 57. manual order status changes,
-58. unit, integration, and acceptance test lanes.
+58. orders calendar view grouped by due date,
+59. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 

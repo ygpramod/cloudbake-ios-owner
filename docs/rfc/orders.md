@@ -136,6 +136,7 @@ add, and detail foundations.
 
 The first order slice is implemented in `docs/rfc/slices/0037-orders-list-add-detail.md`. Order
 editing and manual status changes are implemented in `docs/rfc/slices/0038-order-edit-status.md`.
+The calendar-oriented order view is implemented in `docs/rfc/slices/0039-orders-calendar-view.md`.
 
 ## Reminder Model
 
