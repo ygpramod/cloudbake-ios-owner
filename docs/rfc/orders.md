@@ -139,6 +139,8 @@ editing and manual status changes are implemented in `docs/rfc/slices/0038-order
 The calendar-oriented order view is implemented in `docs/rfc/slices/0039-orders-calendar-view.md`.
 Linked customer preference and allergy details in order detail are implemented in
 `docs/rfc/slices/0040-order-customer-preferences.md`.
+Customer detail can show linked order history through
+`docs/rfc/slices/0041-customer-order-history.md`.
 
 ## Reminder Model
 

@@ -236,7 +236,8 @@ The app warns before saving when a new customer looks like a duplicate. Contacts
 contact details, but CloudBake-specific preferences and allergy notes remain owner-entered.
 
 Orders can link to customer records today. Linked order detail surfaces saved customer preferences
-and allergy details for owner review.
+and allergy details for owner review. Customer detail also shows linked orders in due-date order so
+the owner can review a customer's cake history from the customer record.
 
 ## Future Pricing Workflow
 
