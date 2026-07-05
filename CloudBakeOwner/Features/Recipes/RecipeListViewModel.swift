@@ -14,6 +14,7 @@ final class RecipeListViewModel: ObservableObject {
     @Published var draftIngredientQuantity = ""
     @Published var draftIngredientUnit: InventoryUnit = .gram
     @Published var draftIngredientNote = ""
+    @Published var importIngredientDrafts: [RecipeImportIngredientDraftRow] = []
     @Published var errorMessage: String?
     @Published private(set) var isRecognizingRecipeScan = false
     @Published private(set) var editingIngredient: RecipeIngredient?
@@ -95,6 +96,17 @@ final class RecipeListViewModel: ObservableObject {
 
         draftName = draft.name
         draftNotes = draft.notes ?? ""
+        loadAvailableInventoryItems()
+        importIngredientDrafts = draft.ingredients.map { ingredient in
+            RecipeImportIngredientDraftRow(
+                id: idGenerator(),
+                name: ingredient.name,
+                quantity: ingredient.quantity.formatted(),
+                unit: ingredient.unit,
+                inventoryItemId: matchedInventoryItemId(for: ingredient.name) ?? "",
+                note: ingredient.note ?? ""
+            )
+        }
         errorMessage = nil
         return true
     }
@@ -119,7 +131,73 @@ final class RecipeListViewModel: ObservableObject {
 
     func cancelRecipeImport() {
         recipeScanRecognizedText = ""
+        importIngredientDrafts = []
         cancelAddRecipe()
+    }
+
+    func saveRecipeImportDraft() -> Bool {
+        let linkedDrafts = importIngredientDrafts.filter { !$0.inventoryItemId.isEmpty }
+        guard importIngredientDrafts.count == linkedDrafts.count else {
+            errorMessage = "Link each ingredient to an inventory item before saving."
+            return false
+        }
+
+        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else {
+            errorMessage = "Recipe name is required."
+            return false
+        }
+
+        let parsedDrafts = linkedDrafts.compactMap { draft -> (draft: RecipeImportIngredientDraftRow, quantity: Double)? in
+            guard let quantity = parsedIngredientQuantity(from: draft.quantity), quantity > 0 else {
+                return nil
+            }
+            return (draft, quantity)
+        }
+        guard parsedDrafts.count == linkedDrafts.count else {
+            errorMessage = "Ingredient quantities must be greater than zero."
+            return false
+        }
+
+        let notes = draftNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let now = dateProvider()
+        let recipe = Recipe(
+            id: idGenerator(),
+            name: name,
+            notes: notes.isEmpty ? nil : notes,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        do {
+            try repository.save(recipe)
+            if !parsedDrafts.isEmpty {
+                let component = try defaultComponent(for: recipe)
+                for parsedDraft in parsedDrafts {
+                    let note = parsedDraft.draft.note.trimmingCharacters(in: .whitespacesAndNewlines)
+                    try repository.save(
+                        RecipeIngredient(
+                            id: idGenerator(),
+                            componentId: component.id,
+                            inventoryItemId: parsedDraft.draft.inventoryItemId,
+                            quantity: parsedDraft.quantity,
+                            unit: parsedDraft.draft.unit,
+                            note: note.isEmpty ? parsedDraft.draft.name : note,
+                            createdAt: now,
+                            updatedAt: now
+                        )
+                    )
+                }
+            }
+            recipeScanRecognizedText = ""
+            importIngredientDrafts = []
+            resetDraft()
+            load()
+            return true
+        } catch {
+            errorMessage = "Recipe could not be saved."
+            return false
+        }
     }
 
     func beginAddingIngredient() {
@@ -302,6 +380,24 @@ final class RecipeListViewModel: ObservableObject {
         draftIngredientUnit = .gram
         draftIngredientNote = ""
     }
+
+    private func matchedInventoryItemId(for ingredientName: String) -> String? {
+        let normalizedIngredientName = normalizedName(ingredientName)
+        return availableInventoryItems.first { item in
+            let normalizedItemName = normalizedName(item.name)
+            return normalizedItemName == normalizedIngredientName
+                || normalizedItemName.contains(normalizedIngredientName)
+                || normalizedIngredientName.contains(normalizedItemName)
+        }?.id
+    }
+
+    private func normalizedName(_ text: String) -> String {
+        text
+            .lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined()
+    }
 }
 
 struct RecipeIngredientRow: Identifiable, Equatable {
@@ -311,4 +407,13 @@ struct RecipeIngredientRow: Identifiable, Equatable {
     var id: String {
         ingredient.id
     }
+}
+
+struct RecipeImportIngredientDraftRow: Identifiable, Equatable {
+    let id: String
+    var name: String
+    var quantity: String
+    var unit: InventoryUnit
+    var inventoryItemId: String
+    var note: String
 }
