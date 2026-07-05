@@ -69,6 +69,46 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(app.staticTexts["orders.detail.cakeNotes"], in: app, timeout: transitionTimeout)
     }
 
+    func testOrderCanBeEditedFromDetail() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        tapWhenReady(app.staticTexts["Orders"])
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
+
+        tapWhenReady(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
+                .firstMatch,
+            timeout: transitionTimeout
+        )
+        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["orders.detail.edit"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Edit Order"].waitForExistence(timeout: transitionTimeout))
+
+        let titleField = app.textFields["orders.form.title"]
+        tapWhenReady(titleField, timeout: transitionTimeout)
+        titleField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
+        titleField.typeText("Chocolate Birthday")
+
+        let notesField = app.textFields["orders.form.cakeNotes"]
+        tapWhenReady(notesField, timeout: transitionTimeout)
+        notesField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
+        notesField.typeText("Gold leaf")
+
+        tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["Chocolate Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.cakeNotes"], in: app, timeout: transitionTimeout)
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Gold leaf"))
+                .firstMatch
+                .waitForExistence(timeout: transitionTimeout)
+        )
+    }
+
     func testInventoryDuplicateNameShowsWarningBeforeAdding() throws {
         let app = makeApp()
         app.launch()

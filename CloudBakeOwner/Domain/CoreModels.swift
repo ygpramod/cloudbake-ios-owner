@@ -207,7 +207,7 @@ struct CustomerImportantDate: Equatable {
     let updatedAt: Date
 }
 
-enum OrderStatus: String, Equatable {
+enum OrderStatus: String, Equatable, CaseIterable {
     case draft
     case confirmed
     case inProgress

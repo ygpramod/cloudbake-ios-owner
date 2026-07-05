@@ -5,6 +5,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
     @Published private(set) var customers: [Customer] = []
     @Published private(set) var selectedOrder: Order?
+    @Published private(set) var editingOrder: Order?
     @Published var draftTitle = ""
     @Published var draftCustomerName = ""
     @Published var draftCustomerId = ""
@@ -52,6 +53,7 @@ final class OrderListViewModel: ObservableObject {
 
     func closeOrderDetail() {
         selectedOrder = nil
+        editingOrder = nil
         errorMessage = nil
     }
 
@@ -69,15 +71,7 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func addOrder() -> Bool {
-        let title = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty else {
-            errorMessage = "Order title is required."
-            return false
-        }
-
-        let customerName = draftCustomerName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !customerName.isEmpty else {
-            errorMessage = "Customer name is required."
+        guard let draft = validatedDraft() else {
             return false
         }
 
@@ -86,8 +80,8 @@ final class OrderListViewModel: ObservableObject {
             id: idGenerator(),
             customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
             cakeDesignId: nil,
-            title: title,
-            customerName: customerName,
+            title: draft.title,
+            customerName: draft.customerName,
             status: draftStatus,
             dueAt: draftDueAt,
             fulfillmentType: draftFulfillmentType,
@@ -113,6 +107,68 @@ final class OrderListViewModel: ObservableObject {
         errorMessage = nil
     }
 
+    func beginEditingOrder() {
+        guard let selectedOrder else {
+            errorMessage = "Order could not be found."
+            return
+        }
+
+        editingOrder = selectedOrder
+        draftTitle = selectedOrder.title
+        draftCustomerName = selectedOrder.customerName
+        draftCustomerId = selectedOrder.customerId ?? ""
+        draftDueAt = selectedOrder.dueAt
+        draftStatus = selectedOrder.status
+        draftFulfillmentType = selectedOrder.fulfillmentType
+        draftDeliveryAddress = selectedOrder.deliveryAddress ?? ""
+        draftCakeNotes = selectedOrder.cakeNotes ?? ""
+        errorMessage = nil
+        loadCustomers()
+    }
+
+    func saveEditedOrder() -> Bool {
+        guard let editingOrder else {
+            errorMessage = "Order could not be found."
+            return false
+        }
+        guard let draft = validatedDraft() else {
+            return false
+        }
+
+        let order = Order(
+            id: editingOrder.id,
+            customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
+            cakeDesignId: editingOrder.cakeDesignId,
+            title: draft.title,
+            customerName: draft.customerName,
+            status: draftStatus,
+            dueAt: draftDueAt,
+            fulfillmentType: draftFulfillmentType,
+            deliveryAddress: optionalText(draftDeliveryAddress),
+            cakeNotes: optionalText(draftCakeNotes),
+            createdAt: editingOrder.createdAt,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.save(order)
+            selectedOrder = order
+            self.editingOrder = nil
+            resetDraft()
+            load()
+            return true
+        } catch {
+            errorMessage = "Order could not be saved."
+            return false
+        }
+    }
+
+    func cancelEditingOrder() {
+        editingOrder = nil
+        resetDraft()
+        errorMessage = nil
+    }
+
     private func loadCustomers() {
         do {
             customers = try repository.fetchCustomers()
@@ -131,6 +187,22 @@ final class OrderListViewModel: ObservableObject {
         draftFulfillmentType = .pickup
         draftDeliveryAddress = ""
         draftCakeNotes = ""
+    }
+
+    private func validatedDraft() -> (title: String, customerName: String)? {
+        let title = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else {
+            errorMessage = "Order title is required."
+            return nil
+        }
+
+        let customerName = draftCustomerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !customerName.isEmpty else {
+            errorMessage = "Customer name is required."
+            return nil
+        }
+
+        return (title, customerName)
     }
 
     private func optionalText(_ value: String) -> String? {
