@@ -113,8 +113,11 @@ the device for the first version, and there is no OCR subscription or per-scan s
 The parser reads bill text line by line, keeps only lines that match the baking catalog, and captures
 common quantity/unit pairs such as `1 kg`, `500g`, `250 ml`, `12 pcs`, `2 tsp`, or `1 cup`.
 
-This is the recognition and parsing foundation for scan-to-inventory. Camera scanning, owner review
-UI, and saving drafts into inventory are future slices.
+The owner can review draft items before saving. Draft review supports selecting which items to save,
+editing names, quantities, units, minimum quantities, and expiry dates.
+
+Saving selected drafts creates normal inventory items and initial stock batches. Camera scanning is
+still a future slice; the current flow accepts recognized bill text.
 
 ## Stock Adjustment
 
@@ -169,8 +172,8 @@ Inventory does not yet support:
 
 1. recipe-driven automatic reduction,
 2. ingredient-density conversion between weight and volume,
-3. purchase bill scanning UI,
-4. owner review and save flow for purchase bill inventory drafts,
+3. purchase bill camera scanning UI,
+4. duplicate matching during purchase bill draft save,
 5. in-app baking catalog editing,
 6. inventory delete,
 7. supplier tracking,
