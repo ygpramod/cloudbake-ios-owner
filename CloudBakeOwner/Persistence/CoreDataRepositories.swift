@@ -50,6 +50,11 @@ protocol InventoryStockBatchRepository {
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch]
 }
 
+protocol InventoryExpirySnoozeRepository {
+    func fetchInventoryExpirySnoozes() throws -> [String: Date]
+    func snoozeInventoryExpiryReminder(stockBatchId: String, until snoozedUntil: Date, updatedAt: Date) throws
+}
+
 protocol PricingRuleRepository {
     func save(_ rule: PricingRule) throws
     func fetchPricingRule(id: String) throws -> PricingRule?

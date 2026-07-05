@@ -2,7 +2,17 @@ import SwiftUI
 
 struct RootView: View {
     let database: AppDatabase
+    @StateObject private var expiryReminderViewModel: InAppExpiryReminderViewModel
     @Environment(\.scenePhase) private var scenePhase
+
+    init(database: AppDatabase) {
+        self.database = database
+        _expiryReminderViewModel = StateObject(
+            wrappedValue: InAppExpiryReminderViewModel(
+                repository: database.makeCoreDataRepository()
+            )
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -18,6 +28,7 @@ struct RootView: View {
         .accessibilityIdentifier("app.shell")
         .task {
             await refreshExpiryReminders()
+            expiryReminderViewModel.refresh()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else {
@@ -26,7 +37,21 @@ struct RootView: View {
 
             Task {
                 await refreshExpiryReminders()
+                expiryReminderViewModel.refresh()
             }
+        }
+        .sheet(item: Binding(
+            get: { expiryReminderViewModel.currentReminder },
+            set: { reminder in
+                if reminder == nil {
+                    expiryReminderViewModel.dismissCurrentReminder()
+                }
+            }
+        )) { reminder in
+            InAppExpiryReminderView(
+                reminder: reminder,
+                viewModel: expiryReminderViewModel
+            )
         }
     }
 
@@ -58,6 +83,60 @@ struct RootView: View {
         await ExpiryReminderScheduler(
             repository: database.makeCoreDataRepository()
         ).refreshReminders()
+    }
+}
+
+private struct InAppExpiryReminderView: View {
+    let reminder: InAppExpiryReminder
+    @ObservedObject var viewModel: InAppExpiryReminderViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(reminder.isExpired ? "Expired Stock" : "Expiring This Week") {
+                    LabeledContent("Item", value: reminder.itemName)
+                    LabeledContent("Quantity", value: reminder.quantityText)
+                    LabeledContent("Expiry", value: reminder.expiresAt.formatted(date: .abbreviated, time: .omitted))
+                }
+
+                Section("Snooze") {
+                    Picker("Remind Me Again", selection: $viewModel.selectedSnoozeDays) {
+                        ForEach(viewModel.snoozeDayOptions, id: \.self) { days in
+                            Text(days == 1 ? "1 Day" : "\(days) Days").tag(days)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("expiryReminder.snoozeDays")
+                }
+
+                if let errorMessage = viewModel.errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                            .accessibilityIdentifier("expiryReminder.error")
+                    }
+                }
+            }
+            .navigationTitle("Expiry Reminder")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        viewModel.dismissCurrentReminder()
+                        dismiss()
+                    }
+                    .accessibilityIdentifier("expiryReminder.close")
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Snooze") {
+                        viewModel.snoozeCurrentReminder()
+                        dismiss()
+                    }
+                    .accessibilityIdentifier("expiryReminder.snooze")
+                }
+            }
+        }
     }
 }
 

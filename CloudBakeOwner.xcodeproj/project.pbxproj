@@ -38,6 +38,8 @@
 		41000000000000000000001D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000025 /* Assets.xcassets */; };
 		41000000000000000000001E /* ExpiryReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000026 /* ExpiryReminderScheduler.swift */; };
 		41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000027 /* ExpiryReminderSchedulerTests.swift */; };
+		410000000000000000000020 /* InAppExpiryReminderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000028 /* InAppExpiryReminderViewModel.swift */; };
+		410000000000000000000021 /* InAppExpiryReminderViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000029 /* InAppExpiryReminderViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,6 +93,8 @@
 		420000000000000000000025 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		420000000000000000000026 /* ExpiryReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpiryReminderScheduler.swift; sourceTree = "<group>"; };
 		420000000000000000000027 /* ExpiryReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/ExpiryReminderSchedulerTests.swift; sourceTree = "<group>"; };
+		420000000000000000000028 /* InAppExpiryReminderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppExpiryReminderViewModel.swift; sourceTree = "<group>"; };
+		420000000000000000000029 /* InAppExpiryReminderViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/InAppExpiryReminderViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -147,6 +151,7 @@
 				420000000000000000000002 /* AppDestination.swift */,
 				420000000000000000000001 /* CloudBakeOwnerApp.swift */,
 				420000000000000000000026 /* ExpiryReminderScheduler.swift */,
+				420000000000000000000028 /* InAppExpiryReminderViewModel.swift */,
 				420000000000000000000024 /* PurchaseBillTextRecognizer.swift */,
 				420000000000000000000003 /* RootView.swift */,
 			);
@@ -194,6 +199,7 @@
 			children = (
 				420000000000000000000006 /* AppDestinationTests.swift */,
 				420000000000000000000027 /* ExpiryReminderSchedulerTests.swift */,
+				420000000000000000000029 /* InAppExpiryReminderViewModelTests.swift */,
 				450000000000000000000014 /* Domain */,
 				450000000000000000000016 /* Features */,
 				450000000000000000000012 /* Persistence */,
@@ -436,6 +442,7 @@
 				410000000000000000000004 /* DashboardView.swift in Sources */,
 				410000000000000000000015 /* DashboardViewModel.swift in Sources */,
 				41000000000000000000001E /* ExpiryReminderScheduler.swift in Sources */,
+				410000000000000000000020 /* InAppExpiryReminderViewModel.swift in Sources */,
 				410000000000000000000005 /* PlaceholderScreen.swift in Sources */,
 				410000000000000000000008 /* AppDatabase.swift in Sources */,
 				410000000000000000000009 /* AppDatabaseMigrations.swift in Sources */,
@@ -461,6 +468,7 @@
 				410000000000000000000010 /* CoreModelsTests.swift in Sources */,
 				410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
 				41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */,
+				410000000000000000000021 /* InAppExpiryReminderViewModelTests.swift in Sources */,
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
 				410000000000000000000016 /* DashboardViewModelTests.swift in Sources */,
 				41000000000000000000001B /* PurchaseBillDraftParserTests.swift in Sources */,

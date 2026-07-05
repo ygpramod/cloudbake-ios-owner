@@ -339,6 +339,39 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchInventoryItem(id: item.id)?.earliestExpiryAt, older.expiresAt)
     }
 
+    func testInventoryExpirySnoozeRoundTrips() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let batch = InventoryStockBatch(
+            id: "batch-flour",
+            inventoryItemId: item.id,
+            remainingQuantity: 250,
+            expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let snoozedUntil = Date(timeIntervalSince1970: 1_800_030_000)
+
+        try repository.save(item)
+        try repository.save(batch)
+        try repository.snoozeInventoryExpiryReminder(
+            stockBatchId: batch.id,
+            until: snoozedUntil,
+            updatedAt: Date(timeIntervalSince1970: 1_800_020_500)
+        )
+
+        XCTAssertEqual(try repository.fetchInventoryExpirySnoozes(), [batch.id: snoozedUntil])
+    }
+
     func testExpiredRemainingBatchMarksInventoryItemAsLowStock() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_020_000)

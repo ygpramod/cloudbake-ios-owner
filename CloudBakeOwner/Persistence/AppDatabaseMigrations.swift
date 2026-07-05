@@ -154,6 +154,16 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0006_create_inventory_expiry_snoozes") { db in
+            try db.create(table: "inventory_expiry_snoozes") { table in
+                table.column("stock_batch_id", .text)
+                    .primaryKey()
+                    .references("inventory_stock_batches", onDelete: .cascade)
+                table.column("snoozed_until_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+        }
+
         return migrator
     }
 }

@@ -10,6 +10,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     OrderRepository,
     InventoryTransactionRepository,
     InventoryStockBatchRepository,
+    InventoryExpirySnoozeRepository,
     PricingRuleRepository {
     private let writer: any DatabaseWriter
 
@@ -425,6 +426,35 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 currencyCode: row["currency_code"],
                 createdAt: date(row["created_at_unix_time"]),
                 updatedAt: date(row["updated_at_unix_time"])
+            )
+        }
+    }
+
+    func fetchInventoryExpirySnoozes() throws -> [String: Date] {
+        try writer.read { db in
+            try Row.fetchAll(db, sql: "SELECT * FROM inventory_expiry_snoozes")
+                .reduce(into: [:]) { snoozes, row in
+                    snoozes[row["stock_batch_id"]] = date(row["snoozed_until_unix_time"])
+                }
+        }
+    }
+
+    func snoozeInventoryExpiryReminder(stockBatchId: String, until snoozedUntil: Date, updatedAt: Date) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO inventory_expiry_snoozes
+                    (stock_batch_id, snoozed_until_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(stock_batch_id) DO UPDATE SET
+                    snoozed_until_unix_time = excluded.snoozed_until_unix_time,
+                    updated_at_unix_time = excluded.updated_at_unix_time
+                    """,
+                arguments: arguments([
+                    stockBatchId,
+                    snoozedUntil.timeIntervalSince1970,
+                    updatedAt.timeIntervalSince1970
+                ])
             )
         }
     }
