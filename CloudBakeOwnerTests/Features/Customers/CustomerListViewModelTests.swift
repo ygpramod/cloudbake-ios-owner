@@ -101,6 +101,33 @@ final class CustomerListViewModelTests: XCTestCase {
         XCTAssertTrue(repository.customers.isEmpty)
     }
 
+    func testBeginAddingCustomerAppliesImportedDraftWithoutSaving() {
+        let repository = FakeCustomerRepository()
+        let importantDate = Date(timeIntervalSince1970: 1_801_000_000)
+        let viewModel = CustomerListViewModel(repository: repository)
+
+        viewModel.beginAddingCustomer(
+            importedDraft: CustomerContactDraft(
+                name: "Amy Baker",
+                phone: "5550101",
+                email: "amy@example.com",
+                address: "10 Cake Street",
+                importantDateLabel: "Birthday",
+                importantDate: importantDate
+            )
+        )
+
+        XCTAssertEqual(viewModel.draftName, "Amy Baker")
+        XCTAssertEqual(viewModel.draftPhone, "5550101")
+        XCTAssertEqual(viewModel.draftEmail, "amy@example.com")
+        XCTAssertEqual(viewModel.draftAddress, "10 Cake Street")
+        XCTAssertEqual(viewModel.draftImportantDateLabel, "Birthday")
+        XCTAssertEqual(viewModel.draftImportantDate, importantDate)
+        XCTAssertTrue(repository.customers.isEmpty)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertNil(viewModel.duplicateWarningMessage)
+    }
+
     func testAddCustomerWarnsBeforeSavingDuplicate() {
         let repository = FakeCustomerRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
