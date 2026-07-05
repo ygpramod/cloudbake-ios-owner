@@ -339,9 +339,17 @@ private struct PurchaseBillDraftRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Toggle(isOn: $draft.isSelected) {
-                Text(draft.sourceLine)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(draft.sourceLine)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if let matchedInventoryItemName = draft.matchedInventoryItemName {
+                        Label("Adds To Existing: \(matchedInventoryItemName)", systemImage: "arrow.triangle.merge")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                    }
+                }
             }
             .accessibilityIdentifier("inventory.purchaseBill.draft.selected.\(draft.id)")
 
