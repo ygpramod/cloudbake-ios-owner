@@ -57,17 +57,18 @@ The app currently supports:
 49. customer editing from detail,
 50. Contacts import into editable customer drafts,
 51. customer detail order history for linked orders,
-52. orders list,
-53. order creation,
-54. order detail view,
-55. optional customer record link from orders,
-56. searchable customer record selection from order add/edit,
-57. order due date/time, status, fulfillment type, delivery address, and cake notes,
-58. order editing from detail,
-59. manual order status changes,
-60. orders calendar view grouped by due date,
-61. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
-62. unit, integration, and acceptance test lanes.
+52. regular-width iPad customer list/detail split view,
+53. orders list,
+54. order creation,
+55. order detail view,
+56. optional customer record link from orders,
+57. searchable customer record selection from order add/edit,
+58. order due date/time, status, fulfillment type, delivery address, and cake notes,
+59. order editing from detail,
+60. manual order status changes,
+61. orders calendar view grouped by due date,
+62. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
+63. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
