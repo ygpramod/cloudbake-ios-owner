@@ -203,13 +203,18 @@ Today, the owner can:
 10. view order detail,
 11. edit order details from the detail screen,
 12. manually change order status across Draft, Confirmed, In Progress, Ready, Completed, and
-    Cancelled.
+    Cancelled,
+13. review linked customer allergies, dietary restrictions, likes, dislikes, and notes from order
+    detail.
 
 Calendar mode groups orders by due date and opens the same order detail screen as List mode.
 
-Future order slices should add allergy and customer preference alerts, reminders three days/two
-days/one day before delivery, recipe links, inventory deduction, checklist, design references and
-photos, and pricing/payment summary.
+Linked customer details remain owner-facing context. The order keeps a customer name snapshot for
+the order itself, while allergies and longer-term preferences continue to come from the customer
+record.
+
+Future order slices should add reminders three days/two days/one day before delivery, recipe links,
+inventory deduction, checklist, design references and photos, and pricing/payment summary.
 
 ## Customer Workflow
 
@@ -230,8 +235,8 @@ work.
 The app warns before saving when a new customer looks like a duplicate. Contacts import can prefill
 contact details, but CloudBake-specific preferences and allergy notes remain owner-entered.
 
-Orders can link to customer records today. Future order slices should surface customer preferences
-and allergy details inside order workflows.
+Orders can link to customer records today. Linked order detail surfaces saved customer preferences
+and allergy details for owner review.
 
 ## Future Pricing Workflow
 

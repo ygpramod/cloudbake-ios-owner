@@ -153,7 +153,8 @@ Customer implementation should happen before order slices that depend on custome
 allergy details, or customer history.
 
 The first order foundation supports optional customer record linking. Customer preference and allergy
-presentation inside order workflows remains a later order slice.
+presentation inside order detail is implemented in
+`docs/rfc/slices/0040-order-customer-preferences.md`.
 
 ## Owner Experience
 

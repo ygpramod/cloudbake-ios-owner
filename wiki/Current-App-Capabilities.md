@@ -64,7 +64,8 @@ The app currently supports:
 56. order editing from detail,
 57. manual order status changes,
 58. orders calendar view grouped by due date,
-59. unit, integration, and acceptance test lanes.
+59. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
+60. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
