@@ -43,4 +43,22 @@ final class RecipeDraftParserTests: XCTestCase {
     func testDraftReturnsNilForBlankText() {
         XCTAssertNil(RecipeDraftParser.draft(from: " \n "))
     }
+
+    func testDraftParsesMixedFractionsWithoutIncludingWholeNumberInIngredientName() {
+        let text = """
+        Buttercream
+        Powdered sugar - 1 1/2 cups sifted
+        """
+
+        XCTAssertEqual(
+            RecipeDraftParser.draft(from: text),
+            RecipeDraft(
+                name: "Buttercream",
+                notes: nil,
+                ingredients: [
+                    RecipeIngredientDraft(name: "Powdered sugar", quantity: 1.5, unit: .cup, note: "sifted")
+                ]
+            )
+        )
+    }
 }

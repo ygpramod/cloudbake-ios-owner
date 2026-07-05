@@ -142,6 +142,12 @@ final class RecipeListViewModel: ObservableObject {
             return false
         }
 
+        let availableInventoryItemIds = Set(availableInventoryItems.map(\.id))
+        guard linkedDrafts.allSatisfy({ availableInventoryItemIds.contains($0.inventoryItemId) }) else {
+            errorMessage = "Link each ingredient to an inventory item before saving."
+            return false
+        }
+
         let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else {
             errorMessage = "Recipe name is required."
