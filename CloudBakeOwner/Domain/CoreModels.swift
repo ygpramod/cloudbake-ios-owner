@@ -210,8 +210,15 @@ struct CustomerImportantDate: Equatable {
 enum OrderStatus: String, Equatable {
     case draft
     case confirmed
+    case inProgress
+    case ready
     case completed
     case cancelled
+}
+
+enum OrderFulfillmentType: String, Equatable, CaseIterable {
+    case pickup
+    case delivery
 }
 
 struct Order: Equatable {
@@ -219,8 +226,12 @@ struct Order: Equatable {
     let customerId: String?
     let cakeDesignId: String?
     let title: String
+    let customerName: String
     let status: OrderStatus
     let dueAt: Date
+    let fulfillmentType: OrderFulfillmentType
+    let deliveryAddress: String?
+    let cakeNotes: String?
     let createdAt: Date
     let updatedAt: Date
 }

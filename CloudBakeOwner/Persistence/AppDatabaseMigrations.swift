@@ -175,6 +175,15 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0007_expand_orders") { db in
+            try db.alter(table: "orders") { table in
+                table.add(column: "customer_name", .text).notNull().defaults(to: "")
+                table.add(column: "fulfillment_type", .text).notNull().defaults(to: OrderFulfillmentType.pickup.rawValue)
+                table.add(column: "delivery_address", .text)
+                table.add(column: "cake_notes", .text)
+            }
+        }
+
         return migrator
     }
 }

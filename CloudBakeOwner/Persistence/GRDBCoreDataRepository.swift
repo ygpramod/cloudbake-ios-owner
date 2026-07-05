@@ -330,16 +330,33 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             try db.execute(
                 sql: """
                     INSERT OR REPLACE INTO orders
-                    (id, customer_id, cake_design_id, title, status, due_at_unix_time, created_at_unix_time, updated_at_unix_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (
+                        id,
+                        customer_id,
+                        cake_design_id,
+                        title,
+                        customer_name,
+                        status,
+                        due_at_unix_time,
+                        fulfillment_type,
+                        delivery_address,
+                        cake_notes,
+                        created_at_unix_time,
+                        updated_at_unix_time
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                 arguments: arguments([
                     order.id,
                     order.customerId,
                     order.cakeDesignId,
                     order.title,
+                    order.customerName,
                     order.status.rawValue,
                     order.dueAt.timeIntervalSince1970,
+                    order.fulfillmentType.rawValue,
+                    order.deliveryAddress,
+                    order.cakeNotes,
                     order.createdAt.timeIntervalSince1970,
                     order.updatedAt.timeIntervalSince1970
                 ])
@@ -349,21 +366,23 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 
     func fetchOrder(id: String) throws -> Order? {
         try writer.read { db in
-            guard let row = try Row.fetchOne(db, sql: "SELECT * FROM orders WHERE id = ?", arguments: [id]),
-                  let status = OrderStatus(rawValue: row["status"]) else {
+            guard let row = try Row.fetchOne(db, sql: "SELECT * FROM orders WHERE id = ?", arguments: [id]) else {
                 return nil
             }
 
-            return Order(
-                id: row["id"],
-                customerId: row["customer_id"],
-                cakeDesignId: row["cake_design_id"],
-                title: row["title"],
-                status: status,
-                dueAt: date(row["due_at_unix_time"]),
-                createdAt: date(row["created_at_unix_time"]),
-                updatedAt: date(row["updated_at_unix_time"])
-            )
+            return order(from: row)
+        }
+    }
+
+    func fetchOrders() throws -> [Order] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM orders
+                    ORDER BY due_at_unix_time ASC, lower(title), title
+                    """
+            ).map(order)
         }
     }
 
@@ -576,6 +595,26 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             customerId: row["customer_id"],
             label: row["label"],
             date: date(row["date_unix_time"]),
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    private func order(from row: Row) -> Order {
+        let status = OrderStatus(rawValue: row["status"] as String) ?? .draft
+        let fulfillmentType = OrderFulfillmentType(rawValue: row["fulfillment_type"] as String) ?? .pickup
+
+        return Order(
+            id: row["id"],
+            customerId: row["customer_id"],
+            cakeDesignId: row["cake_design_id"],
+            title: row["title"],
+            customerName: row["customer_name"],
+            status: status,
+            dueAt: date(row["due_at_unix_time"]),
+            fulfillmentType: fulfillmentType,
+            deliveryAddress: row["delivery_address"],
+            cakeNotes: row["cake_notes"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )

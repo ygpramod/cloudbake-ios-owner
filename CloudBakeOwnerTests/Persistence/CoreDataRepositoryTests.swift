@@ -101,13 +101,18 @@ final class CoreDataRepositoryTests: XCTestCase {
             customerId: customer.id,
             cakeDesignId: design.id,
             title: "Rose garden birthday cake",
+            customerName: customer.name,
             status: .confirmed,
             dueAt: Date(timeIntervalSince1970: 1_800_050_000),
+            fulfillmentType: .delivery,
+            deliveryAddress: "10 Cake Street",
+            cakeNotes: "Vanilla sponge with pink flowers",
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt
         )
         try repository.save(order)
         XCTAssertEqual(try repository.fetchOrder(id: order.id), order)
+        XCTAssertEqual(try repository.fetchOrders(), [order])
 
         let transaction = InventoryTransaction(
             id: "transaction-flour-purchase",
