@@ -222,13 +222,8 @@ restrictions, and notes are optional.
 Customer edit updates contact details and preference fields. Important date correction is future
 work.
 
-The app warns before saving when a new customer looks like a duplicate.
-
-When adding a customer, the owner should be asked whether to import from Contacts. Contacts import
-should prefill available contact details into an editable draft, but CloudBake-specific preferences
-and allergy notes should remain owner-entered.
-
-Contacts import is future work.
+The app warns before saving when a new customer looks like a duplicate. Contacts import can prefill
+contact details, but CloudBake-specific preferences and allergy notes remain owner-entered.
 
 Customer records should be implemented before order slices that depend on customer preferences or
 allergy details.
