@@ -76,8 +76,8 @@ Tap an inventory row to view the item.
 The view mode shows name, unit, current quantity, minimum quantity, and an expiry table. The expiry
 table lists each remaining stock batch by quantity and expiry date.
 
-The detail toolbar exposes edit, history, use stock, and adjust stock actions so the owner does not
-need to return to the list and swipe for common item work.
+The detail toolbar exposes a direct edit action and a more menu for history, use stock, and adjust
+stock, so the owner does not need to return to the list and swipe for common item work.
 
 Tap a batch in the expiry table when that batch's quantity or expiry date needs correction. Swipe a
 batch when a mistaken batch should be deleted.
