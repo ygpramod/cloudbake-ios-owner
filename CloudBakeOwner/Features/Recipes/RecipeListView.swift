@@ -196,11 +196,13 @@ private struct RecipeImportView: View {
                 guard let data = try? await item.loadTransferable(type: Data.self),
                       let image = UIImage(data: data) else {
                     viewModel.errorMessage = "Recipe image could not be opened."
+                    selectedPhotoItem = nil
                     return
                 }
 
                 selectedRecipeImage = image
                 recognize(image)
+                selectedPhotoItem = nil
             }
         }
     }
