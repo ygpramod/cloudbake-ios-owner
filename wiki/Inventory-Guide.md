@@ -107,11 +107,14 @@ editing screen or a local editable copy.
 
 Purchase bill draft parsing turns recognized bill text into inventory draft candidates.
 
+Bill text recognition uses Apple's local Vision OCR framework. Receipt images do not need to leave
+the device for the first version, and there is no OCR subscription or per-scan service fee.
+
 The parser reads bill text line by line, keeps only lines that match the baking catalog, and captures
 common quantity/unit pairs such as `1 kg`, `500g`, `250 ml`, `12 pcs`, `2 tsp`, or `1 cup`.
 
-This is the parsing foundation for scan-to-inventory. Camera scanning, owner review UI, and saving
-drafts into inventory are future slices.
+This is the recognition and parsing foundation for scan-to-inventory. Camera scanning, owner review
+UI, and saving drafts into inventory are future slices.
 
 ## Stock Adjustment
 

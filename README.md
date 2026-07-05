@@ -25,6 +25,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0017: Inventory Unit Conversion
 - Slice RFC-0018: Baking Catalog Config
 - Slice RFC-0019: Purchase Bill Draft Parser
+- Slice RFC-0020: Purchase Bill OCR Service
 
 ## Engineering Guardrails
 

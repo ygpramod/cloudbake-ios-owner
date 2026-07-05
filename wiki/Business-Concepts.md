@@ -123,6 +123,14 @@ A purchase bill draft is a proposed inventory item created from recognized purch
 Drafts are not saved directly into inventory. They are meant to be reviewed by the owner so names,
 quantities, units, expiry dates, and duplicate matches can be corrected before stock changes.
 
+## Purchase Bill OCR
+
+Purchase bill OCR is the local text recognition step that extracts lines from a bill image before
+draft parsing.
+
+CloudBake uses Apple Vision for this foundation. It is on-device, does not require a separate OCR
+subscription, and keeps the first version independent of LLM or cloud document analysis.
+
 ## Cake Design
 
 A cake design is a record of a cake style the owner has made or wants to reference.
