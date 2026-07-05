@@ -128,13 +128,49 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 return nil
             }
 
-            return RecipeComponent(
-                id: row["id"],
-                recipeId: row["recipe_id"],
-                name: row["name"],
-                sortOrder: row["sort_order"],
-                createdAt: date(row["created_at_unix_time"]),
-                updatedAt: date(row["updated_at_unix_time"])
+            return recipeComponent(from: row)
+        }
+    }
+
+    func fetchRecipeComponents(recipeId: String) throws -> [RecipeComponent] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM recipe_components
+                    WHERE recipe_id = ?
+                    ORDER BY sort_order ASC, lower(name), name
+                    """,
+                arguments: [recipeId]
+            ).map(recipeComponent)
+        }
+    }
+
+    func fetchRecipeIngredients(componentId: String) throws -> [RecipeIngredient] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM recipe_ingredients
+                    WHERE component_id = ?
+                    ORDER BY created_at_unix_time ASC, id
+                    """,
+                arguments: [componentId]
+            ).compactMap { row in
+                guard let unit = InventoryUnit(rawValue: row["unit"]) else {
+                    return nil
+                }
+
+                return recipeIngredient(from: row, unit: unit)
+            }
+        }
+    }
+
+    func deleteRecipeIngredient(id: String) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: "DELETE FROM recipe_ingredients WHERE id = ?",
+                arguments: [id]
             )
         }
     }
@@ -168,16 +204,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 return nil
             }
 
-            return RecipeIngredient(
-                id: row["id"],
-                componentId: row["component_id"],
-                inventoryItemId: row["inventory_item_id"],
-                quantity: row["quantity"],
-                unit: unit,
-                note: row["note"],
-                createdAt: date(row["created_at_unix_time"]),
-                updatedAt: date(row["updated_at_unix_time"])
-            )
+            return recipeIngredient(from: row, unit: unit)
         }
     }
 
@@ -458,6 +485,30 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             id: row["id"],
             name: row["name"],
             notes: row["notes"],
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    private func recipeComponent(from row: Row) -> RecipeComponent {
+        RecipeComponent(
+            id: row["id"],
+            recipeId: row["recipe_id"],
+            name: row["name"],
+            sortOrder: row["sort_order"],
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    private func recipeIngredient(from row: Row, unit: InventoryUnit) -> RecipeIngredient {
+        RecipeIngredient(
+            id: row["id"],
+            componentId: row["component_id"],
+            inventoryItemId: row["inventory_item_id"],
+            quantity: row["quantity"],
+            unit: unit,
+            note: row["note"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )

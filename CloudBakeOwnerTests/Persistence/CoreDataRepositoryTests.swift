@@ -41,6 +41,7 @@ final class CoreDataRepositoryTests: XCTestCase {
         )
         try repository.save(component)
         XCTAssertEqual(try repository.fetchRecipeComponent(id: component.id), component)
+        XCTAssertEqual(try repository.fetchRecipeComponents(recipeId: recipe.id), [component])
 
         let ingredient = RecipeIngredient(
             id: "ingredient-flour",
@@ -54,6 +55,7 @@ final class CoreDataRepositoryTests: XCTestCase {
         )
         try repository.save(ingredient)
         XCTAssertEqual(try repository.fetchRecipeIngredient(id: ingredient.id), ingredient)
+        XCTAssertEqual(try repository.fetchRecipeIngredients(componentId: component.id), [ingredient])
 
         let design = CakeDesign(
             id: "design-rose-garden",
@@ -127,6 +129,54 @@ final class CoreDataRepositoryTests: XCTestCase {
         )
         try repository.save(pricingRule)
         XCTAssertEqual(try repository.fetchPricingRule(id: pricingRule.id), pricingRule)
+    }
+
+    func testRecipeIngredientDeleteRemovesIngredient() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let inventoryItem = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 750,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla sponge",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-ingredients",
+            recipeId: recipe.id,
+            name: "Ingredients",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-flour",
+            componentId: component.id,
+            inventoryItemId: inventoryItem.id,
+            quantity: 250,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(inventoryItem)
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try repository.deleteRecipeIngredient(id: ingredient.id)
+
+        XCTAssertNil(try repository.fetchRecipeIngredient(id: ingredient.id))
+        XCTAssertEqual(try repository.fetchRecipeIngredients(componentId: component.id), [])
     }
 
     func testInventoryItemsFetchInNameOrder() throws {

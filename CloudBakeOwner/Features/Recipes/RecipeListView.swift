@@ -6,6 +6,7 @@ struct RecipeListView: View {
     @StateObject private var viewModel: RecipeListViewModel
     @State private var isAddingRecipe = false
     @State private var isImportingRecipe = false
+    @State private var isViewingRecipe = false
 
     init(viewModel: RecipeListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -22,16 +23,24 @@ struct RecipeListView: View {
             } else {
                 Section("Recipes") {
                     ForEach(viewModel.recipes, id: \.id) { recipe in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(recipe.name)
-                                .font(.headline)
-                            if let notes = recipe.notes {
-                                Text(notes)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                        Button {
+                            viewModel.beginViewingRecipe(recipe)
+                            isViewingRecipe = true
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(recipe.name)
+                                    .font(.headline)
+                                if let notes = recipe.notes {
+                                    Text(notes)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
-                        .accessibilityElement(children: .combine)
+                        .buttonStyle(.plain)
                         .accessibilityIdentifier("recipes.item.\(recipe.id)")
                     }
                 }
@@ -63,6 +72,14 @@ struct RecipeListView: View {
                 )
             }
         }
+        .sheet(isPresented: $isViewingRecipe, onDismiss: viewModel.closeRecipeDetail) {
+            NavigationStack {
+                RecipeDetailView(
+                    viewModel: viewModel,
+                    isPresented: $isViewingRecipe
+                )
+            }
+        }
         .sheet(isPresented: $isImportingRecipe, onDismiss: viewModel.cancelRecipeImport) {
             NavigationStack {
                 RecipeImportView(
@@ -75,6 +92,182 @@ struct RecipeListView: View {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.recipes.screenAccessibilityIdentifier)
+    }
+}
+
+private struct RecipeDetailView: View {
+    @ObservedObject var viewModel: RecipeListViewModel
+    @Binding var isPresented: Bool
+    @State private var isEditingIngredient = false
+
+    var body: some View {
+        List {
+            if let recipe = viewModel.selectedRecipe {
+                if let notes = recipe.notes {
+                    Section("Notes") {
+                        Text(notes)
+                    }
+                }
+
+                if viewModel.recipeIngredients.isEmpty {
+                    ContentUnavailableView(
+                        "No ingredients yet",
+                        systemImage: "list.bullet",
+                        description: Text("Add linked inventory items with the quantity needed for this recipe.")
+                    )
+                } else {
+                    Section("Ingredients") {
+                        ForEach(viewModel.recipeIngredients) { row in
+                            Button {
+                                viewModel.beginEditingIngredient(row.ingredient)
+                                isEditingIngredient = true
+                            } label: {
+                                RecipeIngredientListRow(row: row)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("recipes.ingredient.view.\(row.id)")
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    viewModel.deleteIngredient(row.ingredient)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                .accessibilityIdentifier("recipes.ingredient.delete.\(row.id)")
+                            }
+                        }
+                    }
+                }
+
+                if let errorMessage = viewModel.errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                            .accessibilityIdentifier("recipes.detail.error")
+                    }
+                }
+            }
+        }
+        .navigationTitle(viewModel.selectedRecipe?.name ?? "Recipe")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Done") {
+                    isPresented = false
+                }
+                .accessibilityIdentifier("recipes.detail.done")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    viewModel.beginAddingIngredient()
+                    isEditingIngredient = true
+                } label: {
+                    Label("Add ingredient", systemImage: "plus")
+                }
+                .accessibilityIdentifier("recipes.ingredient.add")
+            }
+        }
+        .sheet(isPresented: $isEditingIngredient, onDismiss: viewModel.cancelIngredientEdit) {
+            NavigationStack {
+                RecipeIngredientForm(
+                    viewModel: viewModel,
+                    isPresented: $isEditingIngredient
+                )
+            }
+        }
+    }
+}
+
+private struct RecipeIngredientListRow: View {
+    let row: RecipeIngredientRow
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(row.inventoryItemName)
+                .font(.headline)
+            Text("\(row.ingredient.quantity.formatted()) \(row.ingredient.unit.displayName)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            if let note = row.ingredient.note {
+                Text(note)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct RecipeIngredientForm: View {
+    @ObservedObject var viewModel: RecipeListViewModel
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        Form {
+            if viewModel.availableInventoryItems.isEmpty {
+                ContentUnavailableView(
+                    "No inventory items",
+                    systemImage: "shippingbox",
+                    description: Text("Add inventory before linking ingredients to a recipe.")
+                )
+            } else {
+                Section("Ingredient") {
+                    Picker("Inventory Item", selection: $viewModel.draftIngredientInventoryItemId) {
+                        ForEach(viewModel.availableInventoryItems, id: \.id) { item in
+                            Text(item.name).tag(item.id)
+                        }
+                    }
+                    .onChange(of: viewModel.draftIngredientInventoryItemId) { _, _ in
+                        viewModel.updateDraftIngredientUnitForSelectedInventoryItem()
+                    }
+                    .accessibilityIdentifier("recipes.ingredient.inventoryItem")
+
+                    TextField("Quantity", text: $viewModel.draftIngredientQuantity)
+                        .keyboardType(.decimalPad)
+                        .accessibilityIdentifier("recipes.ingredient.quantity")
+
+                    Picker("Unit", selection: $viewModel.draftIngredientUnit) {
+                        ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
+                            Text(unit.displayName).tag(unit)
+                        }
+                    }
+                    .accessibilityIdentifier("recipes.ingredient.unit")
+
+                    TextField("Note", text: $viewModel.draftIngredientNote, axis: .vertical)
+                        .lineLimit(2...5)
+                        .accessibilityIdentifier("recipes.ingredient.note")
+                }
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("recipes.ingredient.error")
+                }
+            }
+        }
+        .navigationTitle(viewModel.editingIngredient == nil ? "Add Ingredient" : "Edit Ingredient")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    viewModel.cancelIngredientEdit()
+                    isPresented = false
+                }
+                .accessibilityIdentifier("recipes.ingredient.cancel")
+            }
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    if viewModel.saveIngredient() {
+                        isPresented = false
+                    }
+                }
+                .disabled(viewModel.availableInventoryItems.isEmpty)
+                .accessibilityIdentifier("recipes.ingredient.save")
+            }
+        }
     }
 }
 
