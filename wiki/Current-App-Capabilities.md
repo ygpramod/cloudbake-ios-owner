@@ -32,7 +32,8 @@ The app currently supports:
 24. purchase bill text parsing into draft inventory candidates,
 25. local Apple Vision OCR service for purchase bill text recognition,
 26. purchase bill draft review and save into inventory,
-27. unit, integration, and acceptance test lanes.
+27. purchase bill camera capture into editable inventory drafts,
+28. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -48,7 +49,8 @@ The app has domain foundations for:
 8. purchase bill filtering by baking catalog,
 9. purchase bill draft inventory parsing,
 10. purchase bill text recognition through Apple Vision,
-11. purchase bill draft review flow.
+11. purchase bill draft review flow,
+12. purchase bill camera import flow.
 
 These are not all owner-facing workflows yet.
 
@@ -59,14 +61,13 @@ Planned product areas include:
 1. recipe storage,
 2. recipe-book conversion into app recipes,
 3. recipe-driven inventory reduction,
-4. purchase bill camera scanning UI,
-5. customer likes, dislikes, allergies, and preferences,
-6. order calendar,
-7. delivery reminders,
-8. cake photo storage,
-9. pricing calculator,
-10. customer-facing cake browsing,
-11. sync through iCloud or backend when needed.
+4. customer likes, dislikes, allergies, and preferences,
+5. order calendar,
+6. delivery reminders,
+7. cake photo storage,
+8. pricing calculator,
+9. customer-facing cake browsing,
+10. sync through iCloud or backend when needed.
 
 ## Source References
 

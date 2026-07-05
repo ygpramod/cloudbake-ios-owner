@@ -113,11 +113,14 @@ the device for the first version, and there is no OCR subscription or per-scan s
 The parser reads bill text line by line, keeps only lines that match the baking catalog, and captures
 common quantity/unit pairs such as `1 kg`, `500g`, `250 ml`, `12 pcs`, `2 tsp`, or `1 cup`.
 
-The owner can review draft items before saving. Draft review supports selecting which items to save,
-editing names, quantities, units, minimum quantities, and expiry dates.
+The owner can open Import Bill, take a purchase bill photo, and let the app read the bill text using
+local Vision OCR. The recognized text is parsed into draft inventory rows.
 
-Saving selected drafts creates normal inventory items and initial stock batches. Camera scanning is
-still a future slice; the current flow accepts recognized bill text.
+The owner can review draft items before saving. Draft review supports selecting which items to save,
+editing recognized text, names, quantities, units, minimum quantities, and expiry dates.
+
+Saving selected drafts creates normal inventory items and initial stock batches. Manual recognized
+text entry remains available as a fallback when a bill photo cannot be read clearly.
 
 ## Stock Adjustment
 
@@ -172,13 +175,12 @@ Inventory does not yet support:
 
 1. recipe-driven automatic reduction,
 2. ingredient-density conversion between weight and volume,
-3. purchase bill camera scanning UI,
-4. duplicate matching during purchase bill draft save,
-5. in-app baking catalog editing,
-6. inventory delete,
-7. supplier tracking,
-8. purchase planning,
-9. editing stock batch quantities directly,
-10. deleting stock batches,
-11. editing unit, current quantity, or expiry from item edit mode,
-12. expiry reminder notifications.
+3. duplicate matching during purchase bill draft save,
+4. in-app baking catalog editing,
+5. inventory delete,
+6. supplier tracking,
+7. purchase planning,
+8. editing stock batch quantities directly,
+9. deleting stock batches,
+10. editing unit, current quantity, or expiry from item edit mode,
+11. expiry reminder notifications.
