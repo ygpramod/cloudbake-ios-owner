@@ -32,7 +32,7 @@ work needs the older stock to be used before newer stock.
 ## Expiry Date
 
 Expiry date is captured for new stock when inventory is added or adjusted upward. The owner can
-correct a stock batch expiry date from inventory detail.
+correct a stock batch quantity or expiry date from inventory detail.
 
 The app uses expiry to warn the owner one month before expiry and to decide which batch should be
 consumed first.
@@ -70,6 +70,16 @@ Current transaction types:
 2. consumption: stock was used.
 
 Transaction quantities are stored as positive numbers. The transaction type carries the meaning.
+
+## Stock Batch Correction
+
+Stock batch correction is used when a saved batch is wrong.
+
+The owner can correct the batch quantity, correct the expiry date, or delete the batch. Deleting a
+batch reduces the inventory item's current quantity by that batch's remaining quantity.
+
+Stock batch correction is not the same as stock usage. Stock usage records real consumption; batch
+correction fixes inventory data.
 
 ## Archive
 

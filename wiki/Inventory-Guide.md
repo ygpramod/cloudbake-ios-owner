@@ -82,7 +82,8 @@ The detail view shows:
 
 Use the expiry table to see how much stock expires on each date.
 
-Tap a stock batch row from the expiry table to correct that batch's expiry date.
+Tap a stock batch row from the expiry table to correct that batch's quantity or expiry date. Swipe a
+stock batch row to delete a mistaken batch.
 
 ## Duplicate Warning
 
@@ -167,6 +168,9 @@ edit both remaining quantity and expiry date.
 Changing a batch quantity also updates the inventory item's current quantity by the same difference.
 For example, changing a flour batch from `250 g` to `300 g` increases current stock by `50 g`.
 
+Deleting a stock batch removes that batch from the expiry table and reduces current quantity by the
+deleted batch quantity. This is a correction workflow for mistaken batches, not normal stock usage.
+
 ## Stock History
 
 Use stock history to review why an active inventory item's quantity changed.
@@ -192,6 +196,5 @@ Inventory does not yet support:
 4. inventory delete,
 5. supplier tracking,
 6. purchase planning,
-7. deleting stock batches,
-8. editing unit, current quantity, or expiry from item edit mode,
-9. expiry reminder notifications.
+7. editing unit, current quantity, or expiry from item edit mode,
+8. expiry reminder notifications.

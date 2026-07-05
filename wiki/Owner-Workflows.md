@@ -32,7 +32,8 @@ Tap an inventory row to view the item.
 The view mode shows name, unit, current quantity, minimum quantity, and an expiry table. The expiry
 table lists each remaining stock batch by quantity and expiry date.
 
-Tap a batch in the expiry table when only that batch's expiry date needs correction.
+Tap a batch in the expiry table when that batch's quantity or expiry date needs correction. Swipe a
+batch when a mistaken batch should be deleted.
 
 ## Edit Inventory
 
@@ -78,6 +79,16 @@ saving, and the app converts the entry back to the item's stored unit.
 
 When stock is used, the app deducts from the oldest-expiring batch first and then moves into newer
 batches.
+
+## Correct Stock Batches
+
+Use stock batch correction when a remaining batch was entered incorrectly.
+
+The owner can edit a batch quantity or expiry date from inventory detail. Deleting a batch removes
+it and reduces the inventory item's current quantity by the deleted amount.
+
+Batch correction is different from stock usage. Use stock usage when stock was actually consumed;
+use batch correction when the saved data is wrong.
 
 ## Review Stock History
 
