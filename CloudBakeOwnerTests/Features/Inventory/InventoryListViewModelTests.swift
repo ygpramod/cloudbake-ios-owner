@@ -1302,6 +1302,43 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.purchaseBillDrafts.first?.matchedInventoryItemName, "Cake flour")
     }
 
+    func testRefreshPurchaseBillDraftMatchUpdatesAfterNameEdit() {
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake flour",
+                unit: .gram,
+                currentQuantity: 500,
+                minimumQuantity: 250,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.load()
+        viewModel.purchaseBillDrafts = [
+            PurchaseBillInventoryDraft(
+                id: "draft-flour",
+                sourceLine: "Cake Flour 1 kg",
+                name: "Cake Flour",
+                quantityText: "1",
+                unit: .kilogram,
+                minimumQuantityText: "0",
+                expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
+                isSelected: true,
+                matchedInventoryItemId: "inventory-flour",
+                matchedInventoryItemName: "Cake flour"
+            )
+        ]
+
+        viewModel.purchaseBillDrafts[0].name = "Almond Meal"
+        viewModel.refreshPurchaseBillDraftMatch(draftId: "draft-flour")
+
+        XCTAssertNil(viewModel.purchaseBillDrafts.first?.matchedInventoryItemId)
+        XCTAssertNil(viewModel.purchaseBillDrafts.first?.matchedInventoryItemName)
+    }
+
     func testCreatePurchaseBillDraftsShowsErrorWhenNoBakingItemsMatch() {
         let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
         viewModel.purchaseBillRecognizedText = "Laundry Detergent 1 L"

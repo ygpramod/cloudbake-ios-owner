@@ -635,6 +635,20 @@ final class InventoryListViewModel: ObservableObject {
         resetPurchaseBillDrafts()
     }
 
+    func refreshPurchaseBillDraftMatch(draftId: String) {
+        guard let draftIndex = purchaseBillDrafts.firstIndex(where: { $0.id == draftId }) else {
+            return
+        }
+
+        let matchedItem = matchingInventoryItem(
+            for: purchaseBillDrafts[draftIndex].name,
+            nameKey: duplicateKey(for: purchaseBillDrafts[draftIndex].name),
+            excludingItemId: nil
+        )
+        purchaseBillDrafts[draftIndex].matchedInventoryItemId = matchedItem?.id
+        purchaseBillDrafts[draftIndex].matchedInventoryItemName = matchedItem?.name
+    }
+
     func beginViewingHistory(_ item: InventoryItem) {
         historyItem = item
         loadHistory()
