@@ -68,7 +68,8 @@ The app currently supports:
 60. manual order status changes,
 61. orders calendar view grouped by due date,
 62. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
-63. unit, integration, and acceptance test lanes.
+63. in-app order reminder planning for three, two, and one day before due date,
+64. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -77,7 +78,7 @@ The app has domain foundations or partial workflows for:
 1. recipe components and ingredients,
 2. cake designs,
 3. pricing,
-4. order delivery reminders,
+4. scheduled order delivery notifications,
 5. inventory transactions,
 6. purchase bill filtering by baking catalog,
 7. purchase bill draft inventory parsing,

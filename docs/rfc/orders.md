@@ -143,6 +143,8 @@ Customer detail can show linked order history through
 `docs/rfc/slices/0041-customer-order-history.md`.
 Order add/edit can link customers through a searchable selection flow through
 `docs/rfc/slices/0042-order-customer-search-selection.md`.
+Owner-visible order reminder planning is implemented in
+`docs/rfc/slices/0044-order-reminders.md`.
 
 ## Reminder Model
 
@@ -155,6 +157,11 @@ Default order reminders:
 Future reminder behavior can include day-of reminders, snooze, preparation-start reminders, and
 calendar integration. Reminder slices must define whether reminders are local notifications,
 in-app alerts, or both.
+
+The first reminder slice provides in-app reminder planning only. Order detail shows the
+three/two/one-day reminder dates, and the Orders screen surfaces due or overdue reminders for active
+orders. Scheduled local notifications, snooze, configurable offsets, and calendar integration remain
+future work.
 
 ## Pricing And Payment
 
@@ -251,6 +258,8 @@ pricing, and recipe links.
   optional delivery address, and cake notes.
 - Order detail now surfaces non-empty allergies, dietary restrictions, likes, dislikes, and notes
   from the linked customer record for owner visibility.
+- Orders now show in-app reminders three days, two days, and one day before due date. Completed and
+  cancelled orders are excluded from due reminder alerts.
 
 ## Open Questions
 
