@@ -56,16 +56,17 @@ The app currently supports:
 48. customer important dates,
 49. customer editing from detail,
 50. Contacts import into editable customer drafts,
-51. orders list,
-52. order creation,
-53. order detail view,
-54. optional customer record link from orders,
-55. order due date/time, status, fulfillment type, delivery address, and cake notes,
-56. order editing from detail,
-57. manual order status changes,
-58. orders calendar view grouped by due date,
-59. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
-60. unit, integration, and acceptance test lanes.
+51. customer detail order history for linked orders,
+52. orders list,
+53. order creation,
+54. order detail view,
+55. optional customer record link from orders,
+56. order due date/time, status, fulfillment type, delivery address, and cake notes,
+57. order editing from detail,
+58. manual order status changes,
+59. orders calendar view grouped by due date,
+60. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
+61. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 

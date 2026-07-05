@@ -155,6 +155,8 @@ allergy details, or customer history.
 The first order foundation supports optional customer record linking. Customer preference and allergy
 presentation inside order detail is implemented in
 `docs/rfc/slices/0040-order-customer-preferences.md`.
+Customer order history in customer detail is implemented in
+`docs/rfc/slices/0041-customer-order-history.md`.
 
 ## Owner Experience
 
@@ -212,7 +214,8 @@ The first implementation slice should create the minimum useful customer foundat
 - include focused unit, integration, and acceptance coverage.
 
 Contacts import is implemented as an editable draft flow. Customer selection for orders should be
-the next customer-dependent slice when order implementation begins.
+the next customer-dependent slice when order implementation begins. Customer detail now shows
+linked order history once orders reference a customer record.
 
 ## Open Questions
 
