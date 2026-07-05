@@ -56,26 +56,29 @@ The app currently supports:
 48. customer important dates,
 49. customer editing from detail,
 50. Contacts import into editable customer drafts,
-51. unit, integration, and acceptance test lanes.
+51. orders list,
+52. order creation,
+53. order detail view,
+54. optional customer record link from orders,
+55. order due date/time, status, fulfillment type, delivery address, and cake notes,
+56. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
 The app has domain foundations or partial workflows for:
 
 1. recipe components and ingredients,
-2. orders,
-3. cake designs,
-4. pricing,
-5. order delivery reminders,
-6. inventory transactions,
-7. purchase bill filtering by baking catalog,
-8. purchase bill draft inventory parsing,
-9. purchase bill text recognition through Apple Vision,
-10. purchase bill draft review flow,
-11. purchase bill camera import flow,
-12. purchase bill duplicate matching,
-13. recipe ingredient quantity extraction,
-14. customer selection from orders.
+2. cake designs,
+3. pricing,
+4. order delivery reminders,
+5. inventory transactions,
+6. purchase bill filtering by baking catalog,
+7. purchase bill draft inventory parsing,
+8. purchase bill text recognition through Apple Vision,
+9. purchase bill draft review flow,
+10. purchase bill camera import flow,
+11. purchase bill duplicate matching,
+12. recipe ingredient quantity extraction.
 
 These are not all owner-facing workflows yet.
 
@@ -86,11 +89,11 @@ Planned product areas include:
 1. stronger OCR cleanup and page correction for scanned recipes,
 2. optional LLM-assisted recipe interpretation,
 3. recipe-driven inventory reduction,
-4. customer selection from orders,
-5. order calendar,
-6. delivery reminders,
-7. cake photo storage,
-8. pricing calculator,
+4. order calendar,
+5. delivery reminders,
+6. cake photo storage,
+7. pricing calculator,
+8. order recipe usage and inventory deduction,
 9. customer-facing cake browsing,
 10. sync through iCloud or backend when needed.
 

@@ -140,6 +140,7 @@ customer.
 - Archive and delete are not required for the first customer implementation.
 - Contacts import uses Apple's explicit contact picker for one owner-selected contact.
 - Contacts import must create an editable draft and must not save until the owner taps Save.
+- Orders can optionally link to an existing customer record while keeping a customer name snapshot.
 
 ## Order Relationship
 
@@ -150,6 +151,9 @@ of customer preferences, allergy notes, and contact details should be the custom
 
 Customer implementation should happen before order slices that depend on customer preferences,
 allergy details, or customer history.
+
+The first order foundation supports optional customer record linking. Customer preference and allergy
+presentation inside order workflows remains a later order slice.
 
 ## Owner Experience
 

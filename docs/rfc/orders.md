@@ -134,6 +134,8 @@ Orders should eventually include these screens:
 The first slice should avoid building every section. It should establish the order model, list,
 add, and detail foundations.
 
+The first order slice is implemented in `docs/rfc/slices/0037-orders-list-add-detail.md`.
+
 ## Reminder Model
 
 Default order reminders:
@@ -236,8 +238,10 @@ pricing, and recipe links.
 - The Customer RFC should be implemented before customer preference details are added to orders.
 - Order reminders should be based on due date.
 - Allergy warnings should alert the owner only and should not block order confirmation.
+- The first implemented order foundation supports list, add, detail, customer name snapshots,
+  optional customer record links, due date/time, draft or confirmed status, pickup or delivery,
+  optional delivery address, and cake notes.
 
 ## Open Questions
 
 - Should pickup orders also use due date as the pickup time?
-- What fields should move into the Customer RFC before orders link to customer records?
