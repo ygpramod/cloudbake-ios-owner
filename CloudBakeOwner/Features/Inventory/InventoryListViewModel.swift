@@ -436,6 +436,7 @@ final class InventoryListViewModel: ObservableObject {
             try repository.save(transaction)
             resetAdjustmentDraft()
             load()
+            refreshSelectedItemIfNeeded(updatedItem)
             return true
         } catch {
             errorMessage = "Stock adjustment could not be saved."
@@ -517,6 +518,7 @@ final class InventoryListViewModel: ObservableObject {
             try repository.save(transaction)
             resetConsumptionDraft()
             load()
+            refreshSelectedItemIfNeeded(updatedItem)
             return true
         } catch {
             errorMessage = "Stock consumption could not be saved."
@@ -739,6 +741,14 @@ final class InventoryListViewModel: ObservableObject {
         historyItem = nil
         historyTransactions = []
         errorMessage = nil
+    }
+
+    private func refreshSelectedItemIfNeeded(_ item: InventoryItem) {
+        guard selectedItem?.id == item.id else {
+            return
+        }
+
+        beginViewingItem(item)
     }
 
     private func shouldWarnAboutDuplicate(

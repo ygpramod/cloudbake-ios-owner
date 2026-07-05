@@ -981,6 +981,47 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.batches.first?.remainingQuantity, 1_250)
     }
 
+    func testRecordStockAdjustmentRefreshesSelectedItemDetailState() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let adjustedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-flour-initial",
+                inventoryItemId: item.id,
+                remainingQuantity: 250,
+                expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
+        var ids = ["transaction-flour-adjustment", "batch-flour-adjustment"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { adjustedAt }
+        )
+        viewModel.beginViewingItem(item)
+        viewModel.beginAdjusting(item)
+        viewModel.draftAdjustmentQuantity = "100"
+        viewModel.draftAdjustmentExpiryDate = Date(timeIntervalSince1970: 1_800_202_800)
+
+        XCTAssertTrue(viewModel.recordStockAdjustment())
+
+        XCTAssertEqual(viewModel.selectedItem?.currentQuantity, 350)
+        XCTAssertEqual(viewModel.selectedItemBatches.map(\.remainingQuantity), [250, 100])
+    }
+
     func testRecordStockAdjustmentRejectsZeroQuantity() {
         let item = InventoryItem(
             id: "inventory-flour",
@@ -1271,6 +1312,53 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.transactions.first?.quantity, 750)
         XCTAssertEqual(repository.batches[0].remainingQuantity, 0)
         XCTAssertEqual(repository.batches[1].remainingQuantity, 250)
+    }
+
+    func testRecordStockConsumptionRefreshesSelectedItemDetailState() {
+        let repository = FakeInventoryItemRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
+        let consumedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 350,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.items = [item]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-flour-old",
+                inventoryItemId: item.id,
+                remainingQuantity: 150,
+                expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            ),
+            InventoryStockBatch(
+                id: "batch-flour-new",
+                inventoryItemId: item.id,
+                remainingQuantity: 200,
+                expiresAt: Date(timeIntervalSince1970: 1_800_202_800),
+                createdAt: createdAt,
+                updatedAt: createdAt
+            )
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "transaction-flour-consumption" },
+            dateProvider: { consumedAt }
+        )
+        viewModel.beginViewingItem(item)
+        viewModel.beginConsuming(item)
+        viewModel.draftConsumptionQuantity = "100"
+
+        XCTAssertTrue(viewModel.recordStockConsumption())
+
+        XCTAssertEqual(viewModel.selectedItem?.currentQuantity, 250)
+        XCTAssertEqual(viewModel.selectedItemBatches.map(\.remainingQuantity), [50, 200])
     }
 
     func testRecordStockConsumptionRejectsZeroQuantity() {
