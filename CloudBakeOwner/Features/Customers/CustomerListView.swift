@@ -1,9 +1,13 @@
+import Contacts
+import ContactsUI
 import SwiftUI
 
 struct CustomerListView: View {
     @StateObject private var viewModel: CustomerListViewModel
     @State private var isAddingCustomer = false
     @State private var isViewingCustomer = false
+    @State private var isChoosingAddMode = false
+    @State private var isImportingContact = false
 
     init(viewModel: CustomerListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -57,11 +61,31 @@ struct CustomerListView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    isAddingCustomer = true
+                    isChoosingAddMode = true
                 } label: {
                     Label("Add Customer", systemImage: "plus")
                 }
                 .accessibilityIdentifier("customers.add")
+            }
+        }
+        .confirmationDialog("Add Customer", isPresented: $isChoosingAddMode) {
+            Button("Import From Contacts") {
+                isImportingContact = true
+            }
+            Button("Enter Manually") {
+                viewModel.beginAddingCustomer()
+                isAddingCustomer = true
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .sheet(isPresented: $isImportingContact) {
+            CustomerContactPicker { contact in
+                let draft = CustomerContactDraftMapper().draft(from: contact)
+                viewModel.beginAddingCustomer(importedDraft: draft)
+                isImportingContact = false
+                DispatchQueue.main.async {
+                    isAddingCustomer = true
+                }
             }
         }
         .sheet(isPresented: $isAddingCustomer, onDismiss: viewModel.cancelAddCustomer) {
@@ -86,6 +110,43 @@ struct CustomerListView: View {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.customers.screenAccessibilityIdentifier)
+    }
+}
+
+private struct CustomerContactPicker: UIViewControllerRepresentable {
+    let onContactSelected: (CNContact) -> Void
+
+    func makeUIViewController(context: Context) -> CNContactPickerViewController {
+        let picker = CNContactPickerViewController()
+        picker.delegate = context.coordinator
+        picker.displayedPropertyKeys = [
+            CNContactGivenNameKey,
+            CNContactFamilyNameKey,
+            CNContactPhoneNumbersKey,
+            CNContactEmailAddressesKey,
+            CNContactPostalAddressesKey,
+            CNContactBirthdayKey,
+            CNContactDatesKey
+        ]
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: CNContactPickerViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onContactSelected: onContactSelected)
+    }
+
+    final class Coordinator: NSObject, CNContactPickerDelegate {
+        private let onContactSelected: (CNContact) -> Void
+
+        init(onContactSelected: @escaping (CNContact) -> Void) {
+            self.onContactSelected = onContactSelected
+        }
+
+        func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
+            onContactSelected(contact)
+        }
     }
 }
 

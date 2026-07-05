@@ -332,6 +332,20 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Nuts"].waitForExistence(timeout: 5))
     }
 
+    func testCustomerAddOffersContactsImportAndManualEntry() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Customers"].tap()
+        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 5))
+        app.buttons["customers.add"].tap()
+
+        XCTAssertTrue(app.buttons["Import From Contacts"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Enter Manually"].waitForExistence(timeout: 5))
+        app.buttons["Enter Manually"].tap()
+        XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: 5))
+    }
+
     func testCustomerDuplicateWarningAppearsBeforeSaving() throws {
         let app = makeApp()
         app.launch()
@@ -339,6 +353,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.staticTexts["Customers"].tap()
         addCustomer(named: "Amy", phone: "5550101", in: app)
         app.buttons["customers.add"].tap()
+        XCTAssertTrue(app.buttons["Enter Manually"].waitForExistence(timeout: 5))
+        app.buttons["Enter Manually"].tap()
         XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: 5))
         app.textFields["customers.form.name"].tap()
         app.textFields["customers.form.name"].typeText("Amy")
@@ -409,6 +425,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
     private func addCustomer(named name: String, phone: String, in app: XCUIApplication) {
         app.buttons["customers.add"].tap()
+        XCTAssertTrue(app.buttons["Enter Manually"].waitForExistence(timeout: 5))
+        app.buttons["Enter Manually"].tap()
         XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: 5))
         app.textFields["customers.form.name"].tap()
         app.textFields["customers.form.name"].typeText(name)

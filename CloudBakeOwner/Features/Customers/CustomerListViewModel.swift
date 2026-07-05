@@ -55,6 +55,26 @@ final class CustomerListViewModel: ObservableObject {
         errorMessage = nil
     }
 
+    func beginAddingCustomer(importedDraft: CustomerContactDraft? = nil) {
+        resetDraft()
+        errorMessage = nil
+        duplicateWarningMessage = nil
+        acknowledgedDuplicateKey = nil
+
+        guard let importedDraft else {
+            return
+        }
+
+        draftName = importedDraft.name
+        draftPhone = importedDraft.phone
+        draftEmail = importedDraft.email
+        draftAddress = importedDraft.address
+        draftImportantDateLabel = importedDraft.importantDateLabel
+        if let importantDate = importedDraft.importantDate {
+            draftImportantDate = importantDate
+        }
+    }
+
     func addCustomer() -> Bool {
         let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else {
