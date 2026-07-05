@@ -53,7 +53,8 @@ The app should make customer memory useful without becoming a heavy CRM.
 - If permission is granted, the owner must be able to choose a contact.
 - The app must prefill available details from the selected contact.
 - The owner must be able to review and edit imported details before saving.
-- The owner must be able to save customer name, phone, email, and address when available.
+- The owner must be able to save customer name, address, phone, and email when available.
+- The owner must be able to save important customer dates.
 - The owner must be able to save likes, dislikes, allergies, dietary restrictions, and owner notes.
 - Customer records must be linkable from orders.
 - Orders should use customer records instead of duplicating long-term customer details.
@@ -96,6 +97,7 @@ Imported fields may include:
 - phone numbers,
 - email addresses,
 - postal addresses.
+- birthdays or other important dates when available.
 
 CloudBake-specific fields must remain owner-entered:
 
@@ -112,12 +114,14 @@ Core concepts:
 
 - `Customer`: the aggregate root for owner-managed customer details.
 - `CustomerContactDetails`: phone, email, and address data.
+- `CustomerImportantDate`: birthdays, anniversaries, or other dates the owner wants to remember.
 - `CustomerPreference`: likes, dislikes, dietary notes, and cake preferences.
 - `CustomerAllergyNote`: allergy or dietary risk information.
 - `CustomerOrderLink`: relationship between customer and orders.
 
 The first implementation should keep the model small and explicit. Repeatable contact details can
-be added later if the owner needs multiple phone numbers, emails, or addresses per customer.
+be added later if the owner needs multiple phone numbers, emails, addresses, or important dates per
+customer.
 
 ## Order Relationship
 
@@ -180,6 +184,7 @@ The first implementation slice should create the minimum useful customer foundat
 - capture optional phone,
 - capture optional email,
 - capture optional address,
+- capture optional important dates,
 - capture likes, dislikes, allergies, dietary restrictions, and notes,
 - include focused unit, integration, and acceptance coverage.
 
@@ -189,5 +194,6 @@ Contacts import should be the next slice unless the order foundation needs custo
 
 - Should the first customer model allow multiple phone numbers and emails, or start with one primary value each?
 - Should address be a single text field initially or structured into street, city, state, postcode, and country?
+- Should important dates start as a flexible label and date list, or as predefined birthday and anniversary fields?
 - Should duplicate detection warn when a customer with a similar name or phone already exists?
 - Should customers support archive/delete in the first customer implementation?
