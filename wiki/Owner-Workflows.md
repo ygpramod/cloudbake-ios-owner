@@ -208,9 +208,9 @@ the foundation locally.
 
 ## Future Customer Workflow
 
-The customer workflow should help the owner remember customer contact details, likes, dislikes,
-allergies, dietary restrictions, and order history. `docs/rfc/customers.md` is the base product RFC
-for this area.
+The customer workflow should help the owner remember customer name, address, phone, important dates,
+likes, dislikes, allergies, dietary restrictions, and order history. `docs/rfc/customers.md` is the
+base product RFC for this area.
 
 When adding a customer, the owner should be asked whether to import from Contacts. Contacts import
 should prefill available contact details into an editable draft, but CloudBake-specific preferences
