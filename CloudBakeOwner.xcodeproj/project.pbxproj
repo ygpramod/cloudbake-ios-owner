@@ -44,6 +44,9 @@
 		410000000000000000000023 /* RecipeDraftParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002B /* RecipeDraftParser.swift */; };
 		410000000000000000000024 /* RecipeDraftParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002C /* RecipeDraftParserTests.swift */; };
 		410000000000000000000025 /* InventoryUnitDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002D /* InventoryUnitDisplay.swift */; };
+		410000000000000000000026 /* CustomerListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002E /* CustomerListView.swift */; };
+		410000000000000000000027 /* CustomerListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002F /* CustomerListViewModel.swift */; };
+		410000000000000000000028 /* CustomerListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000030 /* CustomerListViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -103,6 +106,9 @@
 		42000000000000000000002B /* RecipeDraftParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDraftParser.swift; sourceTree = "<group>"; };
 		42000000000000000000002C /* RecipeDraftParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDraftParserTests.swift; sourceTree = "<group>"; };
 		42000000000000000000002D /* InventoryUnitDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryUnitDisplay.swift; sourceTree = "<group>"; };
+		42000000000000000000002E /* CustomerListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerListView.swift; sourceTree = "<group>"; };
+		42000000000000000000002F /* CustomerListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerListViewModel.swift; sourceTree = "<group>"; };
+		420000000000000000000030 /* CustomerListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerListViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -168,6 +174,7 @@
 		450000000000000000000004 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				45000000000000000000001C /* Customers */,
 				450000000000000000000005 /* Dashboard */,
 				450000000000000000000015 /* Inventory */,
 				450000000000000000000006 /* Placeholder */,
@@ -209,6 +216,15 @@
 				420000000000000000000029 /* RecipeListViewModel.swift */,
 			);
 			path = Recipes;
+			sourceTree = "<group>";
+		};
+		45000000000000000000001C /* Customers */ = {
+			isa = PBXGroup;
+			children = (
+				42000000000000000000002E /* CustomerListView.swift */,
+				42000000000000000000002F /* CustomerListViewModel.swift */,
+			);
+			path = Customers;
 			sourceTree = "<group>";
 		};
 		450000000000000000000008 /* CloudBakeOwnerTests */ = {
@@ -279,6 +295,7 @@
 		450000000000000000000016 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				45000000000000000000001D /* Customers */,
 				450000000000000000000018 /* Dashboard */,
 				450000000000000000000017 /* Inventory */,
 				45000000000000000000001B /* Recipes */,
@@ -308,6 +325,14 @@
 				42000000000000000000002A /* RecipeListViewModelTests.swift */,
 			);
 			path = Recipes;
+			sourceTree = "<group>";
+		};
+		45000000000000000000001D /* Customers */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000030 /* CustomerListViewModelTests.swift */,
+			);
+			path = Customers;
 			sourceTree = "<group>";
 		};
 		450000000000000000000009 /* CloudBakeOwnerUITests */ = {
@@ -477,6 +502,8 @@
 				41000000000000000000000D /* CoreModels.swift in Sources */,
 				41000000000000000000000E /* CoreDataRepositories.swift in Sources */,
 				41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */,
+				410000000000000000000026 /* CustomerListView.swift in Sources */,
+				410000000000000000000027 /* CustomerListViewModel.swift in Sources */,
 				41000000000000000000000A /* HealthCheckRepository.swift in Sources */,
 				410000000000000000000012 /* InventoryListView.swift in Sources */,
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
@@ -498,6 +525,7 @@
 				410000000000000000000018 /* BakingCatalogTests.swift in Sources */,
 				410000000000000000000010 /* CoreModelsTests.swift in Sources */,
 				410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
+				410000000000000000000028 /* CustomerListViewModelTests.swift in Sources */,
 				41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */,
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
 				410000000000000000000016 /* DashboardViewModelTests.swift in Sources */,
