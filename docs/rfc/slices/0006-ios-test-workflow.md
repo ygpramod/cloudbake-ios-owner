@@ -27,6 +27,11 @@ CI runs two jobs:
 Both CI jobs are time-boxed. This keeps hosted-runner simulator hangs visible as CI failures instead
 of leaving pull requests permanently pending.
 
+CI prefers a known modern iPhone simulator when the runner provides one, then falls back to the
+first available iPhone. Failed CI test jobs upload their `.xcresult` bundle as a GitHub Actions
+artifact so the failing test, screenshot, and simulator logs can be inspected without guessing from
+the short pull request status.
+
 Local development should usually start with the unit/integration lane:
 
 ```sh
@@ -44,14 +49,16 @@ Implementation pull requests still require acceptance confidence through either 
 
 - The split must not weaken the definition of done for implementation slices.
 - The workflow must stay compatible with GitHub-hosted macOS runners.
-- Simulator selection should remain dynamic in CI to avoid pinning to a runner-specific device name.
+- Simulator selection should remain dynamic in CI while preferring known iPhone device names for consistency.
 - CI jobs should fail clearly when a simulator or UI automation run is stuck.
+- Failed CI test jobs should publish `.xcresult` artifacts for triage.
 
 ## Acceptance Criteria
 
 - CI exposes separate unit/integration and acceptance UI jobs.
 - Documentation explains fast and full test lanes.
 - The fast local lane can be run independently of the UI acceptance suite.
+- Failed CI test jobs preserve their Xcode result bundles as artifacts.
 
 ## Open Questions
 

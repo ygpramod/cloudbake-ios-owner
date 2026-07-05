@@ -21,17 +21,38 @@ jobs:
 
       - name: Run unit and integration tests
         run: |
-          SIMULATOR_NAME="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { gsub(/^ +| +$/, "", $1); print $1; exit }')"
+          select_simulator() {
+            for preferred_name in "iPhone 17 Pro" "iPhone 16 Pro" "iPhone 16" "iPhone 15 Pro" "iPhone 15"; do
+              if xcrun simctl list devices available | grep -q "$preferred_name ("; then
+                echo "$preferred_name"
+                return
+              fi
+            done
+
+            xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { gsub(/^ +| +$/, "", $1); print $1; exit }'
+          }
+
+          SIMULATOR_NAME="$(select_simulator)"
           if [ -z "$SIMULATOR_NAME" ]; then
             xcrun simctl list devices available
             exit 1
           fi
           echo "Using iOS simulator: $SIMULATOR_NAME"
 
+          mkdir -p TestResults
           xcodebuild test \
             -project CloudBakeOwner.xcodeproj \
             -scheme CloudBakeOwnerUnitIntegration \
-            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME"
+            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" \
+            -resultBundlePath TestResults/UnitIntegration.xcresult
+
+      - name: Upload unit and integration result bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-integration-xcresult
+          path: TestResults/UnitIntegration.xcresult
+          if-no-files-found: ignore
 
   acceptance-tests:
     name: Acceptance UI Tests
@@ -47,14 +68,35 @@ jobs:
 
       - name: Run acceptance UI tests
         run: |
-          SIMULATOR_NAME="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { gsub(/^ +| +$/, "", $1); print $1; exit }')"
+          select_simulator() {
+            for preferred_name in "iPhone 17 Pro" "iPhone 16 Pro" "iPhone 16" "iPhone 15 Pro" "iPhone 15"; do
+              if xcrun simctl list devices available | grep -q "$preferred_name ("; then
+                echo "$preferred_name"
+                return
+              fi
+            done
+
+            xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { gsub(/^ +| +$/, "", $1); print $1; exit }'
+          }
+
+          SIMULATOR_NAME="$(select_simulator)"
           if [ -z "$SIMULATOR_NAME" ]; then
             xcrun simctl list devices available
             exit 1
           fi
           echo "Using iOS simulator: $SIMULATOR_NAME"
 
+          mkdir -p TestResults
           xcodebuild test \
             -project CloudBakeOwner.xcodeproj \
             -scheme CloudBakeOwnerAcceptance \
-            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME"
+            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" \
+            -resultBundlePath TestResults/Acceptance.xcresult
+
+      - name: Upload acceptance result bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-xcresult
+          path: TestResults/Acceptance.xcresult
+          if-no-files-found: ignore

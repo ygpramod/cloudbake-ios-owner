@@ -56,6 +56,8 @@ when the owner-facing workflow changes.
 
 GitHub Actions time-boxes the unit/integration job and the acceptance UI job so stuck simulator
 automation fails clearly instead of blocking a pull request indefinitely.
+CI prefers known iPhone simulator names when available, falls back to the first available iPhone,
+and uploads the Xcode result bundle for failed test jobs.
 
 ## Main Branch Protection
 
