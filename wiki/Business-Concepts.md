@@ -120,8 +120,8 @@ to the catalog.
 
 A purchase bill draft is a proposed inventory item created from recognized purchase bill text.
 
-Drafts are not saved directly into inventory. They are meant to be reviewed by the owner so names,
-quantities, units, expiry dates, and duplicate matches can be corrected before stock changes.
+Drafts are reviewed by the owner before stock changes. The owner can select draft items and correct
+names, quantities, units, minimum quantities, and expiry dates before saving them into inventory.
 
 ## Purchase Bill OCR
 
