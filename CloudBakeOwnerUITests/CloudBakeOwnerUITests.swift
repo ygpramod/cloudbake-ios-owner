@@ -109,6 +109,47 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
     }
 
+    func testOrderCanLinkCustomerFromSearchableSelection() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        tapWhenReady(app.staticTexts["Customers"])
+        addCustomer(named: "Amy", phone: "5550101", in: app)
+        app.navigationBars.buttons["CloudBake"].tap()
+
+        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+
+        tapWhenReady(app.buttons["orders.form.customerRecord"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Customer Record"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.customerSelection.customer."))
+                .firstMatch,
+            timeout: transitionTimeout
+        )
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+
+        typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
+        typeText("Pink flowers", into: app.textFields["orders.form.cakeNotes"], timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
+                .firstMatch,
+            timeout: transitionTimeout
+        )
+
+        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.customerName"], in: app, timeout: transitionTimeout)
+        let allergyText = app.staticTexts["orders.detail.customerAllergies"]
+        assertExistsAfterScrolling(allergyText, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(allergyText.label.contains("Nuts"))
+    }
+
     func testOrderCalendarViewShowsOrders() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15

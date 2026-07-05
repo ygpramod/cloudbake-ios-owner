@@ -96,6 +96,39 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func selectDraftCustomer(id: String) {
+        draftCustomerId = id
+        applySelectedCustomer()
+    }
+
+    func clearDraftCustomerLink() {
+        draftCustomerId = ""
+    }
+
+    func draftCustomerRecordName() -> String {
+        guard !draftCustomerId.isEmpty,
+              let customer = customers.first(where: { $0.id == draftCustomerId }) else {
+            return "No Linked Customer"
+        }
+
+        return customer.name
+    }
+
+    func customers(matching searchText: String) -> [Customer] {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return customers
+        }
+
+        let query = normalizedSearchText(trimmed)
+        return customers.filter { customer in
+            [customer.name, customer.phone, customer.email, customer.address]
+                .compactMap { $0 }
+                .map(normalizedSearchText)
+                .contains { $0.contains(query) }
+        }
+    }
+
     func addOrder() -> Bool {
         guard let draft = validatedDraft() else {
             return false
@@ -249,5 +282,11 @@ final class OrderListViewModel: ObservableObject {
     private func optionalText(_ value: String) -> String? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func normalizedSearchText(_ text: String) -> String {
+        text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
     }
 }
