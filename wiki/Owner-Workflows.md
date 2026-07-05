@@ -243,6 +243,10 @@ and allergy details for owner review. Customer detail also shows linked orders i
 the owner can review a customer's cake history from the customer record. Order add/edit uses a
 searchable customer selection flow so saved customers remain usable as the list grows.
 
+On iPad, Customers uses a list/detail layout: the customer list stays visible while selected
+customer contact details, preferences, important dates, and linked order history appear in the
+detail column. On iPhone, customer detail continues to open as a focused sheet.
+
 ## Future Pricing Workflow
 
 Future pricing should help calculate a suggested price, but the final input must remain owner

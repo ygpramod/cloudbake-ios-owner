@@ -159,6 +159,8 @@ Customer order history in customer detail is implemented in
 `docs/rfc/slices/0041-customer-order-history.md`.
 Searchable customer record selection from the order form is implemented in
 `docs/rfc/slices/0042-order-customer-search-selection.md`.
+Regular-width iPad customer list/detail layout is implemented in
+`docs/rfc/slices/0043-ipad-customer-layout.md`.
 
 ## Owner Experience
 
@@ -217,7 +219,7 @@ The first implementation slice should create the minimum useful customer foundat
 
 Contacts import is implemented as an editable draft flow. Customer selection for orders should be
 done through the searchable selection flow. Customer detail now shows linked order history once
-orders reference a customer record.
+orders reference a customer record. iPad customer navigation now uses a regular-width split layout.
 
 ## Open Questions
 
