@@ -10,6 +10,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
     @Published private(set) var customers: [Customer] = []
     @Published private(set) var selectedOrder: Order?
+    @Published private(set) var selectedOrderCustomer: Customer?
     @Published private(set) var editingOrder: Order?
     @Published var draftTitle = ""
     @Published var draftCustomerName = ""
@@ -72,10 +73,12 @@ final class OrderListViewModel: ObservableObject {
     func beginViewingOrder(_ order: Order) {
         selectedOrder = order
         errorMessage = nil
+        loadSelectedOrderCustomer(for: order)
     }
 
     func closeOrderDetail() {
         selectedOrder = nil
+        selectedOrderCustomer = nil
         editingOrder = nil
         errorMessage = nil
     }
@@ -179,6 +182,7 @@ final class OrderListViewModel: ObservableObject {
             self.editingOrder = nil
             resetDraft()
             load()
+            loadSelectedOrderCustomer(for: order)
             return true
         } catch {
             errorMessage = "Order could not be saved."
@@ -198,6 +202,20 @@ final class OrderListViewModel: ObservableObject {
         } catch {
             customers = []
             errorMessage = "Customers could not be loaded."
+        }
+    }
+
+    private func loadSelectedOrderCustomer(for order: Order) {
+        guard let customerId = order.customerId else {
+            selectedOrderCustomer = nil
+            return
+        }
+
+        do {
+            selectedOrderCustomer = try repository.fetchCustomer(id: customerId)
+        } catch {
+            selectedOrderCustomer = nil
+            errorMessage = "Customer details could not be loaded."
         }
     }
 

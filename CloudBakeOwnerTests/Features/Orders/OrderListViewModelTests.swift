@@ -120,16 +120,50 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftDeliveryAddress, "10 Cake Street")
     }
 
-    func testBeginViewingOrderSelectsOrder() {
+    func testBeginViewingOrderSelectsOrderAndLinkedCustomer() {
         let repository = FakeOrderRepository()
-        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let order = makeOrder(
+            id: "order-vanilla",
+            customerId: "customer-amy",
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        let customer = makeCustomer(
+            id: "customer-amy",
+            name: "Amy",
+            likes: "Vanilla",
+            dislikes: "Coffee",
+            allergies: "Nuts",
+            dietaryRestrictions: "Eggless",
+            notes: "Prefers pale colors"
+        )
+        repository.customers = [customer]
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.beginViewingOrder(order)
 
         XCTAssertEqual(viewModel.selectedOrder, order)
+        XCTAssertEqual(viewModel.selectedOrderCustomer, customer)
         viewModel.closeOrderDetail()
         XCTAssertNil(viewModel.selectedOrder)
+        XCTAssertNil(viewModel.selectedOrderCustomer)
+    }
+
+    func testBeginViewingUnlinkedOrderClearsLinkedCustomer() {
+        let repository = FakeOrderRepository()
+        let linkedOrder = makeOrder(
+            id: "order-vanilla",
+            customerId: "customer-amy",
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        let unlinkedOrder = makeOrder(id: "order-chocolate", dueAt: Date(timeIntervalSince1970: 1_800_150_000))
+        repository.customers = [makeCustomer(id: "customer-amy", name: "Amy", allergies: "Nuts")]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(linkedOrder)
+        viewModel.beginViewingOrder(unlinkedOrder)
+
+        XCTAssertEqual(viewModel.selectedOrder, unlinkedOrder)
+        XCTAssertNil(viewModel.selectedOrderCustomer)
     }
 
     func testBeginEditingOrderPrefillsDraft() {
@@ -207,11 +241,37 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    private func makeOrder(id: String, title: String = "Vanilla Birthday", dueAt: Date) -> Order {
+    func testSaveEditedOrderRefreshesLinkedCustomerDetails() {
+        let repository = FakeOrderRepository()
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let original = makeOrder(id: "order-vanilla", dueAt: dueAt)
+        let customer = makeCustomer(id: "customer-zoe", name: "Zoe", allergies: "Sesame")
+        repository.orders = [original]
+        repository.customers = [customer]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(original)
+        viewModel.beginEditingOrder()
+        viewModel.draftCustomerId = "customer-zoe"
+        viewModel.applySelectedCustomer()
+
+        XCTAssertTrue(viewModel.saveEditedOrder())
+
+        XCTAssertEqual(viewModel.selectedOrder?.customerId, "customer-zoe")
+        XCTAssertEqual(viewModel.selectedOrder?.customerName, "Zoe")
+        XCTAssertEqual(viewModel.selectedOrderCustomer, customer)
+    }
+
+    private func makeOrder(
+        id: String,
+        title: String = "Vanilla Birthday",
+        customerId: String? = nil,
+        dueAt: Date
+    ) -> Order {
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
         return Order(
             id: id,
-            customerId: nil,
+            customerId: customerId,
             cakeDesignId: nil,
             title: title,
             customerName: "Amy",
@@ -231,7 +291,16 @@ final class OrderListViewModelTests: XCTestCase {
         return calendar
     }
 
-    private func makeCustomer(id: String, name: String, address: String? = nil) -> Customer {
+    private func makeCustomer(
+        id: String,
+        name: String,
+        address: String? = nil,
+        likes: String? = nil,
+        dislikes: String? = nil,
+        allergies: String? = nil,
+        dietaryRestrictions: String? = nil,
+        notes: String? = nil
+    ) -> Customer {
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
         return Customer(
             id: id,
@@ -239,11 +308,11 @@ final class OrderListViewModelTests: XCTestCase {
             phone: "5550101",
             email: nil,
             address: address,
-            likes: nil,
-            dislikes: nil,
-            allergies: nil,
-            dietaryRestrictions: nil,
-            notes: nil,
+            likes: likes,
+            dislikes: dislikes,
+            allergies: allergies,
+            dietaryRestrictions: dietaryRestrictions,
+            notes: notes,
             createdAt: timestamp,
             updatedAt: timestamp
         )
