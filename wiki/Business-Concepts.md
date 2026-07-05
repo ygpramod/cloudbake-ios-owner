@@ -99,8 +99,8 @@ Restoring moves an archived inventory item back to the active inventory list.
 
 A recipe describes the ingredients and steps needed to make a cake or component.
 
-Future recipe work should support converting recipe details from the owner's existing recipe book
-into app data.
+The current app can store recipe names and owner notes. Future recipe work should add components,
+ingredients, method details, and conversion from the owner's existing recipe book into app data.
 
 Important units include kg, liters, ml, grams, teaspoons, tablespoons, and cups.
 
