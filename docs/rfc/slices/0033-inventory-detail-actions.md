@@ -15,12 +15,13 @@ Accepted
 
 ## Goal
 
-Make common stock actions visible from the inventory item detail screen.
+Make common stock actions easy to reach from the inventory item detail screen without cluttering
+the top toolbar.
 
 ## Scope
 
 - Replace the text Edit action in inventory detail with a pencil icon action.
-- Add visible inventory detail toolbar actions for:
+- Add an inventory detail more menu for:
   - history,
   - use stock,
   - adjust stock.
@@ -36,7 +37,8 @@ Make common stock actions visible from the inventory item detail screen.
 
 ## Requirements
 
-- Inventory detail must expose edit, history, use, and adjust actions from the top toolbar.
+- Inventory detail must expose edit directly from the top toolbar.
+- Inventory detail must expose history, use, and adjust actions from a top toolbar more menu.
 - Edit must continue to open item edit mode.
 - History must open stock history for the selected item.
 - Use must open stock consumption for the selected item.
@@ -46,15 +48,15 @@ Make common stock actions visible from the inventory item detail screen.
 ## Design
 
 `InventoryItemDetailView` owns local presentation state for the action sheets it can open from
-detail. The toolbar uses icon-backed `Label` buttons for:
+detail. The toolbar keeps edit as a direct pencil action and groups secondary stock actions under
+a more menu:
 
 - `pencil`,
-- `clock`,
-- `minus`,
-- `plusminus`.
+- `ellipsis.circle`.
 
-This keeps the inventory list dense and stable while making item-specific actions visible after the
-owner taps into the item.
+Inside the menu, the owner can choose Adjust Stock, Use Stock, or View History. This keeps the
+inventory list dense and stable, keeps the detail toolbar calm, and still makes item-specific
+actions discoverable after the owner taps into the item.
 
 ## Tests
 
@@ -62,10 +64,10 @@ Acceptance coverage:
 
 - owner creates inventory,
 - opens inventory item detail,
-- sees edit, history, use, and adjust actions,
-- adjust opens Adjust Stock,
-- use opens Use Stock,
-- history opens Stock History.
+- sees edit and more actions,
+- opens Adjust Stock from the more menu,
+- opens Use Stock from the more menu,
+- opens Stock History from the more menu.
 
 ## Documentation
 

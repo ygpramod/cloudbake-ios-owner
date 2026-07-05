@@ -29,7 +29,7 @@ The app currently supports:
 21. stock batch deletion from inventory detail,
 22. oldest-expiry-first stock consumption,
 23. compatible unit conversion for stock adjustment and stock usage,
-24. visible inventory detail actions for edit, history, use, and adjust,
+24. inventory detail pencil edit and more-menu actions for history, use, and adjust,
 25. bundled baking catalog config for future purchase bill filtering,
 26. purchase bill text parsing into draft inventory candidates,
 27. local Apple Vision OCR service for purchase bill text recognition,
