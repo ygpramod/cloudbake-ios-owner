@@ -464,6 +464,9 @@ private struct InventoryItemDetailView: View {
     @Binding var isPresented: Bool
     @State private var isEditingItem = false
     @State private var isEditingBatch = false
+    @State private var isAdjustingStock = false
+    @State private var isConsumingStock = false
+    @State private var isShowingHistory = false
 
     var body: some View {
         List {
@@ -542,13 +545,39 @@ private struct InventoryItemDetailView: View {
                 .accessibilityIdentifier("inventory.detail.done")
             }
 
-            ToolbarItem(placement: .confirmationAction) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
                 if let item = viewModel.selectedItem {
-                    Button("Edit") {
+                    Button {
                         viewModel.beginEditing(item)
                         isEditingItem = true
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
                     }
                     .accessibilityIdentifier("inventory.detail.edit")
+
+                    Button {
+                        viewModel.beginViewingHistory(item)
+                        isShowingHistory = true
+                    } label: {
+                        Label("History", systemImage: "clock")
+                    }
+                    .accessibilityIdentifier("inventory.detail.history")
+
+                    Button {
+                        viewModel.beginConsuming(item)
+                        isConsumingStock = true
+                    } label: {
+                        Label("Use", systemImage: "minus")
+                    }
+                    .accessibilityIdentifier("inventory.detail.consume")
+
+                    Button {
+                        viewModel.beginAdjusting(item)
+                        isAdjustingStock = true
+                    } label: {
+                        Label("Adjust", systemImage: "plusminus")
+                    }
+                    .accessibilityIdentifier("inventory.detail.adjust")
                 }
             }
         }
@@ -563,6 +592,30 @@ private struct InventoryItemDetailView: View {
                     showsExpiryDate: false,
                     onCancel: viewModel.cancelEditing,
                     onSave: viewModel.saveEditedItem
+                )
+            }
+        }
+        .sheet(isPresented: $isAdjustingStock) {
+            NavigationStack {
+                InventoryStockAdjustmentForm(
+                    viewModel: viewModel,
+                    isPresented: $isAdjustingStock
+                )
+            }
+        }
+        .sheet(isPresented: $isConsumingStock) {
+            NavigationStack {
+                InventoryStockConsumptionForm(
+                    viewModel: viewModel,
+                    isPresented: $isConsumingStock
+                )
+            }
+        }
+        .sheet(isPresented: $isShowingHistory) {
+            NavigationStack {
+                InventoryHistoryView(
+                    viewModel: viewModel,
+                    isPresented: $isShowingHistory
                 )
             }
         }
