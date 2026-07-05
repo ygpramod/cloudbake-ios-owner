@@ -210,7 +210,8 @@ private struct PurchaseBillImportView: View {
             }
 
             Section("Bill Text") {
-                TextField("Bill Text", text: $viewModel.purchaseBillRecognizedText)
+                TextField("Bill Text", text: $viewModel.purchaseBillRecognizedText, axis: .vertical)
+                    .lineLimit(4...8)
                     .accessibilityIdentifier("inventory.purchaseBill.text")
 
                 Button {
