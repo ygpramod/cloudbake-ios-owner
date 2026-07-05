@@ -159,7 +159,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Import Bill"].waitForExistence(timeout: 5))
 
         XCTAssertTrue(app.buttons["inventory.purchaseBill.camera"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.textFields["inventory.purchaseBill.text"].waitForExistence(timeout: 5))
+        let billText = app.textFields["inventory.purchaseBill.text"]
+        XCTAssertTrue(billText.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["inventory.purchaseBill.createDrafts"].waitForExistence(timeout: 5))
     }
 

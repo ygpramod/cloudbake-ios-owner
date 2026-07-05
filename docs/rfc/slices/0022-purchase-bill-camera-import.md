@@ -60,7 +60,7 @@ captured, the view passes the `CGImage` to `InventoryListViewModel`.
 state transition. It runs `PurchaseBillTextRecognizing`, stores recognized text, creates drafts, and
 clears stale drafts if OCR fails.
 
-The implementation keeps the text editor in the import sheet so the owner can correct OCR text or
+The implementation keeps a multiline text entry area in the import sheet so the owner can correct OCR text or
 enter bill text manually when camera OCR is not suitable.
 
 ## Test Plan
