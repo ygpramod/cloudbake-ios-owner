@@ -119,8 +119,13 @@ local Vision OCR. The recognized text is parsed into draft inventory rows.
 The owner can review draft items before saving. Draft review supports selecting which items to save,
 editing recognized text, names, quantities, units, minimum quantities, and expiry dates.
 
-Saving selected drafts creates normal inventory items and initial stock batches. Manual recognized
-text entry remains available as a fallback when a bill photo cannot be read clearly.
+When a draft matches an existing active inventory item, CloudBake adds the draft quantity to that
+existing item and creates a new stock batch with the draft expiry date. Compatible units are
+converted first, such as `1 kg` on the bill becoming `1000 g` for an item stored in grams.
+
+Drafts that do not match existing inventory create normal inventory items and initial stock batches.
+Manual recognized text entry remains available as a fallback when a bill photo cannot be read
+clearly.
 
 ## Stock Adjustment
 
@@ -175,12 +180,11 @@ Inventory does not yet support:
 
 1. recipe-driven automatic reduction,
 2. ingredient-density conversion between weight and volume,
-3. duplicate matching during purchase bill draft save,
-4. in-app baking catalog editing,
-5. inventory delete,
-6. supplier tracking,
-7. purchase planning,
-8. editing stock batch quantities directly,
-9. deleting stock batches,
-10. editing unit, current quantity, or expiry from item edit mode,
-11. expiry reminder notifications.
+3. in-app baking catalog editing,
+4. inventory delete,
+5. supplier tracking,
+6. purchase planning,
+7. editing stock batch quantities directly,
+8. deleting stock batches,
+9. editing unit, current quantity, or expiry from item edit mode,
+10. expiry reminder notifications.
