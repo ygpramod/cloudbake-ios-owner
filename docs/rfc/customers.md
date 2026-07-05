@@ -161,7 +161,8 @@ Customers should eventually include these screens:
 - Customer order history.
 - Customer selection from add order.
 
-The first slice should establish list, add, detail, edit, and local persistence foundations.
+The first slice should establish list, add, detail, and local persistence foundations. Customer edit
+is the next slice.
 
 ## Privacy And Safety
 
@@ -194,7 +195,6 @@ The first implementation slice should create the minimum useful customer foundat
 - list customers,
 - add a customer manually,
 - view customer detail,
-- edit customer details,
 - persist customer data locally,
 - capture name,
 - capture phone,
