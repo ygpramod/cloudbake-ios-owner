@@ -174,6 +174,109 @@ final class CustomerListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedCustomer, customer)
         XCTAssertEqual(viewModel.selectedCustomerImportantDates, [importantDate])
     }
+
+    func testSaveEditedCustomerPersistsFieldsAndPreservesCreatedAt() {
+        let repository = FakeCustomerRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_060_000)
+        let updatedAt = Date(timeIntervalSince1970: 1_800_061_000)
+        let customer = Customer(
+            id: "customer-amy",
+            name: "Amy",
+            phone: "5550101",
+            email: nil,
+            address: nil,
+            likes: nil,
+            dislikes: nil,
+            allergies: "Nuts",
+            dietaryRestrictions: nil,
+            notes: nil,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.customers = [customer]
+        let viewModel = CustomerListViewModel(
+            repository: repository,
+            dateProvider: { updatedAt }
+        )
+        viewModel.load()
+        viewModel.beginViewingCustomer(customer)
+        viewModel.beginEditingCustomer()
+        viewModel.draftName = " Amy B "
+        viewModel.draftPhone = " 5550102 "
+        viewModel.draftEmail = " amy@example.com "
+        viewModel.draftAddress = " 10 Cake Street "
+        viewModel.draftLikes = " Vanilla "
+        viewModel.draftAllergies = " "
+        viewModel.draftNotes = " Less sweet "
+
+        XCTAssertTrue(viewModel.saveEditedCustomer())
+
+        let edited = Customer(
+            id: customer.id,
+            name: "Amy B",
+            phone: "5550102",
+            email: "amy@example.com",
+            address: "10 Cake Street",
+            likes: "Vanilla",
+            dislikes: nil,
+            allergies: nil,
+            dietaryRestrictions: nil,
+            notes: "Less sweet",
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+        XCTAssertEqual(repository.customers, [edited])
+        XCTAssertEqual(viewModel.selectedCustomer, edited)
+        XCTAssertEqual(viewModel.customers, [edited])
+        XCTAssertNil(viewModel.editingCustomer)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testSaveEditedCustomerWarnsBeforeUsingAnotherCustomersPhone() {
+        let repository = FakeCustomerRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let amy = Customer(
+            id: "customer-amy",
+            name: "Amy",
+            phone: "5550101",
+            email: nil,
+            address: nil,
+            likes: nil,
+            dislikes: nil,
+            allergies: nil,
+            dietaryRestrictions: nil,
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let zoe = Customer(
+            id: "customer-zoe",
+            name: "Zoe",
+            phone: "5550102",
+            email: nil,
+            address: nil,
+            likes: nil,
+            dislikes: nil,
+            allergies: nil,
+            dietaryRestrictions: nil,
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.customers = [amy, zoe]
+        let viewModel = CustomerListViewModel(repository: repository)
+        viewModel.load()
+        viewModel.beginViewingCustomer(amy)
+        viewModel.beginEditingCustomer()
+        viewModel.draftPhone = "5550102"
+
+        XCTAssertFalse(viewModel.saveEditedCustomer())
+        XCTAssertEqual(
+            viewModel.duplicateWarningMessage,
+            "Possible duplicate: Zoe already exists. Tap Save again to add a separate customer."
+        )
+        XCTAssertEqual(repository.customers, [amy, zoe])
+    }
 }
 
 private final class FakeCustomerRepository: CustomerRepository, CustomerImportantDateRepository {

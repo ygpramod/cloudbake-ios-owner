@@ -5,6 +5,7 @@ final class CustomerListViewModel: ObservableObject {
     @Published private(set) var customers: [Customer] = []
     @Published private(set) var selectedCustomer: Customer?
     @Published private(set) var selectedCustomerImportantDates: [CustomerImportantDate] = []
+    @Published private(set) var editingCustomer: Customer?
     @Published var draftName = ""
     @Published var draftPhone = ""
     @Published var draftEmail = ""
@@ -69,7 +70,7 @@ final class CustomerListViewModel: ObservableObject {
             return false
         }
 
-        if shouldWarnAboutDuplicate(name: name, phone: phone) {
+        if shouldWarnAboutDuplicate(name: name, phone: phone, excludingCustomerId: nil) {
             return false
         }
 
@@ -119,6 +120,86 @@ final class CustomerListViewModel: ObservableObject {
         duplicateWarningMessage = nil
     }
 
+    func beginEditingCustomer() {
+        guard let selectedCustomer else {
+            errorMessage = "Customer could not be found."
+            return
+        }
+
+        editingCustomer = selectedCustomer
+        draftName = selectedCustomer.name
+        draftPhone = selectedCustomer.phone
+        draftEmail = selectedCustomer.email ?? ""
+        draftAddress = selectedCustomer.address ?? ""
+        draftLikes = selectedCustomer.likes ?? ""
+        draftDislikes = selectedCustomer.dislikes ?? ""
+        draftAllergies = selectedCustomer.allergies ?? ""
+        draftDietaryRestrictions = selectedCustomer.dietaryRestrictions ?? ""
+        draftNotes = selectedCustomer.notes ?? ""
+        draftImportantDateLabel = ""
+        draftImportantDate = dateProvider()
+        errorMessage = nil
+        duplicateWarningMessage = nil
+        acknowledgedDuplicateKey = nil
+    }
+
+    func saveEditedCustomer() -> Bool {
+        guard let editingCustomer else {
+            errorMessage = "Customer could not be found."
+            duplicateWarningMessage = nil
+            return false
+        }
+
+        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else {
+            errorMessage = "Customer name is required."
+            duplicateWarningMessage = nil
+            return false
+        }
+
+        let phone = draftPhone.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !phone.isEmpty else {
+            errorMessage = "Customer phone is required."
+            duplicateWarningMessage = nil
+            return false
+        }
+
+        if shouldWarnAboutDuplicate(name: name, phone: phone, excludingCustomerId: editingCustomer.id) {
+            return false
+        }
+
+        let customer = Customer(
+            id: editingCustomer.id,
+            name: name,
+            phone: phone,
+            email: optionalText(draftEmail),
+            address: optionalText(draftAddress),
+            likes: optionalText(draftLikes),
+            dislikes: optionalText(draftDislikes),
+            allergies: optionalText(draftAllergies),
+            dietaryRestrictions: optionalText(draftDietaryRestrictions),
+            notes: optionalText(draftNotes),
+            createdAt: editingCustomer.createdAt,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.save(customer)
+            selectedCustomer = customer
+            resetDraft()
+            load()
+            loadSelectedCustomerImportantDates()
+            return true
+        } catch {
+            errorMessage = "Customer could not be saved."
+            return false
+        }
+    }
+
+    func cancelEditingCustomer() {
+        resetDraft()
+    }
+
     private func loadSelectedCustomerImportantDates() {
         guard let selectedCustomer else {
             selectedCustomerImportantDates = []
@@ -134,9 +215,17 @@ final class CustomerListViewModel: ObservableObject {
         }
     }
 
-    private func shouldWarnAboutDuplicate(name: String, phone: String) -> Bool {
+    private func shouldWarnAboutDuplicate(
+        name: String,
+        phone: String,
+        excludingCustomerId: String?
+    ) -> Bool {
         let duplicate = customers.first { customer in
-            normalizedPhone(customer.phone) == normalizedPhone(phone)
+            guard customer.id != excludingCustomerId else {
+                return false
+            }
+
+            return normalizedPhone(customer.phone) == normalizedPhone(phone)
                 || normalizedText(customer.name) == normalizedText(name)
                 || normalizedText(customer.name).contains(normalizedText(name))
                 || normalizedText(name).contains(normalizedText(customer.name))
@@ -172,6 +261,7 @@ final class CustomerListViewModel: ObservableObject {
         draftNotes = ""
         draftImportantDateLabel = ""
         draftImportantDate = dateProvider()
+        editingCustomer = nil
         errorMessage = nil
         duplicateWarningMessage = nil
         acknowledgedDuplicateKey = nil
