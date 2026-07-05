@@ -476,7 +476,12 @@ final class InventoryListViewModel: ObservableObject {
         }
 
         purchaseBillDrafts = drafts.map { draft in
-            PurchaseBillInventoryDraft(
+            let matchedItem = matchingInventoryItem(
+                for: draft.name,
+                nameKey: duplicateKey(for: draft.name),
+                excludingItemId: nil
+            )
+            return PurchaseBillInventoryDraft(
                 id: idGenerator(),
                 sourceLine: draft.sourceLine,
                 name: draft.name,
@@ -484,7 +489,9 @@ final class InventoryListViewModel: ObservableObject {
                 unit: draft.unit ?? .gram,
                 minimumQuantityText: "0",
                 expiryDate: defaultExpiryDate(),
-                isSelected: true
+                isSelected: true,
+                matchedInventoryItemId: matchedItem?.id,
+                matchedInventoryItemName: matchedItem?.name
             )
         }
         errorMessage = nil
@@ -522,6 +529,7 @@ final class InventoryListViewModel: ObservableObject {
         let now = dateProvider()
         var itemsToSave: [InventoryItem] = []
         var batchesToSave: [InventoryStockBatch] = []
+        var plannedExistingItems: [String: InventoryItem] = [:]
 
         for draft in selectedDrafts {
             let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -538,6 +546,45 @@ final class InventoryListViewModel: ObservableObject {
             guard let minimumQuantity = parsedQuantity(from: draft.minimumQuantityText), minimumQuantity >= 0 else {
                 errorMessage = "Draft minimum quantity must be zero or greater."
                 return false
+            }
+
+            if let existingItem = matchingInventoryItem(
+                for: name,
+                nameKey: duplicateKey(for: name),
+                excludingItemId: nil
+            ) {
+                let itemToUpdate = plannedExistingItems[existingItem.id] ?? existingItem
+                guard let itemQuantity = draft.unit.convertedQuantity(currentQuantity, to: existingItem.unit) else {
+                    errorMessage = "Draft unit must be compatible with \(existingItem.name)."
+                    return false
+                }
+
+                plannedExistingItems[existingItem.id] = InventoryItem(
+                    id: itemToUpdate.id,
+                    name: itemToUpdate.name,
+                    unit: itemToUpdate.unit,
+                    currentQuantity: itemToUpdate.currentQuantity + itemQuantity,
+                    minimumQuantity: itemToUpdate.minimumQuantity,
+                    earliestExpiryAt: itemToUpdate.earliestExpiryAt,
+                    hasExpiredStock: itemToUpdate.hasExpiredStock,
+                    hasExpiringSoonStock: itemToUpdate.hasExpiringSoonStock,
+                    createdAt: itemToUpdate.createdAt,
+                    updatedAt: now
+                )
+
+                if itemQuantity > 0 {
+                    batchesToSave.append(
+                        InventoryStockBatch(
+                            id: idGenerator(),
+                            inventoryItemId: existingItem.id,
+                            remainingQuantity: itemQuantity,
+                            expiresAt: draft.expiryDate,
+                            createdAt: now,
+                            updatedAt: now
+                        )
+                    )
+                }
+                continue
             }
 
             let itemId = idGenerator()
@@ -568,6 +615,7 @@ final class InventoryListViewModel: ObservableObject {
         }
 
         do {
+            itemsToSave.append(contentsOf: plannedExistingItems.values)
             for item in itemsToSave {
                 try repository.save(item)
             }
@@ -796,4 +844,6 @@ struct PurchaseBillInventoryDraft: Identifiable, Equatable {
     var minimumQuantityText: String
     var expiryDate: Date
     var isSelected: Bool
+    var matchedInventoryItemId: String? = nil
+    var matchedInventoryItemName: String? = nil
 }
