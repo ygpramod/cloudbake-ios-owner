@@ -10,7 +10,9 @@ final class AppDatabase {
 
     static func openConfigured() throws -> AppDatabase {
         if ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1" {
-            return try makeInMemory()
+            let database = try makeInMemory()
+            try database.seedCustomerFixtureIfRequested()
+            return database
         }
 
         return try openDefault()
@@ -46,6 +48,40 @@ final class AppDatabase {
 
     func makeCoreDataRepository() -> GRDBCoreDataRepository {
         GRDBCoreDataRepository(writer: writer)
+    }
+
+    private func seedCustomerFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let customer = Customer(
+            id: "customer-ui-fixture-amy",
+            name: "Amy",
+            phone: "5550101",
+            email: "amy@example.com",
+            address: "10 Cake Street",
+            likes: nil,
+            dislikes: nil,
+            allergies: "Nuts",
+            dietaryRestrictions: nil,
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(customer)
+        try repository.save(
+            CustomerImportantDate(
+                id: "customer-ui-fixture-birthday",
+                customerId: customer.id,
+                label: "Birthday",
+                date: Date(timeIntervalSince1970: 1_801_000_000),
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
     }
 
     private static func configuration() -> Configuration {

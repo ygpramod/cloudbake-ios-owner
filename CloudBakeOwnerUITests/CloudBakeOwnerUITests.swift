@@ -473,6 +473,33 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Nuts"].waitForExistence(timeout: 5))
     }
 
+    func testCustomerDetailUsesSplitViewOnIPad() throws {
+        let app = makeApp()
+        app.launchEnvironment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] = "1"
+        app.launch()
+
+        guard app.windows.firstMatch.waitForExistence(timeout: 5),
+              app.windows.firstMatch.frame.width >= 700 else {
+            throw XCTSkip("Customer split view is only expected on regular-width iPad layouts.")
+        }
+
+        app.staticTexts["Customers"].tap()
+        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Select a customer"].waitForExistence(timeout: 5))
+
+        XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: 5))
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "customers.item."))
+            .firstMatch
+            .tap()
+
+        XCTAssertTrue(app.navigationBars["Amy"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["customers.detail.done"].exists)
+        XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Phone"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Birthday"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Nuts"].waitForExistence(timeout: 5))
+    }
+
     func testCustomerAddOffersContactsImportAndManualEntry() throws {
         let app = makeApp()
         app.launch()

@@ -4,6 +4,7 @@ import SwiftUI
 
 struct CustomerListView: View {
     @StateObject private var viewModel: CustomerListViewModel
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isAddingCustomer = false
     @State private var isViewingCustomer = false
     @State private var isChoosingAddMode = false
@@ -14,58 +15,36 @@ struct CustomerListView: View {
     }
 
     var body: some View {
-        List {
-            if viewModel.customers.isEmpty {
-                ContentUnavailableView(
-                    "No customers yet",
-                    systemImage: "person.2",
-                    description: Text("Add customers before linking preferences and allergy notes to orders.")
-                )
-            } else {
-                Section("Customers") {
-                    ForEach(viewModel.customers, id: \.id) { customer in
-                        Button {
-                            viewModel.beginViewingCustomer(customer)
-                            isViewingCustomer = true
-                        } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(customer.name)
-                                    .font(.headline)
-                                Text(customer.phone)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                if let allergies = customer.allergies {
-                                    Label(allergies, systemImage: "exclamationmark.triangle")
-                                        .font(.footnote)
-                                        .foregroundStyle(.orange)
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+        Group {
+            if horizontalSizeClass == .regular {
+                NavigationSplitView {
+                    customerList
+                        .navigationTitle("Customers")
+                        .toolbar {
+                            addCustomerToolbarItem
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("customers.item.\(customer.id)")
+                } detail: {
+                    if viewModel.selectedCustomer == nil {
+                        ContentUnavailableView(
+                            "Select a customer",
+                            systemImage: "person.crop.circle",
+                            description: Text("Choose a customer to view contact details, preferences, and order history.")
+                        )
+                        .accessibilityIdentifier("customers.detail.empty")
+                    } else {
+                        CustomerDetailView(
+                            viewModel: viewModel,
+                            isPresented: .constant(true),
+                            showsDoneButton: false
+                        )
                     }
                 }
-            }
-
-            if let errorMessage = viewModel.errorMessage {
-                Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .accessibilityIdentifier("customers.error")
-                }
-            }
-        }
-        .navigationTitle("Customers")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isChoosingAddMode = true
-                } label: {
-                    Label("Add Customer", systemImage: "plus")
-                }
-                .accessibilityIdentifier("customers.add")
+            } else {
+                customerList
+                    .navigationTitle("Customers")
+                    .toolbar {
+                        addCustomerToolbarItem
+                    }
             }
         }
         .confirmationDialog("Add Customer", isPresented: $isChoosingAddMode) {
@@ -111,6 +90,69 @@ struct CustomerListView: View {
         }
         .accessibilityIdentifier(AppDestination.customers.screenAccessibilityIdentifier)
     }
+
+    private var customerList: some View {
+        List {
+            if viewModel.customers.isEmpty {
+                ContentUnavailableView(
+                    "No customers yet",
+                    systemImage: "person.2",
+                    description: Text("Add customers before linking preferences and allergy notes to orders.")
+                )
+            } else {
+                Section("Customers") {
+                    ForEach(viewModel.customers, id: \.id) { customer in
+                        Button {
+                            openCustomer(customer)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(customer.name)
+                                    .font(.headline)
+                                Text(customer.phone)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                if let allergies = customer.allergies {
+                                    Label(allergies, systemImage: "exclamationmark.triangle")
+                                        .font(.footnote)
+                                        .foregroundStyle(.orange)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("customers.item.\(customer.id)")
+                    }
+                }
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("customers.error")
+                }
+            }
+        }
+    }
+
+    private var addCustomerToolbarItem: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                isChoosingAddMode = true
+            } label: {
+                Label("Add Customer", systemImage: "plus")
+            }
+            .accessibilityIdentifier("customers.add")
+        }
+    }
+
+    private func openCustomer(_ customer: Customer) {
+        viewModel.beginViewingCustomer(customer)
+        if horizontalSizeClass != .regular {
+            isViewingCustomer = true
+        }
+    }
 }
 
 private struct CustomerContactPicker: UIViewControllerRepresentable {
@@ -153,7 +195,18 @@ private struct CustomerContactPicker: UIViewControllerRepresentable {
 private struct CustomerDetailView: View {
     @ObservedObject var viewModel: CustomerListViewModel
     @Binding var isPresented: Bool
+    let showsDoneButton: Bool
     @State private var isEditingCustomer = false
+
+    init(
+        viewModel: CustomerListViewModel,
+        isPresented: Binding<Bool>,
+        showsDoneButton: Bool = true
+    ) {
+        self.viewModel = viewModel
+        _isPresented = isPresented
+        self.showsDoneButton = showsDoneButton
+    }
 
     var body: some View {
         List {
@@ -241,11 +294,13 @@ private struct CustomerDetailView: View {
                 .accessibilityIdentifier("customers.detail.edit")
             }
 
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    isPresented = false
+            if showsDoneButton {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        isPresented = false
+                    }
+                    .accessibilityIdentifier("customers.detail.done")
                 }
-                .accessibilityIdentifier("customers.detail.done")
             }
         }
         .sheet(isPresented: $isEditingCustomer, onDismiss: viewModel.cancelEditingCustomer) {
