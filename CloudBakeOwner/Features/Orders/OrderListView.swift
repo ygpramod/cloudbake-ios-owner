@@ -318,6 +318,7 @@ private struct OrderForm: View {
     let statusOptions: [OrderStatus]
     let onCancel: () -> Void
     let onSave: () -> Bool
+    @State private var isSelectingCustomer = false
 
     init(
         title: String = "Add Order",
@@ -348,16 +349,17 @@ private struct OrderForm: View {
 
             Section("Customer") {
                 if !viewModel.customers.isEmpty {
-                    Picker("Customer Record", selection: $viewModel.draftCustomerId) {
-                        Text("No Linked Customer").tag("")
-                        ForEach(viewModel.customers, id: \.id) { customer in
-                            Text(customer.name).tag(customer.id)
-                        }
-                    }
-                    .onChange(of: viewModel.draftCustomerId) { _, _ in
-                        viewModel.applySelectedCustomer()
+                    Button {
+                        isSelectingCustomer = true
+                    } label: {
+                        LabeledContent("Customer Record", value: viewModel.draftCustomerRecordName())
                     }
                     .accessibilityIdentifier("orders.form.customerRecord")
+                    .sheet(isPresented: $isSelectingCustomer) {
+                        NavigationStack {
+                            CustomerSelectionView(viewModel: viewModel, isPresented: $isSelectingCustomer)
+                        }
+                    }
                 }
 
                 TextField("Customer Name", text: $viewModel.draftCustomerName)
@@ -422,6 +424,82 @@ private struct OrderForm: View {
                     }
                 }
                 .accessibilityIdentifier("orders.form.save")
+            }
+        }
+    }
+}
+
+private struct CustomerSelectionView: View {
+    @ObservedObject var viewModel: OrderListViewModel
+    @Binding var isPresented: Bool
+    @State private var searchText = ""
+
+    var body: some View {
+        List {
+            Section {
+                Button {
+                    viewModel.clearDraftCustomerLink()
+                    isPresented = false
+                } label: {
+                    HStack {
+                        Text("No Linked Customer")
+                        Spacer()
+                        if viewModel.draftCustomerId.isEmpty {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+                .accessibilityIdentifier("orders.customerSelection.none")
+            }
+
+            Section("Customers") {
+                let matchingCustomers = viewModel.customers(matching: searchText)
+                if matchingCustomers.isEmpty {
+                    Text("No matching customers")
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("orders.customerSelection.empty")
+                } else {
+                    ForEach(matchingCustomers, id: \.id) { customer in
+                        Button {
+                            viewModel.selectDraftCustomer(id: customer.id)
+                            isPresented = false
+                        } label: {
+                            HStack(alignment: .top, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(customer.name)
+                                        .font(.headline)
+                                    Text(customer.phone)
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                    if let allergies = customer.allergies {
+                                        Label(allergies, systemImage: "exclamationmark.triangle")
+                                            .font(.footnote)
+                                            .foregroundStyle(.orange)
+                                    }
+                                }
+
+                                Spacer()
+
+                                if viewModel.draftCustomerId == customer.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier("orders.customerSelection.customer.\(customer.id)")
+                    }
+                }
+            }
+        }
+        .navigationTitle("Customer Record")
+        .searchable(text: $searchText, prompt: "Search Customers")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    isPresented = false
+                }
+                .accessibilityIdentifier("orders.customerSelection.done")
             }
         }
     }

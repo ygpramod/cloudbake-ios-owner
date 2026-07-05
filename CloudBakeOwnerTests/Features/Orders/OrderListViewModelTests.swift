@@ -120,6 +120,62 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftDeliveryAddress, "10 Cake Street")
     }
 
+    func testSelectDraftCustomerPrefillsNameAndAddress() {
+        let repository = FakeOrderRepository()
+        repository.customers = [
+            makeCustomer(id: "customer-amy", name: "Amy", address: "10 Cake Street")
+        ]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginAddingOrder()
+        viewModel.selectDraftCustomer(id: "customer-amy")
+
+        XCTAssertEqual(viewModel.draftCustomerId, "customer-amy")
+        XCTAssertEqual(viewModel.draftCustomerRecordName(), "Amy")
+        XCTAssertEqual(viewModel.draftCustomerName, "Amy")
+        XCTAssertEqual(viewModel.draftDeliveryAddress, "10 Cake Street")
+    }
+
+    func testClearDraftCustomerLinkKeepsEnteredCustomerName() {
+        let repository = FakeOrderRepository()
+        repository.customers = [makeCustomer(id: "customer-amy", name: "Amy")]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginAddingOrder()
+        viewModel.selectDraftCustomer(id: "customer-amy")
+        viewModel.draftCustomerName = "Amy B"
+        viewModel.clearDraftCustomerLink()
+
+        XCTAssertEqual(viewModel.draftCustomerId, "")
+        XCTAssertEqual(viewModel.draftCustomerRecordName(), "No Linked Customer")
+        XCTAssertEqual(viewModel.draftCustomerName, "Amy B")
+    }
+
+    func testCustomersMatchingSearchesNamePhoneEmailAndAddress() {
+        let repository = FakeOrderRepository()
+        let amy = makeCustomer(
+            id: "customer-amy",
+            name: "Amy",
+            address: "10 Cake Street",
+            email: "amy@example.com"
+        )
+        let zoe = makeCustomer(
+            id: "customer-zoe",
+            name: "Zoe",
+            phone: "5550202",
+            address: "20 Sugar Road"
+        )
+        repository.customers = [amy, zoe]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginAddingOrder()
+
+        XCTAssertEqual(viewModel.customers(matching: "cake"), [amy])
+        XCTAssertEqual(viewModel.customers(matching: "0202"), [zoe])
+        XCTAssertEqual(viewModel.customers(matching: "EXAMPLE"), [amy])
+        XCTAssertEqual(viewModel.customers(matching: " "), [amy, zoe])
+    }
+
     func testBeginViewingOrderSelectsOrderAndLinkedCustomer() {
         let repository = FakeOrderRepository()
         let order = makeOrder(
@@ -294,7 +350,9 @@ final class OrderListViewModelTests: XCTestCase {
     private func makeCustomer(
         id: String,
         name: String,
+        phone: String = "5550101",
         address: String? = nil,
+        email: String? = nil,
         likes: String? = nil,
         dislikes: String? = nil,
         allergies: String? = nil,
@@ -305,8 +363,8 @@ final class OrderListViewModelTests: XCTestCase {
         return Customer(
             id: id,
             name: name,
-            phone: "5550101",
-            email: nil,
+            phone: phone,
+            email: email,
             address: address,
             likes: likes,
             dislikes: dislikes,
