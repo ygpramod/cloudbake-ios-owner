@@ -110,6 +110,211 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, "Recipe image could not be read.")
     }
 
+    func testBeginViewingRecipeLoadsIngredientRowsWithInventoryNames() {
+        let repository = FakeRecipeRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla Sponge",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-ingredients",
+            recipeId: recipe.id,
+            name: "Ingredients",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let flour = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake Flour",
+            unit: .gram,
+            currentQuantity: 1_000,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-flour",
+            componentId: component.id,
+            inventoryItemId: flour.id,
+            quantity: 250,
+            unit: .gram,
+            note: "Sift",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.recipes = [recipe]
+        repository.components = [component]
+        repository.inventoryItems = [flour]
+        repository.ingredients = [ingredient]
+        let viewModel = RecipeListViewModel(repository: repository)
+
+        viewModel.beginViewingRecipe(recipe)
+
+        XCTAssertEqual(viewModel.selectedRecipe, recipe)
+        XCTAssertEqual(
+            viewModel.recipeIngredients,
+            [
+                RecipeIngredientRow(
+                    ingredient: ingredient,
+                    inventoryItemName: "Cake Flour"
+                )
+            ]
+        )
+    }
+
+    func testBeginAddingIngredientDefaultsToFirstInventoryItem() {
+        let repository = FakeRecipeRepository()
+        repository.inventoryItems = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake Flour",
+                unit: .kilogram,
+                currentQuantity: 1,
+                minimumQuantity: 1,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        let viewModel = RecipeListViewModel(repository: repository)
+
+        viewModel.beginAddingIngredient()
+
+        XCTAssertEqual(viewModel.draftIngredientInventoryItemId, "inventory-flour")
+        XCTAssertEqual(viewModel.draftIngredientUnit, .kilogram)
+    }
+
+    func testSaveIngredientCreatesDefaultComponentAndPersistsIngredient() {
+        let repository = FakeRecipeRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla Sponge",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.recipes = [recipe]
+        repository.inventoryItems = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake Flour",
+                unit: .gram,
+                currentQuantity: 1_000,
+                minimumQuantity: 500,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+        var ids = ["component-ingredients", "ingredient-flour"]
+        let viewModel = RecipeListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { timestamp }
+        )
+        viewModel.beginViewingRecipe(recipe)
+        viewModel.beginAddingIngredient()
+        viewModel.draftIngredientQuantity = "250"
+        viewModel.draftIngredientNote = "Sift"
+
+        XCTAssertTrue(viewModel.saveIngredient())
+
+        XCTAssertEqual(
+            repository.components,
+            [
+                RecipeComponent(
+                    id: "component-ingredients",
+                    recipeId: recipe.id,
+                    name: "Ingredients",
+                    sortOrder: 0,
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            ]
+        )
+        XCTAssertEqual(repository.ingredients.count, 1)
+        XCTAssertEqual(repository.ingredients.first?.inventoryItemId, "inventory-flour")
+        XCTAssertEqual(repository.ingredients.first?.quantity, 250)
+        XCTAssertEqual(repository.ingredients.first?.unit, .gram)
+        XCTAssertEqual(repository.ingredients.first?.note, "Sift")
+        XCTAssertEqual(viewModel.recipeIngredients.first?.inventoryItemName, "Cake Flour")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testSaveIngredientRejectsInvalidQuantity() {
+        let repository = FakeRecipeRepository()
+        repository.inventoryItems = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake Flour",
+                unit: .gram,
+                currentQuantity: 1_000,
+                minimumQuantity: 500,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla Sponge",
+            notes: nil,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let viewModel = RecipeListViewModel(repository: repository)
+        viewModel.beginViewingRecipe(recipe)
+        viewModel.beginAddingIngredient()
+        viewModel.draftIngredientQuantity = "0"
+
+        XCTAssertFalse(viewModel.saveIngredient())
+        XCTAssertEqual(viewModel.errorMessage, "Ingredient quantity must be greater than zero.")
+        XCTAssertTrue(repository.ingredients.isEmpty)
+    }
+
+    func testDeleteIngredientRemovesIngredientAndReloadsRows() {
+        let repository = FakeRecipeRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla Sponge",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-ingredients",
+            recipeId: recipe.id,
+            name: "Ingredients",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-flour",
+            componentId: component.id,
+            inventoryItemId: "inventory-flour",
+            quantity: 250,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.recipes = [recipe]
+        repository.components = [component]
+        repository.ingredients = [ingredient]
+        let viewModel = RecipeListViewModel(repository: repository)
+        viewModel.beginViewingRecipe(recipe)
+
+        viewModel.deleteIngredient(ingredient)
+
+        XCTAssertTrue(repository.ingredients.isEmpty)
+        XCTAssertTrue(viewModel.recipeIngredients.isEmpty)
+    }
+
     private func placeholderCGImage() -> CGImage {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let context = CGContext(
@@ -125,8 +330,15 @@ final class RecipeListViewModelTests: XCTestCase {
     }
 }
 
-private final class FakeRecipeRepository: RecipeRepository {
+private final class FakeRecipeRepository: RecipeRepository,
+    RecipeComponentRepository,
+    RecipeIngredientRepository,
+    InventoryItemRepository {
     var recipes: [Recipe] = []
+    var components: [RecipeComponent] = []
+    var ingredients: [RecipeIngredient] = []
+    var inventoryItems: [InventoryItem] = []
+    var archivedInventoryItems: [InventoryItem] = []
 
     func save(_ recipe: Recipe) throws {
         recipes.removeAll { $0.id == recipe.id }
@@ -139,6 +351,53 @@ private final class FakeRecipeRepository: RecipeRepository {
 
     func fetchRecipes() throws -> [Recipe] {
         recipes
+    }
+
+    func save(_ component: RecipeComponent) throws {
+        components.removeAll { $0.id == component.id }
+        components.append(component)
+    }
+
+    func fetchRecipeComponent(id: String) throws -> RecipeComponent? {
+        components.first { $0.id == id }
+    }
+
+    func fetchRecipeComponents(recipeId: String) throws -> [RecipeComponent] {
+        components.filter { $0.recipeId == recipeId }
+    }
+
+    func save(_ ingredient: RecipeIngredient) throws {
+        ingredients.removeAll { $0.id == ingredient.id }
+        ingredients.append(ingredient)
+    }
+
+    func fetchRecipeIngredient(id: String) throws -> RecipeIngredient? {
+        ingredients.first { $0.id == id }
+    }
+
+    func fetchRecipeIngredients(componentId: String) throws -> [RecipeIngredient] {
+        ingredients.filter { $0.componentId == componentId }
+    }
+
+    func deleteRecipeIngredient(id: String) throws {
+        ingredients.removeAll { $0.id == id }
+    }
+
+    func save(_ item: InventoryItem) throws {
+        inventoryItems.removeAll { $0.id == item.id }
+        inventoryItems.append(item)
+    }
+
+    func fetchInventoryItem(id: String) throws -> InventoryItem? {
+        inventoryItems.first { $0.id == id } ?? archivedInventoryItems.first { $0.id == id }
+    }
+
+    func fetchInventoryItems() throws -> [InventoryItem] {
+        inventoryItems
+    }
+
+    func fetchArchivedInventoryItems() throws -> [InventoryItem] {
+        archivedInventoryItems
     }
 }
 

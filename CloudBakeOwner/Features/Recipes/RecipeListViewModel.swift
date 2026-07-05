@@ -4,18 +4,26 @@ import Foundation
 @MainActor
 final class RecipeListViewModel: ObservableObject {
     @Published private(set) var recipes: [Recipe] = []
+    @Published private(set) var selectedRecipe: Recipe?
+    @Published private(set) var recipeIngredients: [RecipeIngredientRow] = []
+    @Published private(set) var availableInventoryItems: [InventoryItem] = []
     @Published var draftName = ""
     @Published var draftNotes = ""
     @Published var recipeScanRecognizedText = ""
+    @Published var draftIngredientInventoryItemId = ""
+    @Published var draftIngredientQuantity = ""
+    @Published var draftIngredientUnit: InventoryUnit = .gram
+    @Published var draftIngredientNote = ""
     @Published var errorMessage: String?
     @Published private(set) var isRecognizingRecipeScan = false
+    @Published private(set) var editingIngredient: RecipeIngredient?
 
-    private let repository: any RecipeRepository
+    private let repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & InventoryItemRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
 
     init(
-        repository: any RecipeRepository,
+        repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & InventoryItemRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init
     ) {
@@ -31,6 +39,19 @@ final class RecipeListViewModel: ObservableObject {
         } catch {
             errorMessage = "Recipes could not be loaded."
         }
+    }
+
+    func beginViewingRecipe(_ recipe: Recipe) {
+        selectedRecipe = recipe
+        loadRecipeDetail()
+    }
+
+    func closeRecipeDetail() {
+        selectedRecipe = nil
+        recipeIngredients = []
+        availableInventoryItems = []
+        resetIngredientDraft()
+        errorMessage = nil
     }
 
     func addRecipe() -> Bool {
@@ -101,8 +122,175 @@ final class RecipeListViewModel: ObservableObject {
         cancelAddRecipe()
     }
 
+    func beginAddingIngredient() {
+        editingIngredient = nil
+        resetIngredientDraft()
+        loadAvailableInventoryItems()
+        defaultIngredientSelectionIfNeeded()
+        errorMessage = nil
+    }
+
+    func beginEditingIngredient(_ ingredient: RecipeIngredient) {
+        editingIngredient = ingredient
+        loadAvailableInventoryItems()
+        draftIngredientInventoryItemId = ingredient.inventoryItemId
+        draftIngredientQuantity = ingredient.quantity.formatted()
+        draftIngredientUnit = ingredient.unit
+        draftIngredientNote = ingredient.note ?? ""
+        errorMessage = nil
+    }
+
+    func updateDraftIngredientUnitForSelectedInventoryItem() {
+        guard let item = availableInventoryItems.first(where: { $0.id == draftIngredientInventoryItemId }) else {
+            return
+        }
+
+        draftIngredientUnit = item.unit
+    }
+
+    func saveIngredient() -> Bool {
+        guard let selectedRecipe else {
+            errorMessage = "Recipe could not be found."
+            return false
+        }
+
+        guard !draftIngredientInventoryItemId.isEmpty,
+              availableInventoryItems.contains(where: { $0.id == draftIngredientInventoryItemId }) else {
+            errorMessage = "Choose an inventory item."
+            return false
+        }
+
+        guard let quantity = Double(draftIngredientQuantity), quantity > 0 else {
+            errorMessage = "Ingredient quantity must be greater than zero."
+            return false
+        }
+
+        do {
+            let component = try defaultComponent(for: selectedRecipe)
+            let now = dateProvider()
+            let note = draftIngredientNote.trimmingCharacters(in: .whitespacesAndNewlines)
+            let ingredient = RecipeIngredient(
+                id: editingIngredient?.id ?? idGenerator(),
+                componentId: component.id,
+                inventoryItemId: draftIngredientInventoryItemId,
+                quantity: quantity,
+                unit: draftIngredientUnit,
+                note: note.isEmpty ? nil : note,
+                createdAt: editingIngredient?.createdAt ?? now,
+                updatedAt: now
+            )
+
+            try repository.save(ingredient)
+            resetIngredientDraft()
+            loadRecipeDetail()
+            return true
+        } catch {
+            errorMessage = "Recipe ingredient could not be saved."
+            return false
+        }
+    }
+
+    func deleteIngredient(_ ingredient: RecipeIngredient) {
+        do {
+            try repository.deleteRecipeIngredient(id: ingredient.id)
+            loadRecipeDetail()
+        } catch {
+            errorMessage = "Recipe ingredient could not be deleted."
+        }
+    }
+
+    func cancelIngredientEdit() {
+        resetIngredientDraft()
+        errorMessage = nil
+    }
+
     private func resetDraft() {
         draftName = ""
         draftNotes = ""
+    }
+
+    private func loadRecipeDetail() {
+        guard let selectedRecipe else {
+            recipeIngredients = []
+            return
+        }
+
+        do {
+            if let refreshedRecipe = try repository.fetchRecipe(id: selectedRecipe.id) {
+                self.selectedRecipe = refreshedRecipe
+            }
+
+            let components = try repository.fetchRecipeComponents(recipeId: selectedRecipe.id)
+            let inventoryItems = try repository.fetchInventoryItems()
+            availableInventoryItems = inventoryItems
+            let inventoryById = Dictionary(uniqueKeysWithValues: inventoryItems.map { ($0.id, $0) })
+            recipeIngredients = try components.flatMap { component in
+                try repository.fetchRecipeIngredients(componentId: component.id).map { ingredient in
+                    RecipeIngredientRow(
+                        ingredient: ingredient,
+                        inventoryItemName: inventoryById[ingredient.inventoryItemId]?.name ?? "Missing inventory item"
+                    )
+                }
+            }
+            errorMessage = nil
+        } catch {
+            recipeIngredients = []
+            errorMessage = "Recipe details could not be loaded."
+        }
+    }
+
+    private func loadAvailableInventoryItems() {
+        do {
+            availableInventoryItems = try repository.fetchInventoryItems()
+            errorMessage = nil
+        } catch {
+            availableInventoryItems = []
+            errorMessage = "Inventory items could not be loaded."
+        }
+    }
+
+    private func defaultComponent(for recipe: Recipe) throws -> RecipeComponent {
+        if let component = try repository.fetchRecipeComponents(recipeId: recipe.id).first {
+            return component
+        }
+
+        let now = dateProvider()
+        let component = RecipeComponent(
+            id: idGenerator(),
+            recipeId: recipe.id,
+            name: "Ingredients",
+            sortOrder: 0,
+            createdAt: now,
+            updatedAt: now
+        )
+        try repository.save(component)
+        return component
+    }
+
+    private func defaultIngredientSelectionIfNeeded() {
+        guard draftIngredientInventoryItemId.isEmpty,
+              let firstItem = availableInventoryItems.first else {
+            return
+        }
+
+        draftIngredientInventoryItemId = firstItem.id
+        draftIngredientUnit = firstItem.unit
+    }
+
+    private func resetIngredientDraft() {
+        editingIngredient = nil
+        draftIngredientInventoryItemId = ""
+        draftIngredientQuantity = ""
+        draftIngredientUnit = .gram
+        draftIngredientNote = ""
+    }
+}
+
+struct RecipeIngredientRow: Identifiable, Equatable {
+    let ingredient: RecipeIngredient
+    let inventoryItemName: String
+
+    var id: String {
+        ingredient.id
     }
 }

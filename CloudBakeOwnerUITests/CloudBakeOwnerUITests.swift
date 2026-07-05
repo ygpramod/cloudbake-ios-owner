@@ -211,6 +211,36 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Flour 250 g\nCocoa 50 g"].waitForExistence(timeout: 5))
     }
 
+    func testRecipeIngredientCanBeAddedFromInventory() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Inventory"].tap()
+        addInventoryItem(named: "Cake flour", currentQuantity: "1000", minimumQuantity: "500", in: app)
+        app.navigationBars.buttons["CloudBake"].tap()
+
+        app.staticTexts["Recipes"].tap()
+        addRecipe(named: "Vanilla Sponge", notes: "Book page 12", in: app)
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
+            .firstMatch
+            .tap()
+        XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["No ingredients yet"].waitForExistence(timeout: 5))
+
+        app.buttons["recipes.ingredient.add"].tap()
+        XCTAssertTrue(app.navigationBars["Add Ingredient"].waitForExistence(timeout: 5))
+        app.textFields["recipes.ingredient.quantity"].tap()
+        app.textFields["recipes.ingredient.quantity"].typeText("250")
+        app.textFields["recipes.ingredient.note"].tap()
+        app.textFields["recipes.ingredient.note"].typeText("Sift")
+        app.buttons["recipes.ingredient.save"].tap()
+
+        XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Sift"].waitForExistence(timeout: 5))
+    }
+
     private func makeApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"
@@ -232,6 +262,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.textFields["inventory.form.minimumQuantity"].tap()
         app.textFields["inventory.form.minimumQuantity"].typeText(minimumQuantity)
         app.buttons["inventory.form.save"].tap()
+    }
+
+    private func addRecipe(named name: String, notes: String, in app: XCUIApplication) {
+        app.buttons["recipes.add"].tap()
+        XCTAssertTrue(app.navigationBars["Add Recipe"].waitForExistence(timeout: 5))
+        app.textFields["recipes.form.name"].tap()
+        app.textFields["recipes.form.name"].typeText(name)
+        app.textFields["recipes.form.notes"].tap()
+        app.textFields["recipes.form.notes"].typeText(notes)
+        app.buttons["recipes.form.save"].tap()
+        XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
     }
 
     private func adjustFirstInventoryItem(by quantity: String, in app: XCUIApplication) {

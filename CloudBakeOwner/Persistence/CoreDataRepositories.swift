@@ -16,11 +16,14 @@ protocol RecipeRepository {
 protocol RecipeComponentRepository {
     func save(_ component: RecipeComponent) throws
     func fetchRecipeComponent(id: String) throws -> RecipeComponent?
+    func fetchRecipeComponents(recipeId: String) throws -> [RecipeComponent]
 }
 
 protocol RecipeIngredientRepository {
     func save(_ ingredient: RecipeIngredient) throws
     func fetchRecipeIngredient(id: String) throws -> RecipeIngredient?
+    func fetchRecipeIngredients(componentId: String) throws -> [RecipeIngredient]
+    func deleteRecipeIngredient(id: String) throws
 }
 
 protocol CakeDesignRepository {

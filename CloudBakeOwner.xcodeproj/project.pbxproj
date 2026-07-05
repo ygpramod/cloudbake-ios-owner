@@ -43,6 +43,7 @@
 		410000000000000000000022 /* RecipeListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002A /* RecipeListViewModelTests.swift */; };
 		410000000000000000000023 /* RecipeDraftParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002B /* RecipeDraftParser.swift */; };
 		410000000000000000000024 /* RecipeDraftParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002C /* RecipeDraftParserTests.swift */; };
+		410000000000000000000025 /* InventoryUnitDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002D /* InventoryUnitDisplay.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -101,6 +102,7 @@
 		42000000000000000000002A /* RecipeListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeListViewModelTests.swift; sourceTree = "<group>"; };
 		42000000000000000000002B /* RecipeDraftParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDraftParser.swift; sourceTree = "<group>"; };
 		42000000000000000000002C /* RecipeDraftParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDraftParserTests.swift; sourceTree = "<group>"; };
+		42000000000000000000002D /* InventoryUnitDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryUnitDisplay.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -226,6 +228,7 @@
 			children = (
 				42000000000000000000001F /* BakingCatalog.swift */,
 				420000000000000000000015 /* CoreModels.swift */,
+				42000000000000000000002D /* InventoryUnitDisplay.swift */,
 				420000000000000000000022 /* PurchaseBillDraftParser.swift */,
 				42000000000000000000002B /* RecipeDraftParser.swift */,
 			);
@@ -477,6 +480,7 @@
 				41000000000000000000000A /* HealthCheckRepository.swift in Sources */,
 				410000000000000000000012 /* InventoryListView.swift in Sources */,
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
+				410000000000000000000025 /* InventoryUnitDisplay.swift in Sources */,
 				41000000000000000000001A /* PurchaseBillDraftParser.swift in Sources */,
 				41000000000000000000001C /* PurchaseBillTextRecognizer.swift in Sources */,
 				410000000000000000000023 /* RecipeDraftParser.swift in Sources */,
