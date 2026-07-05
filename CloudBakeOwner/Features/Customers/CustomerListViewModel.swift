@@ -70,7 +70,12 @@ final class CustomerListViewModel: ObservableObject {
             return false
         }
 
-        if shouldWarnAboutDuplicate(name: name, phone: phone, excludingCustomerId: nil) {
+        if shouldWarnAboutDuplicate(
+            name: name,
+            phone: phone,
+            excludingCustomerId: nil,
+            confirmationInstruction: "Tap Save again to add a separate customer."
+        ) {
             return false
         }
 
@@ -164,7 +169,12 @@ final class CustomerListViewModel: ObservableObject {
             return false
         }
 
-        if shouldWarnAboutDuplicate(name: name, phone: phone, excludingCustomerId: editingCustomer.id) {
+        if shouldWarnAboutDuplicate(
+            name: name,
+            phone: phone,
+            excludingCustomerId: editingCustomer.id,
+            confirmationInstruction: "Tap Save again to keep this customer separate."
+        ) {
             return false
         }
 
@@ -218,7 +228,8 @@ final class CustomerListViewModel: ObservableObject {
     private func shouldWarnAboutDuplicate(
         name: String,
         phone: String,
-        excludingCustomerId: String?
+        excludingCustomerId: String?,
+        confirmationInstruction: String
     ) -> Bool {
         let duplicate = customers.first { customer in
             guard customer.id != excludingCustomerId else {
@@ -243,7 +254,7 @@ final class CustomerListViewModel: ObservableObject {
             return false
         }
 
-        duplicateWarningMessage = "Possible duplicate: \(duplicate.name) already exists. Tap Save again to add a separate customer."
+        duplicateWarningMessage = "Possible duplicate: \(duplicate.name) already exists. \(confirmationInstruction)"
         errorMessage = nil
         acknowledgedDuplicateKey = warningKey
         return true
