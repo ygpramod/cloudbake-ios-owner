@@ -25,7 +25,7 @@ The app currently supports:
 17. expiry table for remaining stock batches,
 18. expiry-driven low inventory alerts,
 19. one-month upcoming expiry alerts,
-20. stock batch expiry editing,
+20. stock batch quantity and expiry editing,
 21. oldest-expiry-first stock consumption,
 22. compatible unit conversion for stock adjustment and stock usage,
 23. bundled baking catalog config for future purchase bill filtering,
