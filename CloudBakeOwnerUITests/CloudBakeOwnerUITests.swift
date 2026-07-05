@@ -308,6 +308,47 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Use two tins")).firstMatch.waitForExistence(timeout: 5))
     }
 
+    func testCustomerCanBeAddedAndViewed() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Customers"].tap()
+        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["No customers yet"].waitForExistence(timeout: 5))
+
+        addCustomer(named: "Amy", phone: "5550101", in: app)
+
+        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["5550101"].waitForExistence(timeout: 5))
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "customers.item."))
+            .firstMatch
+            .tap()
+
+        XCTAssertTrue(app.navigationBars["Amy"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Phone"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Birthday"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Nuts"].waitForExistence(timeout: 5))
+    }
+
+    func testCustomerDuplicateWarningAppearsBeforeSaving() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Customers"].tap()
+        addCustomer(named: "Amy", phone: "5550101", in: app)
+        app.buttons["customers.add"].tap()
+        XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: 5))
+        app.textFields["customers.form.name"].tap()
+        app.textFields["customers.form.name"].typeText("Amy")
+        app.textFields["customers.form.phone"].tap()
+        app.textFields["customers.form.phone"].typeText("5550101")
+        app.buttons["customers.form.save"].tap()
+
+        XCTAssertTrue(app.staticTexts["Possible duplicate: Amy already exists. Tap Save again to add a separate customer."].waitForExistence(timeout: 5))
+    }
+
     private func makeApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"
@@ -340,6 +381,24 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.textFields["recipes.form.notes"].typeText(notes)
         app.buttons["recipes.form.save"].tap()
         XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
+    }
+
+    private func addCustomer(named name: String, phone: String, in app: XCUIApplication) {
+        app.buttons["customers.add"].tap()
+        XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: 5))
+        app.textFields["customers.form.name"].tap()
+        app.textFields["customers.form.name"].typeText(name)
+        app.textFields["customers.form.phone"].tap()
+        app.textFields["customers.form.phone"].typeText(phone)
+        app.textFields["customers.form.email"].tap()
+        app.textFields["customers.form.email"].typeText("amy@example.com")
+        app.textFields["customers.form.address"].tap()
+        app.textFields["customers.form.address"].typeText("10 Cake Street")
+        app.textFields["customers.form.importantDate.label"].tap()
+        app.textFields["customers.form.importantDate.label"].typeText("Birthday")
+        app.textFields["customers.form.allergies"].tap()
+        app.textFields["customers.form.allergies"].typeText("Nuts")
+        app.buttons["customers.form.save"].tap()
     }
 
     private func adjustFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
