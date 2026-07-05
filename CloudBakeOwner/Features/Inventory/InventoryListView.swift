@@ -1,3 +1,5 @@
+import Foundation
+import PhotosUI
 import SwiftUI
 import UIKit
 
@@ -176,6 +178,8 @@ private struct PurchaseBillImportView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isShowingCamera = false
     @State private var hasOfferedCamera = false
+    @State private var selectedBillImage: UIImage?
+    @State private var selectedPhotoItem: PhotosPickerItem?
 
     private let recognizer: PurchaseBillTextRecognizing
     private let catalogProvider: () -> [BakingCatalogItem]
@@ -198,10 +202,25 @@ private struct PurchaseBillImportView: View {
                 Button {
                     isShowingCamera = true
                 } label: {
-                    Label("Take Bill Photo", systemImage: "camera")
+                    Label(selectedBillImage == nil ? "Take Bill Photo" : "Retake Bill Photo", systemImage: "camera")
                 }
                 .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera) || viewModel.isRecognizingPurchaseBill)
                 .accessibilityIdentifier("inventory.purchaseBill.camera")
+
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images, photoLibrary: .shared()) {
+                    Label("Choose From Library", systemImage: "photo.on.rectangle")
+                }
+                .disabled(viewModel.isRecognizingPurchaseBill)
+                .accessibilityIdentifier("inventory.purchaseBill.library")
+
+                if let selectedBillImage {
+                    Image(uiImage: selectedBillImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .accessibilityIdentifier("inventory.purchaseBill.preview")
+                }
 
                 if viewModel.isRecognizingPurchaseBill {
                     ProgressView("Reading bill")
@@ -245,6 +264,16 @@ private struct PurchaseBillImportView: View {
             }
         }
         .navigationTitle("Import Bill")
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let newItem else {
+                return
+            }
+
+            Task {
+                await importBillPhoto(newItem)
+                selectedPhotoItem = nil
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
@@ -273,20 +302,40 @@ private struct PurchaseBillImportView: View {
         }
         .fullScreenCover(isPresented: $isShowingCamera) {
             PurchaseBillCameraView { image in
-                guard let cgImage = image.cgImage else {
-                    viewModel.errorMessage = "The bill photo could not be read. Try another photo or enter the bill text manually."
-                    return
-                }
-
-                Task {
-                    _ = await viewModel.recognizePurchaseBillImage(
-                        cgImage,
-                        recognizer: recognizer,
-                        catalog: catalogProvider()
-                    )
-                }
+                selectedBillImage = image
+                recognizeBillPhoto(image)
             }
             .ignoresSafeArea()
+        }
+    }
+
+    private func importBillPhoto(_ item: PhotosPickerItem) async {
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  let image = UIImage(data: data) else {
+                viewModel.errorMessage = "The bill photo could not be read. Try another photo or enter the bill text manually."
+                return
+            }
+
+            selectedBillImage = image
+            recognizeBillPhoto(image)
+        } catch {
+            viewModel.errorMessage = "The bill photo could not be read. Try another photo or enter the bill text manually."
+        }
+    }
+
+    private func recognizeBillPhoto(_ image: UIImage) {
+        guard let cgImage = image.cgImage else {
+            viewModel.errorMessage = "The bill photo could not be read. Try another photo or enter the bill text manually."
+            return
+        }
+
+        Task {
+            _ = await viewModel.recognizePurchaseBillImage(
+                cgImage,
+                recognizer: recognizer,
+                catalog: catalogProvider()
+            )
         }
     }
 }
