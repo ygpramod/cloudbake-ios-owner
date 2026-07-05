@@ -134,7 +134,8 @@ Orders should eventually include these screens:
 The first slice should avoid building every section. It should establish the order model, list,
 add, and detail foundations.
 
-The first order slice is implemented in `docs/rfc/slices/0037-orders-list-add-detail.md`.
+The first order slice is implemented in `docs/rfc/slices/0037-orders-list-add-detail.md`. Order
+editing and manual status changes are implemented in `docs/rfc/slices/0038-order-edit-status.md`.
 
 ## Reminder Model
 
