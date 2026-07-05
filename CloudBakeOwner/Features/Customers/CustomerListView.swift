@@ -68,7 +68,9 @@ struct CustomerListView: View {
             NavigationStack {
                 CustomerForm(
                     viewModel: viewModel,
-                    isPresented: $isAddingCustomer
+                    isPresented: $isAddingCustomer,
+                    onCancel: viewModel.cancelAddCustomer,
+                    onSave: viewModel.addCustomer
                 )
             }
         }
@@ -90,6 +92,7 @@ struct CustomerListView: View {
 private struct CustomerDetailView: View {
     @ObservedObject var viewModel: CustomerListViewModel
     @Binding var isPresented: Bool
+    @State private var isEditingCustomer = false
 
     var body: some View {
         List {
@@ -142,6 +145,16 @@ private struct CustomerDetailView: View {
         }
         .navigationTitle(viewModel.selectedCustomer?.name ?? "Customer")
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    viewModel.beginEditingCustomer()
+                    isEditingCustomer = true
+                } label: {
+                    Label("Edit Customer", systemImage: "pencil")
+                }
+                .accessibilityIdentifier("customers.detail.edit")
+            }
+
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
                     isPresented = false
@@ -149,12 +162,44 @@ private struct CustomerDetailView: View {
                 .accessibilityIdentifier("customers.detail.done")
             }
         }
+        .sheet(isPresented: $isEditingCustomer, onDismiss: viewModel.cancelEditingCustomer) {
+            NavigationStack {
+                CustomerForm(
+                    title: "Edit Customer",
+                    viewModel: viewModel,
+                    isPresented: $isEditingCustomer,
+                    showsImportantDate: false,
+                    onCancel: viewModel.cancelEditingCustomer,
+                    onSave: viewModel.saveEditedCustomer
+                )
+            }
+        }
     }
 }
 
 private struct CustomerForm: View {
+    let title: String
     @ObservedObject var viewModel: CustomerListViewModel
     @Binding var isPresented: Bool
+    let showsImportantDate: Bool
+    let onCancel: () -> Void
+    let onSave: () -> Bool
+
+    init(
+        title: String = "Add Customer",
+        viewModel: CustomerListViewModel,
+        isPresented: Binding<Bool>,
+        showsImportantDate: Bool = true,
+        onCancel: @escaping () -> Void,
+        onSave: @escaping () -> Bool
+    ) {
+        self.title = title
+        self.viewModel = viewModel
+        _isPresented = isPresented
+        self.showsImportantDate = showsImportantDate
+        self.onCancel = onCancel
+        self.onSave = onSave
+    }
 
     var body: some View {
         Form {
@@ -188,16 +233,18 @@ private struct CustomerForm: View {
                 }
             }
 
-            Section("Important Date") {
-                TextField("Label", text: $viewModel.draftImportantDateLabel)
-                    .accessibilityIdentifier("customers.form.importantDate.label")
+            if showsImportantDate {
+                Section("Important Date") {
+                    TextField("Label", text: $viewModel.draftImportantDateLabel)
+                        .accessibilityIdentifier("customers.form.importantDate.label")
 
-                DatePicker(
-                    "Date",
-                    selection: $viewModel.draftImportantDate,
-                    displayedComponents: .date
-                )
-                .accessibilityIdentifier("customers.form.importantDate.date")
+                    DatePicker(
+                        "Date",
+                        selection: $viewModel.draftImportantDate,
+                        displayedComponents: .date
+                    )
+                    .accessibilityIdentifier("customers.form.importantDate.date")
+                }
             }
 
             Section("Preferences") {
@@ -230,11 +277,11 @@ private struct CustomerForm: View {
                 }
             }
         }
-        .navigationTitle("Add Customer")
+        .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
-                    viewModel.cancelAddCustomer()
+                    onCancel()
                     isPresented = false
                 }
                 .accessibilityIdentifier("customers.form.cancel")
@@ -242,7 +289,7 @@ private struct CustomerForm: View {
 
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if viewModel.addCustomer() {
+                    if onSave() {
                         isPresented = false
                     }
                 }

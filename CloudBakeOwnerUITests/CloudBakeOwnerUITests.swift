@@ -349,6 +349,30 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Possible duplicate: Amy already exists. Tap Save again to add a separate customer."].waitForExistence(timeout: 5))
     }
 
+    func testCustomerCanBeEditedFromDetail() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Customers"].tap()
+        addCustomer(named: "Amy", phone: "5550101", in: app)
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "customers.item."))
+            .firstMatch
+            .tap()
+        XCTAssertTrue(app.navigationBars["Amy"].waitForExistence(timeout: 5))
+
+        app.buttons["customers.detail.edit"].tap()
+        XCTAssertTrue(app.navigationBars["Edit Customer"].waitForExistence(timeout: 5))
+        let nameField = app.textFields["customers.form.name"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 5))
+        nameField.tap()
+        nameField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3))
+        nameField.typeText("Amy B")
+        app.buttons["customers.form.save"].tap()
+
+        XCTAssertTrue(app.navigationBars["Amy B"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Amy B"].waitForExistence(timeout: 5))
+    }
+
     private func makeApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"
