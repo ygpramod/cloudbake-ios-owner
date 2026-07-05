@@ -187,6 +187,30 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Book page 12"].waitForExistence(timeout: 5))
     }
 
+    func testRecipeCanBeImportedFromRecognizedTextDraft() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Recipes"].tap()
+        XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
+        app.buttons["recipes.import"].tap()
+        XCTAssertTrue(app.navigationBars["Import Recipe"].waitForExistence(timeout: 5))
+
+        let recipeText = app.textFields["recipes.import.text"]
+        XCTAssertTrue(recipeText.waitForExistence(timeout: 5))
+        recipeText.tap()
+        recipeText.typeText("Chocolate Fudge\nFlour 250 g\nCocoa 50 g")
+        app.buttons["recipes.import.createDraft"].tap()
+
+        XCTAssertEqual(app.textFields["recipes.import.name"].value as? String, "Chocolate Fudge")
+        XCTAssertEqual(app.textFields["recipes.import.notes"].value as? String, "Flour 250 g\nCocoa 50 g")
+        app.buttons["recipes.import.save"].tap()
+
+        XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Chocolate Fudge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Flour 250 g\nCocoa 50 g"].waitForExistence(timeout: 5))
+    }
+
     private func makeApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"

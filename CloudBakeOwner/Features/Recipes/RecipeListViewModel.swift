@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 @MainActor
@@ -5,7 +6,9 @@ final class RecipeListViewModel: ObservableObject {
     @Published private(set) var recipes: [Recipe] = []
     @Published var draftName = ""
     @Published var draftNotes = ""
+    @Published var recipeScanRecognizedText = ""
     @Published var errorMessage: String?
+    @Published private(set) var isRecognizingRecipeScan = false
 
     private let repository: any RecipeRepository
     private let idGenerator: () -> String
@@ -61,6 +64,41 @@ final class RecipeListViewModel: ObservableObject {
     func cancelAddRecipe() {
         resetDraft()
         errorMessage = nil
+    }
+
+    func createRecipeDraftFromRecognizedText() -> Bool {
+        guard let draft = RecipeDraftParser.draft(from: recipeScanRecognizedText) else {
+            errorMessage = "Recipe text could not be turned into a draft."
+            return false
+        }
+
+        draftName = draft.name
+        draftNotes = draft.notes ?? ""
+        errorMessage = nil
+        return true
+    }
+
+    func recognizeRecipeImage(
+        _ image: CGImage,
+        recognizer: RecipeTextRecognizing
+    ) async -> Bool {
+        isRecognizingRecipeScan = true
+        errorMessage = nil
+
+        do {
+            recipeScanRecognizedText = try await recognizer.recognizedText(from: image)
+            isRecognizingRecipeScan = false
+            return createRecipeDraftFromRecognizedText()
+        } catch {
+            isRecognizingRecipeScan = false
+            errorMessage = "Recipe image could not be read."
+            return false
+        }
+    }
+
+    func cancelRecipeImport() {
+        recipeScanRecognizedText = ""
+        cancelAddRecipe()
     }
 
     private func resetDraft() {
