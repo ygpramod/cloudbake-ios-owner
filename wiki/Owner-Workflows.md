@@ -41,6 +41,8 @@ Tap a recipe to view its detail.
 Recipe detail shows notes and ingredient rows. Each ingredient row is linked to an active inventory
 item and stores the quantity, unit, and optional preparation note needed for that recipe.
 
+Use the edit action in recipe detail when the recipe name or notes need correction.
+
 Use Add Ingredient when the owner wants to manually define the stock needed by a recipe. Tap an
 ingredient row to edit it, or swipe to delete a mistaken row.
 

@@ -47,7 +47,8 @@ The app currently supports:
 39. recipe ingredient editing and deletion,
 40. structured recipe import drafts with parsed ingredient rows,
 41. simple inventory matching for imported recipe ingredients,
-42. unit, integration, and acceptance test lanes.
+42. recipe name and notes editing from recipe detail,
+43. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
