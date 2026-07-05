@@ -191,7 +191,7 @@ is the base product RFC for this area.
 
 Today, the owner can:
 
-1. view orders,
+1. view orders in List or Calendar mode,
 2. add an order,
 3. link an order to an existing customer record when useful,
 4. enter a customer name directly for quick drafts,
@@ -205,9 +205,11 @@ Today, the owner can:
 12. manually change order status across Draft, Confirmed, In Progress, Ready, Completed, and
     Cancelled.
 
-Future order slices should add calendar view, allergy and customer preference alerts, reminders
-three days/two days/one day before delivery, recipe links, inventory deduction, checklist, design
-references and photos, and pricing/payment summary.
+Calendar mode groups orders by due date and opens the same order detail screen as List mode.
+
+Future order slices should add allergy and customer preference alerts, reminders three days/two
+days/one day before delivery, recipe links, inventory deduction, checklist, design references and
+photos, and pricing/payment summary.
 
 ## Customer Workflow
 
