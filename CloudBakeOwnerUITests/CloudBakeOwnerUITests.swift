@@ -191,6 +191,10 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let app = makeApp()
         app.launch()
 
+        app.staticTexts["Inventory"].tap()
+        addInventoryItem(named: "Flour", currentQuantity: "1000", minimumQuantity: "500", in: app)
+        app.navigationBars.buttons["CloudBake"].tap()
+
         app.staticTexts["Recipes"].tap()
         XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
         app.buttons["recipes.import"].tap()
@@ -199,16 +203,24 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let recipeText = app.textFields["recipes.import.text"]
         XCTAssertTrue(recipeText.waitForExistence(timeout: 5))
         recipeText.tap()
-        recipeText.typeText("Chocolate Fudge\nFlour 250 g\nCocoa 50 g")
+        recipeText.typeText("Chocolate Fudge\nFlour 250 g\nBake until set")
         app.buttons["recipes.import.createDraft"].tap()
 
         XCTAssertEqual(app.textFields["recipes.import.name"].value as? String, "Chocolate Fudge")
-        XCTAssertEqual(app.textFields["recipes.import.notes"].value as? String, "Flour 250 g\nCocoa 50 g")
+        XCTAssertEqual(app.textFields["recipes.import.notes"].value as? String, "Bake until set")
+        XCTAssertTrue(app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.import.ingredient.name.")).firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.import.ingredient.quantity.")).firstMatch.waitForExistence(timeout: 5))
         app.buttons["recipes.import.save"].tap()
 
         XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Chocolate Fudge"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Flour 250 g\nCocoa 50 g"].waitForExistence(timeout: 5))
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
+            .firstMatch
+            .tap()
+        XCTAssertTrue(app.navigationBars["Chocolate Fudge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
     }
 
     func testRecipeIngredientCanBeAddedFromInventory() throws {

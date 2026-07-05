@@ -346,6 +346,17 @@ private struct RecipeImportView: View {
                     .accessibilityIdentifier("recipes.import.notes")
             }
 
+            if !viewModel.importIngredientDrafts.isEmpty {
+                Section("Draft Ingredients") {
+                    ForEach($viewModel.importIngredientDrafts) { $draft in
+                        RecipeImportIngredientDraftRowView(
+                            draft: $draft,
+                            inventoryItems: viewModel.availableInventoryItems
+                        )
+                    }
+                }
+            }
+
             if let errorMessage = viewModel.errorMessage {
                 Section {
                     Text(errorMessage)
@@ -366,7 +377,7 @@ private struct RecipeImportView: View {
 
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if viewModel.addRecipe() {
+                    if viewModel.saveRecipeImportDraft() {
                         isPresented = false
                     }
                 }
@@ -412,6 +423,46 @@ private struct RecipeImportView: View {
                 recognizer: recognizer
             )
         }
+    }
+}
+
+private struct RecipeImportIngredientDraftRowView: View {
+    @Binding var draft: RecipeImportIngredientDraftRow
+    let inventoryItems: [InventoryItem]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            TextField("Ingredient", text: $draft.name)
+                .textInputAutocapitalization(.words)
+                .accessibilityIdentifier("recipes.import.ingredient.name.\(draft.id)")
+
+            Picker("Inventory Item", selection: $draft.inventoryItemId) {
+                Text("Choose").tag("")
+                ForEach(inventoryItems, id: \.id) { item in
+                    Text(item.name).tag(item.id)
+                }
+            }
+            .accessibilityIdentifier("recipes.import.ingredient.inventory.\(draft.id)")
+
+            HStack {
+                TextField("Quantity", text: $draft.quantity)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("recipes.import.ingredient.quantity.\(draft.id)")
+
+                Picker("Unit", selection: $draft.unit) {
+                    ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
+                        Text(unit.displayName).tag(unit)
+                    }
+                }
+                .labelsHidden()
+                .accessibilityIdentifier("recipes.import.ingredient.unit.\(draft.id)")
+            }
+
+            TextField("Note", text: $draft.note, axis: .vertical)
+                .lineLimit(1...3)
+                .accessibilityIdentifier("recipes.import.ingredient.note.\(draft.id)")
+        }
+        .padding(.vertical, 4)
     }
 }
 
