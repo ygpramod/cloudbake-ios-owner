@@ -71,12 +71,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Quantity"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
 
-        let batchExpiryRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.detail.batch.edit.")).firstMatch
-        XCTAssertTrue(batchExpiryRow.waitForExistence(timeout: 5))
-        batchExpiryRow.tap()
-        XCTAssertTrue(app.navigationBars["Edit Expiry"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.datePickers["inventory.batchExpiry.expiryDate"].waitForExistence(timeout: 5))
-        app.buttons["inventory.batchExpiry.save"].tap()
+        let batchRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.detail.batch.edit.")).firstMatch
+        XCTAssertTrue(batchRow.waitForExistence(timeout: 5))
+        batchRow.tap()
+        XCTAssertTrue(app.navigationBars["Edit Batch"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["inventory.batch.quantity"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.datePickers["inventory.batch.expiryDate"].waitForExistence(timeout: 5))
+        app.buttons["inventory.batch.save"].tap()
         XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
 
         app.buttons["inventory.detail.edit"].tap()

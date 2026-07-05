@@ -414,7 +414,7 @@ private struct InventoryItemDetailView: View {
     @ObservedObject var viewModel: InventoryListViewModel
     @Binding var isPresented: Bool
     @State private var isEditingItem = false
-    @State private var isEditingBatchExpiry = false
+    @State private var isEditingBatch = false
 
     var body: some View {
         List {
@@ -446,8 +446,8 @@ private struct InventoryItemDetailView: View {
 
                         ForEach(viewModel.selectedItemBatches.filter { $0.remainingQuantity > 0 }, id: \.id) { batch in
                             Button {
-                                viewModel.beginEditingBatchExpiry(batch)
-                                isEditingBatchExpiry = true
+                                viewModel.beginEditingBatch(batch)
+                                isEditingBatch = true
                             } label: {
                                 HStack {
                                     Text("\(batch.remainingQuantity.formatted()) \(item.unit.displayName)")
@@ -507,11 +507,11 @@ private struct InventoryItemDetailView: View {
                 )
             }
         }
-        .sheet(isPresented: $isEditingBatchExpiry) {
+        .sheet(isPresented: $isEditingBatch) {
             NavigationStack {
-                InventoryBatchExpiryForm(
+                InventoryBatchForm(
                     viewModel: viewModel,
-                    isPresented: $isEditingBatchExpiry
+                    isPresented: $isEditingBatch
                 )
             }
         }
@@ -522,23 +522,34 @@ private struct InventoryItemDetailView: View {
     }
 }
 
-private struct InventoryBatchExpiryForm: View {
+private struct InventoryBatchForm: View {
     @ObservedObject var viewModel: InventoryListViewModel
     @Binding var isPresented: Bool
 
     var body: some View {
         Form {
             if let item = viewModel.selectedItem,
-               let batch = viewModel.editingBatch {
+               viewModel.editingBatch != nil {
                 Section("Stock Batch") {
                     LabeledContent("Item", value: item.name)
-                    LabeledContent("Quantity", value: "\(batch.remainingQuantity.formatted()) \(item.unit.displayName)")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Quantity")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        HStack {
+                            TextField("Quantity", text: $viewModel.draftBatchQuantity)
+                                .keyboardType(.decimalPad)
+                                .accessibilityIdentifier("inventory.batch.quantity")
+                            Text(item.unit.displayName)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     DatePicker(
                         "Expiry Date",
                         selection: $viewModel.draftBatchExpiryDate,
                         displayedComponents: .date
                     )
-                    .accessibilityIdentifier("inventory.batchExpiry.expiryDate")
+                    .accessibilityIdentifier("inventory.batch.expiryDate")
                 }
             }
 
@@ -546,26 +557,26 @@ private struct InventoryBatchExpiryForm: View {
                 Section {
                     Text(errorMessage)
                         .foregroundStyle(.red)
-                        .accessibilityIdentifier("inventory.batchExpiry.error")
+                        .accessibilityIdentifier("inventory.batch.error")
                 }
             }
         }
-        .navigationTitle("Edit Expiry")
+        .navigationTitle("Edit Batch")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
-                    viewModel.cancelEditingBatchExpiry()
+                    viewModel.cancelEditingBatch()
                     isPresented = false
                 }
             }
 
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if viewModel.saveEditedBatchExpiry() {
+                    if viewModel.saveEditedBatch() {
                         isPresented = false
                     }
                 }
-                .accessibilityIdentifier("inventory.batchExpiry.save")
+                .accessibilityIdentifier("inventory.batch.save")
             }
         }
     }
