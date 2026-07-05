@@ -195,14 +195,14 @@ Recommended order slices:
 2. Order Edit And Status Changes
 3. Orders Calendar View
 4. Customer Preferences And Allergy Details
-5. Pricing And Payment Summary
-6. Order Reminders
-7. Order Design References And Photos
-8. Recipe Link From Order
-9. Order Recipe Usage And Inventory Deduction
-10. Order Checklist
-11. iPad Order Layout
-12. Future Consumer Order Preview Model
+5. Order Reminders
+6. Recipe Link From Order
+7. Order Recipe Usage And Inventory Deduction
+8. Order Checklist
+9. iPad Order Layout
+10. Future Consumer Order Preview Model
+11. Order Design References And Photos
+12. Pricing And Payment Summary
 
 Each slice must include its own RFC under `docs/rfc/slices/`, focused tests, and wiki updates when
 owner workflow truth changes.
@@ -226,12 +226,18 @@ The first implementation slice should create the minimum useful order foundation
 This keeps the slice small enough to review while creating a real base for calendar, reminders,
 pricing, and recipe links.
 
+## Decisions
+
+- Due date means delivery time.
+- Delivery address is not mandatory.
+- A draft order only requires customer name.
+- Payment currency should come from an app setting.
+- Customer preferences should link to a separate customer record.
+- The Customer RFC should be implemented before customer preference details are added to orders.
+- Order reminders should be based on due date.
+- Allergy warnings should alert the owner only and should not block order confirmation.
+
 ## Open Questions
 
-- Should due date mean cake ready time, delivery time, or both?
-- Should delivery address be required only for delivery orders?
-- Should a draft order support customer name only, or should contact details be required before confirmation?
-- Should payment currency be an app setting or hard-coded initially for the owner?
-- Should customer preferences be copied into the order as a snapshot or linked to a separate customer record?
-- Should reminders be based on due date, preparation start date, or both?
-- Should allergy warnings block order confirmation or only alert the owner?
+- Should pickup orders also use due date as the pickup time?
+- What fields should move into the Customer RFC before orders link to customer records?
