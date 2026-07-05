@@ -54,7 +54,8 @@ The app currently supports:
 46. customer detail view,
 47. customer duplicate warning,
 48. customer important dates,
-49. unit, integration, and acceptance test lanes.
+49. customer editing from detail,
+50. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
