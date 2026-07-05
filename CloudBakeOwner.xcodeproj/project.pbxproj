@@ -32,6 +32,8 @@
 		410000000000000000000017 /* BakingCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001F /* BakingCatalog.swift */; };
 		410000000000000000000018 /* BakingCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000020 /* BakingCatalogTests.swift */; };
 		410000000000000000000019 /* BakingCatalog.json in Resources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000021 /* BakingCatalog.json */; };
+		41000000000000000000001A /* PurchaseBillDraftParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000022 /* PurchaseBillDraftParser.swift */; };
+		41000000000000000000001B /* PurchaseBillDraftParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000023 /* PurchaseBillDraftParserTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -79,6 +81,8 @@
 		42000000000000000000001F /* BakingCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BakingCatalog.swift; sourceTree = "<group>"; };
 		420000000000000000000020 /* BakingCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BakingCatalogTests.swift; sourceTree = "<group>"; };
 		420000000000000000000021 /* BakingCatalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BakingCatalog.json; sourceTree = "<group>"; };
+		420000000000000000000022 /* PurchaseBillDraftParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseBillDraftParser.swift; sourceTree = "<group>"; };
+		420000000000000000000023 /* PurchaseBillDraftParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseBillDraftParserTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -191,6 +195,7 @@
 			children = (
 				42000000000000000000001F /* BakingCatalog.swift */,
 				420000000000000000000015 /* CoreModels.swift */,
+				420000000000000000000022 /* PurchaseBillDraftParser.swift */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -212,6 +217,7 @@
 			children = (
 				420000000000000000000020 /* BakingCatalogTests.swift */,
 				420000000000000000000018 /* CoreModelsTests.swift */,
+				420000000000000000000023 /* PurchaseBillDraftParserTests.swift */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -426,6 +432,7 @@
 				41000000000000000000000A /* HealthCheckRepository.swift in Sources */,
 				410000000000000000000012 /* InventoryListView.swift in Sources */,
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
+				41000000000000000000001A /* PurchaseBillDraftParser.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -440,6 +447,7 @@
 				410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
 				410000000000000000000016 /* DashboardViewModelTests.swift in Sources */,
+				41000000000000000000001B /* PurchaseBillDraftParserTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
