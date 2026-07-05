@@ -5,6 +5,7 @@ final class CustomerListViewModel: ObservableObject {
     @Published private(set) var customers: [Customer] = []
     @Published private(set) var selectedCustomer: Customer?
     @Published private(set) var selectedCustomerImportantDates: [CustomerImportantDate] = []
+    @Published private(set) var selectedCustomerOrders: [Order] = []
     @Published private(set) var editingCustomer: Customer?
     @Published var draftName = ""
     @Published var draftPhone = ""
@@ -20,13 +21,13 @@ final class CustomerListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var duplicateWarningMessage: String?
 
-    private let repository: any CustomerRepository & CustomerImportantDateRepository
+    private let repository: any CustomerRepository & CustomerImportantDateRepository & OrderRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private var acknowledgedDuplicateKey: String?
 
     init(
-        repository: any CustomerRepository & CustomerImportantDateRepository,
+        repository: any CustomerRepository & CustomerImportantDateRepository & OrderRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init
     ) {
@@ -46,12 +47,13 @@ final class CustomerListViewModel: ObservableObject {
 
     func beginViewingCustomer(_ customer: Customer) {
         selectedCustomer = customer
-        loadSelectedCustomerImportantDates()
+        loadSelectedCustomerDetails()
     }
 
     func closeCustomerDetail() {
         selectedCustomer = nil
         selectedCustomerImportantDates = []
+        selectedCustomerOrders = []
         errorMessage = nil
     }
 
@@ -218,7 +220,7 @@ final class CustomerListViewModel: ObservableObject {
             selectedCustomer = customer
             resetDraft()
             load()
-            loadSelectedCustomerImportantDates()
+            loadSelectedCustomerDetails()
             return true
         } catch {
             errorMessage = "Customer could not be saved."
@@ -230,17 +232,24 @@ final class CustomerListViewModel: ObservableObject {
         resetDraft()
     }
 
-    private func loadSelectedCustomerImportantDates() {
+    private func loadSelectedCustomerDetails() {
         guard let selectedCustomer else {
             selectedCustomerImportantDates = []
+            selectedCustomerOrders = []
             return
         }
 
         do {
             selectedCustomerImportantDates = try repository.fetchCustomerImportantDates(customerId: selectedCustomer.id)
+            selectedCustomerOrders = try repository.fetchOrders()
+                .filter { $0.customerId == selectedCustomer.id }
+                .sorted { lhs, rhs in
+                    lhs.dueAt == rhs.dueAt ? lhs.title < rhs.title : lhs.dueAt < rhs.dueAt
+                }
             errorMessage = nil
         } catch {
             selectedCustomerImportantDates = []
+            selectedCustomerOrders = []
             errorMessage = "Customer details could not be loaded."
         }
     }

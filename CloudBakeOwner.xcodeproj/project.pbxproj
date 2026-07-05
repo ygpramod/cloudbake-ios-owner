@@ -52,6 +52,7 @@
 		41000000000000000000002B /* OrderListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000033 /* OrderListView.swift */; };
 		41000000000000000000002C /* OrderListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000034 /* OrderListViewModel.swift */; };
 		41000000000000000000002D /* OrderListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000035 /* OrderListViewModelTests.swift */; };
+		41000000000000000000002E /* OrderDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000036 /* OrderDisplay.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -119,6 +120,7 @@
 		420000000000000000000033 /* OrderListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListView.swift; sourceTree = "<group>"; };
 		420000000000000000000034 /* OrderListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListViewModel.swift; sourceTree = "<group>"; };
 		420000000000000000000035 /* OrderListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListViewModelTests.swift; sourceTree = "<group>"; };
+		420000000000000000000036 /* OrderDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDisplay.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -266,6 +268,7 @@
 				42000000000000000000001F /* BakingCatalog.swift */,
 				420000000000000000000015 /* CoreModels.swift */,
 				42000000000000000000002D /* InventoryUnitDisplay.swift */,
+				420000000000000000000036 /* OrderDisplay.swift */,
 				420000000000000000000022 /* PurchaseBillDraftParser.swift */,
 				42000000000000000000002B /* RecipeDraftParser.swift */,
 			);
@@ -541,6 +544,7 @@
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
 				41000000000000000000002B /* OrderListView.swift in Sources */,
 				41000000000000000000002C /* OrderListViewModel.swift in Sources */,
+				41000000000000000000002E /* OrderDisplay.swift in Sources */,
 				410000000000000000000025 /* InventoryUnitDisplay.swift in Sources */,
 				41000000000000000000001A /* PurchaseBillDraftParser.swift in Sources */,
 				41000000000000000000001C /* PurchaseBillTextRecognizer.swift in Sources */,

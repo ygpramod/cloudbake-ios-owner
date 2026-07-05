@@ -195,6 +195,31 @@ private struct CustomerDetailView: View {
                     }
                 }
 
+                Section("Orders") {
+                    if viewModel.selectedCustomerOrders.isEmpty {
+                        Text("No linked orders yet")
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("customers.detail.noOrders")
+                    } else {
+                        ForEach(viewModel.selectedCustomerOrders, id: \.id) { order in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(order.title)
+                                    .font(.headline)
+                                    .accessibilityIdentifier("customers.detail.order.title.\(order.id)")
+
+                                HStack {
+                                    Text(order.dueAt.formatted(date: .abbreviated, time: .shortened))
+                                    Text(order.status.displayName)
+                                    Text(order.fulfillmentType.displayName)
+                                }
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            }
+                            .accessibilityIdentifier("customers.detail.order.\(order.id)")
+                        }
+                    }
+                }
+
                 if let errorMessage = viewModel.errorMessage {
                     Section {
                         Text(errorMessage)

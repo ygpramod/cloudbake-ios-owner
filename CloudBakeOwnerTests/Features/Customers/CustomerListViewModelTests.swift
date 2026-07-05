@@ -168,7 +168,7 @@ final class CustomerListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.duplicateWarningMessage)
     }
 
-    func testBeginViewingCustomerLoadsImportantDates() {
+    func testBeginViewingCustomerLoadsImportantDatesAndOrders() {
         let repository = FakeCustomerRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
         let customer = Customer(
@@ -193,13 +193,39 @@ final class CustomerListViewModelTests: XCTestCase {
             createdAt: timestamp,
             updatedAt: timestamp
         )
+        let secondOrder = makeOrder(
+            id: "order-chocolate",
+            customerId: customer.id,
+            title: "Chocolate Anniversary",
+            dueAt: Date(timeIntervalSince1970: 1_800_180_000)
+        )
+        let firstOrder = makeOrder(
+            id: "order-vanilla",
+            customerId: customer.id,
+            title: "Vanilla Birthday",
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        let unrelatedOrder = makeOrder(
+            id: "order-other",
+            customerId: "customer-zoe",
+            title: "Other Cake",
+            dueAt: Date(timeIntervalSince1970: 1_800_120_000)
+        )
         repository.importantDates = [importantDate]
+        repository.orders = [secondOrder, unrelatedOrder, firstOrder]
         let viewModel = CustomerListViewModel(repository: repository)
 
         viewModel.beginViewingCustomer(customer)
 
         XCTAssertEqual(viewModel.selectedCustomer, customer)
         XCTAssertEqual(viewModel.selectedCustomerImportantDates, [importantDate])
+        XCTAssertEqual(viewModel.selectedCustomerOrders, [firstOrder, secondOrder])
+
+        viewModel.closeCustomerDetail()
+
+        XCTAssertNil(viewModel.selectedCustomer)
+        XCTAssertTrue(viewModel.selectedCustomerImportantDates.isEmpty)
+        XCTAssertTrue(viewModel.selectedCustomerOrders.isEmpty)
     }
 
     func testSaveEditedCustomerPersistsFieldsAndPreservesCreatedAt() {
@@ -304,11 +330,35 @@ final class CustomerListViewModelTests: XCTestCase {
         )
         XCTAssertEqual(repository.customers, [amy, zoe])
     }
+
+    private func makeOrder(
+        id: String,
+        customerId: String,
+        title: String,
+        dueAt: Date
+    ) -> Order {
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        return Order(
+            id: id,
+            customerId: customerId,
+            cakeDesignId: nil,
+            title: title,
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: dueAt,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+    }
 }
 
-private final class FakeCustomerRepository: CustomerRepository, CustomerImportantDateRepository {
+private final class FakeCustomerRepository: CustomerRepository, CustomerImportantDateRepository, OrderRepository {
     var customers: [Customer] = []
     var importantDates: [CustomerImportantDate] = []
+    var orders: [Order] = []
 
     func save(_ customer: Customer) throws {
         customers.removeAll { $0.id == customer.id }
@@ -330,5 +380,20 @@ private final class FakeCustomerRepository: CustomerRepository, CustomerImportan
 
     func fetchCustomerImportantDates(customerId: String) throws -> [CustomerImportantDate] {
         importantDates.filter { $0.customerId == customerId }
+    }
+
+    func save(_ order: Order) throws {
+        orders.removeAll { $0.id == order.id }
+        orders.append(order)
+    }
+
+    func fetchOrder(id: String) throws -> Order? {
+        orders.first { $0.id == id }
+    }
+
+    func fetchOrders() throws -> [Order] {
+        orders.sorted { lhs, rhs in
+            lhs.dueAt == rhs.dueAt ? lhs.title < rhs.title : lhs.dueAt < rhs.dueAt
+        }
     }
 }
