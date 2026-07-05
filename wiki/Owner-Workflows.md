@@ -184,27 +184,27 @@ and items with remaining stock expiring within one month.
 
 The dashboard is expected to become more useful as orders, reminders, and recipes are added.
 
-## Future Order Workflow
+## Order Workflow
 
-The order workflow should help the owner track accepted and planned cake work from enquiry through
-completion. `docs/rfc/orders.md` is the base product RFC for this area.
+Use Orders to track accepted or draft cake work from enquiry through delivery. `docs/rfc/orders.md`
+is the base product RFC for this area.
 
-Future order workflow should help the owner track:
+Today, the owner can:
 
-1. customer,
-2. customer likes, dislikes, allergies, and special notes,
-3. cake type,
-4. flavor,
-5. size, servings, and message text,
-6. design reference,
-7. pickup or delivery details,
-8. due date and time,
-9. quoted price, deposit, and balance,
-10. reminders three days, two days, and one day before delivery,
-11. future recipe and inventory usage.
+1. view orders,
+2. add an order,
+3. link an order to an existing customer record when useful,
+4. enter a customer name directly for quick drafts,
+5. capture due date and time,
+6. choose draft or confirmed status,
+7. choose pickup or delivery,
+8. capture optional delivery address,
+9. capture cake notes,
+10. view order detail.
 
-The first order slice should stay small: list orders, add an order, view order detail, and persist
-the foundation locally.
+Future order slices should add edit and status changes, calendar view, allergy and customer
+preference alerts, reminders three days/two days/one day before delivery, recipe links, inventory
+deduction, checklist, design references and photos, and pricing/payment summary.
 
 ## Customer Workflow
 
@@ -225,8 +225,8 @@ work.
 The app warns before saving when a new customer looks like a duplicate. Contacts import can prefill
 contact details, but CloudBake-specific preferences and allergy notes remain owner-entered.
 
-Customer records should be implemented before order slices that depend on customer preferences or
-allergy details.
+Orders can link to customer records today. Future order slices should surface customer preferences
+and allergy details inside order workflows.
 
 ## Future Pricing Workflow
 
