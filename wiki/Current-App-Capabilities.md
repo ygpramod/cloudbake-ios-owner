@@ -38,13 +38,15 @@ The app currently supports:
 30. purchase bill photo library import,
 31. duplicate matching for purchase bill draft save,
 32. local expiry reminder notifications for stock expiring within one month,
-33. unit, integration, and acceptance test lanes.
+33. recipe list,
+34. recipe creation with name and owner notes,
+35. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
-The app has domain foundations for:
+The app has domain foundations or partial workflows for:
 
-1. recipes,
+1. recipe components and ingredients,
 2. orders,
 3. customers,
 4. cake designs,
@@ -64,7 +66,7 @@ These are not all owner-facing workflows yet.
 
 Planned product areas include:
 
-1. recipe storage,
+1. recipe components and ingredients,
 2. recipe-book conversion into app recipes,
 3. recipe-driven inventory reduction,
 4. customer likes, dislikes, allergies, and preferences,

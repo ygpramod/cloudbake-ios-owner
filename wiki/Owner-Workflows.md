@@ -16,6 +16,18 @@ The owner can use inventory to answer:
 
 Today, inventory changes are manual. Recipe-driven stock reduction is future work.
 
+## Recipe Workflow
+
+Use Recipes to start moving trusted cake recipes from the owner's book into CloudBake.
+
+The current recipe workflow stores:
+
+1. recipe name,
+2. owner notes.
+
+This is the first owner-facing recipe slice. Recipe components, ingredients, scaling, recipe-book
+conversion, and recipe-driven inventory reduction are future work.
+
 ## Add Inventory
 
 Use add inventory when a new ingredient or supply needs to be tracked.
