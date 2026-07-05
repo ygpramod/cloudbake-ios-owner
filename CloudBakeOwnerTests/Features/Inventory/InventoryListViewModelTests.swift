@@ -326,6 +326,42 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.batches, [batch])
     }
 
+    func testSaveEditedBatchFailureLeavesItemAndBatchUnchanged() {
+        let repository = FakeInventoryItemRepository()
+        repository.shouldFailBatchCorrectionSave = true
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let batch = InventoryStockBatch(
+            id: "batch-flour-initial",
+            inventoryItemId: item.id,
+            remainingQuantity: 250,
+            expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.items = [item]
+        repository.batches = [batch]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.load()
+        viewModel.beginViewingItem(item)
+        viewModel.beginEditingBatch(batch)
+        viewModel.draftBatchQuantity = "300"
+
+        XCTAssertFalse(viewModel.saveEditedBatch())
+
+        XCTAssertEqual(viewModel.errorMessage, "Stock batch could not be saved.")
+        XCTAssertEqual(repository.items, [item])
+        XCTAssertEqual(repository.batches, [batch])
+    }
+
     func testSaveEditedItemUpdatesExistingItemAndPreservesCreatedAt() {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
@@ -1720,10 +1756,15 @@ private enum TestImageError: Error {
     case unavailable
 }
 
+private enum FakeRepositoryError: Error {
+    case requestedFailure
+}
+
 private final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository {
     var items: [InventoryItem] = []
     var transactions: [InventoryTransaction] = []
     var batches: [InventoryStockBatch] = []
+    var shouldFailBatchCorrectionSave = false
 
     func save(_ item: InventoryItem) throws {
         if let existingIndex = items.firstIndex(where: { $0.id == item.id }) {
@@ -1775,6 +1816,15 @@ private final class FakeInventoryItemRepository: InventoryItemRepository, Invent
         } else {
             batches.append(batch)
         }
+    }
+
+    func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {
+        if shouldFailBatchCorrectionSave {
+            throw FakeRepositoryError.requestedFailure
+        }
+
+        try save(item)
+        try save(batch)
     }
 
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {

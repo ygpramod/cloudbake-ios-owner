@@ -251,31 +251,29 @@ final class InventoryListViewModel: ObservableObject {
         }
 
         let now = dateProvider()
+        let updatedItem = InventoryItem(
+            id: selectedItem.id,
+            name: selectedItem.name,
+            unit: selectedItem.unit,
+            currentQuantity: selectedItem.currentQuantity + quantityDelta,
+            minimumQuantity: selectedItem.minimumQuantity,
+            earliestExpiryAt: selectedItem.earliestExpiryAt,
+            hasExpiredStock: selectedItem.hasExpiredStock,
+            hasExpiringSoonStock: selectedItem.hasExpiringSoonStock,
+            createdAt: selectedItem.createdAt,
+            updatedAt: now
+        )
+        let updatedBatch = InventoryStockBatch(
+            id: editingBatch.id,
+            inventoryItemId: editingBatch.inventoryItemId,
+            remainingQuantity: remainingQuantity,
+            expiresAt: draftBatchExpiryDate,
+            createdAt: editingBatch.createdAt,
+            updatedAt: now
+        )
+
         do {
-            try repository.save(
-                InventoryItem(
-                    id: selectedItem.id,
-                    name: selectedItem.name,
-                    unit: selectedItem.unit,
-                    currentQuantity: selectedItem.currentQuantity + quantityDelta,
-                    minimumQuantity: selectedItem.minimumQuantity,
-                    earliestExpiryAt: selectedItem.earliestExpiryAt,
-                    hasExpiredStock: selectedItem.hasExpiredStock,
-                    hasExpiringSoonStock: selectedItem.hasExpiringSoonStock,
-                    createdAt: selectedItem.createdAt,
-                    updatedAt: now
-                )
-            )
-            try repository.save(
-                InventoryStockBatch(
-                    id: editingBatch.id,
-                    inventoryItemId: editingBatch.inventoryItemId,
-                    remainingQuantity: remainingQuantity,
-                    expiresAt: draftBatchExpiryDate,
-                    createdAt: editingBatch.createdAt,
-                    updatedAt: now
-                )
-            )
+            try repository.saveBatchCorrection(item: updatedItem, batch: updatedBatch)
             resetBatchDraft()
             loadSelectedItemBatches()
             load()
