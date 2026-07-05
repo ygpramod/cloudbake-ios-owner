@@ -70,7 +70,9 @@ struct OrderListView: View {
             NavigationStack {
                 OrderForm(
                     viewModel: viewModel,
-                    isPresented: $isAddingOrder
+                    isPresented: $isAddingOrder,
+                    onCancel: viewModel.cancelAddOrder,
+                    onSave: viewModel.addOrder
                 )
             }
         }
@@ -92,6 +94,7 @@ struct OrderListView: View {
 private struct OrderDetailView: View {
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
+    @State private var isEditingOrder = false
 
     var body: some View {
         List {
@@ -141,6 +144,16 @@ private struct OrderDetailView: View {
         }
         .navigationTitle(viewModel.selectedOrder?.title ?? "Order")
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    viewModel.beginEditingOrder()
+                    isEditingOrder = true
+                } label: {
+                    Label("Edit Order", systemImage: "pencil")
+                }
+                .accessibilityIdentifier("orders.detail.edit")
+            }
+
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
                     isPresented = false
@@ -148,12 +161,44 @@ private struct OrderDetailView: View {
                 .accessibilityIdentifier("orders.detail.done")
             }
         }
+        .sheet(isPresented: $isEditingOrder, onDismiss: viewModel.cancelEditingOrder) {
+            NavigationStack {
+                OrderForm(
+                    title: "Edit Order",
+                    viewModel: viewModel,
+                    isPresented: $isEditingOrder,
+                    statusOptions: OrderStatus.allCases,
+                    onCancel: viewModel.cancelEditingOrder,
+                    onSave: viewModel.saveEditedOrder
+                )
+            }
+        }
     }
 }
 
 private struct OrderForm: View {
+    let title: String
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
+    let statusOptions: [OrderStatus]
+    let onCancel: () -> Void
+    let onSave: () -> Bool
+
+    init(
+        title: String = "Add Order",
+        viewModel: OrderListViewModel,
+        isPresented: Binding<Bool>,
+        statusOptions: [OrderStatus] = OrderStatus.addOptions,
+        onCancel: @escaping () -> Void,
+        onSave: @escaping () -> Bool
+    ) {
+        self.title = title
+        self.viewModel = viewModel
+        _isPresented = isPresented
+        self.statusOptions = statusOptions
+        self.onCancel = onCancel
+        self.onSave = onSave
+    }
 
     var body: some View {
         Form {
@@ -194,7 +239,7 @@ private struct OrderForm: View {
                 .accessibilityIdentifier("orders.form.dueAt")
 
                 Picker("Status", selection: $viewModel.draftStatus) {
-                    ForEach(OrderStatus.formOptions, id: \.self) { status in
+                    ForEach(statusOptions, id: \.self) { status in
                         Text(status.displayName).tag(status)
                     }
                 }
@@ -225,11 +270,11 @@ private struct OrderForm: View {
                 }
             }
         }
-        .navigationTitle("Add Order")
+        .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
-                    viewModel.cancelAddOrder()
+                    onCancel()
                     isPresented = false
                 }
                 .accessibilityIdentifier("orders.form.cancel")
@@ -237,7 +282,7 @@ private struct OrderForm: View {
 
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if viewModel.addOrder() {
+                    if onSave() {
                         isPresented = false
                     }
                 }
@@ -248,7 +293,7 @@ private struct OrderForm: View {
 }
 
 private extension OrderStatus {
-    static let formOptions: [OrderStatus] = [.draft, .confirmed]
+    static let addOptions: [OrderStatus] = [.draft, .confirmed]
 
     var displayName: String {
         switch self {

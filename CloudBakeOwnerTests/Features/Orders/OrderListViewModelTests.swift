@@ -103,6 +103,81 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.selectedOrder)
     }
 
+    func testBeginEditingOrderPrefillsDraft() {
+        let repository = FakeOrderRepository()
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let order = Order(
+            id: "order-vanilla",
+            customerId: "customer-amy",
+            cakeDesignId: nil,
+            title: "Vanilla Birthday",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: dueAt,
+            fulfillmentType: .delivery,
+            deliveryAddress: "10 Cake Street",
+            cakeNotes: "Pink flowers",
+            createdAt: Date(timeIntervalSince1970: 1_800_060_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_060_000)
+        )
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+        viewModel.beginEditingOrder()
+
+        XCTAssertEqual(viewModel.draftTitle, "Vanilla Birthday")
+        XCTAssertEqual(viewModel.draftCustomerName, "Amy")
+        XCTAssertEqual(viewModel.draftCustomerId, "customer-amy")
+        XCTAssertEqual(viewModel.draftDueAt, dueAt)
+        XCTAssertEqual(viewModel.draftStatus, .confirmed)
+        XCTAssertEqual(viewModel.draftFulfillmentType, .delivery)
+        XCTAssertEqual(viewModel.draftDeliveryAddress, "10 Cake Street")
+        XCTAssertEqual(viewModel.draftCakeNotes, "Pink flowers")
+    }
+
+    func testSaveEditedOrderPersistsChangesAndStatusTransition() {
+        let repository = FakeOrderRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_060_000)
+        let updatedAt = Date(timeIntervalSince1970: 1_800_080_000)
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let original = makeOrder(id: "order-vanilla", dueAt: dueAt)
+        repository.orders = [original]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { updatedAt }
+        )
+
+        viewModel.beginViewingOrder(original)
+        viewModel.beginEditingOrder()
+        viewModel.draftTitle = "Chocolate Birthday"
+        viewModel.draftCustomerName = "Amy B"
+        viewModel.draftStatus = .ready
+        viewModel.draftFulfillmentType = .delivery
+        viewModel.draftDeliveryAddress = "11 Cake Street"
+        viewModel.draftCakeNotes = "Add gold leaf"
+
+        XCTAssertTrue(viewModel.saveEditedOrder())
+
+        let expected = Order(
+            id: "order-vanilla",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Chocolate Birthday",
+            customerName: "Amy B",
+            status: .ready,
+            dueAt: dueAt,
+            fulfillmentType: .delivery,
+            deliveryAddress: "11 Cake Street",
+            cakeNotes: "Add gold leaf",
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+        XCTAssertEqual(repository.orders, [expected])
+        XCTAssertEqual(viewModel.selectedOrder, expected)
+        XCTAssertEqual(viewModel.orders, [expected])
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     private func makeOrder(id: String, dueAt: Date) -> Order {
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
         return Order(
