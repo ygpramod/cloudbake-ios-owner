@@ -34,6 +34,12 @@ protocol CakeDesignRepository {
 protocol CustomerRepository {
     func save(_ customer: Customer) throws
     func fetchCustomer(id: String) throws -> Customer?
+    func fetchCustomers() throws -> [Customer]
+}
+
+protocol CustomerImportantDateRepository {
+    func save(_ importantDate: CustomerImportantDate) throws
+    func fetchCustomerImportantDates(customerId: String) throws -> [CustomerImportantDate]
 }
 
 protocol OrderRepository {

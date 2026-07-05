@@ -33,6 +33,27 @@ final class CoreModelsTests: XCTestCase {
         XCTAssertEqual(OrderStatus.confirmed.rawValue, "confirmed")
     }
 
+    func testCustomerRequiresExplicitNameAndPhoneInModel() {
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let customer = Customer(
+            id: "customer-amy",
+            name: "Amy",
+            phone: "5550101",
+            email: nil,
+            address: nil,
+            likes: nil,
+            dislikes: nil,
+            allergies: nil,
+            dietaryRestrictions: nil,
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        XCTAssertEqual(customer.name, "Amy")
+        XCTAssertEqual(customer.phone, "5550101")
+    }
+
     func testInventoryItemIsLowStockWhenCurrentQuantityIsBelowMinimumQuantity() {
         let item = InventoryItem(
             id: "inventory-flour",
