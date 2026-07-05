@@ -103,6 +103,16 @@ bill lines.
 Today the catalog is bundled with the app as `BakingCatalog.json`. Future slices can add an owner
 editing screen or a local editable copy.
 
+## Purchase Bill Drafts
+
+Purchase bill draft parsing turns recognized bill text into inventory draft candidates.
+
+The parser reads bill text line by line, keeps only lines that match the baking catalog, and captures
+common quantity/unit pairs such as `1 kg`, `500g`, `250 ml`, `12 pcs`, `2 tsp`, or `1 cup`.
+
+This is the parsing foundation for scan-to-inventory. Camera scanning, owner review UI, and saving
+drafts into inventory are future slices.
+
 ## Stock Adjustment
 
 Use adjustment to increase stock and keep a transaction record.
@@ -156,12 +166,13 @@ Inventory does not yet support:
 
 1. recipe-driven automatic reduction,
 2. ingredient-density conversion between weight and volume,
-3. purchase bill scanning into inventory drafts,
-4. in-app baking catalog editing,
-5. inventory delete,
-6. supplier tracking,
-7. purchase planning,
-8. editing stock batch quantities directly,
-9. deleting stock batches,
-10. editing unit, current quantity, or expiry from item edit mode,
-11. expiry reminder notifications.
+3. purchase bill scanning UI,
+4. owner review and save flow for purchase bill inventory drafts,
+5. in-app baking catalog editing,
+6. inventory delete,
+7. supplier tracking,
+8. purchase planning,
+9. editing stock batch quantities directly,
+10. deleting stock batches,
+11. editing unit, current quantity, or expiry from item edit mode,
+12. expiry reminder notifications.
