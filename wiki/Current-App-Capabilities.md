@@ -30,7 +30,8 @@ The app currently supports:
 22. compatible unit conversion for stock adjustment and stock usage,
 23. bundled baking catalog config for future purchase bill filtering,
 24. purchase bill text parsing into draft inventory candidates,
-25. unit, integration, and acceptance test lanes.
+25. local Apple Vision OCR service for purchase bill text recognition,
+26. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -44,7 +45,8 @@ The app has domain foundations for:
 6. reminders,
 7. inventory transactions,
 8. purchase bill filtering by baking catalog,
-9. purchase bill draft inventory parsing.
+9. purchase bill draft inventory parsing,
+10. purchase bill text recognition through Apple Vision.
 
 These are not all owner-facing workflows yet.
 
