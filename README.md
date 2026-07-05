@@ -35,6 +35,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0027: Inventory Expiry Reminder Notifications
 - Slice RFC-0028: Recipe List And Add Recipe
 - Slice RFC-0029: Recipe Paper Scan Draft
+- Slice RFC-0030: Recipe Ingredient Rows
 
 ## Engineering Guardrails
 
