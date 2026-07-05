@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     let database: AppDatabase
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack {
@@ -15,6 +16,18 @@ struct RootView: View {
                 }
         }
         .accessibilityIdentifier("app.shell")
+        .task {
+            await refreshExpiryReminders()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else {
+                return
+            }
+
+            Task {
+                await refreshExpiryReminders()
+            }
+        }
     }
 
     @ViewBuilder
@@ -35,6 +48,16 @@ struct RootView: View {
         case .orders, .recipes, .designs, .customers, .settings:
             PlaceholderScreen(destination: destination)
         }
+    }
+
+    private func refreshExpiryReminders() async {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] != "1" else {
+            return
+        }
+
+        await ExpiryReminderScheduler(
+            repository: database.makeCoreDataRepository()
+        ).refreshReminders()
     }
 }
 
