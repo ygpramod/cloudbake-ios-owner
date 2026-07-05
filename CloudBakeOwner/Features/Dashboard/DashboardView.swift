@@ -9,6 +9,11 @@ struct DashboardView: View {
 
     var body: some View {
         List {
+            Section {
+                CloudBakeLogoHeader()
+                    .listRowInsets(EdgeInsets(top: 18, leading: 16, bottom: 18, trailing: 16))
+            }
+
             Section("Today") {
                 DashboardRow(title: "Upcoming orders", detail: "No orders yet")
                 LowInventoryDashboardContent(viewModel: viewModel)
@@ -33,6 +38,31 @@ struct DashboardView: View {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.dashboard.screenAccessibilityIdentifier)
+    }
+}
+
+private struct CloudBakeLogoHeader: View {
+    var body: some View {
+        HStack(spacing: 14) {
+            Image("CloudBakeLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 58, height: 58)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("CloudBake")
+                    .font(.title3.weight(.semibold))
+                Text("Handmade cake studio")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("dashboard.logoHeader")
     }
 }
 
