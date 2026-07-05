@@ -31,6 +31,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0023: Purchase Bill Duplicate Matching
 - Slice RFC-0024: Stock Batch Quantity Edit
 - Slice RFC-0025: Stock Batch Delete
+- Slice RFC-0026: Purchase Bill Photo Retake And Library Import
 
 ## Engineering Guardrails
 
