@@ -555,29 +555,34 @@ private struct InventoryItemDetailView: View {
                     }
                     .accessibilityIdentifier("inventory.detail.edit")
 
-                    Button {
-                        viewModel.beginViewingHistory(item)
-                        isShowingHistory = true
-                    } label: {
-                        Label("History", systemImage: "clock")
-                    }
-                    .accessibilityIdentifier("inventory.detail.history")
+                    Menu {
+                        Button {
+                            viewModel.beginAdjusting(item)
+                            isAdjustingStock = true
+                        } label: {
+                            Label("Adjust Stock", systemImage: "plusminus")
+                        }
+                        .accessibilityIdentifier("inventory.detail.adjust")
 
-                    Button {
-                        viewModel.beginConsuming(item)
-                        isConsumingStock = true
-                    } label: {
-                        Label("Use", systemImage: "minus")
-                    }
-                    .accessibilityIdentifier("inventory.detail.consume")
+                        Button {
+                            viewModel.beginConsuming(item)
+                            isConsumingStock = true
+                        } label: {
+                            Label("Use Stock", systemImage: "minus")
+                        }
+                        .accessibilityIdentifier("inventory.detail.consume")
 
-                    Button {
-                        viewModel.beginAdjusting(item)
-                        isAdjustingStock = true
+                        Button {
+                            viewModel.beginViewingHistory(item)
+                            isShowingHistory = true
+                        } label: {
+                            Label("View History", systemImage: "clock")
+                        }
+                        .accessibilityIdentifier("inventory.detail.history")
                     } label: {
-                        Label("Adjust", systemImage: "plusminus")
+                        Label("More", systemImage: "ellipsis.circle")
                     }
-                    .accessibilityIdentifier("inventory.detail.adjust")
+                    .accessibilityIdentifier("inventory.detail.more")
                 }
             }
         }

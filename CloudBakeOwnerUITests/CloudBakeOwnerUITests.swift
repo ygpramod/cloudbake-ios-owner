@@ -151,7 +151,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: 5))
     }
 
-    func testInventoryDetailShowsStockActionButtons() throws {
+    func testInventoryDetailShowsStockActionsInMoreMenu() throws {
         let app = makeApp()
         app.launch()
 
@@ -161,20 +161,21 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
 
         XCTAssertTrue(app.buttons["inventory.detail.edit"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["inventory.detail.history"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["inventory.detail.consume"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["inventory.detail.adjust"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["inventory.detail.more"].waitForExistence(timeout: 5))
 
+        app.buttons["inventory.detail.more"].tap()
         app.buttons["inventory.detail.adjust"].tap()
         XCTAssertTrue(app.navigationBars["Adjust Stock"].waitForExistence(timeout: 5))
         app.buttons["Cancel"].tap()
         XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
 
+        app.buttons["inventory.detail.more"].tap()
         app.buttons["inventory.detail.consume"].tap()
         XCTAssertTrue(app.navigationBars["Use Stock"].waitForExistence(timeout: 5))
         app.buttons["Cancel"].tap()
         XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
 
+        app.buttons["inventory.detail.more"].tap()
         app.buttons["inventory.detail.history"].tap()
         XCTAssertTrue(app.navigationBars["Stock History"].waitForExistence(timeout: 5))
         app.buttons["inventory.history.done"].tap()
