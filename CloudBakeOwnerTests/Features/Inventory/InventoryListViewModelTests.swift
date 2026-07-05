@@ -362,6 +362,91 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.batches, [batch])
     }
 
+    func testDeleteBatchRemovesBatchAndUpdatesCurrentStock() {
+        let repository = FakeInventoryItemRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let deletedAt = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 250,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let batch = InventoryStockBatch(
+            id: "batch-flour-initial",
+            inventoryItemId: item.id,
+            remainingQuantity: 200,
+            expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.items = [item]
+        repository.batches = [batch]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            dateProvider: { deletedAt }
+        )
+        viewModel.load()
+        viewModel.beginViewingItem(item)
+
+        viewModel.deleteBatch(batch)
+
+        XCTAssertEqual(repository.batches, [])
+        XCTAssertEqual(
+            repository.items,
+            [
+                InventoryItem(
+                    id: "inventory-flour",
+                    name: "Cake flour",
+                    unit: .gram,
+                    currentQuantity: 300,
+                    minimumQuantity: 250,
+                    createdAt: timestamp,
+                    updatedAt: deletedAt
+                )
+            ]
+        )
+        XCTAssertEqual(viewModel.selectedItemBatches, [])
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testDeleteBatchFailureLeavesItemAndBatchUnchanged() {
+        let repository = FakeInventoryItemRepository()
+        repository.shouldFailBatchCorrectionDelete = true
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 250,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let batch = InventoryStockBatch(
+            id: "batch-flour-initial",
+            inventoryItemId: item.id,
+            remainingQuantity: 200,
+            expiresAt: Date(timeIntervalSince1970: 1_800_116_400),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.items = [item]
+        repository.batches = [batch]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.load()
+        viewModel.beginViewingItem(item)
+
+        viewModel.deleteBatch(batch)
+
+        XCTAssertEqual(viewModel.errorMessage, "Stock batch could not be deleted.")
+        XCTAssertEqual(repository.items, [item])
+        XCTAssertEqual(repository.batches, [batch])
+    }
+
     func testSaveEditedItemUpdatesExistingItemAndPreservesCreatedAt() {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
@@ -1765,6 +1850,7 @@ private final class FakeInventoryItemRepository: InventoryItemRepository, Invent
     var transactions: [InventoryTransaction] = []
     var batches: [InventoryStockBatch] = []
     var shouldFailBatchCorrectionSave = false
+    var shouldFailBatchCorrectionDelete = false
 
     func save(_ item: InventoryItem) throws {
         if let existingIndex = items.firstIndex(where: { $0.id == item.id }) {
@@ -1825,6 +1911,15 @@ private final class FakeInventoryItemRepository: InventoryItemRepository, Invent
 
         try save(item)
         try save(batch)
+    }
+
+    func deleteBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {
+        if shouldFailBatchCorrectionDelete {
+            throw FakeRepositoryError.requestedFailure
+        }
+
+        try save(item)
+        batches.removeAll { $0.id == batch.id }
     }
 
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {

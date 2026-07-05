@@ -46,6 +46,7 @@ protocol InventoryTransactionRepository {
 protocol InventoryStockBatchRepository {
     func save(_ batch: InventoryStockBatch) throws
     func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws
+    func deleteBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch]
 }
 
