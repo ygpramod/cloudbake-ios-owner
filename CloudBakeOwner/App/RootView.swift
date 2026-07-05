@@ -45,7 +45,13 @@ struct RootView: View {
                     repository: database.makeCoreDataRepository()
                 )
             )
-        case .orders, .recipes, .designs, .customers, .settings:
+        case .recipes:
+            RecipeListView(
+                viewModel: RecipeListViewModel(
+                    repository: database.makeCoreDataRepository()
+                )
+            )
+        case .orders, .designs, .customers, .settings:
             PlaceholderScreen(destination: destination)
         }
     }
