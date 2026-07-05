@@ -226,7 +226,12 @@ private struct PurchaseBillImportView: View {
             if !viewModel.purchaseBillDrafts.isEmpty {
                 Section("Draft Items") {
                     ForEach($viewModel.purchaseBillDrafts) { $draft in
-                        PurchaseBillDraftRow(draft: $draft)
+                        PurchaseBillDraftRow(
+                            draft: $draft,
+                            onNameChanged: {
+                                viewModel.refreshPurchaseBillDraftMatch(draftId: draft.id)
+                            }
+                        )
                     }
                 }
             }
@@ -335,6 +340,7 @@ private struct PurchaseBillCameraView: UIViewControllerRepresentable {
 
 private struct PurchaseBillDraftRow: View {
     @Binding var draft: PurchaseBillInventoryDraft
+    let onNameChanged: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -359,6 +365,9 @@ private struct PurchaseBillDraftRow: View {
                     .foregroundStyle(.secondary)
                 TextField("Name", text: $draft.name)
                     .textInputAutocapitalization(.words)
+                    .onChange(of: draft.name) {
+                        onNameChanged()
+                    }
                     .accessibilityIdentifier("inventory.purchaseBill.draft.name.\(draft.id)")
             }
 
