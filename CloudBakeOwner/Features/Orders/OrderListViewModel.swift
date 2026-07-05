@@ -5,6 +5,24 @@ struct OrderCalendarDay: Equatable {
     let orders: [Order]
 }
 
+struct OrderReminderPlanItem: Equatable {
+    let offsetDays: Int
+    let remindAt: Date
+
+    var title: String {
+        "\(offsetDays) \(offsetDays == 1 ? "Day" : "Days") Before"
+    }
+}
+
+struct OrderReminderDueGroup: Equatable {
+    let order: Order
+    let reminders: [OrderReminderPlanItem]
+
+    var earliestRemindAt: Date? {
+        reminders.map(\.remindAt).min()
+    }
+}
+
 @MainActor
 final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
@@ -51,6 +69,43 @@ final class OrderListViewModel: ObservableObject {
                     lhs.dueAt == rhs.dueAt ? lhs.title < rhs.title : lhs.dueAt < rhs.dueAt
                 }
             )
+        }
+    }
+
+    var dueReminderGroups: [OrderReminderDueGroup] {
+        let now = dateProvider()
+        return orders
+            .filter(\.hasActiveReminderState)
+            .compactMap { order in
+                let dueReminders = reminderPlan(for: order)
+                    .filter { $0.remindAt <= now }
+
+                guard !dueReminders.isEmpty else {
+                    return nil
+                }
+
+                return OrderReminderDueGroup(order: order, reminders: dueReminders)
+            }
+            .sorted { lhs, rhs in
+                if lhs.earliestRemindAt == rhs.earliestRemindAt {
+                    if lhs.order.dueAt == rhs.order.dueAt {
+                        return lhs.order.title < rhs.order.title
+                    }
+
+                    return lhs.order.dueAt < rhs.order.dueAt
+                }
+
+                return (lhs.earliestRemindAt ?? lhs.order.dueAt) < (rhs.earliestRemindAt ?? rhs.order.dueAt)
+            }
+    }
+
+    func reminderPlan(for order: Order) -> [OrderReminderPlanItem] {
+        [3, 2, 1].compactMap { offsetDays in
+            guard let remindAt = calendar.date(byAdding: .day, value: -offsetDays, to: order.dueAt) else {
+                return nil
+            }
+
+            return OrderReminderPlanItem(offsetDays: offsetDays, remindAt: remindAt)
         }
     }
 
@@ -288,5 +343,11 @@ final class OrderListViewModel: ObservableObject {
         text
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
+    }
+}
+
+private extension Order {
+    var hasActiveReminderState: Bool {
+        status != .completed && status != .cancelled
     }
 }

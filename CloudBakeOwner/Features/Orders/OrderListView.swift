@@ -12,6 +12,21 @@ struct OrderListView: View {
 
     var body: some View {
         List {
+            if !viewModel.dueReminderGroups.isEmpty {
+                Section("Reminders Due") {
+                    ForEach(viewModel.dueReminderGroups, id: \.order.id) { group in
+                        Button {
+                            viewModel.beginViewingOrder(group.order)
+                            isViewingOrder = true
+                        } label: {
+                            OrderReminderDueRow(group: group)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("orders.reminder.\(group.order.id)")
+                    }
+                }
+            }
+
             Section {
                 Picker("Order View", selection: $displayMode) {
                     ForEach(OrderDisplayMode.allCases, id: \.self) { mode in
@@ -173,6 +188,15 @@ private struct OrderDetailView: View {
                     }
                 }
 
+                Section("Reminders") {
+                    ForEach(viewModel.reminderPlan(for: order), id: \.offsetDays) { reminder in
+                        LabeledContent(reminder.title) {
+                            Text(reminder.remindAt.formatted(date: .abbreviated, time: .shortened))
+                                .accessibilityIdentifier("orders.detail.reminder.\(reminder.offsetDays)")
+                        }
+                    }
+                }
+
                 Section("Customer") {
                     LabeledContent("Name") {
                         Text(order.customerName)
@@ -272,6 +296,34 @@ private struct OrderDetailView: View {
                 )
             }
         }
+    }
+}
+
+private struct OrderReminderDueRow: View {
+    let group: OrderReminderDueGroup
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(group.order.title)
+                .font(.headline)
+            Text(reminderSummary)
+                .font(.subheadline)
+                .foregroundStyle(.orange)
+            Text(group.order.dueAt.formatted(date: .abbreviated, time: .shortened))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    private var reminderSummary: String {
+        let offsets = group.reminders
+            .map(\.offsetDays)
+            .map(String.init)
+            .joined(separator: ", ")
+
+        return "\(offsets) Day \(group.reminders.count == 1 ? "Reminder" : "Reminders") Due"
     }
 }
 

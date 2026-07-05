@@ -48,6 +48,80 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
+    func testReminderPlanUsesThreeTwoAndOneDaysBeforeDueDate() {
+        let repository = FakeOrderRepository()
+        let calendar = utcCalendar()
+        let dueAt = Date(timeIntervalSince1970: 1_800_144_000)
+        let order = makeOrder(id: "order-vanilla", dueAt: dueAt)
+        let viewModel = OrderListViewModel(repository: repository, calendar: calendar)
+
+        XCTAssertEqual(
+            viewModel.reminderPlan(for: order),
+            [
+                OrderReminderPlanItem(
+                    offsetDays: 3,
+                    remindAt: calendar.date(byAdding: .day, value: -3, to: dueAt)!
+                ),
+                OrderReminderPlanItem(
+                    offsetDays: 2,
+                    remindAt: calendar.date(byAdding: .day, value: -2, to: dueAt)!
+                ),
+                OrderReminderPlanItem(
+                    offsetDays: 1,
+                    remindAt: calendar.date(byAdding: .day, value: -1, to: dueAt)!
+                )
+            ]
+        )
+    }
+
+    func testDueReminderGroupsIncludeActiveOrdersWithReachedReminderDates() {
+        let repository = FakeOrderRepository()
+        let calendar = utcCalendar()
+        let now = Date(timeIntervalSince1970: 1_800_057_600)
+        let dueInTwoDays = calendar.date(byAdding: .day, value: 2, to: now)!
+        let dueInFourDays = calendar.date(byAdding: .day, value: 4, to: now)!
+        let dueTomorrow = calendar.date(byAdding: .day, value: 1, to: now)!
+        let dueCancelled = calendar.date(byAdding: .day, value: 1, to: now)!
+        let dueCompleted = calendar.date(byAdding: .day, value: 1, to: now)!
+        let activeOrder = makeOrder(id: "order-active", title: "Active Cake", dueAt: dueInTwoDays)
+        let futureOrder = makeOrder(id: "order-future", title: "Future Cake", dueAt: dueInFourDays)
+        let tomorrowOrder = makeOrder(id: "order-tomorrow", title: "Tomorrow Cake", dueAt: dueTomorrow)
+        let cancelledOrder = makeOrder(
+            id: "order-cancelled",
+            title: "Cancelled Cake",
+            status: .cancelled,
+            dueAt: dueCancelled
+        )
+        let completedOrder = makeOrder(
+            id: "order-completed",
+            title: "Completed Cake",
+            status: .completed,
+            dueAt: dueCompleted
+        )
+        repository.orders = [futureOrder, activeOrder, cancelledOrder, completedOrder, tomorrowOrder]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { now },
+            calendar: calendar
+        )
+
+        viewModel.load()
+
+        XCTAssertEqual(
+            viewModel.dueReminderGroups,
+            [
+                OrderReminderDueGroup(
+                    order: tomorrowOrder,
+                    reminders: viewModel.reminderPlan(for: tomorrowOrder)
+                ),
+                OrderReminderDueGroup(
+                    order: activeOrder,
+                    reminders: Array(viewModel.reminderPlan(for: activeOrder).prefix(2))
+                )
+            ]
+        )
+    }
+
     func testAddOrderPersistsRequiredAndOptionalFields() {
         let repository = FakeOrderRepository()
         let now = Date(timeIntervalSince1970: 1_800_060_000)
@@ -322,6 +396,7 @@ final class OrderListViewModelTests: XCTestCase {
         id: String,
         title: String = "Vanilla Birthday",
         customerId: String? = nil,
+        status: OrderStatus = .draft,
         dueAt: Date
     ) -> Order {
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
@@ -331,7 +406,7 @@ final class OrderListViewModelTests: XCTestCase {
             cakeDesignId: nil,
             title: title,
             customerName: "Amy",
-            status: .draft,
+            status: status,
             dueAt: dueAt,
             fulfillmentType: .pickup,
             deliveryAddress: nil,
