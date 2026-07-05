@@ -1233,6 +1233,147 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.historyTransactions, [])
         XCTAssertNil(viewModel.errorMessage)
     }
+
+    func testCreatePurchaseBillDraftsFromRecognizedText() {
+        var ids = ["draft-flour", "draft-butter"]
+        let viewModel = InventoryListViewModel(
+            repository: FakeInventoryItemRepository(),
+            idGenerator: { ids.removeFirst() }
+        )
+        viewModel.purchaseBillRecognizedText = """
+        Cake Flour 1 kg
+        Laundry Detergent 1 L
+        Unsalted Butter 500 g
+        """
+
+        XCTAssertTrue(viewModel.createPurchaseBillDrafts(catalog: purchaseBillCatalog))
+
+        XCTAssertEqual(
+            viewModel.purchaseBillDrafts,
+            [
+                PurchaseBillInventoryDraft(
+                    id: "draft-flour",
+                    sourceLine: "Cake Flour 1 kg",
+                    name: "Cake Flour",
+                    quantityText: "1",
+                    unit: .kilogram,
+                    minimumQuantityText: "0",
+                    expiryDate: viewModel.purchaseBillDrafts[0].expiryDate,
+                    isSelected: true
+                ),
+                PurchaseBillInventoryDraft(
+                    id: "draft-butter",
+                    sourceLine: "Unsalted Butter 500 g",
+                    name: "Butter",
+                    quantityText: "500",
+                    unit: .gram,
+                    minimumQuantityText: "0",
+                    expiryDate: viewModel.purchaseBillDrafts[1].expiryDate,
+                    isSelected: true
+                )
+            ]
+        )
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testCreatePurchaseBillDraftsShowsErrorWhenNoBakingItemsMatch() {
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+        viewModel.purchaseBillRecognizedText = "Laundry Detergent 1 L"
+
+        XCTAssertFalse(viewModel.createPurchaseBillDrafts(catalog: purchaseBillCatalog))
+
+        XCTAssertEqual(viewModel.purchaseBillDrafts, [])
+        XCTAssertEqual(viewModel.errorMessage, "No baking inventory items were found in the bill text.")
+    }
+
+    func testSavePurchaseBillDraftsPersistsSelectedDraftsWithStockBatches() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        let expiry = Date(timeIntervalSince1970: 1_800_116_400)
+        var ids = ["inventory-flour", "batch-flour"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.purchaseBillDrafts = [
+            PurchaseBillInventoryDraft(
+                id: "draft-flour",
+                sourceLine: "Cake Flour 1 kg",
+                name: "Cake Flour",
+                quantityText: "1",
+                unit: .kilogram,
+                minimumQuantityText: "0.5",
+                expiryDate: expiry,
+                isSelected: true
+            ),
+            PurchaseBillInventoryDraft(
+                id: "draft-butter",
+                sourceLine: "Butter 500 g",
+                name: "Butter",
+                quantityText: "500",
+                unit: .gram,
+                minimumQuantityText: "0",
+                expiryDate: expiry,
+                isSelected: false
+            )
+        ]
+
+        XCTAssertTrue(viewModel.savePurchaseBillDrafts())
+
+        XCTAssertEqual(
+            repository.items,
+            [
+                InventoryItem(
+                    id: "inventory-flour",
+                    name: "Cake Flour",
+                    unit: .kilogram,
+                    currentQuantity: 1,
+                    minimumQuantity: 0.5,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            ]
+        )
+        XCTAssertEqual(
+            repository.batches,
+            [
+                InventoryStockBatch(
+                    id: "batch-flour",
+                    inventoryItemId: "inventory-flour",
+                    remainingQuantity: 1,
+                    expiresAt: expiry,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            ]
+        )
+        XCTAssertEqual(viewModel.purchaseBillDrafts.count, 2)
+        XCTAssertEqual(viewModel.items, repository.items)
+    }
+
+    func testSavePurchaseBillDraftsRejectsInvalidQuantityWithoutSaving() {
+        let repository = FakeInventoryItemRepository()
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.purchaseBillDrafts = [
+            PurchaseBillInventoryDraft(
+                id: "draft-flour",
+                sourceLine: "Cake Flour",
+                name: "Cake Flour",
+                quantityText: "",
+                unit: .gram,
+                minimumQuantityText: "0",
+                expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
+                isSelected: true
+            )
+        ]
+
+        XCTAssertFalse(viewModel.savePurchaseBillDrafts())
+
+        XCTAssertEqual(viewModel.errorMessage, "Draft quantity must be zero or greater.")
+        XCTAssertEqual(repository.items, [])
+        XCTAssertEqual(repository.batches, [])
+    }
 }
 
 private final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository {
@@ -1313,3 +1454,18 @@ private final class FakeInventoryItemRepository: InventoryItemRepository, Invent
             }
     }
 }
+
+private let purchaseBillCatalog = [
+    BakingCatalogItem(
+        name: "Cake Flour",
+        aliases: ["flour"],
+        category: "Ingredient",
+        active: true
+    ),
+    BakingCatalogItem(
+        name: "Butter",
+        aliases: ["unsalted butter"],
+        category: "Ingredient",
+        active: true
+    )
+]
