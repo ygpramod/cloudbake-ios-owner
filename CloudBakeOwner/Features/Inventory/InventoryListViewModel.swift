@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 @MainActor
@@ -27,6 +28,7 @@ final class InventoryListViewModel: ObservableObject {
     @Published var draftConsumptionNote = ""
     @Published var purchaseBillRecognizedText = ""
     @Published var purchaseBillDrafts: [PurchaseBillInventoryDraft] = []
+    @Published private(set) var isRecognizingPurchaseBill = false
     @Published private(set) var historyItem: InventoryItem?
     @Published private(set) var historyTransactions: [InventoryTransaction] = []
 
@@ -487,6 +489,27 @@ final class InventoryListViewModel: ObservableObject {
         }
         errorMessage = nil
         return true
+    }
+
+    func recognizePurchaseBillImage(
+        _ image: CGImage,
+        recognizer: PurchaseBillTextRecognizing,
+        catalog: [BakingCatalogItem]
+    ) async -> Bool {
+        isRecognizingPurchaseBill = true
+        errorMessage = nil
+        defer {
+            isRecognizingPurchaseBill = false
+        }
+
+        do {
+            purchaseBillRecognizedText = try await recognizer.recognizedText(from: image)
+            return createPurchaseBillDrafts(catalog: catalog)
+        } catch {
+            purchaseBillDrafts = []
+            errorMessage = "The bill photo could not be read. Try another photo or enter the bill text manually."
+            return false
+        }
     }
 
     func savePurchaseBillDrafts() -> Bool {

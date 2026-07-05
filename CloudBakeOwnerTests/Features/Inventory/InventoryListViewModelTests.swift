@@ -1,3 +1,4 @@
+import CoreGraphics
 import XCTest
 @testable import CloudBakeOwner
 
@@ -1286,6 +1287,58 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, "No baking inventory items were found in the bill text.")
     }
 
+    func testRecognizePurchaseBillImageCreatesDraftsFromRecognizedText() async throws {
+        var ids = ["draft-flour"]
+        let viewModel = InventoryListViewModel(
+            repository: FakeInventoryItemRepository(),
+            idGenerator: { ids.removeFirst() }
+        )
+
+        let didCreateDrafts = await viewModel.recognizePurchaseBillImage(
+            try makeTestCGImage(),
+            recognizer: FakePurchaseBillTextRecognizer(result: .success("Cake Flour 1 kg")),
+            catalog: purchaseBillCatalog
+        )
+
+        XCTAssertTrue(didCreateDrafts)
+
+        XCTAssertFalse(viewModel.isRecognizingPurchaseBill)
+        XCTAssertEqual(viewModel.purchaseBillRecognizedText, "Cake Flour 1 kg")
+        XCTAssertEqual(viewModel.purchaseBillDrafts.map(\.name), ["Cake Flour"])
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testRecognizePurchaseBillImageShowsErrorWhenOCRFails() async throws {
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+        viewModel.purchaseBillDrafts = [
+            PurchaseBillInventoryDraft(
+                id: "stale-draft",
+                sourceLine: "Cake Flour 1 kg",
+                name: "Cake Flour",
+                quantityText: "1",
+                unit: .kilogram,
+                minimumQuantityText: "0",
+                expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
+                isSelected: true
+            )
+        ]
+
+        let didCreateDrafts = await viewModel.recognizePurchaseBillImage(
+            try makeTestCGImage(),
+            recognizer: FakePurchaseBillTextRecognizer(result: .failure(PurchaseBillTextRecognitionError.unreadableResult)),
+            catalog: purchaseBillCatalog
+        )
+
+        XCTAssertFalse(didCreateDrafts)
+
+        XCTAssertFalse(viewModel.isRecognizingPurchaseBill)
+        XCTAssertEqual(viewModel.purchaseBillDrafts, [])
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "The bill photo could not be read. Try another photo or enter the bill text manually."
+        )
+    }
+
     func testSavePurchaseBillDraftsPersistsSelectedDraftsWithStockBatches() {
         let repository = FakeInventoryItemRepository()
         let now = Date(timeIntervalSince1970: 1_800_030_000)
@@ -1374,6 +1427,35 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.items, [])
         XCTAssertEqual(repository.batches, [])
     }
+}
+
+private struct FakePurchaseBillTextRecognizer: PurchaseBillTextRecognizing {
+    let result: Result<String, Error>
+
+    func recognizedText(from image: CGImage) async throws -> String {
+        try result.get()
+    }
+}
+
+private func makeTestCGImage() throws -> CGImage {
+    guard let context = CGContext(
+        data: nil,
+        width: 1,
+        height: 1,
+        bitsPerComponent: 8,
+        bytesPerRow: 4,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ),
+    let image = context.makeImage() else {
+        throw TestImageError.unavailable
+    }
+
+    return image
+}
+
+private enum TestImageError: Error {
+    case unavailable
 }
 
 private final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository {
