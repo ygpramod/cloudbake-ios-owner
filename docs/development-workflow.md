@@ -54,6 +54,9 @@ Keep the acceptance lane focused on critical owner journeys. When a slice adds d
 behavior, prefer unit or integration tests for the detailed cases and update an existing journey only
 when the owner-facing workflow changes.
 
+GitHub Actions time-boxes the unit/integration job and the acceptance UI job so stuck simulator
+automation fails clearly instead of blocking a pull request indefinitely.
+
 ## Main Branch Protection
 
 `main` should be protected in GitHub with these rules:

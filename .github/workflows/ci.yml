@@ -10,6 +10,7 @@ jobs:
   unit-integration-tests:
     name: Unit and Integration Tests
     runs-on: macos-15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -35,6 +36,7 @@ jobs:
   acceptance-tests:
     name: Acceptance UI Tests
     runs-on: macos-15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout

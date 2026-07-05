@@ -24,6 +24,9 @@ CI runs two jobs:
 - `Unit and Integration Tests` runs the `CloudBakeOwnerUnitIntegration` scheme.
 - `Acceptance UI Tests` runs the `CloudBakeOwnerAcceptance` scheme.
 
+Both CI jobs are time-boxed. This keeps hosted-runner simulator hangs visible as CI failures instead
+of leaving pull requests permanently pending.
+
 Local development should usually start with the unit/integration lane:
 
 ```sh
@@ -42,6 +45,7 @@ Implementation pull requests still require acceptance confidence through either 
 - The split must not weaken the definition of done for implementation slices.
 - The workflow must stay compatible with GitHub-hosted macOS runners.
 - Simulator selection should remain dynamic in CI to avoid pinning to a runner-specific device name.
+- CI jobs should fail clearly when a simulator or UI automation run is stuck.
 
 ## Acceptance Criteria
 
