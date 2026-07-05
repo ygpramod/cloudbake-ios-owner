@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct InventoryListView: View {
     @StateObject private var viewModel: InventoryListViewModel
@@ -173,20 +174,51 @@ private struct PurchaseBillImportView: View {
     @ObservedObject var viewModel: InventoryListViewModel
     @Binding var isPresented: Bool
     @Environment(\.dismiss) private var dismiss
+    @State private var isShowingCamera = false
+    @State private var hasOfferedCamera = false
+
+    private let recognizer: PurchaseBillTextRecognizing
+    private let catalogProvider: () -> [BakingCatalogItem]
+
+    init(
+        viewModel: InventoryListViewModel,
+        isPresented: Binding<Bool>,
+        recognizer: PurchaseBillTextRecognizing = VisionPurchaseBillTextRecognizer(),
+        catalogProvider: @escaping () -> [BakingCatalogItem] = { (try? BakingCatalog.loadBundledCatalog()) ?? [] }
+    ) {
+        self.viewModel = viewModel
+        _isPresented = isPresented
+        self.recognizer = recognizer
+        self.catalogProvider = catalogProvider
+    }
 
     var body: some View {
         Form {
+            Section("Bill Photo") {
+                Button {
+                    isShowingCamera = true
+                } label: {
+                    Label("Take Bill Photo", systemImage: "camera")
+                }
+                .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera) || viewModel.isRecognizingPurchaseBill)
+                .accessibilityIdentifier("inventory.purchaseBill.camera")
+
+                if viewModel.isRecognizingPurchaseBill {
+                    ProgressView("Reading bill")
+                        .accessibilityIdentifier("inventory.purchaseBill.recognizing")
+                }
+            }
+
             Section("Bill Text") {
-                TextEditor(text: $viewModel.purchaseBillRecognizedText)
-                    .frame(minHeight: 140)
+                TextField("Bill Text", text: $viewModel.purchaseBillRecognizedText)
                     .accessibilityIdentifier("inventory.purchaseBill.text")
 
                 Button {
-                    let catalog = (try? BakingCatalog.loadBundledCatalog()) ?? []
-                    _ = viewModel.createPurchaseBillDrafts(catalog: catalog)
+                    _ = viewModel.createPurchaseBillDrafts(catalog: catalogProvider())
                 } label: {
                     Label("Create Drafts", systemImage: "wand.and.stars")
                 }
+                .disabled(viewModel.isRecognizingPurchaseBill)
                 .accessibilityIdentifier("inventory.purchaseBill.createDrafts")
             }
 
@@ -225,6 +257,77 @@ private struct PurchaseBillImportView: View {
                 .disabled(viewModel.purchaseBillDrafts.isEmpty)
                 .accessibilityIdentifier("inventory.purchaseBill.save")
             }
+        }
+        .onAppear {
+            guard UIImagePickerController.isSourceTypeAvailable(.camera), !hasOfferedCamera else {
+                return
+            }
+            hasOfferedCamera = true
+            isShowingCamera = true
+        }
+        .fullScreenCover(isPresented: $isShowingCamera) {
+            PurchaseBillCameraView { image in
+                guard let cgImage = image.cgImage else {
+                    viewModel.errorMessage = "The bill photo could not be read. Try another photo or enter the bill text manually."
+                    return
+                }
+
+                Task {
+                    _ = await viewModel.recognizePurchaseBillImage(
+                        cgImage,
+                        recognizer: recognizer,
+                        catalog: catalogProvider()
+                    )
+                }
+            }
+            .ignoresSafeArea()
+        }
+    }
+}
+
+private struct PurchaseBillCameraView: UIViewControllerRepresentable {
+    let onImageCaptured: (UIImage) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.cameraCaptureMode = .photo
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onImageCaptured: onImageCaptured, dismiss: dismiss)
+    }
+
+    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        private let onImageCaptured: (UIImage) -> Void
+        private let dismiss: DismissAction
+
+        init(onImageCaptured: @escaping (UIImage) -> Void, dismiss: DismissAction) {
+            self.onImageCaptured = onImageCaptured
+            self.dismiss = dismiss
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            defer {
+                dismiss()
+            }
+
+            guard let image = info[.originalImage] as? UIImage else {
+                return
+            }
+            onImageCaptured(image)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            dismiss()
         }
     }
 }
