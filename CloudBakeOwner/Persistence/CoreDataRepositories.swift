@@ -45,6 +45,7 @@ protocol CustomerImportantDateRepository {
 protocol OrderRepository {
     func save(_ order: Order) throws
     func fetchOrder(id: String) throws -> Order?
+    func fetchOrders() throws -> [Order]
 }
 
 protocol InventoryTransactionRepository {

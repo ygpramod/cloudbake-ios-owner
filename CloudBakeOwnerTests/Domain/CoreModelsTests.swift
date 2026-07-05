@@ -31,6 +31,12 @@ final class CoreModelsTests: XCTestCase {
     func testOrderStatusStartsWithDraftAndConfirmedStates() {
         XCTAssertEqual(OrderStatus.draft.rawValue, "draft")
         XCTAssertEqual(OrderStatus.confirmed.rawValue, "confirmed")
+        XCTAssertEqual(OrderStatus.inProgress.rawValue, "inProgress")
+        XCTAssertEqual(OrderStatus.ready.rawValue, "ready")
+        XCTAssertEqual(OrderStatus.completed.rawValue, "completed")
+        XCTAssertEqual(OrderStatus.cancelled.rawValue, "cancelled")
+        XCTAssertEqual(OrderFulfillmentType.pickup.rawValue, "pickup")
+        XCTAssertEqual(OrderFulfillmentType.delivery.rawValue, "delivery")
     }
 
     func testCustomerRequiresExplicitNameAndPhoneInModel() {
