@@ -49,7 +49,12 @@ The app currently supports:
 41. structured recipe import drafts with parsed ingredient rows,
 42. simple inventory matching for imported recipe ingredients,
 43. recipe name and notes editing from recipe detail,
-44. unit, integration, and acceptance test lanes.
+44. customer list,
+45. manual customer creation,
+46. customer detail view,
+47. customer duplicate warning,
+48. customer important dates,
+49. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -57,18 +62,18 @@ The app has domain foundations or partial workflows for:
 
 1. recipe components and ingredients,
 2. orders,
-3. customers,
-4. cake designs,
-5. pricing,
-6. order delivery reminders,
-7. inventory transactions,
-8. purchase bill filtering by baking catalog,
-9. purchase bill draft inventory parsing,
-10. purchase bill text recognition through Apple Vision,
-11. purchase bill draft review flow,
-12. purchase bill camera import flow,
-13. purchase bill duplicate matching,
-14. recipe ingredient quantity extraction.
+3. cake designs,
+4. pricing,
+5. order delivery reminders,
+6. inventory transactions,
+7. purchase bill filtering by baking catalog,
+8. purchase bill draft inventory parsing,
+9. purchase bill text recognition through Apple Vision,
+10. purchase bill draft review flow,
+11. purchase bill camera import flow,
+12. purchase bill duplicate matching,
+13. recipe ingredient quantity extraction,
+14. Contacts import for customers.
 
 These are not all owner-facing workflows yet.
 
@@ -79,7 +84,7 @@ Planned product areas include:
 1. stronger OCR cleanup and page correction for scanned recipes,
 2. optional LLM-assisted recipe interpretation,
 3. recipe-driven inventory reduction,
-4. customer likes, dislikes, allergies, and preferences,
+4. Contacts import for customers,
 5. order calendar,
 6. delivery reminders,
 7. cake photo storage,
