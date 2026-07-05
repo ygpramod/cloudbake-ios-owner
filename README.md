@@ -38,6 +38,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0030: Recipe Ingredient Rows
 - Slice RFC-0031: Structured Recipe Import Draft
 - Slice RFC-0032: Recipe Detail Edit
+- Slice RFC-0033: Inventory Detail Actions
 
 ## Engineering Guardrails
 
