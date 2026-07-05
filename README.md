@@ -42,6 +42,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 
 ## Base RFCs
 
+- Customers: `docs/rfc/customers.md`
 - Orders: `docs/rfc/orders.md`
 
 ## Engineering Guardrails

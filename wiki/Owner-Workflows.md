@@ -206,6 +206,19 @@ Future order workflow should help the owner track:
 The first order slice should stay small: list orders, add an order, view order detail, and persist
 the foundation locally.
 
+## Future Customer Workflow
+
+The customer workflow should help the owner remember customer contact details, likes, dislikes,
+allergies, dietary restrictions, and order history. `docs/rfc/customers.md` is the base product RFC
+for this area.
+
+When adding a customer, the owner should be asked whether to import from Contacts. Contacts import
+should prefill available contact details into an editable draft, but CloudBake-specific preferences
+and allergy notes should remain owner-entered.
+
+Customer records should be implemented before order slices that depend on customer preferences or
+allergy details.
+
 ## Future Pricing Workflow
 
 Future pricing should help calculate a suggested price, but the final input must remain owner
