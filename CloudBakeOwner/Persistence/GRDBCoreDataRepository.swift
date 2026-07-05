@@ -19,31 +19,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 
     func save(_ item: InventoryItem) throws {
         try writer.write { db in
-            try db.execute(
-                sql: """
-                    INSERT INTO inventory_items
-                    (id, name, unit, current_quantity, minimum_quantity, created_at_unix_time, updated_at_unix_time, archived_at_unix_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(id) DO UPDATE SET
-                    name = excluded.name,
-                    unit = excluded.unit,
-                    current_quantity = excluded.current_quantity,
-                    minimum_quantity = excluded.minimum_quantity,
-                    created_at_unix_time = excluded.created_at_unix_time,
-                    updated_at_unix_time = excluded.updated_at_unix_time,
-                    archived_at_unix_time = excluded.archived_at_unix_time
-                    """,
-                arguments: arguments([
-                    item.id,
-                    item.name,
-                    item.unit.rawValue,
-                    item.currentQuantity,
-                    item.minimumQuantity,
-                    item.createdAt.timeIntervalSince1970,
-                    item.updatedAt.timeIntervalSince1970,
-                    item.archivedAt?.timeIntervalSince1970
-                ])
-            )
+            try save(item, in: db)
         }
     }
 
@@ -377,27 +353,14 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 
     func save(_ batch: InventoryStockBatch) throws {
         try writer.write { db in
-            try db.execute(
-                sql: """
-                    INSERT INTO inventory_stock_batches
-                    (id, inventory_item_id, remaining_quantity, expires_at_unix_time, created_at_unix_time, updated_at_unix_time)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(id) DO UPDATE SET
-                    inventory_item_id = excluded.inventory_item_id,
-                    remaining_quantity = excluded.remaining_quantity,
-                    expires_at_unix_time = excluded.expires_at_unix_time,
-                    created_at_unix_time = excluded.created_at_unix_time,
-                    updated_at_unix_time = excluded.updated_at_unix_time
-                    """,
-                arguments: arguments([
-                    batch.id,
-                    batch.inventoryItemId,
-                    batch.remainingQuantity,
-                    batch.expiresAt?.timeIntervalSince1970,
-                    batch.createdAt.timeIntervalSince1970,
-                    batch.updatedAt.timeIntervalSince1970
-                ])
-            )
+            try save(batch, in: db)
+        }
+    }
+
+    func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {
+        try writer.write { db in
+            try save(item, in: db)
+            try save(batch, in: db)
         }
     }
 
@@ -558,5 +521,59 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 
     private func optionalDate(_ timeInterval: Double?) -> Date? {
         timeInterval.map(Date.init(timeIntervalSince1970:))
+    }
+}
+
+private extension GRDBCoreDataRepository {
+    func save(_ item: InventoryItem, in db: Database) throws {
+        try db.execute(
+            sql: """
+                INSERT INTO inventory_items
+                (id, name, unit, current_quantity, minimum_quantity, created_at_unix_time, updated_at_unix_time, archived_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                unit = excluded.unit,
+                current_quantity = excluded.current_quantity,
+                minimum_quantity = excluded.minimum_quantity,
+                created_at_unix_time = excluded.created_at_unix_time,
+                updated_at_unix_time = excluded.updated_at_unix_time,
+                archived_at_unix_time = excluded.archived_at_unix_time
+                """,
+            arguments: arguments([
+                item.id,
+                item.name,
+                item.unit.rawValue,
+                item.currentQuantity,
+                item.minimumQuantity,
+                item.createdAt.timeIntervalSince1970,
+                item.updatedAt.timeIntervalSince1970,
+                item.archivedAt?.timeIntervalSince1970
+            ])
+        )
+    }
+
+    func save(_ batch: InventoryStockBatch, in db: Database) throws {
+        try db.execute(
+            sql: """
+                INSERT INTO inventory_stock_batches
+                (id, inventory_item_id, remaining_quantity, expires_at_unix_time, created_at_unix_time, updated_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                inventory_item_id = excluded.inventory_item_id,
+                remaining_quantity = excluded.remaining_quantity,
+                expires_at_unix_time = excluded.expires_at_unix_time,
+                created_at_unix_time = excluded.created_at_unix_time,
+                updated_at_unix_time = excluded.updated_at_unix_time
+                """,
+            arguments: arguments([
+                batch.id,
+                batch.inventoryItemId,
+                batch.remainingQuantity,
+                batch.expiresAt?.timeIntervalSince1970,
+                batch.createdAt.timeIntervalSince1970,
+                batch.updatedAt.timeIntervalSince1970
+            ])
+        )
     }
 }

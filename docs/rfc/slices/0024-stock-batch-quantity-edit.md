@@ -24,6 +24,7 @@ inventory item.
 - Allow editing remaining batch quantity.
 - Keep expiry editing in the same flow.
 - Update the parent inventory item's current quantity by the batch quantity delta.
+- Save the batch correction and parent inventory item update atomically.
 - Reject invalid negative quantities.
 - Add unit and impacted acceptance coverage.
 - Update README and wiki documentation.
@@ -41,13 +42,17 @@ inventory item.
 - A batch quantity cannot be negative.
 - Saving a batch quantity change must update current inventory stock by the same delta.
 - Saving an expiry-only change must keep current stock unchanged.
+- Saving a batch correction must not leave the parent item and stock batch out of sync if persistence fails.
 
 ## Design
 
 `InventoryListViewModel.beginEditingBatch(_:)` prepares editable draft quantity and expiry state.
 
-`InventoryListViewModel.saveEditedBatch()` validates quantity, updates the selected inventory item by
-the batch quantity delta, then saves the updated stock batch.
+`InventoryListViewModel.saveEditedBatch()` validates quantity and asks the repository to save the
+selected inventory item quantity delta and updated stock batch as one correction.
+
+`InventoryStockBatchRepository.saveBatchCorrection(item:batch:)` keeps the parent item update and
+batch update atomic in GRDB.
 
 The item detail sheet uses `InventoryBatchForm`, replacing the previous expiry-only form.
 
@@ -56,6 +61,7 @@ The item detail sheet uses `InventoryBatchForm`, replacing the previous expiry-o
 - Unit tests:
   - Editing quantity and expiry updates both the batch and current stock.
   - Negative quantity rejects without writes.
+  - Persistence failure leaves the parent item and batch unchanged.
 
 - Acceptance tests:
   - Existing inventory detail flow opens Edit Batch and exposes quantity plus expiry controls.

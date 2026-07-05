@@ -1180,6 +1180,11 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository, Inv
         }
     }
 
+    func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {
+        try save(item)
+        try save(batch)
+    }
+
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
         batches
             .filter { $0.inventoryItemId == inventoryItemId }
