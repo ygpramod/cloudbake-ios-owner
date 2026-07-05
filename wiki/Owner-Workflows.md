@@ -186,15 +186,25 @@ The dashboard is expected to become more useful as orders, reminders, and recipe
 
 ## Future Order Workflow
 
+The order workflow should help the owner track accepted and planned cake work from enquiry through
+completion. `docs/rfc/orders.md` is the base product RFC for this area.
+
 Future order workflow should help the owner track:
 
 1. customer,
-2. cake type,
-3. flavor,
-4. design reference,
-5. due date,
-6. delivery date,
-7. reminders three days, two days, and one day before delivery.
+2. customer likes, dislikes, allergies, and special notes,
+3. cake type,
+4. flavor,
+5. size, servings, and message text,
+6. design reference,
+7. pickup or delivery details,
+8. due date and time,
+9. quoted price, deposit, and balance,
+10. reminders three days, two days, and one day before delivery,
+11. future recipe and inventory usage.
+
+The first order slice should stay small: list orders, add an order, view order detail, and persist
+the foundation locally.
 
 ## Future Pricing Workflow
 
