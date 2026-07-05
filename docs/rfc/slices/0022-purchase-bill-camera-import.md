@@ -35,7 +35,6 @@ the recognized bill text.
 - Photo library import.
 - Multi-page bill capture.
 - Cropping, perspective correction, or document-edge detection.
-- Duplicate matching during draft save.
 - Merging scanned drafts into existing inventory.
 - Supplier, price, tax, or payment metadata extraction.
 
