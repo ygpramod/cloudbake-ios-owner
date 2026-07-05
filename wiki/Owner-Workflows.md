@@ -193,7 +193,7 @@ Today, the owner can:
 
 1. view orders in List or Calendar mode,
 2. add an order,
-3. link an order to an existing customer record when useful,
+3. search and link an order to an existing customer record when useful,
 4. enter a customer name directly for quick drafts,
 5. capture due date and time,
 6. choose draft or confirmed status,
@@ -208,6 +208,9 @@ Today, the owner can:
     detail.
 
 Calendar mode groups orders by due date and opens the same order detail screen as List mode.
+
+Customer record selection opens from the order form. The owner can search customers by name, phone,
+email, or address, select a saved customer, or clear the link and keep manually entered order text.
 
 Linked customer details remain owner-facing context. The order keeps a customer name snapshot for
 the order itself, while allergies and longer-term preferences continue to come from the customer
@@ -237,7 +240,8 @@ contact details, but CloudBake-specific preferences and allergy notes remain own
 
 Orders can link to customer records today. Linked order detail surfaces saved customer preferences
 and allergy details for owner review. Customer detail also shows linked orders in due-date order so
-the owner can review a customer's cake history from the customer record.
+the owner can review a customer's cake history from the customer record. Order add/edit uses a
+searchable customer selection flow so saved customers remain usable as the list grows.
 
 ## Future Pricing Workflow
 

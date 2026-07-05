@@ -157,6 +157,8 @@ presentation inside order detail is implemented in
 `docs/rfc/slices/0040-order-customer-preferences.md`.
 Customer order history in customer detail is implemented in
 `docs/rfc/slices/0041-customer-order-history.md`.
+Searchable customer record selection from the order form is implemented in
+`docs/rfc/slices/0042-order-customer-search-selection.md`.
 
 ## Owner Experience
 
@@ -214,8 +216,8 @@ The first implementation slice should create the minimum useful customer foundat
 - include focused unit, integration, and acceptance coverage.
 
 Contacts import is implemented as an editable draft flow. Customer selection for orders should be
-the next customer-dependent slice when order implementation begins. Customer detail now shows
-linked order history once orders reference a customer record.
+done through the searchable selection flow. Customer detail now shows linked order history once
+orders reference a customer record.
 
 ## Open Questions
 
