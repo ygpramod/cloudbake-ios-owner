@@ -275,6 +275,60 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertTrue(repository.ingredients.isEmpty)
     }
 
+    func testSaveEditedIngredientAcceptsGroupedQuantityText() {
+        let repository = FakeRecipeRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla Sponge",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-ingredients",
+            recipeId: recipe.id,
+            name: "Ingredients",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let flour = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake Flour",
+            unit: .gram,
+            currentQuantity: 2_000,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-flour",
+            componentId: component.id,
+            inventoryItemId: flour.id,
+            quantity: 1_000,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.recipes = [recipe]
+        repository.components = [component]
+        repository.inventoryItems = [flour]
+        repository.ingredients = [ingredient]
+        let viewModel = RecipeListViewModel(repository: repository)
+        viewModel.beginViewingRecipe(recipe)
+        viewModel.beginEditingIngredient(ingredient)
+        viewModel.draftIngredientQuantity = "1,000"
+        viewModel.draftIngredientNote = "Sift twice"
+
+        XCTAssertTrue(viewModel.saveIngredient())
+
+        XCTAssertEqual(repository.ingredients.first?.quantity, 1_000)
+        XCTAssertEqual(repository.ingredients.first?.note, "Sift twice")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testDeleteIngredientRemovesIngredientAndReloadsRows() {
         let repository = FakeRecipeRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_030_000)

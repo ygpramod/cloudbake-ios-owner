@@ -160,7 +160,7 @@ final class RecipeListViewModel: ObservableObject {
             return false
         }
 
-        guard let quantity = Double(draftIngredientQuantity), quantity > 0 else {
+        guard let quantity = parsedIngredientQuantity(from: draftIngredientQuantity), quantity > 0 else {
             errorMessage = "Ingredient quantity must be greater than zero."
             return false
         }
@@ -275,6 +275,24 @@ final class RecipeListViewModel: ObservableObject {
 
         draftIngredientInventoryItemId = firstItem.id
         draftIngredientUnit = firstItem.unit
+    }
+
+    private func parsedIngredientQuantity(from text: String) -> Double? {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else {
+            return nil
+        }
+
+        if let quantity = Double(trimmedText) {
+            return quantity
+        }
+
+        let groupingSeparator = Locale.current.groupingSeparator ?? ","
+        let normalizedText = trimmedText
+            .replacingOccurrences(of: groupingSeparator, with: "")
+            .replacingOccurrences(of: ",", with: "")
+
+        return Double(normalizedText)
     }
 
     private func resetIngredientDraft() {
