@@ -4,6 +4,7 @@ struct OrderListView: View {
     @StateObject private var viewModel: OrderListViewModel
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
+    @State private var displayMode: OrderDisplayMode = .list
 
     init(viewModel: OrderListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -11,6 +12,16 @@ struct OrderListView: View {
 
     var body: some View {
         List {
+            Section {
+                Picker("Order View", selection: $displayMode) {
+                    ForEach(OrderDisplayMode.allCases, id: \.self) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("orders.displayMode")
+            }
+
             if viewModel.orders.isEmpty {
                 ContentUnavailableView(
                     "No orders yet",
@@ -18,30 +29,26 @@ struct OrderListView: View {
                     description: Text("Add accepted or draft cake orders to track due dates and customer requests.")
                 )
             } else {
-                Section("Orders") {
-                    ForEach(viewModel.orders, id: \.id) { order in
-                        Button {
-                            viewModel.beginViewingOrder(order)
-                            isViewingOrder = true
-                        } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(order.title)
-                                    .font(.headline)
-                                Text(order.customerName)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                HStack {
-                                    Text(order.dueAt.formatted(date: .abbreviated, time: .shortened))
-                                    Text(order.fulfillmentType.displayName)
-                                }
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+                switch displayMode {
+                case .list:
+                    Section("Orders") {
+                        ForEach(viewModel.orders, id: \.id) { order in
+                            OrderRow(order: order) {
+                                viewModel.beginViewingOrder(order)
+                                isViewingOrder = true
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("orders.item.\(order.id)")
+                    }
+                case .calendar:
+                    ForEach(viewModel.calendarDays, id: \.day) { calendarDay in
+                        Section(calendarDay.day.formatted(date: .complete, time: .omitted)) {
+                            ForEach(calendarDay.orders, id: \.id) { order in
+                                OrderRow(order: order, showsDate: false) {
+                                    viewModel.beginViewingOrder(order)
+                                    isViewingOrder = true
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -88,6 +95,58 @@ struct OrderListView: View {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.orders.screenAccessibilityIdentifier)
+    }
+}
+
+private enum OrderDisplayMode: CaseIterable {
+    case list
+    case calendar
+
+    var title: String {
+        switch self {
+        case .list:
+            return "List"
+        case .calendar:
+            return "Calendar"
+        }
+    }
+}
+
+private struct OrderRow: View {
+    let order: Order
+    let showsDate: Bool
+    let action: () -> Void
+
+    init(order: Order, showsDate: Bool = true, action: @escaping () -> Void) {
+        self.order = order
+        self.showsDate = showsDate
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(order.title)
+                    .font(.headline)
+                Text(order.customerName)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                HStack {
+                    if showsDate {
+                        Text(order.dueAt.formatted(date: .abbreviated, time: .shortened))
+                    } else {
+                        Text(order.dueAt.formatted(date: .omitted, time: .shortened))
+                    }
+                    Text(order.fulfillmentType.displayName)
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("orders.item.\(order.id)")
     }
 }
 

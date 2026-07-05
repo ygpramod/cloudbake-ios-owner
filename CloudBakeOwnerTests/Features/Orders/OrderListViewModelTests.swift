@@ -19,6 +19,35 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testCalendarDaysGroupsOrdersByDueDate() {
+        let repository = FakeOrderRepository()
+        let calendar = utcCalendar()
+        let firstDayMorning = Date(timeIntervalSince1970: 1_800_057_600)
+        let firstDayAfternoon = Date(timeIntervalSince1970: 1_800_075_600)
+        let secondDay = Date(timeIntervalSince1970: 1_800_144_000)
+        let firstOrder = makeOrder(id: "order-morning", title: "Morning Cake", dueAt: firstDayMorning)
+        let secondOrder = makeOrder(id: "order-afternoon", title: "Afternoon Cake", dueAt: firstDayAfternoon)
+        let thirdOrder = makeOrder(id: "order-next-day", title: "Next Day Cake", dueAt: secondDay)
+        repository.orders = [thirdOrder, secondOrder, firstOrder]
+        let viewModel = OrderListViewModel(repository: repository, calendar: calendar)
+
+        viewModel.load()
+
+        XCTAssertEqual(
+            viewModel.calendarDays,
+            [
+                OrderCalendarDay(
+                    day: calendar.startOfDay(for: firstDayMorning),
+                    orders: [firstOrder, secondOrder]
+                ),
+                OrderCalendarDay(
+                    day: calendar.startOfDay(for: secondDay),
+                    orders: [thirdOrder]
+                )
+            ]
+        )
+    }
+
     func testAddOrderPersistsRequiredAndOptionalFields() {
         let repository = FakeOrderRepository()
         let now = Date(timeIntervalSince1970: 1_800_060_000)
@@ -178,13 +207,13 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    private func makeOrder(id: String, dueAt: Date) -> Order {
+    private func makeOrder(id: String, title: String = "Vanilla Birthday", dueAt: Date) -> Order {
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
         return Order(
             id: id,
             customerId: nil,
             cakeDesignId: nil,
-            title: "Vanilla Birthday",
+            title: title,
             customerName: "Amy",
             status: .draft,
             dueAt: dueAt,
@@ -194,6 +223,12 @@ final class OrderListViewModelTests: XCTestCase {
             createdAt: timestamp,
             updatedAt: timestamp
         )
+    }
+
+    private func utcCalendar() -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
     }
 
     private func makeCustomer(id: String, name: String, address: String? = nil) -> Customer {

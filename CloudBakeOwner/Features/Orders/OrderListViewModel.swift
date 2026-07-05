@@ -1,5 +1,10 @@
 import Foundation
 
+struct OrderCalendarDay: Equatable {
+    let day: Date
+    let orders: [Order]
+}
+
 @MainActor
 final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
@@ -19,15 +24,33 @@ final class OrderListViewModel: ObservableObject {
     private let repository: any OrderRepository & CustomerRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
+    private let calendar: Calendar
 
     init(
         repository: any OrderRepository & CustomerRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
-        dateProvider: @escaping () -> Date = Date.init
+        dateProvider: @escaping () -> Date = Date.init,
+        calendar: Calendar = .current
     ) {
         self.repository = repository
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
+        self.calendar = calendar
+    }
+
+    var calendarDays: [OrderCalendarDay] {
+        let groupedOrders = Dictionary(grouping: orders) { order in
+            calendar.startOfDay(for: order.dueAt)
+        }
+
+        return groupedOrders.keys.sorted().map { day in
+            OrderCalendarDay(
+                day: day,
+                orders: groupedOrders[day, default: []].sorted { lhs, rhs in
+                    lhs.dueAt == rhs.dueAt ? lhs.title < rhs.title : lhs.dueAt < rhs.dueAt
+                }
+            )
+        }
     }
 
     func load() {
