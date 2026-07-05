@@ -216,6 +216,10 @@ When adding a customer, the owner should be asked whether to import from Contact
 should prefill available contact details into an editable draft, but CloudBake-specific preferences
 and allergy notes should remain owner-entered.
 
+Only customer name and phone are required. Address, email, important dates, likes, dislikes,
+allergies, dietary restrictions, and notes are optional. The app should warn before saving when a
+new customer looks like a duplicate.
+
 Customer records should be implemented before order slices that depend on customer preferences or
 allergy details.
 

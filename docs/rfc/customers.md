@@ -53,9 +53,12 @@ The app should make customer memory useful without becoming a heavy CRM.
 - If permission is granted, the owner must be able to choose a contact.
 - The app must prefill available details from the selected contact.
 - The owner must be able to review and edit imported details before saving.
-- The owner must be able to save customer name, address, phone, and email when available.
+- The owner must be able to save customer name and phone as required fields.
+- The owner must be able to save address and email when available.
 - The owner must be able to save important customer dates.
 - The owner must be able to save likes, dislikes, allergies, dietary restrictions, and owner notes.
+- Customer fields other than name and phone must be optional.
+- The app must warn when a new customer appears to duplicate an existing customer.
 - Customer records must be linkable from orders.
 - Orders should use customer records instead of duplicating long-term customer details.
 - The owner must be able to edit customer details after creation.
@@ -123,6 +126,19 @@ The first implementation should keep the model small and explicit. Repeatable co
 be added later if the owner needs multiple phone numbers, emails, addresses, or important dates per
 customer.
 
+## Decisions
+
+- Customer name is required.
+- Customer phone is required.
+- The first customer model uses one primary phone and one primary email.
+- Address is optional and starts as a single text field.
+- Email is optional.
+- Important dates are optional.
+- Important dates should start as a flexible label and date list.
+- Likes, dislikes, allergies, dietary restrictions, and owner notes are optional.
+- Duplicate detection is required when adding customers.
+- Archive and delete are not required for the first customer implementation.
+
 ## Order Relationship
 
 Orders should link to a customer record once customer foundations exist.
@@ -181,7 +197,7 @@ The first implementation slice should create the minimum useful customer foundat
 - edit customer details,
 - persist customer data locally,
 - capture name,
-- capture optional phone,
+- capture phone,
 - capture optional email,
 - capture optional address,
 - capture optional important dates,
@@ -192,8 +208,4 @@ Contacts import should be the next slice unless the order foundation needs custo
 
 ## Open Questions
 
-- Should the first customer model allow multiple phone numbers and emails, or start with one primary value each?
-- Should address be a single text field initially or structured into street, city, state, postcode, and country?
-- Should important dates start as a flexible label and date list, or as predefined birthday and anniversary fields?
-- Should duplicate detection warn when a customer with a similar name or phone already exists?
-- Should customers support archive/delete in the first customer implementation?
+- None.
