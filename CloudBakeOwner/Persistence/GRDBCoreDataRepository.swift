@@ -364,6 +364,16 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         }
     }
 
+    func deleteBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {
+        try writer.write { db in
+            try save(item, in: db)
+            try db.execute(
+                sql: "DELETE FROM inventory_stock_batches WHERE id = ?",
+                arguments: [batch.id]
+            )
+        }
+    }
+
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
         try writer.read { db in
             try Row.fetchAll(

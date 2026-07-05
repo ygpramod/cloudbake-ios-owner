@@ -288,6 +288,40 @@ final class InventoryListViewModel: ObservableObject {
         resetBatchDraft()
     }
 
+    func deleteBatch(_ batch: InventoryStockBatch) {
+        guard let selectedItem else {
+            errorMessage = "Inventory item could not be found."
+            return
+        }
+
+        let updatedQuantity = selectedItem.currentQuantity - batch.remainingQuantity
+        guard updatedQuantity >= 0 else {
+            errorMessage = "Stock batch cannot be deleted because it would reduce current stock below zero."
+            return
+        }
+
+        let updatedItem = InventoryItem(
+            id: selectedItem.id,
+            name: selectedItem.name,
+            unit: selectedItem.unit,
+            currentQuantity: updatedQuantity,
+            minimumQuantity: selectedItem.minimumQuantity,
+            earliestExpiryAt: selectedItem.earliestExpiryAt,
+            hasExpiredStock: selectedItem.hasExpiredStock,
+            hasExpiringSoonStock: selectedItem.hasExpiringSoonStock,
+            createdAt: selectedItem.createdAt,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.deleteBatchCorrection(item: updatedItem, batch: batch)
+            loadSelectedItemBatches()
+            load()
+        } catch {
+            errorMessage = "Stock batch could not be deleted."
+        }
+    }
+
     func archiveItem(_ item: InventoryItem) {
         let now = dateProvider()
         let currentItem = (try? repository.fetchInventoryItem(id: item.id)) ?? item

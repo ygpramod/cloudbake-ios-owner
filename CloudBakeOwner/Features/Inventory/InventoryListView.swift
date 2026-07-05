@@ -460,6 +460,14 @@ private struct InventoryItemDetailView: View {
                                 }
                             }
                             .accessibilityIdentifier("inventory.detail.batch.edit.\(batch.id)")
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    viewModel.deleteBatch(batch)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                .accessibilityIdentifier("inventory.detail.batch.delete.\(batch.id)")
+                            }
                         }
                     }
                 }
@@ -1183,6 +1191,11 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository, Inv
     func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {
         try save(item)
         try save(batch)
+    }
+
+    func deleteBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {
+        try save(item)
+        batches.removeAll { $0.id == batch.id }
     }
 
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
