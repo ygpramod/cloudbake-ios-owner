@@ -458,7 +458,9 @@ private struct InventoryItemDetailView: View {
                                     Image(systemName: "calendar")
                                         .foregroundStyle(.secondary)
                                 }
+                                .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
                             .accessibilityIdentifier("inventory.detail.batch.edit.\(batch.id)")
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
