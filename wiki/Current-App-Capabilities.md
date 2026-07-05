@@ -61,12 +61,13 @@ The app currently supports:
 53. order creation,
 54. order detail view,
 55. optional customer record link from orders,
-56. order due date/time, status, fulfillment type, delivery address, and cake notes,
-57. order editing from detail,
-58. manual order status changes,
-59. orders calendar view grouped by due date,
-60. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
-61. unit, integration, and acceptance test lanes.
+56. searchable customer record selection from order add/edit,
+57. order due date/time, status, fulfillment type, delivery address, and cake notes,
+58. order editing from detail,
+59. manual order status changes,
+60. orders calendar view grouped by due date,
+61. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
+62. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 

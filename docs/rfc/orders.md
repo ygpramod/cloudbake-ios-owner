@@ -141,6 +141,8 @@ Linked customer preference and allergy details in order detail are implemented i
 `docs/rfc/slices/0040-order-customer-preferences.md`.
 Customer detail can show linked order history through
 `docs/rfc/slices/0041-customer-order-history.md`.
+Order add/edit can link customers through a searchable selection flow through
+`docs/rfc/slices/0042-order-customer-search-selection.md`.
 
 ## Reminder Model
 
