@@ -205,9 +205,15 @@ Today, the owner can:
 12. manually change order status across Draft, Confirmed, In Progress, Ready, Completed, and
     Cancelled,
 13. review linked customer allergies, dietary restrictions, likes, dislikes, and notes from order
-    detail.
+    detail,
+14. review reminders three days, two days, and one day before due date.
 
 Calendar mode groups orders by due date and opens the same order detail screen as List mode.
+
+The Orders screen shows a Reminders Due section when an active order has a reminder time at or
+before now. Due reminders are grouped by cake so one order appears once even when multiple reminder
+offsets are due. Completed and cancelled orders do not appear in due reminders. Order detail shows
+the full reminder plan for that cake. Scheduled iOS notifications and snooze are future work.
 
 Customer record selection opens from the order form. The owner can search customers by name, phone,
 email, or address, select a saved customer, or clear the link and keep manually entered order text.
@@ -216,8 +222,8 @@ Linked customer details remain owner-facing context. The order keeps a customer 
 the order itself, while allergies and longer-term preferences continue to come from the customer
 record.
 
-Future order slices should add reminders three days/two days/one day before delivery, recipe links,
-inventory deduction, checklist, design references and photos, and pricing/payment summary.
+Future order slices should add scheduled notifications, reminder snooze, recipe links, inventory
+deduction, checklist, design references and photos, and pricing/payment summary.
 
 ## Customer Workflow
 
