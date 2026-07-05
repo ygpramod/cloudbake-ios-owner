@@ -116,6 +116,13 @@ Future purchase bill scanning should use this catalog to decide which bill lines
 inventory items. Non-baking household or grocery lines should be ignored unless the owner adds them
 to the catalog.
 
+## Purchase Bill Draft
+
+A purchase bill draft is a proposed inventory item created from recognized purchase bill text.
+
+Drafts are not saved directly into inventory. They are meant to be reviewed by the owner so names,
+quantities, units, expiry dates, and duplicate matches can be corrected before stock changes.
+
 ## Cake Design
 
 A cake design is a record of a cake style the owner has made or wants to reference.

@@ -29,7 +29,8 @@ The app currently supports:
 21. oldest-expiry-first stock consumption,
 22. compatible unit conversion for stock adjustment and stock usage,
 23. bundled baking catalog config for future purchase bill filtering,
-24. unit, integration, and acceptance test lanes.
+24. purchase bill text parsing into draft inventory candidates,
+25. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -42,7 +43,8 @@ The app has domain foundations for:
 5. pricing,
 6. reminders,
 7. inventory transactions,
-8. purchase bill filtering by baking catalog.
+8. purchase bill filtering by baking catalog,
+9. purchase bill draft inventory parsing.
 
 These are not all owner-facing workflows yet.
 
@@ -53,7 +55,7 @@ Planned product areas include:
 1. recipe storage,
 2. recipe-book conversion into app recipes,
 3. recipe-driven inventory reduction,
-4. purchase bill scanning into inventory drafts,
+4. purchase bill scanning UI and reviewable inventory draft saving,
 5. customer likes, dislikes, allergies, and preferences,
 6. order calendar,
 7. delivery reminders,
