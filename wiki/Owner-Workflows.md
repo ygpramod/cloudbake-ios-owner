@@ -212,8 +212,11 @@ Use Customers to remember customer name, address, phone, important dates, likes,
 allergies, dietary restrictions, and order history. `docs/rfc/customers.md` is the base product RFC
 for this area.
 
-Today, the owner can manually add and view customers. Name and phone are required. Address, email,
-important dates, likes, dislikes, allergies, dietary restrictions, and notes are optional.
+Today, the owner can manually add, view, and edit customers. Name and phone are required. Address,
+email, important dates, likes, dislikes, allergies, dietary restrictions, and notes are optional.
+
+Customer edit updates contact details and preference fields. Important date correction is future
+work.
 
 The app warns before saving when a new customer looks like a duplicate.
 
