@@ -200,6 +200,26 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertTrue(repository.recipes.isEmpty)
     }
 
+    func testSaveRecipeImportDraftRejectsInventoryLinksOutsideLoadedInventory() {
+        let repository = FakeRecipeRepository()
+        var ids = ["draft-flour", "recipe-lemon-drizzle"]
+        let viewModel = RecipeListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() }
+        )
+        viewModel.recipeScanRecognizedText = """
+        Lemon Drizzle
+        Flour 200 g
+        """
+        XCTAssertTrue(viewModel.createRecipeDraftFromRecognizedText())
+        viewModel.importIngredientDrafts[0].inventoryItemId = "missing-inventory"
+
+        XCTAssertFalse(viewModel.saveRecipeImportDraft())
+
+        XCTAssertEqual(viewModel.errorMessage, "Link each ingredient to an inventory item before saving.")
+        XCTAssertTrue(repository.recipes.isEmpty)
+    }
+
     func testRecognizeRecipeImageShowsErrorWhenOCRFails() async {
         let viewModel = RecipeListViewModel(repository: FakeRecipeRepository())
         viewModel.recipeScanRecognizedText = "Existing text"

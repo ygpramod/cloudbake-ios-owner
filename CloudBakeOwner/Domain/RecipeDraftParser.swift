@@ -57,13 +57,13 @@ enum RecipeDraftParser {
         let tokens = normalizedLine.split(separator: " ").map(String.init)
 
         for index in tokens.indices {
-            guard let quantity = quantity(from: tokens[index]) else {
+            guard let quantityMatch = quantityMatch(in: tokens, startingAt: index) else {
                 continue
             }
 
-            let nextIndex = tokens.index(after: index)
-            guard nextIndex < tokens.endIndex,
-                  let unit = unit(from: tokens[nextIndex]) else {
+            let unitIndex = tokens.index(after: quantityMatch.endIndex)
+            guard unitIndex < tokens.endIndex,
+                  let unit = unit(from: tokens[unitIndex]) else {
                 continue
             }
 
@@ -74,20 +74,39 @@ enum RecipeDraftParser {
                 continue
             }
 
-            let trailingNoteStart = tokens.index(after: nextIndex)
+            let trailingNoteStart = tokens.index(after: unitIndex)
             let trailingNote = trailingNoteStart < tokens.endIndex
                 ? tokens[trailingNoteStart...].joined(separator: " ")
                 : ""
 
             return RecipeIngredientDraft(
                 name: cleanedIngredientName(rawName),
-                quantity: quantity,
+                quantity: quantityMatch.quantity,
                 unit: unit,
                 note: trailingNote.isEmpty ? nil : trailingNote
             )
         }
 
         return nil
+    }
+
+    private static func quantityMatch(
+        in tokens: [String],
+        startingAt index: Array<String>.Index
+    ) -> (quantity: Double, endIndex: Array<String>.Index)? {
+        guard let baseQuantity = quantity(from: tokens[index]) else {
+            return nil
+        }
+
+        let nextIndex = tokens.index(after: index)
+        guard nextIndex < tokens.endIndex,
+              !tokens[index].contains("/"),
+              let fraction = quantity(from: tokens[nextIndex]),
+              tokens[nextIndex].contains("/") else {
+            return (baseQuantity, index)
+        }
+
+        return (baseQuantity + fraction, nextIndex)
     }
 
     private static func quantity(from text: String) -> Double? {
