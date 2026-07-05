@@ -26,15 +26,16 @@ The app currently supports:
 18. expiry-driven low inventory alerts,
 19. one-month upcoming expiry alerts,
 20. stock batch quantity and expiry editing,
-21. oldest-expiry-first stock consumption,
-22. compatible unit conversion for stock adjustment and stock usage,
-23. bundled baking catalog config for future purchase bill filtering,
-24. purchase bill text parsing into draft inventory candidates,
-25. local Apple Vision OCR service for purchase bill text recognition,
-26. purchase bill draft review and save into inventory,
-27. purchase bill camera capture into editable inventory drafts,
-28. duplicate matching for purchase bill draft save,
-29. unit, integration, and acceptance test lanes.
+21. stock batch deletion from inventory detail,
+22. oldest-expiry-first stock consumption,
+23. compatible unit conversion for stock adjustment and stock usage,
+24. bundled baking catalog config for future purchase bill filtering,
+25. purchase bill text parsing into draft inventory candidates,
+26. local Apple Vision OCR service for purchase bill text recognition,
+27. purchase bill draft review and save into inventory,
+28. purchase bill camera capture into editable inventory drafts,
+29. duplicate matching for purchase bill draft save,
+30. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
