@@ -10,6 +10,7 @@ protocol InventoryItemRepository {
 protocol RecipeRepository {
     func save(_ recipe: Recipe) throws
     func fetchRecipe(id: String) throws -> Recipe?
+    func fetchRecipes() throws -> [Recipe]
 }
 
 protocol RecipeComponentRepository {

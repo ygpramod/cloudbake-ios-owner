@@ -166,6 +166,27 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.buttons["inventory.purchaseBill.createDrafts"].waitForExistence(timeout: 5))
     }
 
+    func testRecipesCanBeAdded() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Recipes"].tap()
+        XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["No recipes yet"].waitForExistence(timeout: 5))
+
+        app.buttons["recipes.add"].tap()
+        XCTAssertTrue(app.navigationBars["Add Recipe"].waitForExistence(timeout: 5))
+        app.textFields["recipes.form.name"].tap()
+        app.textFields["recipes.form.name"].typeText("Vanilla Sponge")
+        app.textFields["recipes.form.notes"].tap()
+        app.textFields["recipes.form.notes"].typeText("Book page 12")
+        app.buttons["recipes.form.save"].tap()
+
+        XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Vanilla Sponge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Book page 12"].waitForExistence(timeout: 5))
+    }
+
     private func makeApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"

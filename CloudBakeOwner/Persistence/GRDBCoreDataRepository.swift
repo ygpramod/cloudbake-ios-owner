@@ -89,13 +89,16 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 return nil
             }
 
-            return Recipe(
-                id: row["id"],
-                name: row["name"],
-                notes: row["notes"],
-                createdAt: date(row["created_at_unix_time"]),
-                updatedAt: date(row["updated_at_unix_time"])
-            )
+            return recipe(from: row)
+        }
+    }
+
+    func fetchRecipes() throws -> [Recipe] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: "SELECT * FROM recipes ORDER BY lower(name), name"
+            ).map(recipe)
         }
     }
 
@@ -447,6 +450,16 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"]),
             archivedAt: optionalDate(row["archived_at_unix_time"])
+        )
+    }
+
+    private func recipe(from row: Row) -> Recipe {
+        Recipe(
+            id: row["id"],
+            name: row["name"],
+            notes: row["notes"],
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
         )
     }
 

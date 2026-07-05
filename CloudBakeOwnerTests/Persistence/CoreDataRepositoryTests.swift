@@ -157,6 +157,30 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchInventoryItems(), [butter, sugar])
     }
 
+    func testRecipesFetchInNameOrder() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let vanilla = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla Sponge",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let chocolate = Recipe(
+            id: "recipe-chocolate-truffle",
+            name: "Chocolate Truffle",
+            notes: "Book page 18",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(vanilla)
+        try repository.save(chocolate)
+
+        XCTAssertEqual(try repository.fetchRecipes(), [chocolate, vanilla])
+    }
+
     func testInventoryItemSaveUpdatesExistingItemWithSameId() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_020_000)

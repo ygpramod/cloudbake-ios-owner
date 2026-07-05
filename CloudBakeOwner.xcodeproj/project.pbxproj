@@ -38,6 +38,9 @@
 		41000000000000000000001D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000025 /* Assets.xcassets */; };
 		41000000000000000000001E /* ExpiryReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000026 /* ExpiryReminderScheduler.swift */; };
 		41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000027 /* ExpiryReminderSchedulerTests.swift */; };
+		410000000000000000000020 /* RecipeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000028 /* RecipeListView.swift */; };
+		410000000000000000000021 /* RecipeListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000029 /* RecipeListViewModel.swift */; };
+		410000000000000000000022 /* RecipeListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002A /* RecipeListViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,6 +94,9 @@
 		420000000000000000000025 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		420000000000000000000026 /* ExpiryReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpiryReminderScheduler.swift; sourceTree = "<group>"; };
 		420000000000000000000027 /* ExpiryReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/ExpiryReminderSchedulerTests.swift; sourceTree = "<group>"; };
+		420000000000000000000028 /* RecipeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeListView.swift; sourceTree = "<group>"; };
+		420000000000000000000029 /* RecipeListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeListViewModel.swift; sourceTree = "<group>"; };
+		42000000000000000000002A /* RecipeListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeListViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -159,6 +165,7 @@
 				450000000000000000000005 /* Dashboard */,
 				450000000000000000000015 /* Inventory */,
 				450000000000000000000006 /* Placeholder */,
+				45000000000000000000001A /* Recipes */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -187,6 +194,15 @@
 				42000000000000000000001B /* InventoryListViewModel.swift */,
 			);
 			path = Inventory;
+			sourceTree = "<group>";
+		};
+		45000000000000000000001A /* Recipes */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000028 /* RecipeListView.swift */,
+				420000000000000000000029 /* RecipeListViewModel.swift */,
+			);
+			path = Recipes;
 			sourceTree = "<group>";
 		};
 		450000000000000000000008 /* CloudBakeOwnerTests */ = {
@@ -256,6 +272,7 @@
 			children = (
 				450000000000000000000018 /* Dashboard */,
 				450000000000000000000017 /* Inventory */,
+				45000000000000000000001B /* Recipes */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -274,6 +291,14 @@
 				42000000000000000000001C /* InventoryListViewModelTests.swift */,
 			);
 			path = Inventory;
+			sourceTree = "<group>";
+		};
+		45000000000000000000001B /* Recipes */ = {
+			isa = PBXGroup;
+			children = (
+				42000000000000000000002A /* RecipeListViewModelTests.swift */,
+			);
+			path = Recipes;
 			sourceTree = "<group>";
 		};
 		450000000000000000000009 /* CloudBakeOwnerUITests */ = {
@@ -448,6 +473,8 @@
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
 				41000000000000000000001A /* PurchaseBillDraftParser.swift in Sources */,
 				41000000000000000000001C /* PurchaseBillTextRecognizer.swift in Sources */,
+				410000000000000000000020 /* RecipeListView.swift in Sources */,
+				410000000000000000000021 /* RecipeListViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,6 +491,7 @@
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
 				410000000000000000000016 /* DashboardViewModelTests.swift in Sources */,
 				41000000000000000000001B /* PurchaseBillDraftParserTests.swift in Sources */,
+				410000000000000000000022 /* RecipeListViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
