@@ -159,6 +159,14 @@ cups.
 Consumption also updates stock batches. The oldest-expiring remaining stock is reduced before newer
 stock.
 
+## Stock Batch Editing
+
+Open an inventory item to review its remaining stock batches. Selecting a batch allows the owner to
+edit both remaining quantity and expiry date.
+
+Changing a batch quantity also updates the inventory item's current quantity by the same difference.
+For example, changing a flour batch from `250 g` to `300 g` increases current stock by `50 g`.
+
 ## Stock History
 
 Use stock history to review why an active inventory item's quantity changed.
@@ -184,7 +192,6 @@ Inventory does not yet support:
 4. inventory delete,
 5. supplier tracking,
 6. purchase planning,
-7. editing stock batch quantities directly,
-8. deleting stock batches,
-9. editing unit, current quantity, or expiry from item edit mode,
-10. expiry reminder notifications.
+7. deleting stock batches,
+8. editing unit, current quantity, or expiry from item edit mode,
+9. expiry reminder notifications.
