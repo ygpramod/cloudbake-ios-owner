@@ -2,11 +2,11 @@ import CoreGraphics
 import Foundation
 import Vision
 
-protocol PurchaseBillTextRecognizing {
+protocol DocumentTextRecognizing {
     func recognizedText(from image: CGImage) async throws -> String
 }
 
-final class VisionPurchaseBillTextRecognizer: PurchaseBillTextRecognizing {
+final class VisionDocumentTextRecognizer: DocumentTextRecognizing {
     func recognizedText(from image: CGImage) async throws -> String {
         try await Task.detached(priority: .userInitiated) {
             try await Self.recognizedTextOffMainThread(from: image)
@@ -48,3 +48,8 @@ final class VisionPurchaseBillTextRecognizer: PurchaseBillTextRecognizing {
 enum PurchaseBillTextRecognitionError: Error, Equatable {
     case unreadableResult
 }
+
+typealias PurchaseBillTextRecognizing = DocumentTextRecognizing
+typealias RecipeTextRecognizing = DocumentTextRecognizing
+typealias VisionPurchaseBillTextRecognizer = VisionDocumentTextRecognizer
+typealias VisionRecipeTextRecognizer = VisionDocumentTextRecognizer
