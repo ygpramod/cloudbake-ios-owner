@@ -16,6 +16,7 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var selectedItemBatches: [InventoryStockBatch] = []
     @Published private(set) var editingItem: InventoryItem?
     @Published private(set) var editingBatch: InventoryStockBatch?
+    @Published var draftBatchQuantity = ""
     @Published var draftBatchExpiryDate = Date()
     @Published private(set) var adjustingItem: InventoryItem?
     @Published var draftAdjustmentQuantity = ""
@@ -220,41 +221,73 @@ final class InventoryListViewModel: ObservableObject {
         errorMessage = nil
     }
 
-    func beginEditingBatchExpiry(_ batch: InventoryStockBatch) {
+    func beginEditingBatch(_ batch: InventoryStockBatch) {
         editingBatch = batch
+        draftBatchQuantity = batch.remainingQuantity.formatted()
         draftBatchExpiryDate = batch.expiresAt ?? defaultExpiryDate()
         errorMessage = nil
     }
 
-    func saveEditedBatchExpiry() -> Bool {
+    func saveEditedBatch() -> Bool {
         guard let editingBatch else {
             errorMessage = "Stock batch could not be found."
             return false
         }
 
+        guard let selectedItem else {
+            errorMessage = "Inventory item could not be found."
+            return false
+        }
+
+        guard let remainingQuantity = parsedQuantity(from: draftBatchQuantity), remainingQuantity >= 0 else {
+            errorMessage = "Batch quantity must be zero or greater."
+            return false
+        }
+
+        let quantityDelta = remainingQuantity - editingBatch.remainingQuantity
+        guard selectedItem.currentQuantity + quantityDelta >= 0 else {
+            errorMessage = "Batch quantity cannot reduce current stock below zero."
+            return false
+        }
+
+        let now = dateProvider()
         do {
+            try repository.save(
+                InventoryItem(
+                    id: selectedItem.id,
+                    name: selectedItem.name,
+                    unit: selectedItem.unit,
+                    currentQuantity: selectedItem.currentQuantity + quantityDelta,
+                    minimumQuantity: selectedItem.minimumQuantity,
+                    earliestExpiryAt: selectedItem.earliestExpiryAt,
+                    hasExpiredStock: selectedItem.hasExpiredStock,
+                    hasExpiringSoonStock: selectedItem.hasExpiringSoonStock,
+                    createdAt: selectedItem.createdAt,
+                    updatedAt: now
+                )
+            )
             try repository.save(
                 InventoryStockBatch(
                     id: editingBatch.id,
                     inventoryItemId: editingBatch.inventoryItemId,
-                    remainingQuantity: editingBatch.remainingQuantity,
+                    remainingQuantity: remainingQuantity,
                     expiresAt: draftBatchExpiryDate,
                     createdAt: editingBatch.createdAt,
-                    updatedAt: dateProvider()
+                    updatedAt: now
                 )
             )
-            resetBatchExpiryDraft()
+            resetBatchDraft()
             loadSelectedItemBatches()
             load()
             return true
         } catch {
-            errorMessage = "Stock batch expiry could not be saved."
+            errorMessage = "Stock batch could not be saved."
             return false
         }
     }
 
-    func cancelEditingBatchExpiry() {
-        resetBatchExpiryDraft()
+    func cancelEditingBatch() {
+        resetBatchDraft()
     }
 
     func archiveItem(_ item: InventoryItem) {
@@ -769,8 +802,9 @@ final class InventoryListViewModel: ObservableObject {
         editingItem = nil
     }
 
-    private func resetBatchExpiryDraft() {
+    private func resetBatchDraft() {
         editingBatch = nil
+        draftBatchQuantity = ""
         draftBatchExpiryDate = defaultExpiryDate()
         errorMessage = nil
     }
