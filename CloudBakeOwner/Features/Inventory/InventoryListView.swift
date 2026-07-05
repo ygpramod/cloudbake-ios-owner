@@ -8,6 +8,7 @@ struct InventoryListView: View {
     @State private var isAdjustingStock = false
     @State private var isConsumingStock = false
     @State private var isShowingHistory = false
+    @State private var isImportingPurchaseBill = false
 
     init(viewModel: InventoryListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -78,6 +79,13 @@ struct InventoryListView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
+                    isImportingPurchaseBill = true
+                } label: {
+                    Label("Import purchase bill", systemImage: "doc.text.viewfinder")
+                }
+                .accessibilityIdentifier("inventory.purchaseBill.import")
+
+                Button {
                     isShowingArchivedItems = true
                 } label: {
                     Label("Archived inventory", systemImage: "archivebox")
@@ -143,10 +151,141 @@ struct InventoryListView: View {
                 )
             }
         }
+        .sheet(
+            isPresented: $isImportingPurchaseBill,
+            onDismiss: viewModel.cancelPurchaseBillImport
+        ) {
+            NavigationStack {
+                PurchaseBillImportView(
+                    viewModel: viewModel,
+                    isPresented: $isImportingPurchaseBill
+                )
+            }
+        }
         .onAppear {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.inventory.screenAccessibilityIdentifier)
+    }
+}
+
+private struct PurchaseBillImportView: View {
+    @ObservedObject var viewModel: InventoryListViewModel
+    @Binding var isPresented: Bool
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Form {
+            Section("Bill Text") {
+                TextEditor(text: $viewModel.purchaseBillRecognizedText)
+                    .frame(minHeight: 140)
+                    .accessibilityIdentifier("inventory.purchaseBill.text")
+
+                Button {
+                    let catalog = (try? BakingCatalog.loadBundledCatalog()) ?? []
+                    _ = viewModel.createPurchaseBillDrafts(catalog: catalog)
+                } label: {
+                    Label("Create Drafts", systemImage: "wand.and.stars")
+                }
+                .accessibilityIdentifier("inventory.purchaseBill.createDrafts")
+            }
+
+            if !viewModel.purchaseBillDrafts.isEmpty {
+                Section("Draft Items") {
+                    ForEach($viewModel.purchaseBillDrafts) { $draft in
+                        PurchaseBillDraftRow(draft: $draft)
+                    }
+                }
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("inventory.purchaseBill.error")
+                }
+            }
+        }
+        .navigationTitle("Import Bill")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    viewModel.cancelPurchaseBillImport()
+                    isPresented = false
+                }
+            }
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    if viewModel.savePurchaseBillDrafts() {
+                        isPresented = false
+                        dismiss()
+                    }
+                }
+                .disabled(viewModel.purchaseBillDrafts.isEmpty)
+                .accessibilityIdentifier("inventory.purchaseBill.save")
+            }
+        }
+    }
+}
+
+private struct PurchaseBillDraftRow: View {
+    @Binding var draft: PurchaseBillInventoryDraft
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle(isOn: $draft.isSelected) {
+                Text(draft.sourceLine)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityIdentifier("inventory.purchaseBill.draft.selected.\(draft.id)")
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Name")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextField("Name", text: $draft.name)
+                    .textInputAutocapitalization(.words)
+                    .accessibilityIdentifier("inventory.purchaseBill.draft.name.\(draft.id)")
+            }
+
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Current Quantity")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("Current Quantity", text: $draft.quantityText)
+                        .keyboardType(.decimalPad)
+                        .accessibilityIdentifier("inventory.purchaseBill.draft.quantity.\(draft.id)")
+                }
+
+                Picker("Unit", selection: $draft.unit) {
+                    ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
+                        Text(unit.displayName).tag(unit)
+                    }
+                }
+                .accessibilityIdentifier("inventory.purchaseBill.draft.unit.\(draft.id)")
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Minimum Quantity")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextField("Minimum Quantity", text: $draft.minimumQuantityText)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("inventory.purchaseBill.draft.minimum.\(draft.id)")
+            }
+
+            DatePicker(
+                "Expiry Date",
+                selection: $draft.expiryDate,
+                displayedComponents: .date
+            )
+            .accessibilityIdentifier("inventory.purchaseBill.draft.expiry.\(draft.id)")
+        }
+        .padding(.vertical, 4)
+        .accessibilityIdentifier("inventory.purchaseBill.draft.\(draft.id)")
     }
 }
 

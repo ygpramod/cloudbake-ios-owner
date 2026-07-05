@@ -25,6 +25,8 @@ final class InventoryListViewModel: ObservableObject {
     @Published var draftConsumptionQuantity = ""
     @Published var draftConsumptionUnit: InventoryUnit = .gram
     @Published var draftConsumptionNote = ""
+    @Published var purchaseBillRecognizedText = ""
+    @Published var purchaseBillDrafts: [PurchaseBillInventoryDraft] = []
     @Published private(set) var historyItem: InventoryItem?
     @Published private(set) var historyTransactions: [InventoryTransaction] = []
 
@@ -459,6 +461,109 @@ final class InventoryListViewModel: ObservableObject {
         resetConsumptionDraft()
     }
 
+    func createPurchaseBillDrafts(catalog: [BakingCatalogItem]) -> Bool {
+        let drafts = PurchaseBillDraftParser.draftItems(
+            from: purchaseBillRecognizedText,
+            catalog: catalog
+        )
+
+        guard !drafts.isEmpty else {
+            errorMessage = "No baking inventory items were found in the bill text."
+            purchaseBillDrafts = []
+            return false
+        }
+
+        purchaseBillDrafts = drafts.map { draft in
+            PurchaseBillInventoryDraft(
+                id: idGenerator(),
+                sourceLine: draft.sourceLine,
+                name: draft.name,
+                quantityText: draft.quantity?.formatted() ?? "",
+                unit: draft.unit ?? .gram,
+                minimumQuantityText: "0",
+                expiryDate: defaultExpiryDate(),
+                isSelected: true
+            )
+        }
+        errorMessage = nil
+        return true
+    }
+
+    func savePurchaseBillDrafts() -> Bool {
+        let selectedDrafts = purchaseBillDrafts.filter(\.isSelected)
+        guard !selectedDrafts.isEmpty else {
+            errorMessage = "Select at least one draft item to save."
+            return false
+        }
+
+        let now = dateProvider()
+        var itemsToSave: [InventoryItem] = []
+        var batchesToSave: [InventoryStockBatch] = []
+
+        for draft in selectedDrafts {
+            let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else {
+                errorMessage = "Draft item name is required."
+                return false
+            }
+
+            guard let currentQuantity = parsedQuantity(from: draft.quantityText), currentQuantity >= 0 else {
+                errorMessage = "Draft quantity must be zero or greater."
+                return false
+            }
+
+            guard let minimumQuantity = parsedQuantity(from: draft.minimumQuantityText), minimumQuantity >= 0 else {
+                errorMessage = "Draft minimum quantity must be zero or greater."
+                return false
+            }
+
+            let itemId = idGenerator()
+            itemsToSave.append(
+                InventoryItem(
+                    id: itemId,
+                    name: name,
+                    unit: draft.unit,
+                    currentQuantity: currentQuantity,
+                    minimumQuantity: minimumQuantity,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            )
+
+            if currentQuantity > 0 {
+                batchesToSave.append(
+                    InventoryStockBatch(
+                        id: idGenerator(),
+                        inventoryItemId: itemId,
+                        remainingQuantity: currentQuantity,
+                        expiresAt: draft.expiryDate,
+                        createdAt: now,
+                        updatedAt: now
+                    )
+                )
+            }
+        }
+
+        do {
+            for item in itemsToSave {
+                try repository.save(item)
+            }
+            for batch in batchesToSave {
+                try repository.save(batch)
+            }
+            errorMessage = nil
+            load()
+            return true
+        } catch {
+            errorMessage = "Purchase bill drafts could not be saved."
+            return false
+        }
+    }
+
+    func cancelPurchaseBillImport() {
+        resetPurchaseBillDrafts()
+    }
+
     func beginViewingHistory(_ item: InventoryItem) {
         historyItem = item
         loadHistory()
@@ -602,6 +707,12 @@ final class InventoryListViewModel: ObservableObject {
         errorMessage = nil
     }
 
+    private func resetPurchaseBillDrafts() {
+        purchaseBillRecognizedText = ""
+        purchaseBillDrafts = []
+        errorMessage = nil
+    }
+
     private func matchingInventoryItem(for name: String, nameKey: String, excludingItemId: String?) -> InventoryItem? {
         items.first { item in
             if item.id == excludingItemId {
@@ -651,4 +762,15 @@ final class InventoryListViewModel: ObservableObject {
             remainingQuantityToUse -= quantityFromBatch
         }
     }
+}
+
+struct PurchaseBillInventoryDraft: Identifiable, Equatable {
+    let id: String
+    let sourceLine: String
+    var name: String
+    var quantityText: String
+    var unit: InventoryUnit
+    var minimumQuantityText: String
+    var expiryDate: Date
+    var isSelected: Bool
 }

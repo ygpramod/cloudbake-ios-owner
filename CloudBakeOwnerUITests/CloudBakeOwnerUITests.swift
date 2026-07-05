@@ -150,6 +150,28 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: 5))
     }
 
+    func testInventoryPurchaseBillDraftImportCreatesInventoryItems() throws {
+        let app = makeApp()
+        app.launch()
+
+        app.staticTexts["Inventory"].tap()
+        app.buttons["inventory.purchaseBill.import"].tap()
+        XCTAssertTrue(app.navigationBars["Import Bill"].waitForExistence(timeout: 5))
+
+        let billText = app.textViews["inventory.purchaseBill.text"]
+        XCTAssertTrue(billText.waitForExistence(timeout: 5))
+        billText.tap()
+        billText.typeText("Cake Flour 1 kg\nLaundry Detergent 1 L\n")
+        app.buttons["inventory.purchaseBill.createDrafts"].tap()
+
+        XCTAssertTrue(app.staticTexts["Cake Flour 1 kg"].waitForExistence(timeout: 5))
+        app.buttons["inventory.purchaseBill.save"].tap()
+
+        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Cake Flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Current Quantity: 1 kg"].waitForExistence(timeout: 5))
+    }
+
     private func makeApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"
