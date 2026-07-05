@@ -61,7 +61,9 @@ The app currently supports:
 53. order detail view,
 54. optional customer record link from orders,
 55. order due date/time, status, fulfillment type, delivery address, and cake notes,
-56. unit, integration, and acceptance test lanes.
+56. order editing from detail,
+57. manual order status changes,
+58. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 

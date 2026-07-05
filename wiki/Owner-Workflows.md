@@ -200,11 +200,14 @@ Today, the owner can:
 7. choose pickup or delivery,
 8. capture optional delivery address,
 9. capture cake notes,
-10. view order detail.
+10. view order detail,
+11. edit order details from the detail screen,
+12. manually change order status across Draft, Confirmed, In Progress, Ready, Completed, and
+    Cancelled.
 
-Future order slices should add edit and status changes, calendar view, allergy and customer
-preference alerts, reminders three days/two days/one day before delivery, recipe links, inventory
-deduction, checklist, design references and photos, and pricing/payment summary.
+Future order slices should add calendar view, allergy and customer preference alerts, reminders
+three days/two days/one day before delivery, recipe links, inventory deduction, checklist, design
+references and photos, and pricing/payment summary.
 
 ## Customer Workflow
 
