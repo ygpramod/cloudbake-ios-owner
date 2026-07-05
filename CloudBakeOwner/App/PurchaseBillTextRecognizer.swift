@@ -8,6 +8,12 @@ protocol PurchaseBillTextRecognizing {
 
 final class VisionPurchaseBillTextRecognizer: PurchaseBillTextRecognizing {
     func recognizedText(from image: CGImage) async throws -> String {
+        try await Task.detached(priority: .userInitiated) {
+            try await Self.recognizedTextOffMainThread(from: image)
+        }.value
+    }
+
+    private static func recognizedTextOffMainThread(from image: CGImage) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
             let request = VNRecognizeTextRequest { request, error in
                 if let error {
