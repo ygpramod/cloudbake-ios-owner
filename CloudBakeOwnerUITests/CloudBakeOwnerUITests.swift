@@ -30,36 +30,43 @@ final class CloudBakeOwnerUITests: XCTestCase {
         }
     }
 
-    func testOrderCanBeAddedAndViewed() throws {
+    func testOrderCanBeAddedAndListed() throws {
         let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        app.staticTexts["Orders"].tap()
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["No orders yet"].waitForExistence(timeout: 5))
+        tapWhenReady(app.staticTexts["Orders"])
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["No orders yet"].waitForExistence(timeout: transitionTimeout))
 
-        app.buttons["orders.add"].tap()
-        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 5))
-        app.textFields["orders.form.title"].tap()
-        app.textFields["orders.form.title"].typeText("Vanilla Birthday")
-        app.textFields["orders.form.cakeNotes"].tap()
-        app.textFields["orders.form.cakeNotes"].typeText("Pink flowers")
-        app.textFields["orders.form.customerName"].tap()
-        app.textFields["orders.form.customerName"].typeText("Amy")
-        app.buttons["orders.form.save"].tap()
+        addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Vanilla Birthday"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: 5))
-        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: transitionTimeout))
+    }
+
+    func testOrderCanBeOpenedFromListAndViewed() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        tapWhenReady(app.staticTexts["Orders"])
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+
+        addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
+
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        let orderRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
             .firstMatch
-            .tap()
+        tapWhenReady(orderRow)
 
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Cake"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Customer"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Pickup"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Pink flowers"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.customerName"], in: app, timeout: transitionTimeout)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.fulfillmentType"], in: app, timeout: transitionTimeout)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.cakeNotes"], in: app, timeout: transitionTimeout)
     }
 
     func testInventoryDuplicateNameShowsWarningBeforeAdding() throws {
@@ -444,6 +451,22 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.buttons["inventory.form.save"].tap()
     }
 
+    private func addOrder(
+        named name: String,
+        notes: String,
+        customerName: String,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 15
+    ) {
+        tapWhenReady(app.buttons["orders.add"])
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: timeout))
+        typeText(name, into: app.textFields["orders.form.title"])
+        typeText(notes, into: app.textFields["orders.form.cakeNotes"])
+        typeText(customerName, into: app.textFields["orders.form.customerName"])
+        tapWhenReady(app.buttons["orders.form.save"])
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: timeout))
+    }
+
     private func addRecipe(named name: String, notes: String, in app: XCUIApplication) {
         app.buttons["recipes.add"].tap()
         XCTAssertTrue(app.navigationBars["Add Recipe"].waitForExistence(timeout: 5))
@@ -501,5 +524,50 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
     private func firstEditableInventoryRow(in app: XCUIApplication) -> XCUIElement {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view.")).firstMatch
+    }
+
+    private func tapWhenReady(
+        _ element: XCUIElement,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertTrue(element.waitForExistence(timeout: timeout), "Element did not exist before tap.", file: file, line: line)
+        let hittable = NSPredicate(format: "isHittable == true")
+        let expectation = XCTNSPredicateExpectation(predicate: hittable, object: element)
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [expectation], timeout: timeout),
+            .completed,
+            "Element was not hittable before tap.",
+            file: file,
+            line: line
+        )
+        element.tap()
+    }
+
+    private func typeText(
+        _ text: String,
+        into element: XCUIElement,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        tapWhenReady(element, timeout: timeout, file: file, line: line)
+        element.typeText(text)
+    }
+
+    private func assertExistsAfterScrolling(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !element.exists && Date() < deadline {
+            app.swipeUp()
+            _ = element.waitForExistence(timeout: 1)
+        }
+        XCTAssertTrue(element.exists, "Element did not exist after scrolling.", file: file, line: line)
     }
 }
