@@ -97,20 +97,35 @@ private struct OrderDetailView: View {
         List {
             if let order = viewModel.selectedOrder {
                 Section("Order") {
-                    LabeledContent("Cake", value: order.title)
-                    LabeledContent("Status", value: order.status.displayName)
-                    LabeledContent("Due", value: order.dueAt.formatted(date: .abbreviated, time: .shortened))
+                    LabeledContent("Cake") {
+                        Text(order.title)
+                            .accessibilityIdentifier("orders.detail.cake")
+                    }
+                    LabeledContent("Status") {
+                        Text(order.status.displayName)
+                            .accessibilityIdentifier("orders.detail.status")
+                    }
+                    LabeledContent("Due") {
+                        Text(order.dueAt.formatted(date: .abbreviated, time: .shortened))
+                            .accessibilityIdentifier("orders.detail.due")
+                    }
                 }
 
                 Section("Customer") {
-                    LabeledContent("Name", value: order.customerName)
+                    LabeledContent("Name") {
+                        Text(order.customerName)
+                            .accessibilityIdentifier("orders.detail.customerName")
+                    }
                     if order.customerId != nil {
                         LabeledContent("Record", value: "Linked")
                     }
                 }
 
                 Section("Fulfillment") {
-                    LabeledContent("Type", value: order.fulfillmentType.displayName)
+                    LabeledContent("Type") {
+                        Text(order.fulfillmentType.displayName)
+                            .accessibilityIdentifier("orders.detail.fulfillmentType")
+                    }
                     if let deliveryAddress = order.deliveryAddress {
                         LabeledContent("Address", value: deliveryAddress)
                     }
@@ -119,6 +134,7 @@ private struct OrderDetailView: View {
                 if let cakeNotes = order.cakeNotes {
                     Section("Cake Notes") {
                         Text(cakeNotes)
+                            .accessibilityIdentifier("orders.detail.cakeNotes")
                     }
                 }
             }
