@@ -37,6 +37,9 @@ correct a stock batch quantity or expiry date from inventory detail.
 The app uses expiry to warn the owner one month before expiry and to decide which batch should be
 consumed first.
 
+Expiry reminders are local notifications for remaining stock batches expiring within one month.
+They help the owner use or replace handmade-cake ingredients before the expiry date.
+
 ## Current Quantity
 
 Current quantity is how much of an inventory item is currently available.

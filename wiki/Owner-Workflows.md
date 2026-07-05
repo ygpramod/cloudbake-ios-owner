@@ -80,6 +80,14 @@ saving, and the app converts the entry back to the item's stored unit.
 When stock is used, the app deducts from the oldest-expiring batch first and then moves into newer
 batches.
 
+## Review Expiry Reminders
+
+When notification permission is granted, CloudBake schedules local reminders for remaining stock
+batches expiring within one month. These reminders are refreshed when the app opens or returns to
+the foreground.
+
+The reminder names the inventory item, remaining quantity, unit, and expiry date.
+
 ## Correct Stock Batches
 
 Use stock batch correction when a remaining batch was entered incorrectly.

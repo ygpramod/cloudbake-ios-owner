@@ -37,7 +37,8 @@ The app currently supports:
 29. purchase bill photo retake and selected-photo preview,
 30. purchase bill photo library import,
 31. duplicate matching for purchase bill draft save,
-32. unit, integration, and acceptance test lanes.
+32. local expiry reminder notifications for stock expiring within one month,
+33. unit, integration, and acceptance test lanes.
 
 ## Partially Prepared
 
@@ -48,7 +49,7 @@ The app has domain foundations for:
 3. customers,
 4. cake designs,
 5. pricing,
-6. reminders,
+6. order delivery reminders,
 7. inventory transactions,
 8. purchase bill filtering by baking catalog,
 9. purchase bill draft inventory parsing,

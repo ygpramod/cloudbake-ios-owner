@@ -45,6 +45,9 @@ density, such as flour grams per cup.
 An item is low inventory when current quantity is below minimum quantity, when it has expired
 remaining stock, or when remaining stock expires within one month.
 
+The app also uses local notifications for remaining stock expiring within one month after the owner
+grants notification permission.
+
 Example:
 
 1. current quantity: 500 g,
@@ -67,6 +70,10 @@ one quantity if the expiry dates differ.
 
 When stock is used, the app deducts from the oldest-expiring batch first. After that batch reaches
 zero, usage continues into the next oldest batch.
+
+Expiry reminders are local to the device. The reminder message names the item, remaining batch
+quantity, unit, and expiry date. Expired batches, empty batches, no-expiry batches, and batches
+expiring later than one month are not scheduled for expiry reminder notifications.
 
 ## Inventory Detail
 
@@ -200,5 +207,4 @@ Inventory does not yet support:
 4. inventory delete,
 5. supplier tracking,
 6. purchase planning,
-7. editing unit, current quantity, or expiry from item edit mode,
-8. expiry reminder notifications.
+7. editing unit, current quantity, or expiry from item edit mode.
