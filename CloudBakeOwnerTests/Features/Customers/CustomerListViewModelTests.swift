@@ -273,7 +273,7 @@ final class CustomerListViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.saveEditedCustomer())
         XCTAssertEqual(
             viewModel.duplicateWarningMessage,
-            "Possible duplicate: Zoe already exists. Tap Save again to add a separate customer."
+            "Possible duplicate: Zoe already exists. Tap Save again to keep this customer separate."
         )
         XCTAssertEqual(repository.customers, [amy, zoe])
     }
