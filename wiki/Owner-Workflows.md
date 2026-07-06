@@ -136,6 +136,18 @@ the foreground.
 
 The reminder names the inventory item, remaining quantity, unit, and expiry date.
 
+## Review Order Reminders
+
+Order detail shows the next relevant reminder from the three-day, two-day, and one-day reminder
+plan.
+
+When notification permission is granted, CloudBake schedules local owner notifications for
+Confirmed, In Progress, and Ready orders at future three-day, two-day, and one-day reminder times.
+Draft, Completed, Cancelled, past-due, and already-missed reminders are not scheduled.
+
+Reminder snooze, configurable offsets, day-of reminders, and calendar integration remain future
+work.
+
 ## Correct Stock Batches
 
 Use stock batch correction when a remaining batch was entered incorrectly.
