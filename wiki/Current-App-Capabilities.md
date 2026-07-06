@@ -69,7 +69,9 @@ The app currently supports:
 61. orders calendar view grouped by due date,
 62. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
 63. in-app order reminder planning for three, two, and one day before due date,
-64. unit, integration, and feature-sharded acceptance test lanes.
+64. optional saved recipe link from order add/edit,
+65. linked recipe name in order detail,
+66. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 

@@ -145,6 +145,8 @@ Order add/edit can link customers through a searchable selection flow through
 `docs/rfc/slices/0042-order-customer-search-selection.md`.
 Owner-visible order reminder planning is implemented in
 `docs/rfc/slices/0044-order-reminders.md`.
+Order add/edit can link one saved recipe for preparation context through
+`docs/rfc/slices/0046-order-recipe-link.md`.
 
 ## Reminder Model
 
@@ -188,8 +190,9 @@ without trying to automate the full pricing calculation.
 Orders should eventually link to one or more recipes. When the owner marks a recipe as used for an
 order, inventory should be deducted from the oldest-expiring stock batches first.
 
-This relationship should be implemented after order foundations and recipe ingredient rows are
-stable enough to support reliable stock deduction.
+Orders can now link to one saved recipe for preparation context. Recipe usage, recipe scaling, and
+inventory deduction remain future work and should be implemented after the owner confirms how a
+recipe is marked as used for an order.
 
 ## Design And Photo Relationship
 
