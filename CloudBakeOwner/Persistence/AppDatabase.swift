@@ -14,6 +14,7 @@ final class AppDatabase {
             try database.seedCustomerFixtureIfRequested()
             try database.seedOrderReminderFixtureIfRequested()
             try database.seedCakeDesignFixtureIfRequested()
+            try database.seedOrderPhotoFixtureIfRequested()
             return database
         }
 
@@ -130,6 +131,52 @@ final class AppDatabase {
                 photoReference: "photos/pink-floral.jpg",
                 createdAt: timestamp,
                 updatedAt: timestamp
+            )
+        )
+    }
+
+    private func seedOrderPhotoFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let order = Order(
+            id: "order-ui-fixture-photos",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Photo Vanilla Birthday",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: "Pink flowers",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(order)
+        try repository.save(
+            OrderPhoto(
+                id: "photo-ui-fixture-reference",
+                orderId: order.id,
+                kind: .customerReference,
+                localPhotoPath: "OrderPhotos/order-ui-fixture-photos/photo-ui-fixture-reference.jpg",
+                caption: "Customer sketch",
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+        try repository.save(
+            OrderPhoto(
+                id: "photo-ui-fixture-final",
+                orderId: order.id,
+                kind: .finalCake,
+                localPhotoPath: "OrderPhotos/order-ui-fixture-photos/photo-ui-fixture-final.jpg",
+                caption: "Finished cake",
+                createdAt: timestamp.addingTimeInterval(60),
+                updatedAt: timestamp.addingTimeInterval(60)
             )
         )
     }

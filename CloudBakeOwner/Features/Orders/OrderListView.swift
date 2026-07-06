@@ -1,4 +1,6 @@
+import PhotosUI
 import SwiftUI
+import UIKit
 
 struct OrderListView: View {
     @StateObject private var viewModel: OrderListViewModel
@@ -435,6 +437,8 @@ private struct OrderDetailView: View {
     @State private var isConfirmingEditedOrderInventoryDeduction = false
     @State private var isSelectingPaymentStatus = false
     @State private var isAddingPartialPayment = false
+    @State private var selectedCustomerReferencePhotoItem: PhotosPickerItem?
+    @State private var selectedFinalCakePhotoItem: PhotosPickerItem?
     @State private var partialPaymentAmount = ""
     @FocusState private var isChecklistTitleFocused: Bool
 
@@ -527,6 +531,28 @@ private struct OrderDetailView: View {
                             }
                         }
                     }
+                }
+
+                Section("Photos") {
+                    photoGroup(
+                        title: "Customer References",
+                        emptyText: "No reference photos",
+                        photos: viewModel.selectedCustomerReferencePhotos,
+                        pickerTitle: "Add Reference Photo",
+                        pickerSystemImage: "photo.badge.plus",
+                        pickerIdentifier: "orders.detail.photos.reference.add",
+                        selection: $selectedCustomerReferencePhotoItem
+                    )
+
+                    photoGroup(
+                        title: "Final Cake Photos",
+                        emptyText: "No final cake photos",
+                        photos: viewModel.selectedFinalCakePhotos,
+                        pickerTitle: "Add Final Cake Photo",
+                        pickerSystemImage: "photo.on.rectangle",
+                        pickerIdentifier: "orders.detail.photos.final.add",
+                        selection: $selectedFinalCakePhotoItem
+                    )
                 }
 
                 if let customer = viewModel.selectedOrderCustomer, customer.hasOrderContext {
@@ -706,6 +732,18 @@ private struct OrderDetailView: View {
                 }
             }
         }
+        .onChange(of: selectedCustomerReferencePhotoItem) { _, item in
+            Task {
+                await importOrderPhoto(item, kind: .customerReference)
+                selectedCustomerReferencePhotoItem = nil
+            }
+        }
+        .onChange(of: selectedFinalCakePhotoItem) { _, item in
+            Task {
+                await importOrderPhoto(item, kind: .finalCake)
+                selectedFinalCakePhotoItem = nil
+            }
+        }
         .navigationTitle(viewModel.selectedOrder?.title ?? "Order")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -846,8 +884,119 @@ private struct OrderDetailView: View {
         return viewModel.saveEditedOrder()
     }
 
+    @ViewBuilder
+    private func photoGroup(
+        title: String,
+        emptyText: String,
+        photos: [OrderPhoto],
+        pickerTitle: String,
+        pickerSystemImage: String,
+        pickerIdentifier: String,
+        selection: Binding<PhotosPickerItem?>
+    ) -> some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .accessibilityIdentifier("\(pickerIdentifier).header")
+
+        PhotosPicker(selection: selection, matching: .images, photoLibrary: .shared()) {
+            Label(pickerTitle, systemImage: pickerSystemImage)
+        }
+        .accessibilityIdentifier(pickerIdentifier)
+
+        if photos.isEmpty {
+            Text(emptyText)
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("\(pickerIdentifier).empty")
+        } else {
+            ForEach(photos, id: \.id) { photo in
+                orderPhotoRow(photo)
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            _ = viewModel.deleteOrderPhoto(photo)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .accessibilityIdentifier("orders.detail.photos.delete.\(photo.id)")
+                    }
+            }
+        }
+    }
+
+    private func orderPhotoRow(_ photo: OrderPhoto) -> some View {
+        HStack(spacing: 12) {
+            AsyncImage(url: viewModel.orderPhotoURL(photo)) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                default:
+                    Image(systemName: "photo")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(.quaternary)
+                }
+            }
+            .frame(width: 56, height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(photo.caption ?? photo.kind.displayName)
+                    .font(.body)
+                    .accessibilityIdentifier("orders.detail.photos.item.\(photo.id)")
+                Text(photo.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func importOrderPhoto(_ item: PhotosPickerItem?, kind: OrderPhotoKind) async {
+        guard let item else {
+            return
+        }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  !data.isEmpty else {
+                viewModel.errorMessage = "Order photo could not be read."
+                return
+            }
+
+            _ = viewModel.addOrderPhoto(
+                kind: kind,
+                imageData: normalizedPhotoData(from: data)
+            )
+        } catch {
+            viewModel.errorMessage = "Order photo could not be read."
+        }
+    }
+
+    private func normalizedPhotoData(from data: Data) -> Data {
+        guard let image = UIImage(data: data),
+              let jpegData = image.jpegData(compressionQuality: 0.85) else {
+            return data
+        }
+
+        return jpegData
+    }
+
     private func formattedMoney(_ amount: Decimal) -> String {
         NSDecimalNumber(decimal: amount).stringValue
+    }
+}
+
+private extension OrderPhotoKind {
+    var displayName: String {
+        switch self {
+        case .customerReference:
+            return "Reference Photo"
+        case .finalCake:
+            return "Final Cake Photo"
+        }
     }
 }
 

@@ -750,6 +750,10 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func orderPhotoURL(_ photo: OrderPhoto) -> URL {
+        photoFileStore.fileURL(for: photo.localPhotoPath)
+    }
+
     func cancelEditingOrder() {
         editingOrder = nil
         resetDraft()
