@@ -72,18 +72,25 @@ final class CloudBakeOwnerUITests: XCTestCase {
     func testOrderShowsDueRemindersAndReminderPlan() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
+        let orderTitle = "Reminder Vanilla Birthday"
         app.launch()
 
         tapWhenReady(app.staticTexts["Orders"])
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
-        addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
+        addOrder(named: orderTitle, notes: "Pink flowers", customerName: "Amy", in: app)
 
         XCTAssertTrue(app.staticTexts["Reminders Due"].waitForExistence(timeout: transitionTimeout))
-        let reminderRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.reminder."))
+        let reminderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.reminder.",
+                orderTitle
+            )
+        )
             .firstMatch
         tapWhenReady(reminderRow, timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.navigationBars[orderTitle].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.reminder.3"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.reminder.2"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.reminder.1"], in: app, timeout: transitionTimeout)
