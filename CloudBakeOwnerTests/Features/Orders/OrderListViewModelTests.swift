@@ -441,6 +441,7 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.selectedOrderRecipe)
         XCTAssertNil(viewModel.selectedOrderCakeDesign)
         XCTAssertTrue(viewModel.selectedOrderChecklistItems.isEmpty)
+        XCTAssertTrue(viewModel.selectedOrderPhotos.isEmpty)
         XCTAssertEqual(viewModel.draftChecklistItemTitle, "")
     }
 
@@ -531,6 +532,130 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.deleteChecklistItem(firstItem))
         XCTAssertEqual(viewModel.selectedOrderChecklistItems, [secondItem])
         XCTAssertEqual(repository.checklistItems, [secondItem])
+    }
+
+    func testBeginViewingOrderLoadsOrderPhotosGroupedByKind() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let referencePhoto = makeOrderPhoto(
+            id: "photo-reference",
+            orderId: order.id,
+            kind: .customerReference
+        )
+        let finalPhoto = makeOrderPhoto(
+            id: "photo-final",
+            orderId: order.id,
+            kind: .finalCake
+        )
+        repository.orderPhotos = [finalPhoto, referencePhoto]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertEqual(viewModel.selectedOrderPhotos, [referencePhoto, finalPhoto])
+        XCTAssertEqual(viewModel.selectedCustomerReferencePhotos, [referencePhoto])
+        XCTAssertEqual(viewModel.selectedFinalCakePhotos, [finalPhoto])
+    }
+
+    func testAddOrderPhotoStoresImageAndPersistsPhotoMetadata() {
+        let repository = FakeOrderRepository()
+        let photoFileStore = FakeOrderPhotoFileStore()
+        let now = Date(timeIntervalSince1970: 1_800_080_000)
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let imageData = Data([0xCA, 0xFE])
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            photoFileStore: photoFileStore,
+            idGenerator: { "photo-reference" },
+            dateProvider: { now }
+        )
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.addOrderPhoto(
+            kind: .customerReference,
+            imageData: imageData,
+            caption: " Customer sketch "
+        ))
+        XCTAssertEqual(
+            photoFileStore.savedPhotos,
+            [
+                FakeOrderPhotoFileStore.SavedPhoto(
+                    data: imageData,
+                    orderId: order.id,
+                    photoId: "photo-reference"
+                )
+            ]
+        )
+        XCTAssertEqual(
+            repository.orderPhotos,
+            [
+                OrderPhoto(
+                    id: "photo-reference",
+                    orderId: order.id,
+                    kind: .customerReference,
+                    localPhotoPath: "OrderPhotos/order-vanilla/photo-reference.jpg",
+                    caption: "Customer sketch",
+                    createdAt: now,
+                    updatedAt: now
+                )
+            ]
+        )
+        XCTAssertEqual(viewModel.selectedCustomerReferencePhotos, repository.orderPhotos)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testAddOrderPhotoRejectsEmptyImageData() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertFalse(viewModel.addOrderPhoto(kind: .finalCake, imageData: Data()))
+        XCTAssertTrue(repository.orderPhotos.isEmpty)
+        XCTAssertEqual(viewModel.errorMessage, "Order photo is required.")
+    }
+
+    func testDeleteOrderPhotoRemovesMetadataAndStoredFile() {
+        let repository = FakeOrderRepository()
+        let photoFileStore = FakeOrderPhotoFileStore()
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let firstPhoto = makeOrderPhoto(id: "photo-first", orderId: order.id, kind: .customerReference)
+        let secondPhoto = makeOrderPhoto(id: "photo-second", orderId: order.id, kind: .finalCake)
+        repository.orderPhotos = [firstPhoto, secondPhoto]
+        let viewModel = OrderListViewModel(repository: repository, photoFileStore: photoFileStore)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.deleteOrderPhoto(firstPhoto))
+        XCTAssertEqual(repository.orderPhotos, [secondPhoto])
+        XCTAssertEqual(viewModel.selectedOrderPhotos, [secondPhoto])
+        XCTAssertEqual(photoFileStore.deletedRelativePaths, [firstPhoto.localPhotoPath])
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testLocalOrderPhotoFileStoreWritesAndDeletesPhotoData() throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cloudbake-order-photo-store-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            try? FileManager.default.removeItem(at: rootURL)
+        }
+        let store = LocalOrderPhotoFileStore(rootDirectoryURL: rootURL)
+        let imageData = Data([0x01, 0x02, 0x03])
+
+        let relativePath = try store.saveOrderPhoto(
+            data: imageData,
+            orderId: "order rose/garden",
+            photoId: "photo reference"
+        )
+
+        XCTAssertEqual(relativePath, "OrderPhotos/order-rose-garden/photo-reference.jpg")
+        XCTAssertEqual(try Data(contentsOf: store.fileURL(for: relativePath)), imageData)
+
+        try store.deleteOrderPhoto(relativePath: relativePath)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: store.fileURL(for: relativePath).path))
     }
 
     func testChangeSelectedOrderStatusToReadyRecordsLinkedRecipeUsage() {
@@ -1007,6 +1132,24 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
+    private func makeOrderPhoto(
+        id: String,
+        orderId: String,
+        kind: OrderPhotoKind,
+        caption: String? = nil
+    ) -> OrderPhoto {
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        return OrderPhoto(
+            id: id,
+            orderId: orderId,
+            kind: kind,
+            localPhotoPath: "OrderPhotos/\(orderId)/\(id).jpg",
+            caption: caption,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+    }
+
     private func makeIncrementingIdGenerator(prefix: String) -> () -> String {
         var counter = 0
         return {
@@ -1022,13 +1165,15 @@ private final class FakeOrderRepository: OrderRepository,
     CakeDesignRepository,
     OrderRecipeUsageRepository,
     OrderStatusChangeRepository,
-    OrderChecklistRepository {
+    OrderChecklistRepository,
+    OrderPhotoRepository {
     var orders: [Order] = []
     var customers: [Customer] = []
     var recipes: [Recipe] = []
     var cakeDesigns: [CakeDesign] = []
     var usages: [OrderRecipeUsage] = []
     var checklistItems: [OrderChecklistItem] = []
+    var orderPhotos: [OrderPhoto] = []
     var recordedTransactionIds: [String] = []
     var recordRecipeUsageError: Error?
     var changeOrderStatusError: Error?
@@ -1116,6 +1261,31 @@ private final class FakeOrderRepository: OrderRepository,
         checklistItems.removeAll { $0.id == id }
     }
 
+    func save(_ photo: OrderPhoto) throws {
+        orderPhotos.removeAll { $0.id == photo.id }
+        orderPhotos.append(photo)
+    }
+
+    func fetchOrderPhotos(orderId: String) throws -> [OrderPhoto] {
+        orderPhotos
+            .filter { $0.orderId == orderId }
+            .sorted {
+                if $0.kind == $1.kind {
+                    if $0.createdAt == $1.createdAt {
+                        return $0.id < $1.id
+                    }
+
+                    return $0.createdAt < $1.createdAt
+                }
+
+                return $0.kind.rawValue < $1.kind.rawValue
+            }
+    }
+
+    func deleteOrderPhoto(id: String) throws {
+        orderPhotos.removeAll { $0.id == id }
+    }
+
     func recordRecipeUsage(
         for order: Order,
         usageId: String,
@@ -1194,5 +1364,29 @@ private final class FakeOrderRepository: OrderRepository,
 
     private func shouldRecordRecipeUsage(from currentStatus: OrderStatus, to newStatus: OrderStatus) -> Bool {
         currentStatus == .confirmed && (newStatus == .ready || newStatus == .completed)
+    }
+}
+
+private final class FakeOrderPhotoFileStore: OrderPhotoFileStore {
+    struct SavedPhoto: Equatable {
+        let data: Data
+        let orderId: String
+        let photoId: String
+    }
+
+    var savedPhotos: [SavedPhoto] = []
+    var deletedRelativePaths: [String] = []
+
+    func saveOrderPhoto(data: Data, orderId: String, photoId: String) throws -> String {
+        savedPhotos.append(SavedPhoto(data: data, orderId: orderId, photoId: photoId))
+        return "OrderPhotos/\(orderId)/\(photoId).jpg"
+    }
+
+    func deleteOrderPhoto(relativePath: String) throws {
+        deletedRelativePaths.append(relativePath)
+    }
+
+    func fileURL(for relativePath: String) -> URL {
+        URL(fileURLWithPath: "/tmp").appendingPathComponent(relativePath)
     }
 }
