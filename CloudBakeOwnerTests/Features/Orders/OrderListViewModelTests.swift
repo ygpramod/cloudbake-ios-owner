@@ -328,6 +328,7 @@ final class OrderListViewModelTests: XCTestCase {
         let order = makeOrder(
             id: "order-vanilla",
             recipeId: "recipe-vanilla",
+            status: .confirmed,
             dueAt: Date(timeIntervalSince1970: 1_800_150_000)
         )
         repository.orders = [order]
@@ -355,11 +356,55 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.recordedTransactionIds, ["generated-2"])
     }
 
+    func testChangeSelectedOrderStatusToCompletedRecordsLinkedRecipeUsage() {
+        let repository = FakeOrderRepository()
+        let updatedAt = Date(timeIntervalSince1970: 1_800_080_000)
+        let order = makeOrder(
+            id: "order-vanilla",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_150_000)
+        )
+        repository.orders = [order]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "generated"),
+            dateProvider: { updatedAt }
+        )
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.changeSelectedOrderStatus(to: .completed))
+        XCTAssertEqual(viewModel.selectedOrder?.status, .completed)
+        XCTAssertEqual(viewModel.selectedOrderRecipeUsage?.recipeId, "recipe-vanilla")
+        XCTAssertEqual(repository.recordedTransactionIds, ["generated-2"])
+    }
+
+    func testChangeSelectedOrderStatusFromDraftToCompletedDoesNotRecordRecipeUsage() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-vanilla",
+            recipeId: "recipe-vanilla",
+            status: .draft,
+            dueAt: Date(timeIntervalSince1970: 1_800_150_000)
+        )
+        repository.orders = [order]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.changeSelectedOrderStatus(to: .completed))
+        XCTAssertEqual(viewModel.selectedOrder?.status, .completed)
+        XCTAssertNil(viewModel.selectedOrderRecipeUsage)
+        XCTAssertTrue(repository.recordedTransactionIds.isEmpty)
+    }
+
     func testChangeSelectedOrderStatusShowsRecipeUsageError() {
         let repository = FakeOrderRepository()
         let order = makeOrder(
             id: "order-vanilla",
             recipeId: "recipe-vanilla",
+            status: .confirmed,
             dueAt: Date(timeIntervalSince1970: 1_800_150_000)
         )
         repository.orders = [order]
@@ -369,7 +414,7 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.beginViewingOrder(order)
 
         XCTAssertFalse(viewModel.changeSelectedOrderStatus(to: .ready))
-        XCTAssertEqual(viewModel.selectedOrder?.status, .draft)
+        XCTAssertEqual(viewModel.selectedOrder?.status, .confirmed)
         XCTAssertEqual(viewModel.errorMessage, "Not enough Cake Flour in inventory.")
     }
 
@@ -686,7 +731,7 @@ private final class FakeOrderRepository: OrderRepository, CustomerRepository, Re
         )
         try save(updatedOrder)
 
-        if status == .ready,
+        if shouldRecordRecipeUsage(from: order.status, to: status),
            let recipeId = order.recipeId,
            usages.first(where: { $0.orderId == order.id }) == nil {
             recordedTransactionIds.append(transactionIdProvider())
@@ -703,5 +748,9 @@ private final class FakeOrderRepository: OrderRepository, CustomerRepository, Re
         }
 
         return updatedOrder
+    }
+
+    private func shouldRecordRecipeUsage(from currentStatus: OrderStatus, to newStatus: OrderStatus) -> Bool {
+        currentStatus == .confirmed && (newStatus == .ready || newStatus == .completed)
     }
 }

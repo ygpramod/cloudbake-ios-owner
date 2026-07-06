@@ -379,7 +379,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
 
         try writer.write { db in
-            if status == .ready, let recipeId = order.recipeId {
+            if shouldRecordRecipeUsage(from: order.status, to: status), let recipeId = order.recipeId {
                 try recordRecipeUsageIfNeeded(
                     order: order,
                     recipeId: recipeId,
@@ -808,6 +808,10 @@ private extension GRDBCoreDataRepository {
             transactionIdProvider: transactionIdProvider,
             in: db
         )
+    }
+
+    func shouldRecordRecipeUsage(from currentStatus: OrderStatus, to newStatus: OrderStatus) -> Bool {
+        currentStatus == .confirmed && (newStatus == .ready || newStatus == .completed)
     }
 
     func recordRecipeUsage(

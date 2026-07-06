@@ -174,7 +174,7 @@ private struct OrderDetailView: View {
     @Binding var isPresented: Bool
     @State private var isEditingOrder = false
     @State private var isSelectingStatus = false
-    @State private var isConfirmingReadyStatus = false
+    @State private var statusPendingInventoryDeduction: OrderStatus?
 
     var body: some View {
         List {
@@ -344,14 +344,24 @@ private struct OrderDetailView: View {
             Button("Cancel", role: .cancel) {}
         }
         .confirmationDialog(
-            "Mark order ready?",
-            isPresented: $isConfirmingReadyStatus,
+            "Deduct inventory?",
+            isPresented: Binding(
+                get: { statusPendingInventoryDeduction != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        statusPendingInventoryDeduction = nil
+                    }
+                }
+            ),
             titleVisibility: .visible
         ) {
-            Button("Mark Ready") {
-                _ = viewModel.changeSelectedOrderStatus(to: .ready)
+            if let status = statusPendingInventoryDeduction {
+                Button("Mark \(status.displayName)") {
+                    _ = viewModel.changeSelectedOrderStatus(to: status)
+                    statusPendingInventoryDeduction = nil
+                }
+                .accessibilityIdentifier("orders.detail.confirmInventoryDeduction")
             }
-            .accessibilityIdentifier("orders.detail.confirmReady")
 
             Button("Cancel", role: .cancel) {}
         }
@@ -370,11 +380,18 @@ private struct OrderDetailView: View {
     }
 
     private func changeStatus(_ status: OrderStatus, for order: Order) {
-        if status == .ready, order.recipeId != nil, viewModel.selectedOrderRecipeUsage == nil {
-            isConfirmingReadyStatus = true
+        if shouldConfirmInventoryDeduction(from: order, to: status) {
+            statusPendingInventoryDeduction = status
         } else {
             _ = viewModel.changeSelectedOrderStatus(to: status)
         }
+    }
+
+    private func shouldConfirmInventoryDeduction(from order: Order, to status: OrderStatus) -> Bool {
+        order.status == .confirmed &&
+            (status == .ready || status == .completed) &&
+            order.recipeId != nil &&
+            viewModel.selectedOrderRecipeUsage == nil
     }
 }
 
