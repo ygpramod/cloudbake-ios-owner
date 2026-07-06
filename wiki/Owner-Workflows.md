@@ -262,10 +262,11 @@ reference from order detail.
 
 Order detail also includes a Photos section for order-specific images. Customer References are for
 images the customer shares before preparation, while Final Cake Photos are for what the owner made
-and delivered. The owner can add either kind from the camera or photo library, open saved photos in
-a full-screen preview, edit captions, save final cake photos as reusable designs, and delete
-mistaken photo rows. Saving a final photo as a design creates a linked cake design record using the
-photo's local reference path.
+and delivered. Each group shows compact camera and photo-library icons beside the group title. The
+owner can add either kind from the camera or photo library, open saved photos in a full-screen
+preview, edit captions, save final cake photos as reusable designs, and delete mistaken photo rows.
+Saving a final photo as a design creates a linked cake design record using the photo's local
+reference path.
 
 When a Confirmed order with an unused linked recipe is marked Ready or Completed from order detail,
 the app asks for confirmation and then deducts the recipe's inventory-backed ingredient rows. When

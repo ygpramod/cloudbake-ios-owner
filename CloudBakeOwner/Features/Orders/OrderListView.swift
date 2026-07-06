@@ -1034,22 +1034,32 @@ private struct OrderDetailView: View {
         selection: Binding<PhotosPickerItem?>,
         onCameraSelected: @escaping () -> Void
     ) -> some View {
-        Text(title)
-            .font(.subheadline.weight(.semibold))
-            .accessibilityIdentifier("\(pickerIdentifier).header")
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .accessibilityIdentifier("\(pickerIdentifier).header")
 
-        PhotosPicker(selection: selection, matching: .images, photoLibrary: .shared()) {
-            Label(pickerTitle, systemImage: pickerSystemImage)
-        }
-        .accessibilityIdentifier(pickerIdentifier)
+            Spacer()
 
-        Button {
-            onCameraSelected()
-        } label: {
-            Label(cameraTitle, systemImage: "camera")
+            PhotosPicker(selection: selection, matching: .images, photoLibrary: .shared()) {
+                Image(systemName: pickerSystemImage)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(pickerTitle)
+            .accessibilityIdentifier(pickerIdentifier)
+
+            Button {
+                onCameraSelected()
+            } label: {
+                Image(systemName: "camera")
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.borderless)
+            .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+            .accessibilityLabel(cameraTitle)
+            .accessibilityIdentifier(cameraIdentifier)
         }
-        .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-        .accessibilityIdentifier(cameraIdentifier)
 
         if photos.isEmpty {
             Text(emptyText)
