@@ -87,7 +87,8 @@ The app currently supports:
     notes,
 76. order row swipe actions for quick status changes and payment recording,
 77. order detail payment status actions for marking Paid or adding a partial payment,
-78. unit, integration, and feature-sharded acceptance test lanes.
+78. scheduled local owner notifications for Confirmed, In Progress, and Ready order reminders,
+79. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
@@ -96,7 +97,7 @@ The app has domain foundations or partial workflows for:
 1. recipe components and ingredients,
 2. cake designs,
 3. customer-safe order preview projection for future consumer-facing surfaces,
-4. scheduled order delivery notifications,
+4. order reminder snooze and configurable reminder offsets,
 5. inventory transactions,
 6. purchase bill filtering by baking catalog,
 7. purchase bill draft inventory parsing,

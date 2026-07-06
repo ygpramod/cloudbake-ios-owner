@@ -182,6 +182,9 @@ list ordered by delivery/pickup date-time descending, with cancelled rows visibl
 Order rows now expose quick status and payment swipe actions, and order detail can record Paid or
 Part Paid changes without opening full edit, through
 `docs/rfc/slices/0055-order-status-payment-quick-actions.md`.
+Confirmed, In Progress, and Ready orders now schedule local iOS notifications for future three-day,
+two-day, and one-day reminder offsets through
+`docs/rfc/slices/0056-order-scheduled-reminder-notifications.md`.
 
 ## Reminder Model
 
@@ -195,11 +198,14 @@ Future reminder behavior can include day-of reminders, snooze, preparation-start
 calendar integration. Reminder slices must define whether reminders are local notifications,
 in-app alerts, or both.
 
-The first reminder slice provides in-app reminder planning only. Order detail shows the next
-reminder from the three/two/one-day reminder plan. The Orders screen should avoid a standalone
-Reminders Due section because reminder context belongs in the main order presentation and order
-detail. Scheduled local notifications, snooze, configurable offsets, and calendar integration
-remain future work.
+The first reminder slice provides in-app reminder planning. Order detail shows the next reminder
+from the three/two/one-day reminder plan. The Orders screen should avoid a standalone Reminders Due
+section because reminder context belongs in the main order presentation and order detail.
+
+Confirmed, In Progress, and Ready orders now schedule local iOS notifications for future
+three/two/one-day reminder offsets. Draft, Completed, Cancelled, past-due, and already-missed
+reminders do not schedule notifications. Snooze, configurable offsets, day-of reminders, and
+calendar integration remain future work.
 
 ## Pricing And Payment
 
@@ -326,6 +332,8 @@ pricing, and recipe links.
   relevant reminder.
 - Orders now expose row swipe actions for quick status changes and payment recording. Order detail
   can also mark an order Paid or add a partial payment without opening full edit.
+- Orders now schedule local owner notifications for future three-day, two-day, and one-day
+  reminders when the order is Confirmed, In Progress, or Ready.
 - Orders now have a customer-safe preview projection for future consumer surfaces. It maps owner
   statuses into consumer language and deliberately excludes private owner/customer operational
   fields.
