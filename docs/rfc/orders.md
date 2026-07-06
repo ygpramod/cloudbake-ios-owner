@@ -179,6 +179,9 @@ The Orders screen now exposes only Active and Completed tabs. Active orders are 
 and ordered by delivery/pickup time ascending; completed and cancelled orders are shown in a simple
 list ordered by delivery/pickup date-time descending, with cancelled rows visibly marked, through
 `docs/rfc/slices/0054-order-active-completed-tabs.md`.
+Order rows now expose quick status and payment swipe actions, and order detail can record Paid or
+Part Paid changes without opening full edit, through
+`docs/rfc/slices/0055-order-status-payment-quick-actions.md`.
 
 ## Reminder Model
 
@@ -217,6 +220,10 @@ Pricing inputs may eventually include:
 
 The first order model captures quoted price, deposit paid, derived balance due, payment status, and
 payment notes without trying to automate the full pricing calculation.
+
+Quick payment actions keep the same owner-controlled model. Marking Paid sets paid amount equal to
+the quoted price, which makes derived balance due zero. Adding a partial payment asks for the newly
+received amount, adds it to the existing paid amount, and rejects invalid or excess payment values.
 
 ## Recipe And Inventory Relationship
 
@@ -317,6 +324,8 @@ pricing, and recipe links.
   list ordered by delivery/pickup date-time descending, with cancelled rows visibly marked. The
   standalone Orders screen Reminders Due section is removed; order detail continues to show the next
   relevant reminder.
+- Orders now expose row swipe actions for quick status changes and payment recording. Order detail
+  can also mark an order Paid or add a partial payment without opening full edit.
 - Orders now have a customer-safe preview projection for future consumer surfaces. It maps owner
   statuses into consumer language and deliberately excludes private owner/customer operational
   fields.

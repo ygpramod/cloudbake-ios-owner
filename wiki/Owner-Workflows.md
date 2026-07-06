@@ -214,7 +214,9 @@ Today, the owner can:
     ingredients from inventory with unit conversion,
 18. add, complete, and delete simple preparation checklist items from order detail,
 19. review completed and cancelled orders in a separate Completed tab,
-20. review the next relevant reminder in order detail.
+20. use row swipe actions to change status or record payment,
+21. mark payment Paid or add a partial payment from order detail,
+22. review the next relevant reminder in order detail.
 
 Active orders are grouped by due day, with orders inside each day ordered by delivery or pickup time
 ascending. Completed and cancelled orders are kept out of active work and appear in a simple
@@ -259,8 +261,13 @@ work.
 
 Order add/edit includes a Pricing And Payment section for the owner-entered quoted price, deposit
 paid, and payment notes. Order detail shows payment status, quoted price, deposit paid, and derived
-balance due. Pricing suggestions, recipe-cost calculation, discounts, refunds, and online payment
-processing remain future work.
+balance due. From order detail, the owner can mark the order Paid or add a partial payment without
+opening full edit. Marking Paid sets the paid amount to the quoted price and makes balance due zero.
+Adding a partial payment asks for the newly received amount and adds it to the existing paid amount.
+
+Order rows also expose swipe actions for quick status changes and payment recording. These quick
+actions ask for confirmation before saving. Pricing suggestions, recipe-cost calculation, discounts,
+refunds, and online payment processing remain future work.
 
 Future order slices should add scheduled notifications, reminder snooze, recipe scaling, partial
 recipe usage, and order-specific design photos.
