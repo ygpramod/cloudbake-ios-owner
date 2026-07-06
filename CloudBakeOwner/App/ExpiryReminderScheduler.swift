@@ -1,26 +1,26 @@
 import Foundation
 import UserNotifications
 
-protocol ExpiryReminderNotificationCenter {
+protocol LocalNotificationCenter {
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool
     func pendingNotificationRequests() async -> [UNNotificationRequest]
     func removePendingNotificationRequests(withIdentifiers identifiers: [String])
     func add(_ request: UNNotificationRequest) async throws
 }
 
-extension UNUserNotificationCenter: ExpiryReminderNotificationCenter {}
+extension UNUserNotificationCenter: LocalNotificationCenter {}
 
 struct ExpiryReminderScheduler {
     private static let notificationPrefix = "inventory-expiry-"
     private static let calendar = Calendar(identifier: .gregorian)
 
     private let repository: any InventoryItemRepository & InventoryStockBatchRepository
-    private let notificationCenter: ExpiryReminderNotificationCenter
+    private let notificationCenter: LocalNotificationCenter
     private let dateProvider: () -> Date
 
     init(
         repository: any InventoryItemRepository & InventoryStockBatchRepository,
-        notificationCenter: ExpiryReminderNotificationCenter = UNUserNotificationCenter.current(),
+        notificationCenter: LocalNotificationCenter = UNUserNotificationCenter.current(),
         dateProvider: @escaping () -> Date = Date.init
     ) {
         self.repository = repository
