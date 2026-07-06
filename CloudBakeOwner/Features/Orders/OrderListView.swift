@@ -219,6 +219,7 @@ private struct OrderDetailView: View {
     @State private var isEditingOrder = false
     @State private var isSelectingStatus = false
     @State private var statusPendingInventoryDeduction: OrderStatus?
+    @State private var isConfirmingEditedOrderInventoryDeduction = false
     @FocusState private var isChecklistTitleFocused: Bool
 
     init(
@@ -545,8 +546,23 @@ private struct OrderDetailView: View {
                     isPresented: $isEditingOrder,
                     statusOptions: OrderStatus.allCases,
                     onCancel: viewModel.cancelEditingOrder,
-                    onSave: viewModel.saveEditedOrder
+                    onSave: saveEditedOrder
                 )
+                .confirmationDialog(
+                    "Deduct inventory?",
+                    isPresented: $isConfirmingEditedOrderInventoryDeduction,
+                    titleVisibility: .visible
+                ) {
+                    Button("Save And Deduct") {
+                        if viewModel.saveEditedOrder(confirmingRecipeUsage: true) {
+                            isConfirmingEditedOrderInventoryDeduction = false
+                            isEditingOrder = false
+                        }
+                    }
+                    .accessibilityIdentifier("orders.form.confirmInventoryDeduction")
+
+                    Button("Cancel", role: .cancel) {}
+                }
             }
         }
     }
@@ -564,6 +580,15 @@ private struct OrderDetailView: View {
             (status == .ready || status == .completed) &&
             order.recipeId != nil &&
             viewModel.selectedOrderRecipeUsage == nil
+    }
+
+    private func saveEditedOrder() -> Bool {
+        if viewModel.editedOrderRequiresInventoryDeductionConfirmation {
+            isConfirmingEditedOrderInventoryDeduction = true
+            return false
+        }
+
+        return viewModel.saveEditedOrder()
     }
 
     private func formattedMoney(_ amount: Decimal) -> String {

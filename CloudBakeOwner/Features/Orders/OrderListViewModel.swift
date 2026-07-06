@@ -356,12 +356,27 @@ final class OrderListViewModel: ObservableObject {
         loadFormReferences()
     }
 
-    func saveEditedOrder() -> Bool {
+    var editedOrderRequiresInventoryDeductionConfirmation: Bool {
+        guard let editingOrder else {
+            return false
+        }
+
+        return shouldRecordRecipeUsage(from: editingOrder.status, to: draftStatus) &&
+            !draftRecipeId.isEmpty &&
+            selectedOrderRecipeUsage == nil
+    }
+
+    func saveEditedOrder(confirmingRecipeUsage: Bool = false) -> Bool {
         guard let editingOrder else {
             errorMessage = "Order could not be found."
             return false
         }
         guard let draft = validatedDraft() else {
+            return false
+        }
+
+        if editedOrderRequiresInventoryDeductionConfirmation && !confirmingRecipeUsage {
+            errorMessage = "Confirm inventory deduction before saving."
             return false
         }
 
