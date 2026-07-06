@@ -750,6 +750,30 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func updateOrderPhotoCaption(_ photo: OrderPhoto, caption: String) -> Bool {
+        let updatedPhoto = OrderPhoto(
+            id: photo.id,
+            orderId: photo.orderId,
+            kind: photo.kind,
+            localPhotoPath: photo.localPhotoPath,
+            caption: optionalText(caption),
+            createdAt: photo.createdAt,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.save(updatedPhoto)
+            if let selectedOrder {
+                loadSelectedOrderPhotos(for: selectedOrder)
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Order photo caption could not be saved."
+            return false
+        }
+    }
+
     func orderPhotoURL(_ photo: OrderPhoto) -> URL {
         photoFileStore.fileURL(for: photo.localPhotoPath)
     }

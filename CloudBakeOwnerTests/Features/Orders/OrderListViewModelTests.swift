@@ -617,6 +617,32 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, "Order photo is required.")
     }
 
+    func testUpdateOrderPhotoCaptionPersistsTrimmedCaption() {
+        let repository = FakeOrderRepository()
+        let now = Date(timeIntervalSince1970: 1_800_080_000)
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let photo = makeOrderPhoto(
+            id: "photo-reference",
+            orderId: order.id,
+            kind: .customerReference,
+            caption: "Customer sketch"
+        )
+        repository.orderPhotos = [photo]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { now }
+        )
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.updateOrderPhotoCaption(photo, caption: "  Lace and pearl reference  "))
+        XCTAssertEqual(repository.orderPhotos.first?.caption, "Lace and pearl reference")
+        XCTAssertEqual(repository.orderPhotos.first?.createdAt, photo.createdAt)
+        XCTAssertEqual(repository.orderPhotos.first?.updatedAt, now)
+        XCTAssertEqual(viewModel.selectedOrderPhotos.first?.caption, "Lace and pearl reference")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testDeleteOrderPhotoRemovesMetadataAndStoredFile() {
         let repository = FakeOrderRepository()
         let photoFileStore = FakeOrderPhotoFileStore()
