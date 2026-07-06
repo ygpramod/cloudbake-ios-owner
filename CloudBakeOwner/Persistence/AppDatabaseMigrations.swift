@@ -184,6 +184,13 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0008_add_order_recipe_link") { db in
+            try db.alter(table: "orders") { table in
+                table.add(column: "recipe_id", .text)
+                    .references("recipes", onDelete: .setNull)
+            }
+        }
+
         return migrator
     }
 }

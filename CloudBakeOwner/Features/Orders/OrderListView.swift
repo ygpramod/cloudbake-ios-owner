@@ -211,6 +211,15 @@ private struct OrderDetailView: View {
                     }
                 }
 
+                if order.recipeId != nil {
+                    Section("Recipe") {
+                        LabeledContent("Linked Recipe") {
+                            Text(viewModel.selectedOrderRecipe?.name ?? "Recipe unavailable")
+                                .accessibilityIdentifier("orders.detail.recipeName")
+                        }
+                    }
+                }
+
                 if let customer = viewModel.selectedOrderCustomer, customer.hasOrderContext {
                     Section("Customer Details") {
                         if let allergies = customer.orderAllergies {
@@ -375,6 +384,7 @@ private struct OrderForm: View {
     let onCancel: () -> Void
     let onSave: () -> Bool
     @State private var isSelectingCustomer = false
+    @State private var isSelectingRecipe = false
 
     init(
         title: String = "Add Order",
@@ -401,6 +411,22 @@ private struct OrderForm: View {
                 TextField("Cake Notes", text: $viewModel.draftCakeNotes, axis: .vertical)
                     .lineLimit(2...5)
                     .accessibilityIdentifier("orders.form.cakeNotes")
+            }
+
+            if !viewModel.recipes.isEmpty {
+                Section("Recipe") {
+                    Button {
+                        isSelectingRecipe = true
+                    } label: {
+                        LabeledContent("Linked Recipe", value: viewModel.draftRecipeName())
+                    }
+                    .accessibilityIdentifier("orders.form.recipe")
+                    .sheet(isPresented: $isSelectingRecipe) {
+                        NavigationStack {
+                            RecipeSelectionView(viewModel: viewModel, isPresented: $isSelectingRecipe)
+                        }
+                    }
+                }
             }
 
             Section("Customer") {
@@ -480,6 +506,80 @@ private struct OrderForm: View {
                     }
                 }
                 .accessibilityIdentifier("orders.form.save")
+            }
+        }
+    }
+}
+
+private struct RecipeSelectionView: View {
+    @ObservedObject var viewModel: OrderListViewModel
+    @Binding var isPresented: Bool
+    @State private var searchText = ""
+
+    var body: some View {
+        List {
+            Section {
+                Button {
+                    viewModel.clearDraftRecipeLink()
+                    isPresented = false
+                } label: {
+                    HStack {
+                        Text("No Linked Recipe")
+                        Spacer()
+                        if viewModel.draftRecipeId.isEmpty {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+                .accessibilityIdentifier("orders.recipeSelection.none")
+            }
+
+            Section("Recipes") {
+                let matchingRecipes = viewModel.recipes(matching: searchText)
+                if matchingRecipes.isEmpty {
+                    Text("No matching recipes")
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("orders.recipeSelection.empty")
+                } else {
+                    ForEach(matchingRecipes, id: \.id) { recipe in
+                        Button {
+                            viewModel.selectDraftRecipe(id: recipe.id)
+                            isPresented = false
+                        } label: {
+                            HStack(alignment: .top, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(recipe.name)
+                                        .font(.headline)
+                                    if let notes = recipe.notes {
+                                        Text(notes)
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                }
+
+                                Spacer()
+
+                                if viewModel.draftRecipeId == recipe.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier("orders.recipeSelection.recipe.\(recipe.id)")
+                    }
+                }
+            }
+        }
+        .navigationTitle("Recipe")
+        .searchable(text: $searchText, prompt: "Search Recipes")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    isPresented = false
+                }
+                .accessibilityIdentifier("orders.recipeSelection.done")
             }
         }
     }
