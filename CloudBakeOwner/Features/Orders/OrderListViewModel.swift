@@ -32,11 +32,13 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var selectedOrderCustomer: Customer?
     @Published private(set) var selectedOrderRecipe: Recipe?
     @Published private(set) var selectedOrderRecipeUsage: OrderRecipeUsage?
+    @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
     @Published private(set) var editingOrder: Order?
     @Published var draftTitle = ""
     @Published var draftCustomerName = ""
     @Published var draftCustomerId = ""
     @Published var draftRecipeId = ""
+    @Published var draftChecklistItemTitle = ""
     @Published var draftDueAt = Date()
     @Published var draftStatus: OrderStatus = .draft
     @Published var draftFulfillmentType: OrderFulfillmentType = .pickup
@@ -44,13 +46,13 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftCakeNotes = ""
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository
+    private let repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let calendar: Calendar
 
     init(
-        repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository,
+        repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
@@ -146,6 +148,7 @@ final class OrderListViewModel: ObservableObject {
         loadSelectedOrderCustomer(for: order)
         loadSelectedOrderRecipe(for: order)
         loadSelectedOrderRecipeUsage(for: order)
+        loadSelectedOrderChecklistItems(for: order)
     }
 
     func closeOrderDetail() {
@@ -153,6 +156,8 @@ final class OrderListViewModel: ObservableObject {
         selectedOrderCustomer = nil
         selectedOrderRecipe = nil
         selectedOrderRecipeUsage = nil
+        selectedOrderChecklistItems = []
+        draftChecklistItemTitle = ""
         editingOrder = nil
         errorMessage = nil
     }
@@ -327,6 +332,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderCustomer(for: order)
             loadSelectedOrderRecipe(for: order)
             loadSelectedOrderRecipeUsage(for: order)
+            loadSelectedOrderChecklistItems(for: order)
             return true
         } catch {
             errorMessage = "Order could not be saved."
@@ -357,6 +363,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderCustomer(for: updatedOrder)
             loadSelectedOrderRecipe(for: updatedOrder)
             loadSelectedOrderRecipeUsage(for: updatedOrder)
+            loadSelectedOrderChecklistItems(for: updatedOrder)
             errorMessage = nil
             return true
         } catch let error as OrderRecipeUsageError {
@@ -364,6 +371,66 @@ final class OrderListViewModel: ObservableObject {
             return false
         } catch {
             errorMessage = "Order status could not be updated."
+            return false
+        }
+    }
+
+    func addChecklistItemToSelectedOrder() -> Bool {
+        guard let selectedOrder else {
+            errorMessage = "Order could not be found."
+            return false
+        }
+
+        let title = draftChecklistItemTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else {
+            errorMessage = "Checklist item is required."
+            return false
+        }
+
+        let now = dateProvider()
+        let nextSortOrder = (selectedOrderChecklistItems.map(\.sortOrder).max() ?? -1) + 1
+        let item = OrderChecklistItem(
+            id: idGenerator(),
+            orderId: selectedOrder.id,
+            title: title,
+            isCompleted: false,
+            sortOrder: nextSortOrder,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        do {
+            try repository.save(item)
+            draftChecklistItemTitle = ""
+            loadSelectedOrderChecklistItems(for: selectedOrder)
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Checklist item could not be saved."
+            return false
+        }
+    }
+
+    func toggleChecklistItem(_ item: OrderChecklistItem) -> Bool {
+        let updatedItem = OrderChecklistItem(
+            id: item.id,
+            orderId: item.orderId,
+            title: item.title,
+            isCompleted: !item.isCompleted,
+            sortOrder: item.sortOrder,
+            createdAt: item.createdAt,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.save(updatedItem)
+            if let selectedOrder {
+                loadSelectedOrderChecklistItems(for: selectedOrder)
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Checklist item could not be updated."
             return false
         }
     }
@@ -419,6 +486,15 @@ final class OrderListViewModel: ObservableObject {
         } catch {
             selectedOrderRecipeUsage = nil
             errorMessage = "Recipe usage details could not be loaded."
+        }
+    }
+
+    private func loadSelectedOrderChecklistItems(for order: Order) {
+        do {
+            selectedOrderChecklistItems = try repository.fetchOrderChecklistItems(orderId: order.id)
+        } catch {
+            selectedOrderChecklistItems = []
+            errorMessage = "Checklist could not be loaded."
         }
     }
 

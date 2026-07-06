@@ -175,6 +175,7 @@ private struct OrderDetailView: View {
     @State private var isEditingOrder = false
     @State private var isSelectingStatus = false
     @State private var statusPendingInventoryDeduction: OrderStatus?
+    @FocusState private var isChecklistTitleFocused: Bool
 
     var body: some View {
         List {
@@ -287,6 +288,54 @@ private struct OrderDetailView: View {
                     Section("Cake Notes") {
                         Text(cakeNotes)
                             .accessibilityIdentifier("orders.detail.cakeNotes")
+                    }
+                }
+
+                Section("Checklist") {
+                    if viewModel.selectedOrderChecklistItems.isEmpty {
+                        Text("No checklist items")
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("orders.detail.checklist.empty")
+                    } else {
+                        ForEach(viewModel.selectedOrderChecklistItems, id: \.id) { item in
+                            HStack(spacing: 10) {
+                                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(item.isCompleted ? .green : .secondary)
+                                Text(item.title)
+                                    .strikethrough(item.isCompleted)
+                                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                _ = viewModel.toggleChecklistItem(item)
+                            }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityAddTraits(.isButton)
+                            .id("\(item.id)-\(item.isCompleted)")
+                            .accessibilityIdentifier(
+                                "orders.detail.checklist.item.\(item.id).\(item.isCompleted ? "complete" : "incomplete")"
+                            )
+                            .accessibilityLabel(item.title)
+                            .accessibilityValue(item.isCompleted ? "Complete" : "Incomplete")
+                        }
+                    }
+
+                    HStack {
+                        TextField("Add checklist item", text: $viewModel.draftChecklistItemTitle)
+                            .textInputAutocapitalization(.sentences)
+                            .focused($isChecklistTitleFocused)
+                            .accessibilityIdentifier("orders.detail.checklist.title")
+
+                        Button {
+                            if viewModel.addChecklistItemToSelectedOrder() {
+                                isChecklistTitleFocused = false
+                            }
+                        } label: {
+                            Label("Add Checklist Item", systemImage: "plus.circle")
+                                .labelStyle(.iconOnly)
+                        }
+                        .accessibilityIdentifier("orders.detail.checklist.add")
                     }
                 }
 

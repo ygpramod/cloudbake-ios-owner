@@ -207,6 +207,20 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0010_create_order_checklist_items") { db in
+            try db.create(table: "order_checklist_items") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .cascade)
+                table.column("title", .text).notNull()
+                table.column("is_completed", .boolean).notNull().defaults(to: false)
+                table.column("sort_order", .integer).notNull()
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+        }
+
         return migrator
     }
 }
