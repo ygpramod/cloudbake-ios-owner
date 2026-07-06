@@ -94,8 +94,9 @@ The app currently supports:
 82. camera capture for order reference and final cake photos,
 83. full-screen preview for saved order photos,
 84. caption editing for saved order photos,
-85. saved order photo deletion from order detail,
-86. unit, integration, and feature-sharded acceptance test lanes.
+85. promotion of final cake photos into linked saved cake designs,
+86. saved order photo deletion from order detail,
+87. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
@@ -126,10 +127,9 @@ Planned product areas include:
 4. partial recipe usage,
 5. richer order checklist editing, reordering, and templates,
 6. delivery reminders,
-7. final cake photo promotion into the design library,
-8. pricing calculator,
-9. customer-facing cake browsing,
-10. sync through iCloud or backend when needed.
+7. pricing calculator,
+8. customer-facing cake browsing,
+9. sync through iCloud or backend when needed.
 
 ## Source References
 

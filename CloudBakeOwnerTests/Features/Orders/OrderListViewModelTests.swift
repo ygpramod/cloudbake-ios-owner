@@ -643,6 +643,57 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testPromoteFinalCakePhotoToDesignSavesDesignAndLinksOrder() {
+        let repository = FakeOrderRepository()
+        let now = Date(timeIntervalSince1970: 1_800_080_000)
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        repository.orders = [order]
+        let photo = makeOrderPhoto(
+            id: "photo-final",
+            orderId: order.id,
+            kind: .finalCake,
+            caption: "Finished cake"
+        )
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: { "design-finished-cake" },
+            dateProvider: { now }
+        )
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.promoteFinalCakePhotoToDesign(
+            photo,
+            name: "  Pink Pearl Cake  ",
+            notes: "  Use taller border next time  "
+        ))
+        XCTAssertEqual(repository.cakeDesigns.count, 1)
+        XCTAssertEqual(repository.cakeDesigns.first?.id, "design-finished-cake")
+        XCTAssertEqual(repository.cakeDesigns.first?.name, "Pink Pearl Cake")
+        XCTAssertEqual(repository.cakeDesigns.first?.notes, "Use taller border next time")
+        XCTAssertEqual(repository.cakeDesigns.first?.photoReference, photo.localPhotoPath)
+        XCTAssertEqual(repository.cakeDesigns.first?.createdAt, now)
+        XCTAssertEqual(repository.orders.first?.cakeDesignId, "design-finished-cake")
+        XCTAssertEqual(repository.orders.first?.updatedAt, now)
+        XCTAssertEqual(viewModel.selectedOrder?.cakeDesignId, "design-finished-cake")
+        XCTAssertEqual(viewModel.selectedOrderCakeDesign?.name, "Pink Pearl Cake")
+        XCTAssertEqual(viewModel.cakeDesigns.first?.id, "design-finished-cake")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testPromoteReferencePhotoToDesignIsRejected() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let photo = makeOrderPhoto(id: "photo-reference", orderId: order.id, kind: .customerReference)
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertFalse(viewModel.promoteFinalCakePhotoToDesign(photo, name: "Reference", notes: ""))
+        XCTAssertTrue(repository.cakeDesigns.isEmpty)
+        XCTAssertEqual(viewModel.errorMessage, "Only final cake photos can be saved as designs.")
+    }
+
     func testDeleteOrderPhotoRemovesMetadataAndStoredFile() {
         let repository = FakeOrderRepository()
         let photoFileStore = FakeOrderPhotoFileStore()

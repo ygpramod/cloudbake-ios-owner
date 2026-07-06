@@ -263,8 +263,9 @@ reference from order detail.
 Order detail also includes a Photos section for order-specific images. Customer References are for
 images the customer shares before preparation, while Final Cake Photos are for what the owner made
 and delivered. The owner can add either kind from the camera or photo library, open saved photos in
-a full-screen preview, edit captions, and delete mistaken photo rows. Promoting final cake photos
-into the design library remains future work.
+a full-screen preview, edit captions, save final cake photos as reusable designs, and delete
+mistaken photo rows. Saving a final photo as a design creates a linked cake design record using the
+photo's local reference path.
 
 When a Confirmed order with an unused linked recipe is marked Ready or Completed from order detail,
 the app asks for confirmation and then deducts the recipe's inventory-backed ingredient rows. When
@@ -290,8 +291,8 @@ Order rows also expose swipe actions for quick status changes and payment record
 actions use centered popups and ask for confirmation before saving. Pricing suggestions,
 recipe-cost calculation, discounts, refunds, and online payment processing remain future work.
 
-Future order slices should add final cake photo promotion into the design library, reminder snooze,
-recipe scaling, partial recipe usage, and richer order photo/design library workflows.
+Future order slices should add reminder snooze, recipe scaling, partial recipe usage, and richer
+order photo/design library workflows.
 
 ## Customer Workflow
 

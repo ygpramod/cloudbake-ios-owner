@@ -325,6 +325,23 @@ final class CloudBakeOwnerUITests: XCTestCase {
             in: app,
             timeout: transitionTimeout
         )
+        let finalPreview = app.buttons["orders.detail.photos.preview.photo-ui-fixture-final"]
+        assertExistsAfterScrolling(finalPreview, in: app, timeout: transitionTimeout)
+        tapWhenReady(finalPreview, timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].label.contains("Finished cake"))
+        tapWhenReady(app.buttons["orders.detail.photos.preview.promoteDesign"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Save Design"].waitForExistence(timeout: transitionTimeout))
+        let designNameField = app.textFields["orders.detail.photos.design.name"]
+        tapWhenReady(designNameField, timeout: transitionTimeout)
+        designNameField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
+        designNameField.typeText("Pink Pearl Cake")
+        tapWhenReady(app.buttons["orders.detail.photos.design.save"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Photo Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        scrollToTop(in: app)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.designName"], in: app, timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["orders.detail.designName"].label.contains("Pink Pearl Cake"))
+        XCTAssertTrue(app.staticTexts["orders.detail.designPhotoReference"].label.contains("photo-ui-fixture-final"))
     }
 
     func testOrderCanLinkCustomerFromSearchableSelection() throws {
