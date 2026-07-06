@@ -22,15 +22,19 @@ development requirements.
 
 The `acceptance-tests` GitHub Actions job uses a matrix with feature shards:
 
-- `core`
-- `orders`
+- `core-recipes-customers`
+- `orders-core`
+- `orders-links`
 - `inventory`
-- `recipes`
-- `customers`
 
 Each shard runs the `CloudBakeOwnerAcceptance` scheme with explicit `-only-testing` filters for the
 tests owned by that feature area. Shards use `fail-fast: false` so multiple feature failures can be
 reported in the same CI run.
+
+The workflow keeps four acceptance jobs by combining core, recipe, and customer coverage into
+`core-recipes-customers`, splitting order coverage into `orders-core` and `orders-links`, and
+keeping inventory as its own shard. With the unit/integration job, this respects the five-runner
+macOS concurrency limit.
 
 Each failed shard uploads a feature-specific `.xcresult` artifact:
 
