@@ -60,6 +60,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0052: Order Workflow Polish
 - Slice RFC-0053: Order Pricing And Payment Summary
 - Slice RFC-0054: Order Active And Completed Tabs
+- Slice RFC-0055: Order Status And Payment Quick Actions
 
 ## Base RFCs
 
