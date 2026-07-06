@@ -191,6 +191,22 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0009_create_order_recipe_usages") { db in
+            try db.create(table: "order_recipe_usages") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .unique()
+                    .references("orders", onDelete: .cascade)
+                table.column("recipe_id", .text)
+                    .notNull()
+                    .references("recipes", onDelete: .restrict)
+                table.column("used_at_unix_time", .double).notNull()
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+        }
+
         return migrator
     }
 }

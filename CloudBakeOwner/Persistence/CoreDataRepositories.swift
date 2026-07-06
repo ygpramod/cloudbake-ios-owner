@@ -48,6 +48,16 @@ protocol OrderRepository {
     func fetchOrders() throws -> [Order]
 }
 
+protocol OrderRecipeUsageRepository {
+    func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage?
+    func recordRecipeUsage(
+        for order: Order,
+        usageId: String,
+        usedAt: Date,
+        transactionIdProvider: () -> String
+    ) throws
+}
+
 protocol InventoryTransactionRepository {
     func save(_ transaction: InventoryTransaction) throws
     func fetchInventoryTransaction(id: String) throws -> InventoryTransaction?

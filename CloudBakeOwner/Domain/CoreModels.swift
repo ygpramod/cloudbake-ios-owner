@@ -267,6 +267,24 @@ struct Order: Equatable {
     }
 }
 
+struct OrderRecipeUsage: Equatable {
+    let id: String
+    let orderId: String
+    let recipeId: String
+    let usedAt: Date
+    let createdAt: Date
+    let updatedAt: Date
+}
+
+enum OrderRecipeUsageError: Error, Equatable {
+    case orderHasNoLinkedRecipe
+    case alreadyRecorded
+    case recipeHasNoIngredients
+    case missingInventoryItem(String)
+    case incompatibleIngredientUnit(itemName: String)
+    case insufficientStock(itemName: String)
+}
+
 enum InventoryTransactionKind: String, Equatable {
     case adjustment
     case purchase

@@ -173,6 +173,7 @@ private struct OrderDetailView: View {
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
     @State private var isEditingOrder = false
+    @State private var isConfirmingRecipeUsage = false
 
     var body: some View {
         List {
@@ -216,6 +217,15 @@ private struct OrderDetailView: View {
                         LabeledContent("Linked Recipe") {
                             Text(viewModel.selectedOrderRecipe?.name ?? "Recipe unavailable")
                                 .accessibilityIdentifier("orders.detail.recipeName")
+                        }
+                        LabeledContent("Usage") {
+                            if let usage = viewModel.selectedOrderRecipeUsage {
+                                Text(usage.usedAt.formatted(date: .abbreviated, time: .shortened))
+                                    .accessibilityIdentifier("orders.detail.recipeUsage")
+                            } else {
+                                Text("Not Used")
+                                    .accessibilityIdentifier("orders.detail.recipeUsage")
+                            }
                         }
                     }
                 }
@@ -276,10 +286,29 @@ private struct OrderDetailView: View {
                             .accessibilityIdentifier("orders.detail.cakeNotes")
                     }
                 }
+
+                if let errorMessage = viewModel.errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                            .accessibilityIdentifier("orders.detail.error")
+                    }
+                }
             }
         }
         .navigationTitle(viewModel.selectedOrder?.title ?? "Order")
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if viewModel.selectedOrder?.recipeId != nil && viewModel.selectedOrderRecipeUsage == nil {
+                    Button {
+                        isConfirmingRecipeUsage = true
+                    } label: {
+                        Label("Use Recipe", systemImage: "checkmark.circle")
+                    }
+                    .accessibilityIdentifier("orders.detail.useRecipe")
+                }
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     viewModel.beginEditingOrder()
@@ -296,6 +325,18 @@ private struct OrderDetailView: View {
                 }
                 .accessibilityIdentifier("orders.detail.done")
             }
+        }
+        .confirmationDialog(
+            "Use linked recipe?",
+            isPresented: $isConfirmingRecipeUsage,
+            titleVisibility: .visible
+        ) {
+            Button("Use Recipe") {
+                _ = viewModel.recordSelectedOrderRecipeUsage()
+            }
+            .accessibilityIdentifier("orders.detail.confirmUseRecipe")
+
+            Button("Cancel", role: .cancel) {}
         }
         .sheet(isPresented: $isEditingOrder, onDismiss: viewModel.cancelEditingOrder) {
             NavigationStack {

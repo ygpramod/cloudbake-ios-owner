@@ -31,6 +31,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var selectedOrder: Order?
     @Published private(set) var selectedOrderCustomer: Customer?
     @Published private(set) var selectedOrderRecipe: Recipe?
+    @Published private(set) var selectedOrderRecipeUsage: OrderRecipeUsage?
     @Published private(set) var editingOrder: Order?
     @Published var draftTitle = ""
     @Published var draftCustomerName = ""
@@ -43,13 +44,13 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftCakeNotes = ""
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & CustomerRepository & RecipeRepository
+    private let repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let calendar: Calendar
 
     init(
-        repository: any OrderRepository & CustomerRepository & RecipeRepository,
+        repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
@@ -134,12 +135,14 @@ final class OrderListViewModel: ObservableObject {
         errorMessage = nil
         loadSelectedOrderCustomer(for: order)
         loadSelectedOrderRecipe(for: order)
+        loadSelectedOrderRecipeUsage(for: order)
     }
 
     func closeOrderDetail() {
         selectedOrder = nil
         selectedOrderCustomer = nil
         selectedOrderRecipe = nil
+        selectedOrderRecipeUsage = nil
         editingOrder = nil
         errorMessage = nil
     }
@@ -313,9 +316,37 @@ final class OrderListViewModel: ObservableObject {
             load()
             loadSelectedOrderCustomer(for: order)
             loadSelectedOrderRecipe(for: order)
+            loadSelectedOrderRecipeUsage(for: order)
             return true
         } catch {
             errorMessage = "Order could not be saved."
+            return false
+        }
+    }
+
+    func recordSelectedOrderRecipeUsage() -> Bool {
+        guard let selectedOrder else {
+            errorMessage = "Order could not be found."
+            return false
+        }
+
+        do {
+            let usedAt = dateProvider()
+            try repository.recordRecipeUsage(
+                for: selectedOrder,
+                usageId: idGenerator(),
+                usedAt: usedAt,
+                transactionIdProvider: idGenerator
+            )
+            load()
+            loadSelectedOrderRecipeUsage(for: selectedOrder)
+            errorMessage = nil
+            return true
+        } catch let error as OrderRecipeUsageError {
+            errorMessage = recipeUsageErrorMessage(for: error)
+            return false
+        } catch {
+            errorMessage = "Recipe usage could not be recorded."
             return false
         }
     }
@@ -362,6 +393,32 @@ final class OrderListViewModel: ObservableObject {
         } catch {
             selectedOrderRecipe = nil
             errorMessage = "Recipe details could not be loaded."
+        }
+    }
+
+    private func loadSelectedOrderRecipeUsage(for order: Order) {
+        do {
+            selectedOrderRecipeUsage = try repository.fetchOrderRecipeUsage(orderId: order.id)
+        } catch {
+            selectedOrderRecipeUsage = nil
+            errorMessage = "Recipe usage details could not be loaded."
+        }
+    }
+
+    private func recipeUsageErrorMessage(for error: OrderRecipeUsageError) -> String {
+        switch error {
+        case .orderHasNoLinkedRecipe:
+            return "Link a recipe before using it."
+        case .alreadyRecorded:
+            return "Recipe has already been used for this order."
+        case .recipeHasNoIngredients:
+            return "Recipe has no ingredients to deduct."
+        case .missingInventoryItem:
+            return "Recipe ingredient inventory item could not be found."
+        case .incompatibleIngredientUnit(let itemName):
+            return "\(itemName) has an incompatible recipe unit."
+        case .insufficientStock(let itemName):
+            return "Not enough \(itemName) in inventory."
         }
     }
 
