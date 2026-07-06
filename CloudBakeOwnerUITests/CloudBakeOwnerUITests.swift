@@ -282,11 +282,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
-        app.swipeDown()
-        typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
+        scrollToTop(in: app)
+        let titleField = app.textFields["orders.form.title"]
+        assertExistsAfterScrolling(titleField, in: app, timeout: transitionTimeout)
+        typeText("Vanilla Birthday", into: titleField, timeout: transitionTimeout)
         typeText("Pink flowers", into: app.textFields["orders.form.cakeNotes"], timeout: transitionTimeout)
-        app.swipeUp()
-        typeText("Amy", into: app.textFields["orders.form.customerName"], timeout: transitionTimeout)
+
+        let customerNameField = app.textFields["orders.form.customerName"]
+        assertExistsAfterScrolling(customerNameField, in: app, timeout: transitionTimeout)
+        typeText("Amy", into: customerNameField, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
