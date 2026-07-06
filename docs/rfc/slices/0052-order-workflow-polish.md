@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Implemented
 
 ## Parent RFC
 
@@ -97,3 +97,16 @@ When implemented, update:
 - `wiki/Owner-Workflows.md`,
 - `wiki/Current-App-Capabilities.md`,
 - this slice RFC status and implementation notes.
+
+## Implementation Notes
+
+- `OrderListView` now opens Active orders in Calendar mode by default.
+- Active and Completed order scopes are separated with an Orders screen segmented control.
+- Active work excludes completed and cancelled orders; completed orders appear in the Completed
+  scope.
+- Active and Completed collections are derived in `OrderListViewModel` and ordered by `createdAt`.
+- Calendar grouping remains date-based, but orders within a day preserve entry order.
+- The standalone Orders screen `Reminders Due` section was removed; order detail continues to show
+  the next relevant reminder.
+- Checklist rows remain in entry order after completion toggles and can be deleted from order
+  detail. Persistence deletes only the checklist row and keeps the parent order.

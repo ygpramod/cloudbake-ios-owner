@@ -169,8 +169,8 @@ Order add/edit can link one existing cake design reference, and order detail can
 design name, notes, and photo reference through
 `docs/rfc/slices/0051-order-design-reference.md`.
 Completed order tab behavior, calendar default view, active order entry ordering, removal of the
-standalone Reminders Due section, and checklist deletion/order behavior are captured for the next
-workflow polish slice in `docs/rfc/slices/0052-order-workflow-polish.md`.
+standalone Reminders Due section, and checklist deletion/order behavior are implemented through
+`docs/rfc/slices/0052-order-workflow-polish.md`.
 
 ## Reminder Model
 
@@ -299,11 +299,14 @@ pricing, and recipe links.
 - Orders can now change status from detail without opening the full edit form.
 - Orders can now deduct linked recipe ingredients once when a Confirmed order is marked Ready or
   Completed.
-- Orders can now store owner checklist items in order detail. The first checklist slice supports
-  add and complete/incomplete toggle; edit, delete, reorder, templates, and checklist-driven status
-  changes remain future work.
-- Orders now use a regular-width iPad split view so the list, calendar, and reminders can remain
+- Orders can now store owner checklist items in order detail. Checklist items remain in entry order
+  and support add, complete/incomplete toggle, and deletion; edit, reorder, templates, and
+  checklist-driven status changes remain future work.
+- Orders now use a regular-width iPad split view so the list and calendar can remain
   visible while reviewing selected order detail. Compact iPhone layouts keep the modal detail flow.
+- Orders now open Calendar by default for active work and move completed orders into a separate
+  Completed tab. The standalone Orders screen Reminders Due section is removed; order detail
+  continues to show the next relevant reminder.
 - Orders now have a customer-safe preview projection for future consumer surfaces. It maps owner
   statuses into consumer language and deliberately excludes private owner/customer operational
   fields.

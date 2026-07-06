@@ -192,7 +192,7 @@ is the base product RFC for this area.
 
 Today, the owner can:
 
-1. view orders in List or Calendar mode,
+1. view active orders in Calendar mode by default or switch to List mode,
 2. add an order,
 3. search and link an order to an existing customer record when useful,
 4. enter a customer name directly for quick drafts,
@@ -212,20 +212,21 @@ Today, the owner can:
 16. change order status from detail without opening the full edit form,
 17. mark a Confirmed order Ready or Completed and deduct linked recipe ingredients from inventory
     with unit conversion,
-18. add and complete simple preparation checklist items from order detail,
-19. review the next relevant reminder near the bottom of the Orders screen and order detail.
+18. add, complete, and delete simple preparation checklist items from order detail,
+19. review completed orders in a separate Completed tab,
+20. review the next relevant reminder in order detail.
 
-Calendar mode groups orders by due date and opens the same order detail screen as List mode.
+Calendar mode groups active orders by due date and opens the same order detail screen as List mode.
+Active and completed order lists preserve entry order. Completed orders are kept out of active work
+and appear in the Completed tab.
 
-On iPad, Orders uses a list/detail layout: the order list, calendar mode, and due reminders stay
+On iPad, Orders uses a list/detail layout: the order list and calendar mode stay
 visible while selected order detail appears in the detail column. On iPhone, order detail continues
 to open as a focused sheet.
 
-The Orders screen shows a Reminders Due section when an active order has a reminder time at or
-before now. Due reminders are grouped by cake so one order appears once even when multiple reminder
-offsets are due, and only the latest reached reminder is shown. Completed and cancelled orders do
-not appear in due reminders. Order detail shows the next reminder for that cake. Scheduled iOS
-notifications and snooze are future work.
+The Orders screen no longer has a standalone Reminders Due section. Order detail shows the next
+reminder for that cake. Completed and cancelled orders do not appear in due reminder calculations.
+Scheduled iOS notifications and snooze are future work.
 
 Customer record selection opens from the order form. The owner can search customers by name, phone,
 email, or address, select a saved customer, or clear the link and keep manually entered order text.
@@ -250,14 +251,12 @@ double deduction.
 
 Order detail includes a Checklist section for owner preparation tasks such as crumb coat, topper
 pickup, box ready, or final photo. The owner can add checklist items and tap any checklist row to
-mark it complete or incomplete. Checklist editing, deletion, reordering, templates, and
-checklist-driven status changes are future work.
+mark it complete or incomplete. Checklist items stay in entry order and can be deleted from order
+detail. Checklist editing, reordering, templates, and checklist-driven status changes are future
+work.
 
-Planned order polish should make Calendar the default Orders view, move Completed orders into a
-separate Completed tab, preserve order entry order where lists are shown, remove the standalone
-Reminders Due section from the Orders screen, and let the owner delete checklist items. Future order
-slices should also add scheduled notifications, reminder snooze, recipe scaling, partial recipe
-usage, order-specific design photos, and pricing/payment summary.
+Future order slices should add scheduled notifications, reminder snooze, recipe scaling, partial
+recipe usage, order-specific design photos, and pricing/payment summary.
 
 ## Customer Workflow
 
