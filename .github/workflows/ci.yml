@@ -62,10 +62,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - feature: core
+          - feature: core-recipes
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testAppLaunchesToDashboard
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testPrimaryNavigationDestinationsAreReachable
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipesCanBeAdded
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeNotesCanBeEditedFromDetail
           - feature: orders
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeAddedAndListed
@@ -82,12 +86,6 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCanBeArchivedAndRestored
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDetailShowsStockActionsInMoreMenu
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryPurchaseBillImportShowsCameraAndManualDraftControls
-          - feature: recipes
-            only_testing: |
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipesCanBeAdded
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeNotesCanBeEditedFromDetail
           - feature: customers
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeAddedAndViewed
