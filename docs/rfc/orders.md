@@ -155,6 +155,8 @@ Order detail can now store simple preparation checklist items through
 `docs/rfc/slices/0048-order-checklist.md`.
 Regular-width iPad layouts now show Orders as a list/detail split view through
 `docs/rfc/slices/0049-ipad-order-layout.md`.
+A customer-safe order preview model for future consumer-facing surfaces is implemented through
+`docs/rfc/slices/0050-future-consumer-order-preview-model.md`.
 
 ## Reminder Model
 
@@ -282,6 +284,9 @@ pricing, and recipe links.
   changes remain future work.
 - Orders now use a regular-width iPad split view so the list, calendar, and reminders can remain
   visible while reviewing selected order detail. Compact iPhone layouts keep the modal detail flow.
+- Orders now have a customer-safe preview projection for future consumer surfaces. It maps owner
+  statuses into consumer language and deliberately excludes private owner/customer operational
+  fields.
 
 ## Open Questions
 

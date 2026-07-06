@@ -57,3 +57,7 @@ The future customer-facing experience may allow customers to:
 
 Private owner data, internal costs, supplier notes, recipes, and operational reminders must not leak
 into any customer-facing experience.
+
+The app now has a domain-only consumer order preview model that defines the first safe projection
+boundary for future customer-facing order status and cake preview surfaces. It is not a public UI or
+sync feature yet.
