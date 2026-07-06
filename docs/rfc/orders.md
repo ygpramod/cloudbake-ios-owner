@@ -153,6 +153,8 @@ ingredients from inventory through
 `docs/rfc/slices/0047-order-recipe-usage-inventory-deduction.md`.
 Order detail can now store simple preparation checklist items through
 `docs/rfc/slices/0048-order-checklist.md`.
+Regular-width iPad layouts now show Orders as a list/detail split view through
+`docs/rfc/slices/0049-ipad-order-layout.md`.
 
 ## Reminder Model
 
@@ -278,6 +280,8 @@ pricing, and recipe links.
 - Orders can now store owner checklist items in order detail. The first checklist slice supports
   add and complete/incomplete toggle; edit, delete, reorder, templates, and checklist-driven status
   changes remain future work.
+- Orders now use a regular-width iPad split view so the list, calendar, and reminders can remain
+  visible while reviewing selected order detail. Compact iPhone layouts keep the modal detail flow.
 
 ## Open Questions
 

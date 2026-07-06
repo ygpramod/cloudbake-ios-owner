@@ -54,6 +54,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0046: Order Recipe Link
 - Slice RFC-0047: Order Recipe Usage And Inventory Deduction
 - Slice RFC-0048: Order Checklist
+- Slice RFC-0049: iPad Order Layout
 
 ## Base RFCs
 
