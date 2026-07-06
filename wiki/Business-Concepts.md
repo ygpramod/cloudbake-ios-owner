@@ -102,9 +102,13 @@ A recipe describes the ingredients and steps needed to make a cake or component.
 The current app can store recipe names, owner notes, and linked ingredient rows. Each ingredient row
 points to an inventory item and records quantity, unit, and optional note. The app can also use
 local Apple Vision OCR to turn a paper or book recipe image into an editable recipe draft with
-structured ingredient rows. Future recipe work should add stronger OCR cleanup, richer component
-grouping, method details, scaling, optional LLM-assisted interpretation, and inventory deduction
-when a recipe is used.
+structured ingredient rows.
+
+When an order links to a saved recipe, the owner can mark that recipe as used from order detail.
+That records one usage event for the order and deducts ingredient quantities from inventory using
+compatible unit conversion and oldest-expiry-first stock batches. Future recipe work should add
+stronger OCR cleanup, richer component grouping, method details, scaling, and optional LLM-assisted
+interpretation.
 
 Important units include kg, liters, ml, grams, teaspoons, tablespoons, and cups.
 

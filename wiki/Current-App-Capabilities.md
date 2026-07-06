@@ -71,7 +71,9 @@ The app currently supports:
 63. in-app order reminder planning for three, two, and one day before due date,
 64. optional saved recipe link from order add/edit,
 65. linked recipe name in order detail,
-66. unit, integration, and feature-sharded acceptance test lanes.
+66. owner-triggered linked recipe usage from order detail,
+67. recipe-driven inventory deduction with unit conversion and oldest-expiry-first batch usage,
+68. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
@@ -98,12 +100,12 @@ Planned product areas include:
 
 1. stronger OCR cleanup and page correction for scanned recipes,
 2. optional LLM-assisted recipe interpretation,
-3. recipe-driven inventory reduction,
-4. order calendar,
-5. delivery reminders,
-6. cake photo storage,
-7. pricing calculator,
-8. order recipe usage and inventory deduction,
+3. recipe scaling before usage,
+4. partial recipe usage,
+5. order checklist,
+6. delivery reminders,
+7. cake photo storage,
+8. pricing calculator,
 9. customer-facing cake browsing,
 10. sync through iCloud or backend when needed.
 
