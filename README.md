@@ -56,6 +56,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0048: Order Checklist
 - Slice RFC-0049: iPad Order Layout
 - Slice RFC-0050: Future Consumer Order Preview Model
+- Slice RFC-0051: Order Design Reference
 
 ## Base RFCs
 

@@ -155,7 +155,10 @@ subscription, and keeps the first version independent of LLM or cloud document a
 
 A cake design is a record of a cake style the owner has made or wants to reference.
 
-Future design records may include photos, flavors, notes, decorations, colors, and customer-facing
+Design records can be linked to orders so the owner can see an existing design reference while
+preparing a cake. The current order reference can show the design name, notes, and photo reference.
+
+Future design records may include richer photos, flavors, decorations, colors, and customer-facing
 visibility decisions.
 
 ## Customer Preference
