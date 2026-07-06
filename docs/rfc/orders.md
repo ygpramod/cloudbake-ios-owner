@@ -157,6 +157,9 @@ Regular-width iPad layouts now show Orders as a list/detail split view through
 `docs/rfc/slices/0049-ipad-order-layout.md`.
 A customer-safe order preview model for future consumer-facing surfaces is implemented through
 `docs/rfc/slices/0050-future-consumer-order-preview-model.md`.
+Order add/edit can link one existing cake design reference, and order detail can show the linked
+design name, notes, and photo reference through
+`docs/rfc/slices/0051-order-design-reference.md`.
 
 ## Reminder Model
 
@@ -218,6 +221,10 @@ Orders should eventually link to:
 
 The initial order RFC does not require AI design suggestions. The design memory should be built
 with owner-reviewed photos and notes first.
+
+Orders can now link to one existing cake design. This is a reference to saved design memory, not an
+order-specific photo capture flow. Multiple design references, order-specific customer reference
+photos, final cake photos, and design library management remain future work.
 
 ## Implementation Slices
 

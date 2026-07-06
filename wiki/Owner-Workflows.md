@@ -237,6 +237,11 @@ record.
 Recipe selection opens from the order form when saved recipes exist. The owner can link one saved
 recipe, clear the link, and review the linked recipe from order detail.
 
+Design selection opens from the order form when saved cake designs exist. The owner can link one
+existing design reference, clear the link, and review the linked design name, notes, and photo
+reference from order detail. Creating new designs, capturing order-specific customer reference
+photos, and final cake photo capture are future work.
+
 When a Confirmed order with an unused linked recipe is marked Ready or Completed from order detail,
 the app asks for confirmation and then deducts the recipe's inventory-backed ingredient rows.
 Quantities are converted into each inventory item's unit when compatible. Stock batches are consumed
@@ -249,7 +254,7 @@ mark it complete or incomplete. Checklist editing, deletion, reordering, templat
 checklist-driven status changes are future work.
 
 Future order slices should add scheduled notifications, reminder snooze, recipe scaling, partial
-recipe usage, design references and photos, and pricing/payment summary.
+recipe usage, order-specific design photos, and pricing/payment summary.
 
 ## Customer Workflow
 

@@ -77,7 +77,9 @@ The app currently supports:
 68. recipe-driven inventory deduction with unit conversion and oldest-expiry-first batch usage,
 69. order detail checklist item add and complete/incomplete toggle,
 70. regular-width iPad order list/detail split view,
-71. unit, integration, and feature-sharded acceptance test lanes.
+71. optional saved cake design link from order add/edit,
+72. linked design name, notes, and photo reference in order detail,
+73. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
