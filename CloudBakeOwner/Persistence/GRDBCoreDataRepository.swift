@@ -238,14 +238,19 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 return nil
             }
 
-            return CakeDesign(
-                id: row["id"],
-                name: row["name"],
-                notes: row["notes"],
-                photoReference: row["photo_reference"],
-                createdAt: date(row["created_at_unix_time"]),
-                updatedAt: date(row["updated_at_unix_time"])
-            )
+            return cakeDesign(from: row)
+        }
+    }
+
+    func fetchCakeDesigns() throws -> [CakeDesign] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM cake_designs
+                    ORDER BY lower(name), name
+                    """
+            ).map(cakeDesign)
         }
     }
 
@@ -651,6 +656,17 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             allergies: row["allergies"],
             dietaryRestrictions: row["dietary_restrictions"],
             notes: row["notes"],
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    private func cakeDesign(from row: Row) -> CakeDesign {
+        CakeDesign(
+            id: row["id"],
+            name: row["name"],
+            notes: row["notes"],
+            photoReference: row["photo_reference"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )

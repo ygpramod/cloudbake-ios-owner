@@ -29,6 +29,7 @@ protocol RecipeIngredientRepository {
 protocol CakeDesignRepository {
     func save(_ design: CakeDesign) throws
     func fetchCakeDesign(id: String) throws -> CakeDesign?
+    func fetchCakeDesigns() throws -> [CakeDesign]
 }
 
 protocol CustomerRepository {

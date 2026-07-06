@@ -28,9 +28,11 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
     @Published private(set) var customers: [Customer] = []
     @Published private(set) var recipes: [Recipe] = []
+    @Published private(set) var cakeDesigns: [CakeDesign] = []
     @Published private(set) var selectedOrder: Order?
     @Published private(set) var selectedOrderCustomer: Customer?
     @Published private(set) var selectedOrderRecipe: Recipe?
+    @Published private(set) var selectedOrderCakeDesign: CakeDesign?
     @Published private(set) var selectedOrderRecipeUsage: OrderRecipeUsage?
     @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
     @Published private(set) var editingOrder: Order?
@@ -38,6 +40,7 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftCustomerName = ""
     @Published var draftCustomerId = ""
     @Published var draftRecipeId = ""
+    @Published var draftCakeDesignId = ""
     @Published var draftChecklistItemTitle = ""
     @Published var draftDueAt = Date()
     @Published var draftStatus: OrderStatus = .draft
@@ -46,13 +49,13 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftCakeNotes = ""
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository
+    private let repository: any OrderRepository & CustomerRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let calendar: Calendar
 
     init(
-        repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository,
+        repository: any OrderRepository & CustomerRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
@@ -130,6 +133,7 @@ final class OrderListViewModel: ObservableObject {
             orders = try repository.fetchOrders()
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
+            cakeDesigns = try repository.fetchCakeDesigns()
             errorMessage = nil
         } catch {
             errorMessage = "Orders could not be loaded."
@@ -147,6 +151,7 @@ final class OrderListViewModel: ObservableObject {
         errorMessage = nil
         loadSelectedOrderCustomer(for: order)
         loadSelectedOrderRecipe(for: order)
+        loadSelectedOrderCakeDesign(for: order)
         loadSelectedOrderRecipeUsage(for: order)
         loadSelectedOrderChecklistItems(for: order)
     }
@@ -155,6 +160,7 @@ final class OrderListViewModel: ObservableObject {
         selectedOrder = nil
         selectedOrderCustomer = nil
         selectedOrderRecipe = nil
+        selectedOrderCakeDesign = nil
         selectedOrderRecipeUsage = nil
         selectedOrderChecklistItems = []
         draftChecklistItemTitle = ""
@@ -210,6 +216,23 @@ final class OrderListViewModel: ObservableObject {
         return recipe.name
     }
 
+    func selectDraftCakeDesign(id: String) {
+        draftCakeDesignId = id
+    }
+
+    func clearDraftCakeDesignLink() {
+        draftCakeDesignId = ""
+    }
+
+    func draftCakeDesignName() -> String {
+        guard !draftCakeDesignId.isEmpty,
+              let design = cakeDesigns.first(where: { $0.id == draftCakeDesignId }) else {
+            return "No Linked Design"
+        }
+
+        return design.name
+    }
+
     func customers(matching searchText: String) -> [Customer] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -240,6 +263,21 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func cakeDesigns(matching searchText: String) -> [CakeDesign] {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return cakeDesigns
+        }
+
+        let query = normalizedSearchText(trimmed)
+        return cakeDesigns.filter { design in
+            [design.name, design.notes, design.photoReference]
+                .compactMap { $0 }
+                .map(normalizedSearchText)
+                .contains { $0.contains(query) }
+        }
+    }
+
     func addOrder() -> Bool {
         guard let draft = validatedDraft() else {
             return false
@@ -249,7 +287,7 @@ final class OrderListViewModel: ObservableObject {
         let order = Order(
             id: idGenerator(),
             customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
-            cakeDesignId: nil,
+            cakeDesignId: draftCakeDesignId.isEmpty ? nil : draftCakeDesignId,
             recipeId: draftRecipeId.isEmpty ? nil : draftRecipeId,
             title: draft.title,
             customerName: draft.customerName,
@@ -289,6 +327,7 @@ final class OrderListViewModel: ObservableObject {
         draftCustomerName = selectedOrder.customerName
         draftCustomerId = selectedOrder.customerId ?? ""
         draftRecipeId = selectedOrder.recipeId ?? ""
+        draftCakeDesignId = selectedOrder.cakeDesignId ?? ""
         draftDueAt = selectedOrder.dueAt
         draftStatus = selectedOrder.status
         draftFulfillmentType = selectedOrder.fulfillmentType
@@ -310,7 +349,7 @@ final class OrderListViewModel: ObservableObject {
         let order = Order(
             id: editingOrder.id,
             customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
-            cakeDesignId: editingOrder.cakeDesignId,
+            cakeDesignId: draftCakeDesignId.isEmpty ? nil : draftCakeDesignId,
             recipeId: draftRecipeId.isEmpty ? nil : draftRecipeId,
             title: draft.title,
             customerName: draft.customerName,
@@ -331,6 +370,7 @@ final class OrderListViewModel: ObservableObject {
             load()
             loadSelectedOrderCustomer(for: order)
             loadSelectedOrderRecipe(for: order)
+            loadSelectedOrderCakeDesign(for: order)
             loadSelectedOrderRecipeUsage(for: order)
             loadSelectedOrderChecklistItems(for: order)
             return true
@@ -362,6 +402,7 @@ final class OrderListViewModel: ObservableObject {
             load()
             loadSelectedOrderCustomer(for: updatedOrder)
             loadSelectedOrderRecipe(for: updatedOrder)
+            loadSelectedOrderCakeDesign(for: updatedOrder)
             loadSelectedOrderRecipeUsage(for: updatedOrder)
             loadSelectedOrderChecklistItems(for: updatedOrder)
             errorMessage = nil
@@ -445,9 +486,11 @@ final class OrderListViewModel: ObservableObject {
         do {
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
+            cakeDesigns = try repository.fetchCakeDesigns()
         } catch {
             customers = []
             recipes = []
+            cakeDesigns = []
             errorMessage = "Order form references could not be loaded."
         }
     }
@@ -477,6 +520,20 @@ final class OrderListViewModel: ObservableObject {
         } catch {
             selectedOrderRecipe = nil
             errorMessage = "Recipe details could not be loaded."
+        }
+    }
+
+    private func loadSelectedOrderCakeDesign(for order: Order) {
+        guard let cakeDesignId = order.cakeDesignId else {
+            selectedOrderCakeDesign = nil
+            return
+        }
+
+        do {
+            selectedOrderCakeDesign = try repository.fetchCakeDesign(id: cakeDesignId)
+        } catch {
+            selectedOrderCakeDesign = nil
+            errorMessage = "Design reference could not be loaded."
         }
     }
 
@@ -520,6 +577,7 @@ final class OrderListViewModel: ObservableObject {
         draftCustomerName = ""
         draftCustomerId = ""
         draftRecipeId = ""
+        draftCakeDesignId = ""
         draftDueAt = dateProvider()
         draftStatus = .draft
         draftFulfillmentType = .pickup

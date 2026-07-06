@@ -67,6 +67,7 @@ final class CoreDataRepositoryTests: XCTestCase {
         )
         try repository.save(design)
         XCTAssertEqual(try repository.fetchCakeDesign(id: design.id), design)
+        XCTAssertEqual(try repository.fetchCakeDesigns(), [design])
 
         let customer = Customer(
             id: "customer-amy",

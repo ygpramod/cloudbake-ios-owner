@@ -285,6 +285,30 @@ private struct OrderDetailView: View {
                     }
                 }
 
+                if order.cakeDesignId != nil {
+                    Section("Design") {
+                        LabeledContent("Reference") {
+                            Text(viewModel.selectedOrderCakeDesign?.name ?? "Design unavailable")
+                                .accessibilityIdentifier("orders.detail.designName")
+                        }
+
+                        if let notes = viewModel.selectedOrderCakeDesign?.notes {
+                            LabeledContent("Notes") {
+                                Text(notes)
+                                    .accessibilityIdentifier("orders.detail.designNotes")
+                            }
+                        }
+
+                        if let photoReference = viewModel.selectedOrderCakeDesign?.photoReference {
+                            LabeledContent("Photo") {
+                                Text(photoReference)
+                                    .lineLimit(2)
+                                    .accessibilityIdentifier("orders.detail.designPhotoReference")
+                            }
+                        }
+                    }
+                }
+
                 if let customer = viewModel.selectedOrderCustomer, customer.hasOrderContext {
                     Section("Customer Details") {
                         if let allergies = customer.orderAllergies {
@@ -570,6 +594,7 @@ private struct OrderForm: View {
     let onSave: () -> Bool
     @State private var isSelectingCustomer = false
     @State private var isSelectingRecipe = false
+    @State private var isSelectingDesign = false
 
     init(
         title: String = "Add Order",
@@ -609,6 +634,22 @@ private struct OrderForm: View {
                     .sheet(isPresented: $isSelectingRecipe) {
                         NavigationStack {
                             RecipeSelectionView(viewModel: viewModel, isPresented: $isSelectingRecipe)
+                        }
+                    }
+                }
+            }
+
+            if !viewModel.cakeDesigns.isEmpty {
+                Section("Design") {
+                    Button {
+                        isSelectingDesign = true
+                    } label: {
+                        LabeledContent("Linked Design", value: viewModel.draftCakeDesignName())
+                    }
+                    .accessibilityIdentifier("orders.form.design")
+                    .sheet(isPresented: $isSelectingDesign) {
+                        NavigationStack {
+                            DesignSelectionView(viewModel: viewModel, isPresented: $isSelectingDesign)
                         }
                     }
                 }
@@ -691,6 +732,86 @@ private struct OrderForm: View {
                     }
                 }
                 .accessibilityIdentifier("orders.form.save")
+            }
+        }
+    }
+}
+
+private struct DesignSelectionView: View {
+    @ObservedObject var viewModel: OrderListViewModel
+    @Binding var isPresented: Bool
+    @State private var searchText = ""
+
+    var body: some View {
+        List {
+            Section {
+                Button {
+                    viewModel.clearDraftCakeDesignLink()
+                    isPresented = false
+                } label: {
+                    HStack {
+                        Text("No Linked Design")
+                        Spacer()
+                        if viewModel.draftCakeDesignId.isEmpty {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+                .accessibilityIdentifier("orders.designSelection.none")
+            }
+
+            Section("Designs") {
+                let matchingDesigns = viewModel.cakeDesigns(matching: searchText)
+                if matchingDesigns.isEmpty {
+                    Text("No matching designs")
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("orders.designSelection.empty")
+                } else {
+                    ForEach(matchingDesigns, id: \.id) { design in
+                        Button {
+                            viewModel.selectDraftCakeDesign(id: design.id)
+                            isPresented = false
+                        } label: {
+                            HStack(alignment: .top, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(design.name)
+                                        .font(.headline)
+                                    if let notes = design.notes {
+                                        Text(notes)
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                    if let photoReference = design.photoReference {
+                                        Label(photoReference, systemImage: "photo")
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                }
+
+                                Spacer()
+
+                                if viewModel.draftCakeDesignId == design.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier("orders.designSelection.design.\(design.id)")
+                    }
+                }
+            }
+        }
+        .navigationTitle("Design")
+        .searchable(text: $searchText, prompt: "Search Designs")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    isPresented = false
+                }
+                .accessibilityIdentifier("orders.designSelection.done")
             }
         }
     }

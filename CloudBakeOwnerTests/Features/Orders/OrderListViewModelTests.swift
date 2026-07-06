@@ -9,9 +9,11 @@ final class OrderListViewModelTests: XCTestCase {
         let order = makeOrder(id: "order-vanilla", dueAt: timestamp)
         let customer = makeCustomer(id: "customer-amy", name: "Amy")
         let recipe = makeRecipe(id: "recipe-vanilla", name: "Vanilla sponge")
+        let design = makeCakeDesign(id: "design-floral", name: "Pink florals")
         repository.orders = [order]
         repository.customers = [customer]
         repository.recipes = [recipe]
+        repository.cakeDesigns = [design]
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.load()
@@ -19,6 +21,7 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.orders, [order])
         XCTAssertEqual(viewModel.customers, [customer])
         XCTAssertEqual(viewModel.recipes, [recipe])
+        XCTAssertEqual(viewModel.cakeDesigns, [design])
         XCTAssertNil(viewModel.errorMessage)
     }
 
@@ -154,6 +157,7 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.draftDueAt = dueAt
         viewModel.draftStatus = .confirmed
         viewModel.draftRecipeId = "recipe-vanilla"
+        viewModel.draftCakeDesignId = "design-floral"
         viewModel.draftFulfillmentType = .delivery
         viewModel.draftDeliveryAddress = " 10 Cake Street "
         viewModel.draftCakeNotes = " Less sweet "
@@ -166,7 +170,7 @@ final class OrderListViewModelTests: XCTestCase {
                 Order(
                     id: "order-vanilla",
                     customerId: nil,
-                    cakeDesignId: nil,
+                    cakeDesignId: "design-floral",
                     recipeId: "recipe-vanilla",
                     title: "Vanilla Birthday",
                     customerName: "Amy",
@@ -182,6 +186,31 @@ final class OrderListViewModelTests: XCTestCase {
         )
         XCTAssertEqual(viewModel.draftTitle, "")
         XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testDesignSelectionStateUsesLoadedDesigns() {
+        let repository = FakeOrderRepository()
+        let floral = makeCakeDesign(
+            id: "design-floral",
+            name: "Pink florals",
+            notes: "Palette knife flowers",
+            photoReference: "photos/floral.jpg"
+        )
+        let minimalist = makeCakeDesign(id: "design-minimal", name: "Minimal buttercream")
+        repository.cakeDesigns = [minimalist, floral]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.load()
+        viewModel.selectDraftCakeDesign(id: "design-floral")
+
+        XCTAssertEqual(viewModel.draftCakeDesignId, "design-floral")
+        XCTAssertEqual(viewModel.draftCakeDesignName(), "Pink florals")
+        XCTAssertEqual(viewModel.cakeDesigns(matching: "palette"), [floral])
+        XCTAssertEqual(viewModel.cakeDesigns(matching: "photos"), [floral])
+        XCTAssertEqual(viewModel.cakeDesigns(matching: "minimal"), [minimalist])
+        viewModel.clearDraftCakeDesignLink()
+        XCTAssertEqual(viewModel.draftCakeDesignId, "")
+        XCTAssertEqual(viewModel.draftCakeDesignName(), "No Linked Design")
     }
 
     func testRecipeSelectionStateUsesLoadedRecipes() {
@@ -295,6 +324,7 @@ final class OrderListViewModelTests: XCTestCase {
             id: "order-vanilla",
             customerId: "customer-amy",
             recipeId: "recipe-vanilla",
+            cakeDesignId: "design-floral",
             dueAt: Date(timeIntervalSince1970: 1_800_140_000)
         )
         let customer = makeCustomer(
@@ -309,6 +339,8 @@ final class OrderListViewModelTests: XCTestCase {
         repository.customers = [customer]
         let recipe = makeRecipe(id: "recipe-vanilla", name: "Vanilla sponge")
         repository.recipes = [recipe]
+        let design = makeCakeDesign(id: "design-floral", name: "Pink florals")
+        repository.cakeDesigns = [design]
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.beginViewingOrder(order)
@@ -316,10 +348,12 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedOrder, order)
         XCTAssertEqual(viewModel.selectedOrderCustomer, customer)
         XCTAssertEqual(viewModel.selectedOrderRecipe, recipe)
+        XCTAssertEqual(viewModel.selectedOrderCakeDesign, design)
         viewModel.closeOrderDetail()
         XCTAssertNil(viewModel.selectedOrder)
         XCTAssertNil(viewModel.selectedOrderCustomer)
         XCTAssertNil(viewModel.selectedOrderRecipe)
+        XCTAssertNil(viewModel.selectedOrderCakeDesign)
         XCTAssertTrue(viewModel.selectedOrderChecklistItems.isEmpty)
         XCTAssertEqual(viewModel.draftChecklistItemTitle, "")
     }
@@ -508,7 +542,7 @@ final class OrderListViewModelTests: XCTestCase {
         let order = Order(
             id: "order-vanilla",
             customerId: "customer-amy",
-            cakeDesignId: nil,
+            cakeDesignId: "design-floral",
             recipeId: "recipe-vanilla",
             title: "Vanilla Birthday",
             customerName: "Amy",
@@ -529,6 +563,7 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftCustomerName, "Amy")
         XCTAssertEqual(viewModel.draftCustomerId, "customer-amy")
         XCTAssertEqual(viewModel.draftRecipeId, "recipe-vanilla")
+        XCTAssertEqual(viewModel.draftCakeDesignId, "design-floral")
         XCTAssertEqual(viewModel.draftDueAt, dueAt)
         XCTAssertEqual(viewModel.draftStatus, .confirmed)
         XCTAssertEqual(viewModel.draftFulfillmentType, .delivery)
@@ -553,6 +588,7 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.draftTitle = "Chocolate Birthday"
         viewModel.draftCustomerName = "Amy B"
         viewModel.draftRecipeId = "recipe-chocolate"
+        viewModel.draftCakeDesignId = "design-floral"
         viewModel.draftStatus = .ready
         viewModel.draftFulfillmentType = .delivery
         viewModel.draftDeliveryAddress = "11 Cake Street"
@@ -563,7 +599,7 @@ final class OrderListViewModelTests: XCTestCase {
         let expected = Order(
             id: "order-vanilla",
             customerId: nil,
-            cakeDesignId: nil,
+            cakeDesignId: "design-floral",
             recipeId: "recipe-chocolate",
             title: "Chocolate Birthday",
             customerName: "Amy B",
@@ -607,6 +643,7 @@ final class OrderListViewModelTests: XCTestCase {
         title: String = "Vanilla Birthday",
         customerId: String? = nil,
         recipeId: String? = nil,
+        cakeDesignId: String? = nil,
         status: OrderStatus = .draft,
         dueAt: Date
     ) -> Order {
@@ -614,7 +651,7 @@ final class OrderListViewModelTests: XCTestCase {
         return Order(
             id: id,
             customerId: customerId,
-            cakeDesignId: nil,
+            cakeDesignId: cakeDesignId,
             recipeId: recipeId,
             title: title,
             customerName: "Amy",
@@ -674,6 +711,23 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
+    private func makeCakeDesign(
+        id: String,
+        name: String,
+        notes: String? = nil,
+        photoReference: String? = nil
+    ) -> CakeDesign {
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        return CakeDesign(
+            id: id,
+            name: name,
+            notes: notes,
+            photoReference: photoReference,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+    }
+
     private func makeChecklistItem(
         id: String,
         orderId: String,
@@ -705,12 +759,14 @@ final class OrderListViewModelTests: XCTestCase {
 private final class FakeOrderRepository: OrderRepository,
     CustomerRepository,
     RecipeRepository,
+    CakeDesignRepository,
     OrderRecipeUsageRepository,
     OrderStatusChangeRepository,
     OrderChecklistRepository {
     var orders: [Order] = []
     var customers: [Customer] = []
     var recipes: [Recipe] = []
+    var cakeDesigns: [CakeDesign] = []
     var usages: [OrderRecipeUsage] = []
     var checklistItems: [OrderChecklistItem] = []
     var recordedTransactionIds: [String] = []
@@ -756,6 +812,21 @@ private final class FakeOrderRepository: OrderRepository,
 
     func fetchRecipes() throws -> [Recipe] {
         recipes.sorted { lhs, rhs in
+            lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    func save(_ design: CakeDesign) throws {
+        cakeDesigns.removeAll { $0.id == design.id }
+        cakeDesigns.append(design)
+    }
+
+    func fetchCakeDesign(id: String) throws -> CakeDesign? {
+        cakeDesigns.first { $0.id == id }
+    }
+
+    func fetchCakeDesigns() throws -> [CakeDesign] {
+        cakeDesigns.sorted { lhs, rhs in
             lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
     }
