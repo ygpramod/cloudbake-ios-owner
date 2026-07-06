@@ -223,6 +223,21 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(checklistItem.waitForExistence(timeout: transitionTimeout))
         XCTAssertEqual(checklistItem.value as? String, "Incomplete")
 
+        checklistItem.swipeLeft()
+        let editButton = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "orders.detail.checklist.edit.")
+        )
+            .firstMatch
+        tapExisting(editButton, timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Edit Checklist Item"].waitForExistence(timeout: transitionTimeout))
+        let editTitle = app.textFields["orders.detail.checklist.edit.title"]
+        tapWhenReady(editTitle, timeout: transitionTimeout)
+        editTitle.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20))
+        editTitle.typeText("Final photo")
+        tapWhenReady(app.buttons["orders.detail.checklist.edit.save"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(checklistItem.label.contains("Final photo"))
+
         tapExisting(checklistItem, timeout: transitionTimeout)
         let completedState = NSPredicate(format: "value == %@", "Complete")
         let completedExpectation = XCTNSPredicateExpectation(predicate: completedState, object: checklistItem)

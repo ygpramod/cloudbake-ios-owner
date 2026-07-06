@@ -276,10 +276,10 @@ oldest-expiry-first, and the usage can be recorded only once for the order to pr
 double deduction.
 
 Order detail includes a Checklist section for owner preparation tasks such as crumb coat, topper
-pickup, box ready, or final photo. The owner can add checklist items and tap any checklist row to
-mark it complete or incomplete. Checklist items stay in entry order and can be deleted from order
-detail. Checklist editing, reordering, templates, and checklist-driven status changes are future
-work.
+pickup, box ready, or final photo. The owner can add checklist items, edit item titles, and tap any
+checklist row to mark it complete or incomplete. Checklist items stay in entry order and can be
+deleted from order detail. Checklist reordering, templates, and checklist-driven status changes are
+future work.
 
 Order add/edit includes a Pricing And Payment section for the owner-entered quoted price, deposit
 paid, and payment notes. Order detail shows payment status, quoted price, deposit paid, and derived
@@ -291,8 +291,8 @@ Order rows also expose swipe actions for quick status changes and payment record
 actions use centered popups and ask for confirmation before saving. Pricing suggestions,
 recipe-cost calculation, discounts, refunds, and online payment processing remain future work.
 
-Future order slices should add reminder snooze, recipe scaling, partial recipe usage, and richer
-order photo/design library workflows.
+Future order slices should add reminder snooze, recipe scaling, partial recipe usage, checklist
+reordering/templates, and richer order photo/design library workflows.
 
 ## Customer Workflow
 

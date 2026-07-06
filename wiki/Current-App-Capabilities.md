@@ -75,7 +75,8 @@ The app currently supports:
 66. status changes from order detail without opening the full edit form,
 67. owner-confirmed linked recipe usage when a Confirmed order is marked Ready or Completed,
 68. recipe-driven inventory deduction with unit conversion and oldest-expiry-first batch usage,
-69. order detail checklist item add, complete/incomplete toggle, entry-order display, and deletion,
+69. order detail checklist item add, edit, complete/incomplete toggle, entry-order display, and
+    deletion,
 70. regular-width iPad order list/detail split view,
 71. optional saved cake design link from order add/edit,
 72. simple Completed orders tab for completed and cancelled orders ordered by delivery or pickup
@@ -125,7 +126,7 @@ Planned product areas include:
 2. optional LLM-assisted recipe interpretation,
 3. recipe scaling before usage,
 4. partial recipe usage,
-5. richer order checklist editing, reordering, and templates,
+5. order checklist reordering and templates,
 6. delivery reminders,
 7. pricing calculator,
 8. customer-facing cake browsing,

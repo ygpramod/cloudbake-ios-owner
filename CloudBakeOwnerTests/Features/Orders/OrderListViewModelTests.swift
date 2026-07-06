@@ -519,6 +519,46 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedOrderChecklistItems.map(\.id), ["checklist-first", "checklist-second"])
     }
 
+    func testUpdateChecklistItemTitlePersistsTrimmedTitleAndPreservesState() {
+        let repository = FakeOrderRepository()
+        let now = Date(timeIntervalSince1970: 1_800_080_000)
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let item = makeChecklistItem(
+            id: "checklist-first",
+            orderId: order.id,
+            title: "Crumb coat",
+            isCompleted: true,
+            sortOrder: 2
+        )
+        repository.checklistItems = [item]
+        let viewModel = OrderListViewModel(repository: repository, dateProvider: { now })
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.updateChecklistItemTitle(item, title: "  Final photo  "))
+        XCTAssertEqual(repository.checklistItems.first?.title, "Final photo")
+        XCTAssertEqual(repository.checklistItems.first?.isCompleted, true)
+        XCTAssertEqual(repository.checklistItems.first?.sortOrder, 2)
+        XCTAssertEqual(repository.checklistItems.first?.createdAt, item.createdAt)
+        XCTAssertEqual(repository.checklistItems.first?.updatedAt, now)
+        XCTAssertEqual(viewModel.selectedOrderChecklistItems.first?.title, "Final photo")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testUpdateChecklistItemTitleRejectsBlankTitle() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let item = makeChecklistItem(id: "checklist-first", orderId: order.id, title: "Crumb coat")
+        repository.checklistItems = [item]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertFalse(viewModel.updateChecklistItemTitle(item, title: "   "))
+        XCTAssertEqual(repository.checklistItems.first?.title, "Crumb coat")
+        XCTAssertEqual(viewModel.errorMessage, "Checklist item is required.")
+    }
+
     func testDeleteChecklistItemRemovesItFromSelectedOrder() {
         let repository = FakeOrderRepository()
         let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
