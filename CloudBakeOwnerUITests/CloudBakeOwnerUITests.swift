@@ -1013,15 +1013,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         minimumQuantity: String,
         in app: XCUIApplication
     ) {
-        app.buttons["inventory.add"].tap()
+        tapWhenReady(app.buttons["inventory.add"])
         XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
-        app.textFields["inventory.form.name"].tap()
-        app.textFields["inventory.form.name"].typeText(name)
-        app.textFields["inventory.form.currentQuantity"].tap()
-        app.textFields["inventory.form.currentQuantity"].typeText(currentQuantity)
-        app.textFields["inventory.form.minimumQuantity"].tap()
-        app.textFields["inventory.form.minimumQuantity"].typeText(minimumQuantity)
-        app.buttons["inventory.form.save"].tap()
+        typeText(name, into: app.textFields["inventory.form.name"])
+        typeText(currentQuantity, into: app.textFields["inventory.form.currentQuantity"])
+        typeText(minimumQuantity, into: app.textFields["inventory.form.minimumQuantity"])
+        tapWhenReady(app.buttons["inventory.form.save"])
+        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 10))
     }
 
     private func addOrder(
@@ -1067,23 +1065,22 @@ final class CloudBakeOwnerUITests: XCTestCase {
     }
 
     private func addCustomer(named name: String, phone: String, in app: XCUIApplication) {
-        app.buttons["customers.add"].tap()
+        tapWhenReady(app.buttons["customers.add"])
         XCTAssertTrue(app.buttons["Enter Manually"].waitForExistence(timeout: 5))
-        app.buttons["Enter Manually"].tap()
+        tapWhenReady(app.buttons["Enter Manually"])
         XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: 5))
-        app.textFields["customers.form.name"].tap()
-        app.textFields["customers.form.name"].typeText(name)
-        app.textFields["customers.form.phone"].tap()
-        app.textFields["customers.form.phone"].typeText(phone)
-        app.textFields["customers.form.email"].tap()
-        app.textFields["customers.form.email"].typeText("amy@example.com")
-        app.textFields["customers.form.address"].tap()
-        app.textFields["customers.form.address"].typeText("10 Cake Street")
-        app.textFields["customers.form.importantDate.label"].tap()
-        app.textFields["customers.form.importantDate.label"].typeText("Birthday")
-        app.textFields["customers.form.allergies"].tap()
-        app.textFields["customers.form.allergies"].typeText("Nuts")
-        app.buttons["customers.form.save"].tap()
+        typeText(name, into: app.textFields["customers.form.name"])
+        typeText(phone, into: app.textFields["customers.form.phone"])
+        typeText("amy@example.com", into: app.textFields["customers.form.email"])
+        typeText("10 Cake Street", into: app.textFields["customers.form.address"])
+        let importantDateField = app.textFields["customers.form.importantDate.label"]
+        scrollToHittable(importantDateField, in: app)
+        typeText("Birthday", into: importantDateField)
+        let allergiesField = app.textFields["customers.form.allergies"]
+        scrollToHittable(allergiesField, in: app)
+        typeText("Nuts", into: allergiesField)
+        tapWhenReady(app.buttons["customers.form.save"])
+        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 10))
     }
 
     private func adjustFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
