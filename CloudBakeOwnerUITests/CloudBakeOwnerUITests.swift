@@ -398,10 +398,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
             timeout: transitionTimeout
         )
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
-        app.swipeDown()
+        scrollToTop(in: app)
         typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
-        app.swipeUp()
-        typeText("Amy", into: app.textFields["orders.form.customerName"], timeout: transitionTimeout)
+        let customerNameField = app.textFields["orders.form.customerName"]
+        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
+        typeText("Amy", into: customerNameField, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
@@ -493,6 +494,52 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
             .firstMatch
         assertExistsAfterScrolling(completedOrderRow, in: app, timeout: transitionTimeout)
+    }
+
+    func testCancelledOrderAppearsInCompletedTabWithBadge() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        addOrder(named: "Cancelled Birthday", notes: "Customer changed date", customerName: "Amy", in: app)
+
+        let activeOrderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Cancelled Birthday"
+            )
+        )
+            .firstMatch
+        assertExistsAfterScrolling(activeOrderRow, in: app, timeout: transitionTimeout)
+        tapWhenReady(activeOrderRow, timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["Cancelled Birthday"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
+        tapExisting(app.buttons["Cancelled"], timeout: transitionTimeout)
+        let cancelledStatus = app.staticTexts["orders.detail.status"]
+        XCTAssertTrue(cancelledStatus.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(cancelledStatus.label.contains("Cancelled"))
+        app.buttons["orders.detail.done"].tap()
+
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["Completed"], timeout: transitionTimeout)
+        let cancelledOrderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Cancelled Birthday"
+            )
+        )
+            .firstMatch
+        assertExistsAfterScrolling(cancelledOrderRow, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(
+            app.images.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item.cancelledBadge."))
+                .firstMatch
+                .waitForExistence(timeout: transitionTimeout)
+        )
     }
 
     func testOrderDetailUsesSplitViewOnIPad() throws {

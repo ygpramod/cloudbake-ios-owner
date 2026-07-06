@@ -178,8 +178,18 @@ private struct OrderRow: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(order.title)
-                    .font(.headline)
+                HStack(spacing: 8) {
+                    Text(order.title)
+                        .font(.headline)
+                    Spacer(minLength: 8)
+                    if order.status == .cancelled {
+                        Image(systemName: "xmark.circle.fill")
+                            .imageScale(.small)
+                            .foregroundStyle(.red)
+                            .accessibilityLabel("Cancelled")
+                            .accessibilityIdentifier("orders.item.cancelledBadge.\(order.id)")
+                    }
+                }
                 Text(order.customerName)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

@@ -114,7 +114,7 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.load()
 
         XCTAssertEqual(viewModel.activeOrders, [firstActiveDue, secondActiveDue])
-        XCTAssertEqual(viewModel.completedOrders, [laterCompleted, earlierCompleted])
+        XCTAssertEqual(viewModel.completedOrders, [laterCompleted, earlierCompleted, cancelled])
     }
 
     func testReminderPlanUsesThreeTwoAndOneDaysBeforeDueDate() {
@@ -741,6 +741,44 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.orders, [expected])
         XCTAssertEqual(viewModel.selectedOrder, expected)
         XCTAssertEqual(viewModel.orders, [expected])
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testSaveEditedOrderFromConfirmedToReadyRecordsLinkedRecipeUsage() {
+        let repository = FakeOrderRepository()
+        let updatedAt = Date(timeIntervalSince1970: 1_800_080_000)
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let original = makeOrder(
+            id: "order-vanilla",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: dueAt
+        )
+        repository.orders = [original]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "generated"),
+            dateProvider: { updatedAt }
+        )
+
+        viewModel.beginViewingOrder(original)
+        viewModel.beginEditingOrder()
+        viewModel.draftStatus = .ready
+
+        XCTAssertTrue(viewModel.saveEditedOrder())
+        XCTAssertEqual(viewModel.selectedOrder?.status, .ready)
+        XCTAssertEqual(
+            viewModel.selectedOrderRecipeUsage,
+            OrderRecipeUsage(
+                id: "generated-1",
+                orderId: original.id,
+                recipeId: "recipe-vanilla",
+                usedAt: updatedAt,
+                createdAt: updatedAt,
+                updatedAt: updatedAt
+            )
+        )
+        XCTAssertEqual(repository.recordedTransactionIds, ["generated-2"])
         XCTAssertNil(viewModel.errorMessage)
     }
 

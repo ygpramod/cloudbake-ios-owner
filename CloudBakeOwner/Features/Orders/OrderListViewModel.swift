@@ -90,7 +90,7 @@ final class OrderListViewModel: ObservableObject {
 
     var completedOrders: [Order] {
         orders
-            .filter { $0.status == .completed }
+            .filter(\.hasCompletedHistoryState)
             .sorted(by: orderWasDueAfter)
     }
 
@@ -365,6 +365,7 @@ final class OrderListViewModel: ObservableObject {
             return false
         }
 
+        let now = dateProvider()
         let order = Order(
             id: editingOrder.id,
             customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
@@ -381,21 +382,54 @@ final class OrderListViewModel: ObservableObject {
             depositPaid: draft.depositPaid,
             paymentNotes: optionalText(draftPaymentNotes),
             createdAt: editingOrder.createdAt,
-            updatedAt: dateProvider()
+            updatedAt: now
         )
 
         do {
-            try repository.save(order)
-            selectedOrder = order
+            let savedOrder: Order
+            if shouldRecordRecipeUsage(from: editingOrder.status, to: order.status), order.recipeId != nil {
+                let orderBeforeStatusChange = Order(
+                    id: order.id,
+                    customerId: order.customerId,
+                    cakeDesignId: order.cakeDesignId,
+                    recipeId: order.recipeId,
+                    title: order.title,
+                    customerName: order.customerName,
+                    status: editingOrder.status,
+                    dueAt: order.dueAt,
+                    fulfillmentType: order.fulfillmentType,
+                    deliveryAddress: order.deliveryAddress,
+                    cakeNotes: order.cakeNotes,
+                    quotedPrice: order.quotedPrice,
+                    depositPaid: order.depositPaid,
+                    paymentNotes: order.paymentNotes,
+                    createdAt: order.createdAt,
+                    updatedAt: order.updatedAt
+                )
+                savedOrder = try repository.changeOrderStatus(
+                    order: orderBeforeStatusChange,
+                    status: order.status,
+                    updatedAt: now,
+                    usageId: idGenerator(),
+                    transactionIdProvider: idGenerator
+                )
+            } else {
+                try repository.save(order)
+                savedOrder = order
+            }
+            selectedOrder = savedOrder
             self.editingOrder = nil
             resetDraft()
             load()
-            loadSelectedOrderCustomer(for: order)
-            loadSelectedOrderRecipe(for: order)
-            loadSelectedOrderCakeDesign(for: order)
-            loadSelectedOrderRecipeUsage(for: order)
-            loadSelectedOrderChecklistItems(for: order)
+            loadSelectedOrderCustomer(for: savedOrder)
+            loadSelectedOrderRecipe(for: savedOrder)
+            loadSelectedOrderCakeDesign(for: savedOrder)
+            loadSelectedOrderRecipeUsage(for: savedOrder)
+            loadSelectedOrderChecklistItems(for: savedOrder)
             return true
+        } catch let error as OrderRecipeUsageError {
+            errorMessage = recipeUsageErrorMessage(for: error)
+            return false
         } catch {
             errorMessage = "Order could not be saved."
             return false
@@ -620,6 +654,10 @@ final class OrderListViewModel: ObservableObject {
         return lhs.dueAt > rhs.dueAt
     }
 
+    private func shouldRecordRecipeUsage(from currentStatus: OrderStatus, to newStatus: OrderStatus) -> Bool {
+        currentStatus == .confirmed && (newStatus == .ready || newStatus == .completed)
+    }
+
     private func checklistItemWasEnteredBefore(_ lhs: OrderChecklistItem, _ rhs: OrderChecklistItem) -> Bool {
         if lhs.sortOrder == rhs.sortOrder {
             if lhs.createdAt == rhs.createdAt {
@@ -729,5 +767,9 @@ final class OrderListViewModel: ObservableObject {
 private extension Order {
     var hasActiveReminderState: Bool {
         status != .completed && status != .cancelled
+    }
+
+    var hasCompletedHistoryState: Bool {
+        status == .completed || status == .cancelled
     }
 }
