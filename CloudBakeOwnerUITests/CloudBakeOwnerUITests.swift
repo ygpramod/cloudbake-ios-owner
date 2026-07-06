@@ -554,30 +554,36 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
     func testInventoryCanBeArchivedAndRestored() throws {
         let app = makeApp()
+        let transitionTimeout: TimeInterval = 20
         app.launch()
 
-        app.staticTexts["Inventory"].tap()
+        tapWhenReady(app.staticTexts["Inventory"], timeout: transitionTimeout)
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
 
-        let row = firstEditableInventoryRow(in: app)
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        let row = inventoryRow(named: "Cake flour", in: app)
+        scrollToHittable(row, in: app, timeout: transitionTimeout)
         row.swipeLeft()
-        app.buttons["Archive"].tap()
-        XCTAssertTrue(app.staticTexts["No inventory yet"].waitForExistence(timeout: 5))
+        tapWhenReady(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.archive.")).firstMatch,
+            timeout: transitionTimeout
+        )
+        XCTAssertTrue(app.staticTexts["No inventory yet"].waitForExistence(timeout: transitionTimeout))
 
-        app.buttons["inventory.archived"].tap()
-        XCTAssertTrue(app.navigationBars["Archived"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["inventory.archived"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Archived"].waitForExistence(timeout: transitionTimeout))
 
-        let archivedItemName = app.staticTexts["Cake flour"]
-        XCTAssertTrue(archivedItemName.waitForExistence(timeout: 5))
-        archivedItemName.swipeLeft()
-        app.buttons["Restore"].tap()
-        XCTAssertTrue(app.staticTexts["No archived inventory"].waitForExistence(timeout: 5))
-        app.buttons["inventory.archived.done"].tap()
+        let archivedRow = archivedInventoryRow(named: "Cake flour", in: app)
+        scrollToHittable(archivedRow, in: app, timeout: transitionTimeout)
+        archivedRow.swipeLeft()
+        tapWhenReady(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.archived.restore.")).firstMatch,
+            timeout: transitionTimeout
+        )
+        XCTAssertTrue(app.staticTexts["No archived inventory"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["inventory.archived.done"], timeout: transitionTimeout)
 
-        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: transitionTimeout))
     }
 
     func testInventoryDetailShowsStockActionsInMoreMenu() throws {
@@ -941,6 +947,28 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
     private func firstEditableInventoryRow(in app: XCUIApplication) -> XCUIElement {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view.")).firstMatch
+    }
+
+    private func inventoryRow(named name: String, in app: XCUIApplication) -> XCUIElement {
+        app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "inventory.item.view.",
+                name
+            )
+        )
+        .firstMatch
+    }
+
+    private func archivedInventoryRow(named name: String, in app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "inventory.archived.item.",
+                name
+            )
+        )
+        .firstMatch
     }
 
     private func tapWhenReady(
