@@ -229,6 +229,20 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0012_create_order_photos") { db in
+            try db.create(table: "order_photos") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .cascade)
+                table.column("kind", .text).notNull()
+                table.column("local_photo_path", .text).notNull()
+                table.column("caption", .text)
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+        }
+
         return migrator
     }
 }

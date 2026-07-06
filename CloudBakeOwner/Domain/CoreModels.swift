@@ -320,6 +320,21 @@ struct OrderChecklistItem: Equatable {
     let updatedAt: Date
 }
 
+enum OrderPhotoKind: String, Equatable, CaseIterable {
+    case customerReference
+    case finalCake
+}
+
+struct OrderPhoto: Equatable {
+    let id: String
+    let orderId: String
+    let kind: OrderPhotoKind
+    let localPhotoPath: String
+    let caption: String?
+    let createdAt: Date
+    let updatedAt: Date
+}
+
 enum OrderRecipeUsageError: Error, Equatable {
     case orderHasNoLinkedRecipe
     case alreadyRecorded

@@ -39,6 +39,12 @@ final class CoreModelsTests: XCTestCase {
         XCTAssertEqual(OrderFulfillmentType.delivery.rawValue, "delivery")
     }
 
+    func testOrderPhotoKindCapturesReferenceAndFinalCakeStates() {
+        XCTAssertEqual(OrderPhotoKind.customerReference.rawValue, "customerReference")
+        XCTAssertEqual(OrderPhotoKind.finalCake.rawValue, "finalCake")
+        XCTAssertEqual(OrderPhotoKind.allCases, [.customerReference, .finalCake])
+    }
+
     func testOrderPaymentSummaryDerivesStatusAndBalance() {
         let timestamp = Date(timeIntervalSince1970: 1_800_120_000)
         let order = Order(

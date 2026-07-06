@@ -75,6 +75,12 @@ protocol OrderChecklistRepository {
     func deleteOrderChecklistItem(id: String) throws
 }
 
+protocol OrderPhotoRepository {
+    func save(_ photo: OrderPhoto) throws
+    func fetchOrderPhotos(orderId: String) throws -> [OrderPhoto]
+    func deleteOrderPhoto(id: String) throws
+}
+
 protocol InventoryTransactionRepository {
     func save(_ transaction: InventoryTransaction) throws
     func fetchInventoryTransaction(id: String) throws -> InventoryTransaction?
