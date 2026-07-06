@@ -277,7 +277,7 @@ private extension View {
         onCancel: @escaping () -> Void,
         @ViewBuilder content: @escaping () -> PopupContent
     ) -> some View {
-        overlay {
+        overlay(alignment: .center) {
             if isPresented {
                 CenteredOrderPopup(
                     title: title,
@@ -328,6 +328,7 @@ private struct CenteredOrderPopup<Content: View>: View {
             .padding(.horizontal, 24)
             .shadow(color: .black.opacity(0.22), radius: 20, y: 10)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .transition(.opacity.combined(with: .scale(scale: 0.98)))
         .zIndex(10)
     }
