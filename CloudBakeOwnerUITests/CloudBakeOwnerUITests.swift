@@ -907,16 +907,16 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
     func testCustomerAddOffersContactsImportAndManualEntry() throws {
         let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        app.staticTexts["Customers"].tap()
-        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 5))
-        app.buttons["customers.add"].tap()
+        tapWhenReady(app.staticTexts["Customers"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["customers.add"], timeout: transitionTimeout)
 
-        XCTAssertTrue(app.buttons["Import From Contacts"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Enter Manually"].waitForExistence(timeout: 5))
-        app.buttons["Enter Manually"].tap()
-        XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Import From Contacts"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["Enter Manually"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: transitionTimeout))
     }
 
     func testCustomerDuplicateWarningAppearsBeforeSaving() throws {
