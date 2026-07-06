@@ -79,6 +79,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         addOrder(named: orderTitle, notes: "Pink flowers", customerName: "Amy", in: app)
 
+        scrollToTop(in: app)
         XCTAssertTrue(app.staticTexts["Reminders Due"].waitForExistence(timeout: transitionTimeout))
         let reminderRow = app.buttons.matching(
             NSPredicate(
@@ -725,5 +726,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
             _ = element.waitForExistence(timeout: 1)
         }
         XCTAssertTrue(element.exists, "Element did not exist after scrolling.", file: file, line: line)
+    }
+
+    private func scrollToTop(in app: XCUIApplication) {
+        for _ in 0..<3 {
+            app.swipeDown()
+        }
     }
 }
