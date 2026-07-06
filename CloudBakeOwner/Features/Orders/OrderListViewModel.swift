@@ -27,12 +27,15 @@ struct OrderReminderDueGroup: Equatable {
 final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
     @Published private(set) var customers: [Customer] = []
+    @Published private(set) var recipes: [Recipe] = []
     @Published private(set) var selectedOrder: Order?
     @Published private(set) var selectedOrderCustomer: Customer?
+    @Published private(set) var selectedOrderRecipe: Recipe?
     @Published private(set) var editingOrder: Order?
     @Published var draftTitle = ""
     @Published var draftCustomerName = ""
     @Published var draftCustomerId = ""
+    @Published var draftRecipeId = ""
     @Published var draftDueAt = Date()
     @Published var draftStatus: OrderStatus = .draft
     @Published var draftFulfillmentType: OrderFulfillmentType = .pickup
@@ -40,13 +43,13 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftCakeNotes = ""
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & CustomerRepository
+    private let repository: any OrderRepository & CustomerRepository & RecipeRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let calendar: Calendar
 
     init(
-        repository: any OrderRepository & CustomerRepository,
+        repository: any OrderRepository & CustomerRepository & RecipeRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
@@ -113,6 +116,7 @@ final class OrderListViewModel: ObservableObject {
         do {
             orders = try repository.fetchOrders()
             customers = try repository.fetchCustomers()
+            recipes = try repository.fetchRecipes()
             errorMessage = nil
         } catch {
             errorMessage = "Orders could not be loaded."
@@ -122,18 +126,20 @@ final class OrderListViewModel: ObservableObject {
     func beginAddingOrder() {
         resetDraft()
         errorMessage = nil
-        loadCustomers()
+        loadFormReferences()
     }
 
     func beginViewingOrder(_ order: Order) {
         selectedOrder = order
         errorMessage = nil
         loadSelectedOrderCustomer(for: order)
+        loadSelectedOrderRecipe(for: order)
     }
 
     func closeOrderDetail() {
         selectedOrder = nil
         selectedOrderCustomer = nil
+        selectedOrderRecipe = nil
         editingOrder = nil
         errorMessage = nil
     }
@@ -169,6 +175,23 @@ final class OrderListViewModel: ObservableObject {
         return customer.name
     }
 
+    func selectDraftRecipe(id: String) {
+        draftRecipeId = id
+    }
+
+    func clearDraftRecipeLink() {
+        draftRecipeId = ""
+    }
+
+    func draftRecipeName() -> String {
+        guard !draftRecipeId.isEmpty,
+              let recipe = recipes.first(where: { $0.id == draftRecipeId }) else {
+            return "No Linked Recipe"
+        }
+
+        return recipe.name
+    }
+
     func customers(matching searchText: String) -> [Customer] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -178,6 +201,21 @@ final class OrderListViewModel: ObservableObject {
         let query = normalizedSearchText(trimmed)
         return customers.filter { customer in
             [customer.name, customer.phone, customer.email, customer.address]
+                .compactMap { $0 }
+                .map(normalizedSearchText)
+                .contains { $0.contains(query) }
+        }
+    }
+
+    func recipes(matching searchText: String) -> [Recipe] {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return recipes
+        }
+
+        let query = normalizedSearchText(trimmed)
+        return recipes.filter { recipe in
+            [recipe.name, recipe.notes]
                 .compactMap { $0 }
                 .map(normalizedSearchText)
                 .contains { $0.contains(query) }
@@ -194,6 +232,7 @@ final class OrderListViewModel: ObservableObject {
             id: idGenerator(),
             customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
             cakeDesignId: nil,
+            recipeId: draftRecipeId.isEmpty ? nil : draftRecipeId,
             title: draft.title,
             customerName: draft.customerName,
             status: draftStatus,
@@ -231,13 +270,14 @@ final class OrderListViewModel: ObservableObject {
         draftTitle = selectedOrder.title
         draftCustomerName = selectedOrder.customerName
         draftCustomerId = selectedOrder.customerId ?? ""
+        draftRecipeId = selectedOrder.recipeId ?? ""
         draftDueAt = selectedOrder.dueAt
         draftStatus = selectedOrder.status
         draftFulfillmentType = selectedOrder.fulfillmentType
         draftDeliveryAddress = selectedOrder.deliveryAddress ?? ""
         draftCakeNotes = selectedOrder.cakeNotes ?? ""
         errorMessage = nil
-        loadCustomers()
+        loadFormReferences()
     }
 
     func saveEditedOrder() -> Bool {
@@ -253,6 +293,7 @@ final class OrderListViewModel: ObservableObject {
             id: editingOrder.id,
             customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
             cakeDesignId: editingOrder.cakeDesignId,
+            recipeId: draftRecipeId.isEmpty ? nil : draftRecipeId,
             title: draft.title,
             customerName: draft.customerName,
             status: draftStatus,
@@ -271,6 +312,7 @@ final class OrderListViewModel: ObservableObject {
             resetDraft()
             load()
             loadSelectedOrderCustomer(for: order)
+            loadSelectedOrderRecipe(for: order)
             return true
         } catch {
             errorMessage = "Order could not be saved."
@@ -284,12 +326,14 @@ final class OrderListViewModel: ObservableObject {
         errorMessage = nil
     }
 
-    private func loadCustomers() {
+    private func loadFormReferences() {
         do {
             customers = try repository.fetchCustomers()
+            recipes = try repository.fetchRecipes()
         } catch {
             customers = []
-            errorMessage = "Customers could not be loaded."
+            recipes = []
+            errorMessage = "Order form references could not be loaded."
         }
     }
 
@@ -307,10 +351,25 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    private func loadSelectedOrderRecipe(for order: Order) {
+        guard let recipeId = order.recipeId else {
+            selectedOrderRecipe = nil
+            return
+        }
+
+        do {
+            selectedOrderRecipe = try repository.fetchRecipe(id: recipeId)
+        } catch {
+            selectedOrderRecipe = nil
+            errorMessage = "Recipe details could not be loaded."
+        }
+    }
+
     private func resetDraft() {
         draftTitle = ""
         draftCustomerName = ""
         draftCustomerId = ""
+        draftRecipeId = ""
         draftDueAt = dateProvider()
         draftStatus = .draft
         draftFulfillmentType = .pickup

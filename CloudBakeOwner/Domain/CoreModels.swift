@@ -225,6 +225,7 @@ struct Order: Equatable {
     let id: String
     let customerId: String?
     let cakeDesignId: String?
+    let recipeId: String?
     let title: String
     let customerName: String
     let status: OrderStatus
@@ -234,6 +235,36 @@ struct Order: Equatable {
     let cakeNotes: String?
     let createdAt: Date
     let updatedAt: Date
+
+    init(
+        id: String,
+        customerId: String?,
+        cakeDesignId: String?,
+        recipeId: String? = nil,
+        title: String,
+        customerName: String,
+        status: OrderStatus,
+        dueAt: Date,
+        fulfillmentType: OrderFulfillmentType,
+        deliveryAddress: String?,
+        cakeNotes: String?,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.customerId = customerId
+        self.cakeDesignId = cakeDesignId
+        self.recipeId = recipeId
+        self.title = title
+        self.customerName = customerName
+        self.status = status
+        self.dueAt = dueAt
+        self.fulfillmentType = fulfillmentType
+        self.deliveryAddress = deliveryAddress
+        self.cakeNotes = cakeNotes
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
 enum InventoryTransactionKind: String, Equatable {
