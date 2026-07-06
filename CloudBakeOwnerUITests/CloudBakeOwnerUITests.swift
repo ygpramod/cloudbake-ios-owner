@@ -270,8 +270,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.buttons["orders.detail.statusMenu"], in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
+        tapExisting(app.buttons["Confirmed"], timeout: transitionTimeout)
+        let confirmedStatus = app.staticTexts["orders.detail.status"]
+        XCTAssertTrue(confirmedStatus.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(confirmedStatus.label.contains("Confirmed"))
+        tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
         tapExisting(app.buttons["Ready"], timeout: transitionTimeout)
-        tapExisting(app.buttons["orders.detail.confirmReady"], timeout: transitionTimeout)
+        tapExisting(app.buttons["orders.detail.confirmInventoryDeduction"], timeout: transitionTimeout)
         let readyStatus = app.staticTexts["orders.detail.status"]
         XCTAssertTrue(readyStatus.waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(readyStatus.label.contains("Ready"))
