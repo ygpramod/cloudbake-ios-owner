@@ -55,6 +55,25 @@ implementation.
 The implementation agent should invoke this agent after creating each implementation PR. The review
 and merge agent may review immediately, but it may merge only when the merge rules below are met.
 
+### Subagent CI Gate
+
+Review subagents may inspect a PR while GitHub Actions is queued or running, but they must treat
+that PR as review-only until required CI is green.
+
+For merge decisions:
+
+- `queued`, `in_progress`, `pending`, missing, skipped without explanation, cancelled, timed out, or
+  failed CI is not green.
+- Required CI includes the unit/integration job and every acceptance shard required for that PR by
+  the repository workflow or branch protection.
+- A locally passing targeted test is useful review evidence, but it does not replace required PR CI.
+- A review subagent must not merge, enable merge, or ask another agent to merge while required CI is
+  not green.
+- If CI is not green, the subagent must leave a review/comment only and report the exact CI gate
+  state.
+- The only exception is an explicit user instruction accepting a documented CI exception for that
+  specific PR and head SHA.
+
 ### Review Inputs
 
 Before approving or merging, the agent must inspect:
