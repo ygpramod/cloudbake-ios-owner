@@ -12,6 +12,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     OrderStatusChangeRepository,
     OrderRecipeUsageRepository,
     OrderChecklistRepository,
+    OrderPhotoRepository,
     InventoryTransactionRepository,
     InventoryStockBatchRepository,
     PricingRuleRepository {
@@ -489,6 +490,57 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         }
     }
 
+    func save(_ photo: OrderPhoto) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO order_photos
+                    (id, order_id, kind, local_photo_path, caption, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                    order_id = excluded.order_id,
+                    kind = excluded.kind,
+                    local_photo_path = excluded.local_photo_path,
+                    caption = excluded.caption,
+                    created_at_unix_time = excluded.created_at_unix_time,
+                    updated_at_unix_time = excluded.updated_at_unix_time
+                    """,
+                arguments: arguments([
+                    photo.id,
+                    photo.orderId,
+                    photo.kind.rawValue,
+                    photo.localPhotoPath,
+                    photo.caption,
+                    photo.createdAt.timeIntervalSince1970,
+                    photo.updatedAt.timeIntervalSince1970
+                ])
+            )
+        }
+    }
+
+    func fetchOrderPhotos(orderId: String) throws -> [OrderPhoto] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM order_photos
+                    WHERE order_id = ?
+                    ORDER BY kind ASC, created_at_unix_time ASC, id
+                    """,
+                arguments: [orderId]
+            ).compactMap(orderPhoto)
+        }
+    }
+
+    func deleteOrderPhoto(id: String) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: "DELETE FROM order_photos WHERE id = ?",
+                arguments: [id]
+            )
+        }
+    }
+
     func save(_ transaction: InventoryTransaction) throws {
         try writer.write { db in
             try db.execute(
@@ -756,6 +808,22 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             title: row["title"],
             isCompleted: row["is_completed"],
             sortOrder: row["sort_order"],
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    private func orderPhoto(from row: Row) -> OrderPhoto? {
+        guard let kind = OrderPhotoKind(rawValue: row["kind"]) else {
+            return nil
+        }
+
+        return OrderPhoto(
+            id: row["id"],
+            orderId: row["order_id"],
+            kind: kind,
+            localPhotoPath: row["local_photo_path"],
+            caption: row["caption"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )

@@ -131,6 +131,18 @@ final class CoreDataRepositoryTests: XCTestCase {
         try repository.save(checklistItem)
         XCTAssertEqual(try repository.fetchOrderChecklistItems(orderId: order.id), [checklistItem])
 
+        let orderPhoto = OrderPhoto(
+            id: "photo-reference",
+            orderId: order.id,
+            kind: .customerReference,
+            localPhotoPath: "OrderPhotos/order-rose-garden/reference.jpg",
+            caption: "Customer sketch",
+            createdAt: timestamps.createdAt,
+            updatedAt: timestamps.updatedAt
+        )
+        try repository.save(orderPhoto)
+        XCTAssertEqual(try repository.fetchOrderPhotos(orderId: order.id), [orderPhoto])
+
         let transaction = InventoryTransaction(
             id: "transaction-flour-purchase",
             inventoryItemId: inventoryItem.id,
@@ -616,6 +628,69 @@ final class CoreDataRepositoryTests: XCTestCase {
         }
         XCTAssertEqual(try repository.fetchInventoryItem(id: inventoryItem.id)?.currentQuantity, 400)
         XCTAssertEqual(try repository.fetchInventoryTransactions(inventoryItemId: inventoryItem.id).count, 1)
+    }
+
+    func testOrderPhotosAreFetchedByKindThenEntryOrderAndCanBeDeleted() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let order = Order(
+            id: "order-photos",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Photo cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_050_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let finalPhoto = OrderPhoto(
+            id: "photo-final",
+            orderId: order.id,
+            kind: .finalCake,
+            localPhotoPath: "OrderPhotos/order-photos/final.jpg",
+            caption: nil,
+            createdAt: timestamp.addingTimeInterval(20),
+            updatedAt: timestamp.addingTimeInterval(20)
+        )
+        let firstReference = OrderPhoto(
+            id: "photo-reference-1",
+            orderId: order.id,
+            kind: .customerReference,
+            localPhotoPath: "OrderPhotos/order-photos/reference-1.jpg",
+            caption: "First reference",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let secondReference = OrderPhoto(
+            id: "photo-reference-2",
+            orderId: order.id,
+            kind: .customerReference,
+            localPhotoPath: "OrderPhotos/order-photos/reference-2.jpg",
+            caption: "Second reference",
+            createdAt: timestamp.addingTimeInterval(10),
+            updatedAt: timestamp.addingTimeInterval(10)
+        )
+
+        try repository.save(order)
+        try repository.save(finalPhoto)
+        try repository.save(secondReference)
+        try repository.save(firstReference)
+
+        XCTAssertEqual(
+            try repository.fetchOrderPhotos(orderId: order.id),
+            [firstReference, secondReference, finalPhoto]
+        )
+
+        try repository.deleteOrderPhoto(id: secondReference.id)
+        XCTAssertEqual(
+            try repository.fetchOrderPhotos(orderId: order.id),
+            [firstReference, finalPhoto]
+        )
+        XCTAssertEqual(try repository.fetchOrder(id: order.id), order)
     }
 
     func testChangingOrderStatusToReadyRecordsRecipeUsageAndDeductsInventory() throws {

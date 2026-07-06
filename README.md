@@ -63,6 +63,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0055: Order Status And Payment Quick Actions
 - Slice RFC-0056: Order Scheduled Reminder Notifications
 - Slice RFC-0057: Order Photos
+- Slice RFC-0058: Order Photo Persistence
 
 ## Base RFCs
 
