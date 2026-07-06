@@ -253,8 +253,11 @@ pickup, box ready, or final photo. The owner can add checklist items and tap any
 mark it complete or incomplete. Checklist editing, deletion, reordering, templates, and
 checklist-driven status changes are future work.
 
-Future order slices should add scheduled notifications, reminder snooze, recipe scaling, partial
-recipe usage, order-specific design photos, and pricing/payment summary.
+Planned order polish should make Calendar the default Orders view, move Completed orders into a
+separate Completed tab, preserve order entry order where lists are shown, remove the standalone
+Reminders Due section from the Orders screen, and let the owner delete checklist items. Future order
+slices should also add scheduled notifications, reminder snooze, recipe scaling, partial recipe
+usage, order-specific design photos, and pricing/payment summary.
 
 ## Customer Workflow
 
