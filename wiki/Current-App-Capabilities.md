@@ -78,9 +78,11 @@ The app currently supports:
 69. order detail checklist item add, complete/incomplete toggle, entry-order display, and deletion,
 70. regular-width iPad order list/detail split view,
 71. optional saved cake design link from order add/edit,
-72. simple Completed orders tab ordered by delivery or pickup date-time descending,
+72. simple Completed orders tab for completed and cancelled orders ordered by delivery or pickup
+    date-time descending,
 73. linked design name, notes, and photo reference in order detail,
-74. completed order tab that keeps completed orders out of active order views,
+74. completed order tab that keeps completed and cancelled orders out of active order views, with
+    cancelled rows visibly marked,
 75. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
     notes,
 76. unit, integration, and feature-sharded acceptance test lanes.
