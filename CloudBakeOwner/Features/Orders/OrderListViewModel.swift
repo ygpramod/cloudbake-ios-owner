@@ -456,26 +456,25 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = "Order could not be found."
             return false
         }
-        guard selectedOrder.status != status else {
+
+        return changeOrderStatus(selectedOrder, to: status)
+    }
+
+    func changeOrderStatus(_ order: Order, to status: OrderStatus) -> Bool {
+        guard order.status != status else {
             return true
         }
 
         do {
             let now = dateProvider()
             let updatedOrder = try repository.changeOrderStatus(
-                order: selectedOrder,
+                order: order,
                 status: status,
                 updatedAt: now,
                 usageId: idGenerator(),
                 transactionIdProvider: idGenerator
             )
-            self.selectedOrder = updatedOrder
-            load()
-            loadSelectedOrderCustomer(for: updatedOrder)
-            loadSelectedOrderRecipe(for: updatedOrder)
-            loadSelectedOrderCakeDesign(for: updatedOrder)
-            loadSelectedOrderRecipeUsage(for: updatedOrder)
-            loadSelectedOrderChecklistItems(for: updatedOrder)
+            refreshAfterSavingOrder(updatedOrder)
             errorMessage = nil
             return true
         } catch let error as OrderRecipeUsageError {
@@ -485,6 +484,122 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = "Order status could not be updated."
             return false
         }
+    }
+
+    func markOrderPaid(_ order: Order) -> Bool {
+        guard let quotedPrice = order.quotedPrice else {
+            errorMessage = "Add quoted price before recording payment."
+            return false
+        }
+
+        let updatedOrder = copy(
+            order,
+            depositPaid: quotedPrice,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.save(updatedOrder)
+            refreshAfterSavingOrder(updatedOrder)
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Payment could not be updated."
+            return false
+        }
+    }
+
+    func markSelectedOrderPaid() -> Bool {
+        guard let selectedOrder else {
+            errorMessage = "Order could not be found."
+            return false
+        }
+
+        return markOrderPaid(selectedOrder)
+    }
+
+    func addPayment(to order: Order, amountText: String) -> Bool {
+        guard let quotedPrice = order.quotedPrice else {
+            errorMessage = "Add quoted price before recording payment."
+            return false
+        }
+
+        let trimmed = amountText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let amount = Decimal(string: trimmed), amount > 0 else {
+            errorMessage = "Payment amount must be greater than zero."
+            return false
+        }
+
+        let existingPaid = order.depositPaid ?? 0
+        let updatedPaid = existingPaid + amount
+        guard updatedPaid <= quotedPrice else {
+            errorMessage = "Payment received cannot be more than balance due."
+            return false
+        }
+
+        let updatedOrder = copy(
+            order,
+            depositPaid: updatedPaid,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.save(updatedOrder)
+            refreshAfterSavingOrder(updatedOrder)
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Payment could not be updated."
+            return false
+        }
+    }
+
+    func addPaymentToSelectedOrder(amountText: String) -> Bool {
+        guard let selectedOrder else {
+            errorMessage = "Order could not be found."
+            return false
+        }
+
+        return addPayment(to: selectedOrder, amountText: amountText)
+    }
+
+    private func refreshAfterSavingOrder(_ order: Order) {
+        if selectedOrder?.id == order.id {
+            selectedOrder = order
+            loadSelectedOrderCustomer(for: order)
+            loadSelectedOrderRecipe(for: order)
+            loadSelectedOrderCakeDesign(for: order)
+            loadSelectedOrderRecipeUsage(for: order)
+            loadSelectedOrderChecklistItems(for: order)
+        }
+
+        load()
+    }
+
+    private func copy(
+        _ order: Order,
+        status: OrderStatus? = nil,
+        depositPaid: Decimal? = nil,
+        updatedAt: Date
+    ) -> Order {
+        Order(
+            id: order.id,
+            customerId: order.customerId,
+            cakeDesignId: order.cakeDesignId,
+            recipeId: order.recipeId,
+            title: order.title,
+            customerName: order.customerName,
+            status: status ?? order.status,
+            dueAt: order.dueAt,
+            fulfillmentType: order.fulfillmentType,
+            deliveryAddress: order.deliveryAddress,
+            cakeNotes: order.cakeNotes,
+            quotedPrice: order.quotedPrice,
+            depositPaid: depositPaid ?? order.depositPaid,
+            paymentNotes: order.paymentNotes,
+            createdAt: order.createdAt,
+            updatedAt: updatedAt
+        )
     }
 
     func addChecklistItemToSelectedOrder() -> Bool {
