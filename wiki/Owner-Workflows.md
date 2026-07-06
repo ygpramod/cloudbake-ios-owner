@@ -217,6 +217,10 @@ Today, the owner can:
 
 Calendar mode groups orders by due date and opens the same order detail screen as List mode.
 
+On iPad, Orders uses a list/detail layout: the order list, calendar mode, and due reminders stay
+visible while selected order detail appears in the detail column. On iPhone, order detail continues
+to open as a focused sheet.
+
 The Orders screen shows a Reminders Due section when an active order has a reminder time at or
 before now. Due reminders are grouped by cake so one order appears once even when multiple reminder
 offsets are due, and only the latest reached reminder is shown. Completed and cancelled orders do

@@ -76,7 +76,8 @@ The app currently supports:
 67. owner-confirmed linked recipe usage when a Confirmed order is marked Ready or Completed,
 68. recipe-driven inventory deduction with unit conversion and oldest-expiry-first batch usage,
 69. order detail checklist item add and complete/incomplete toggle,
-70. unit, integration, and feature-sharded acceptance test lanes.
+70. regular-width iPad order list/detail split view,
+71. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
