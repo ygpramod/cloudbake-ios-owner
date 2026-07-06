@@ -129,95 +129,67 @@ struct OrderListView: View {
                 }
             }
         }
-        .confirmationDialog(
-            "Change status",
-            isPresented: Binding(
-                get: { orderSelectingStatus != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        orderSelectingStatus = nil
-                    }
-                }
-            ),
-            titleVisibility: .visible
+        .centeredOrderPopup(
+            isPresented: orderSelectingStatus != nil,
+            title: "Change Status",
+            onCancel: { orderSelectingStatus = nil }
         ) {
             if let order = orderSelectingStatus {
                 ForEach(OrderStatus.allCases, id: \.self) { status in
-                    Button(status.displayName) {
+                    centeredPopupButton(status.displayName) {
                         pendingStatusChange = OrderStatusChangeRequest(order: order, status: status)
                         orderSelectingStatus = nil
                     }
                     .accessibilityIdentifier("orders.row.status.\(status.rawValue).\(order.id)")
                 }
             }
-
-            Button("Cancel", role: .cancel) {}
         }
-        .confirmationDialog(
-            "Confirm status change",
-            isPresented: Binding(
-                get: { pendingStatusChange != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        pendingStatusChange = nil
-                    }
-                }
-            ),
-            titleVisibility: .visible
+        .centeredOrderPopup(
+            isPresented: pendingStatusChange != nil,
+            title: "Confirm Status Change",
+            onCancel: { pendingStatusChange = nil }
         ) {
             if let request = pendingStatusChange {
-                Button(statusConfirmationTitle(for: request)) {
+                centeredPopupButton(statusConfirmationTitle(for: request), role: .destructive) {
                     _ = viewModel.changeOrderStatus(request.order, to: request.status)
                     pendingStatusChange = nil
                 }
                 .accessibilityIdentifier("orders.row.confirmStatus")
             }
-
-            Button("Cancel", role: .cancel) {}
         }
-        .confirmationDialog(
-            "Record payment",
-            isPresented: Binding(
-                get: { orderReceivingPayment != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        orderReceivingPayment = nil
-                    }
-                }
-            ),
-            titleVisibility: .visible
+        .centeredOrderPopup(
+            isPresented: orderReceivingPayment != nil,
+            title: "Record Payment",
+            onCancel: { orderReceivingPayment = nil }
         ) {
             if let order = orderReceivingPayment {
-                Button("Mark Paid") {
+                centeredPopupButton("Mark Paid") {
                     _ = viewModel.markOrderPaid(order)
                     orderReceivingPayment = nil
                 }
                 .accessibilityIdentifier("orders.row.payment.paid.\(order.id)")
 
-                Button("Add Partial Payment") {
+                centeredPopupButton("Add Partial Payment") {
                     partialPaymentAmount = ""
                     orderAddingPartialPayment = order
                     orderReceivingPayment = nil
                 }
                 .accessibilityIdentifier("orders.row.payment.partial.\(order.id)")
             }
-
-            Button("Cancel", role: .cancel) {}
         }
-        .alert(
-            "Add Partial Payment",
-            isPresented: Binding(
-                get: { orderAddingPartialPayment != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        orderAddingPartialPayment = nil
-                    }
-                }
-            )
+        .centeredOrderPopup(
+            isPresented: orderAddingPartialPayment != nil,
+            title: "Add Partial Payment",
+            onCancel: {
+                orderAddingPartialPayment = nil
+                partialPaymentAmount = ""
+            }
         ) {
             TextField("Amount", text: $partialPaymentAmount)
                 .keyboardType(.decimalPad)
-            Button("Save") {
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("orders.row.payment.partial.amount")
+            centeredPopupButton("Save") {
                 if let order = orderAddingPartialPayment,
                    viewModel.addPayment(to: order, amountText: partialPaymentAmount) {
                     orderAddingPartialPayment = nil
@@ -225,7 +197,6 @@ struct OrderListView: View {
                 }
             }
             .accessibilityIdentifier("orders.row.payment.partial.save")
-            Button("Cancel", role: .cancel) {}
         }
     }
 
@@ -297,6 +268,84 @@ private enum OrderScope: CaseIterable {
             return "Completed"
         }
     }
+}
+
+private extension View {
+    func centeredOrderPopup<PopupContent: View>(
+        isPresented: Bool,
+        title: String,
+        onCancel: @escaping () -> Void,
+        @ViewBuilder content: @escaping () -> PopupContent
+    ) -> some View {
+        overlay {
+            if isPresented {
+                CenteredOrderPopup(
+                    title: title,
+                    onCancel: onCancel,
+                    content: content
+                )
+            }
+        }
+        .animation(.easeInOut(duration: 0.18), value: isPresented)
+    }
+}
+
+private struct CenteredOrderPopup<Content: View>: View {
+    let title: String
+    let onCancel: () -> Void
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.32)
+                .ignoresSafeArea()
+                .onTapGesture(perform: onCancel)
+
+            VStack(spacing: 14) {
+                Text(title)
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+
+                VStack(spacing: 10) {
+                    content()
+                }
+
+                Divider()
+
+                Button("Cancel", role: .cancel, action: onCancel)
+                    .font(.body.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 36)
+                    .accessibilityIdentifier("orders.popup.cancel")
+            }
+            .padding(18)
+            .frame(maxWidth: 340)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(.separator, lineWidth: 0.5)
+            }
+            .padding(.horizontal, 24)
+            .shadow(color: .black.opacity(0.22), radius: 20, y: 10)
+        }
+        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+        .zIndex(10)
+    }
+}
+
+private func centeredPopupButton(
+    _ title: String,
+    role: ButtonRole? = nil,
+    action: @escaping () -> Void
+) -> some View {
+    Button(role: role, action: action) {
+        Text(title)
+            .font(.body.weight(.medium))
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .foregroundStyle(role == .destructive ? Color.red : Color.accentColor)
 }
 
 private struct OrderRow: View {
@@ -677,73 +726,71 @@ private struct OrderDetailView: View {
                 }
             }
         }
-        .confirmationDialog(
-            "Change status",
-            isPresented: $isSelectingStatus,
-            titleVisibility: .visible
+        .centeredOrderPopup(
+            isPresented: isSelectingStatus,
+            title: "Change Status",
+            onCancel: { isSelectingStatus = false }
         ) {
             if let order = viewModel.selectedOrder {
                 ForEach(OrderStatus.allCases, id: \.self) { status in
-                    Button(status.displayName) {
+                    centeredPopupButton(status.displayName) {
                         changeStatus(status, for: order)
+                        isSelectingStatus = false
                     }
                     .accessibilityIdentifier("orders.detail.status.\(status.rawValue)")
                 }
             }
-
-            Button("Cancel", role: .cancel) {}
         }
-        .confirmationDialog(
-            "Deduct inventory?",
-            isPresented: Binding(
-                get: { statusPendingInventoryDeduction != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        statusPendingInventoryDeduction = nil
-                    }
-                }
-            ),
-            titleVisibility: .visible
+        .centeredOrderPopup(
+            isPresented: statusPendingInventoryDeduction != nil,
+            title: "Deduct Inventory?",
+            onCancel: { statusPendingInventoryDeduction = nil }
         ) {
             if let status = statusPendingInventoryDeduction {
-                Button("Mark \(status.displayName)") {
+                centeredPopupButton("Mark \(status.displayName)", role: .destructive) {
                     _ = viewModel.changeSelectedOrderStatus(to: status)
                     statusPendingInventoryDeduction = nil
                 }
                 .accessibilityIdentifier("orders.detail.confirmInventoryDeduction")
             }
-
-            Button("Cancel", role: .cancel) {}
         }
-        .confirmationDialog(
-            "Record payment",
-            isPresented: $isSelectingPaymentStatus,
-            titleVisibility: .visible
+        .centeredOrderPopup(
+            isPresented: isSelectingPaymentStatus,
+            title: "Record Payment",
+            onCancel: { isSelectingPaymentStatus = false }
         ) {
-            Button("Mark Paid") {
+            centeredPopupButton("Mark Paid") {
                 _ = viewModel.markSelectedOrderPaid()
+                isSelectingPaymentStatus = false
             }
             .accessibilityIdentifier("orders.detail.payment.paid")
 
-            Button("Add Partial Payment") {
+            centeredPopupButton("Add Partial Payment") {
                 partialPaymentAmount = ""
                 isAddingPartialPayment = true
+                isSelectingPaymentStatus = false
             }
             .accessibilityIdentifier("orders.detail.payment.partial")
-
-            Button("Cancel", role: .cancel) {}
         }
-        .alert("Add Partial Payment", isPresented: $isAddingPartialPayment) {
+        .centeredOrderPopup(
+            isPresented: isAddingPartialPayment,
+            title: "Add Partial Payment",
+            onCancel: {
+                isAddingPartialPayment = false
+                partialPaymentAmount = ""
+            }
+        ) {
             TextField("Amount", text: $partialPaymentAmount)
                 .keyboardType(.decimalPad)
-            Button("Save") {
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("orders.detail.payment.partial.amount")
+            centeredPopupButton("Save") {
                 if viewModel.addPaymentToSelectedOrder(amountText: partialPaymentAmount) {
                     isAddingPartialPayment = false
                     partialPaymentAmount = ""
                 }
             }
             .accessibilityIdentifier("orders.detail.payment.partial.save")
-            Button("Cancel", role: .cancel) {}
         }
         .sheet(isPresented: $isEditingOrder, onDismiss: viewModel.cancelEditingOrder) {
             NavigationStack {

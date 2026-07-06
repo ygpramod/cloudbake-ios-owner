@@ -88,8 +88,8 @@ When implemented, update:
 ## Implementation Notes
 
 - Order rows expose leading `Status` and trailing `Payment` swipe actions.
-- Row status changes use a status selection dialog followed by a confirmation dialog.
-- Row payment actions use a payment dialog with `Mark Paid` and `Add Partial Payment`.
+- Row status changes use centered popups for status selection and confirmation.
+- Row payment actions use centered popups with `Mark Paid` and `Add Partial Payment`.
 - Order detail exposes a payment action beside payment status.
 - `OrderListViewModel` now supports marking paid and adding partial payments while keeping balance
   due derived from the saved order.

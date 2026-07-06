@@ -266,8 +266,8 @@ opening full edit. Marking Paid sets the paid amount to the quoted price and mak
 Adding a partial payment asks for the newly received amount and adds it to the existing paid amount.
 
 Order rows also expose swipe actions for quick status changes and payment recording. These quick
-actions ask for confirmation before saving. Pricing suggestions, recipe-cost calculation, discounts,
-refunds, and online payment processing remain future work.
+actions use centered popups and ask for confirmation before saving. Pricing suggestions,
+recipe-cost calculation, discounts, refunds, and online payment processing remain future work.
 
 Future order slices should add scheduled notifications, reminder snooze, recipe scaling, partial
 recipe usage, and order-specific design photos.
