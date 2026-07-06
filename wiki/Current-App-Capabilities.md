@@ -66,7 +66,7 @@ The app currently supports:
 58. order due date/time, status, fulfillment type, delivery address, and cake notes,
 59. order editing from detail,
 60. manual order status changes,
-61. orders calendar view grouped by due date,
+61. orders calendar view grouped by due date and used as the default active order view,
 62. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
 63. in-app order reminder planning for three, two, and one day before due date with one next
     relevant reminder shown in the UI,
@@ -75,11 +75,12 @@ The app currently supports:
 66. status changes from order detail without opening the full edit form,
 67. owner-confirmed linked recipe usage when a Confirmed order is marked Ready or Completed,
 68. recipe-driven inventory deduction with unit conversion and oldest-expiry-first batch usage,
-69. order detail checklist item add and complete/incomplete toggle,
+69. order detail checklist item add, complete/incomplete toggle, entry-order display, and deletion,
 70. regular-width iPad order list/detail split view,
 71. optional saved cake design link from order add/edit,
 72. linked design name, notes, and photo reference in order detail,
-73. unit, integration, and feature-sharded acceptance test lanes.
+73. completed order tab that keeps completed orders out of active order views,
+74. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
@@ -109,7 +110,7 @@ Planned product areas include:
 2. optional LLM-assisted recipe interpretation,
 3. recipe scaling before usage,
 4. partial recipe usage,
-5. richer order checklist editing, deletion, reordering, and templates,
+5. richer order checklist editing, reordering, and templates,
 6. delivery reminders,
 7. cake photo storage,
 8. pricing calculator,
