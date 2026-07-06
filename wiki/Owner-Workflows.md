@@ -228,7 +228,9 @@ Today, the owner can:
 19. review completed and cancelled orders in a separate Completed tab,
 20. use row swipe actions to change status or record payment,
 21. mark payment Paid or add a partial payment from order detail,
-22. review the next relevant reminder in order detail.
+22. review the next relevant reminder in order detail,
+23. add customer reference photos and final cake photos from the photo library,
+24. review and delete saved order photos from order detail.
 
 Active orders are grouped by due day, with orders inside each day ordered by delivery or pickup time
 ascending. Completed and cancelled orders are kept out of active work and appear in a simple
@@ -256,8 +258,13 @@ recipe, clear the link, and review the linked recipe from order detail.
 
 Design selection opens from the order form when saved cake designs exist. The owner can link one
 existing design reference, clear the link, and review the linked design name, notes, and photo
-reference from order detail. Creating new designs, capturing order-specific customer reference
-photos, and final cake photo capture are future work.
+reference from order detail.
+
+Order detail also includes a Photos section for order-specific images. Customer References are for
+images the customer shares before preparation, while Final Cake Photos are for what the owner made
+and delivered. The owner can add either kind from the photo library and delete mistaken photo rows.
+Camera capture, full-screen preview, caption editing, and promoting final cake photos into the
+design library remain future work.
 
 When a Confirmed order with an unused linked recipe is marked Ready or Completed from order detail,
 the app asks for confirmation and then deducts the recipe's inventory-backed ingredient rows. When
@@ -283,8 +290,8 @@ Order rows also expose swipe actions for quick status changes and payment record
 actions use centered popups and ask for confirmation before saving. Pricing suggestions,
 recipe-cost calculation, discounts, refunds, and online payment processing remain future work.
 
-Future order slices should add scheduled notifications, reminder snooze, recipe scaling, partial
-recipe usage, and order-specific design photos.
+Future order slices should add order photo camera capture, reminder snooze, recipe scaling, partial
+recipe usage, and richer order photo/design library workflows.
 
 ## Customer Workflow
 

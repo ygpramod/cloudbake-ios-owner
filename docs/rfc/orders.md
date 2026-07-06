@@ -255,9 +255,10 @@ Orders should eventually link to:
 The initial order RFC does not require AI design suggestions. The design memory should be built
 with owner-reviewed photos and notes first.
 
-Orders can now link to one existing cake design. This is a reference to saved design memory, not an
-order-specific photo capture flow. Multiple design references, order-specific customer reference
-photos, final cake photos, and design library management remain future work.
+Orders can now link to one existing cake design. This is a reference to saved design memory. Order
+detail can also store order-specific customer reference photos and final cake photos locally, with
+photo-library import available first. Multiple design references, camera capture, promoting final
+cake photos into the saved design library, and broader design library management remain future work.
 
 ## Implementation Slices
 

@@ -246,6 +246,58 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["orders.detail.checklist.empty"].waitForExistence(timeout: transitionTimeout))
     }
 
+    func testOrderDetailShowsSavedOrderPhotos() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] = "1"
+        app.launch()
+
+        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Photo Vanilla Birthday"
+            )
+        )
+            .firstMatch
+        tapWhenReady(orderRow, timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["Photo Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        assertExistsAfterScrolling(
+            app.staticTexts["orders.detail.photos.reference.add.header"],
+            in: app,
+            timeout: transitionTimeout
+        )
+        assertExistsAfterScrolling(
+            app.staticTexts["orders.detail.photos.item.photo-ui-fixture-reference"],
+            in: app,
+            timeout: transitionTimeout
+        )
+        assertExistsAfterScrolling(
+            app.staticTexts["orders.detail.photos.final.add.header"],
+            in: app,
+            timeout: transitionTimeout
+        )
+        assertExistsAfterScrolling(
+            app.staticTexts["orders.detail.photos.item.photo-ui-fixture-final"],
+            in: app,
+            timeout: transitionTimeout
+        )
+        assertExistsAfterScrolling(
+            app.buttons["orders.detail.photos.reference.add"],
+            in: app,
+            timeout: transitionTimeout
+        )
+        assertExistsAfterScrolling(
+            app.buttons["orders.detail.photos.final.add"],
+            in: app,
+            timeout: transitionTimeout
+        )
+    }
+
     func testOrderCanLinkCustomerFromSearchableSelection() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
