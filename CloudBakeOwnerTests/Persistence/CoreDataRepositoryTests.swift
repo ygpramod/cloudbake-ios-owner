@@ -165,7 +165,7 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchPricingRule(id: pricingRule.id), pricingRule)
     }
 
-    func testOrderChecklistItemsFetchIncompleteBeforeCompletedForOneOrder() throws {
+    func testOrderChecklistItemsFetchInEntryOrderForOneOrder() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
         let order = Order(
@@ -203,7 +203,7 @@ final class CoreDataRepositoryTests: XCTestCase {
             orderId: order.id,
             title: "Bake sponge",
             isCompleted: true,
-            sortOrder: 0,
+            sortOrder: 2,
             createdAt: timestamp,
             updatedAt: timestamp
         )
@@ -243,6 +243,52 @@ final class CoreDataRepositoryTests: XCTestCase {
         try repository.save(otherOrderItem)
 
         XCTAssertEqual(try repository.fetchOrderChecklistItems(orderId: order.id), [firstItem, nextItem, completedItem])
+    }
+
+    func testOrderChecklistItemDeleteRemovesChecklistItem() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let order = Order(
+            id: "order-vanilla",
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: nil,
+            title: "Vanilla birthday",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_050_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let firstItem = OrderChecklistItem(
+            id: "checklist-crumb",
+            orderId: order.id,
+            title: "Crumb coat",
+            isCompleted: false,
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let secondItem = OrderChecklistItem(
+            id: "checklist-frost",
+            orderId: order.id,
+            title: "Frost cake",
+            isCompleted: false,
+            sortOrder: 1,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(order)
+        try repository.save(firstItem)
+        try repository.save(secondItem)
+
+        try repository.deleteOrderChecklistItem(id: firstItem.id)
+
+        XCTAssertEqual(try repository.fetchOrderChecklistItems(orderId: order.id), [secondItem])
     }
 
     func testRecipeIngredientDeleteRemovesIngredient() throws {

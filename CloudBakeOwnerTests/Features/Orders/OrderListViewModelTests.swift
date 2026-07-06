@@ -31,9 +31,24 @@ final class OrderListViewModelTests: XCTestCase {
         let firstDayMorning = Date(timeIntervalSince1970: 1_800_057_600)
         let firstDayAfternoon = Date(timeIntervalSince1970: 1_800_075_600)
         let secondDay = Date(timeIntervalSince1970: 1_800_144_000)
-        let firstOrder = makeOrder(id: "order-morning", title: "Morning Cake", dueAt: firstDayMorning)
-        let secondOrder = makeOrder(id: "order-afternoon", title: "Afternoon Cake", dueAt: firstDayAfternoon)
-        let thirdOrder = makeOrder(id: "order-next-day", title: "Next Day Cake", dueAt: secondDay)
+        let firstOrder = makeOrder(
+            id: "order-morning",
+            title: "Morning Cake",
+            dueAt: firstDayMorning,
+            createdAt: Date(timeIntervalSince1970: 1_800_010_000)
+        )
+        let secondOrder = makeOrder(
+            id: "order-afternoon",
+            title: "Afternoon Cake",
+            dueAt: firstDayAfternoon,
+            createdAt: Date(timeIntervalSince1970: 1_800_020_000)
+        )
+        let thirdOrder = makeOrder(
+            id: "order-next-day",
+            title: "Next Day Cake",
+            dueAt: secondDay,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
         repository.orders = [thirdOrder, secondOrder, firstOrder]
         let viewModel = OrderListViewModel(repository: repository, calendar: calendar)
 
@@ -52,6 +67,46 @@ final class OrderListViewModelTests: XCTestCase {
                 )
             ]
         )
+    }
+
+    func testOrderScopesSeparateActiveAndCompletedOrdersInEntryOrder() {
+        let repository = FakeOrderRepository()
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let olderActive = makeOrder(
+            id: "order-older-active",
+            title: "Older Active",
+            status: .confirmed,
+            dueAt: dueAt,
+            createdAt: Date(timeIntervalSince1970: 1_800_010_000)
+        )
+        let newerActive = makeOrder(
+            id: "order-newer-active",
+            title: "Newer Active",
+            status: .ready,
+            dueAt: dueAt,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let cancelled = makeOrder(
+            id: "order-cancelled",
+            title: "Cancelled",
+            status: .cancelled,
+            dueAt: dueAt,
+            createdAt: Date(timeIntervalSince1970: 1_800_020_000)
+        )
+        let completed = makeOrder(
+            id: "order-completed",
+            title: "Completed",
+            status: .completed,
+            dueAt: dueAt,
+            createdAt: Date(timeIntervalSince1970: 1_800_040_000)
+        )
+        repository.orders = [completed, newerActive, cancelled, olderActive]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.activeOrders, [olderActive, newerActive])
+        XCTAssertEqual(viewModel.completedOrders, [completed])
     }
 
     func testReminderPlanUsesThreeTwoAndOneDaysBeforeDueDate() {
@@ -418,6 +473,35 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedOrderChecklistItems.first?.updatedAt, now)
     }
 
+    func testToggleChecklistItemPreservesEntryOrder() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let firstItem = makeChecklistItem(id: "checklist-first", orderId: order.id, title: "Bake sponge", sortOrder: 0)
+        let secondItem = makeChecklistItem(id: "checklist-second", orderId: order.id, title: "Crumb coat", sortOrder: 1)
+        repository.checklistItems = [secondItem, firstItem]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.toggleChecklistItem(firstItem))
+        XCTAssertEqual(viewModel.selectedOrderChecklistItems.map(\.id), ["checklist-first", "checklist-second"])
+    }
+
+    func testDeleteChecklistItemRemovesItFromSelectedOrder() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let firstItem = makeChecklistItem(id: "checklist-first", orderId: order.id, title: "Bake sponge", sortOrder: 0)
+        let secondItem = makeChecklistItem(id: "checklist-second", orderId: order.id, title: "Crumb coat", sortOrder: 1)
+        repository.checklistItems = [firstItem, secondItem]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.deleteChecklistItem(firstItem))
+        XCTAssertEqual(viewModel.selectedOrderChecklistItems, [secondItem])
+        XCTAssertEqual(repository.checklistItems, [secondItem])
+    }
+
     func testChangeSelectedOrderStatusToReadyRecordsLinkedRecipeUsage() {
         let repository = FakeOrderRepository()
         let updatedAt = Date(timeIntervalSince1970: 1_800_080_000)
@@ -645,9 +729,9 @@ final class OrderListViewModelTests: XCTestCase {
         recipeId: String? = nil,
         cakeDesignId: String? = nil,
         status: OrderStatus = .draft,
-        dueAt: Date
+        dueAt: Date,
+        createdAt: Date = Date(timeIntervalSince1970: 1_800_060_000)
     ) -> Order {
-        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
         return Order(
             id: id,
             customerId: customerId,
@@ -660,8 +744,8 @@ final class OrderListViewModelTests: XCTestCase {
             fulfillmentType: .pickup,
             deliveryAddress: nil,
             cakeNotes: nil,
-            createdAt: timestamp,
-            updatedAt: timestamp
+            createdAt: createdAt,
+            updatedAt: createdAt
         )
     }
 
@@ -844,12 +928,16 @@ private final class FakeOrderRepository: OrderRepository,
         checklistItems
             .filter { $0.orderId == orderId }
             .sorted {
-                if $0.isCompleted != $1.isCompleted {
-                    return !$0.isCompleted && $1.isCompleted
+                if $0.sortOrder == $1.sortOrder {
+                    return $0.id < $1.id
                 }
 
-                return $0.sortOrder == $1.sortOrder ? $0.id < $1.id : $0.sortOrder < $1.sortOrder
+                return $0.sortOrder < $1.sortOrder
             }
+    }
+
+    func deleteOrderChecklistItem(id: String) throws {
+        checklistItems.removeAll { $0.id == id }
     }
 
     func recordRecipeUsage(
