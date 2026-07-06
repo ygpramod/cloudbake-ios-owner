@@ -62,7 +62,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - feature: core-recipes
+          - feature: core-recipes-customers
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testAppLaunchesToDashboard
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testPrimaryNavigationDestinationsAreReachable
@@ -70,18 +70,25 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeNotesCanBeEditedFromDetail
-          - feature: orders
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeAddedAndViewed
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDetailUsesSplitViewOnIPad
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerAddOffersContactsImportAndManualEntry
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDuplicateWarningAppearsBeforeSaving
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeEditedFromDetail
+          - feature: orders-core
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeAddedAndListed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeOpenedFromListAndViewed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderDetailCanMarkPaymentPaid
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsDueRemindersAndReminderPlan
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeEditedFromDetail
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrderMovesToCompletedTab
+          - feature: orders-links
+            only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkCustomerFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkRecipeFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkDesignFromSearchableSelection
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrderMovesToCompletedTab
           - feature: inventory
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDuplicateNameShowsWarningBeforeAdding
@@ -89,13 +96,6 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCanBeArchivedAndRestored
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDetailShowsStockActionsInMoreMenu
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryPurchaseBillImportShowsCameraAndManualDraftControls
-          - feature: customers
-            only_testing: |
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeAddedAndViewed
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDetailUsesSplitViewOnIPad
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerAddOffersContactsImportAndManualEntry
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDuplicateWarningAppearsBeforeSaving
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeEditedFromDetail
 
     steps:
       - name: Checkout

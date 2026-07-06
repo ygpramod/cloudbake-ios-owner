@@ -24,15 +24,17 @@ CI runs two lanes:
 
 - `Unit and Integration Tests` runs the `CloudBakeOwnerUnitIntegration` scheme.
 - `Acceptance UI Tests (<feature>)` runs the `CloudBakeOwnerAcceptance` scheme with feature-specific
-  `-only-testing` filters for core/recipes, orders, inventory, and customers.
+  `-only-testing` filters for core/recipes/customers, order core workflows, order link workflows,
+  and inventory.
 
 Both CI lanes are time-boxed. Acceptance shards run in parallel and use `fail-fast: false`, so a
 failure in one feature does not hide another feature's failure. This keeps hosted-runner simulator
 hangs visible as CI failures instead of leaving pull requests permanently pending.
 
-Core smoke tests and recipe tests share one acceptance shard so CI runs at most five macOS jobs in
-parallel: one unit/integration job and four acceptance jobs. This matches the current macOS runner
-concurrency limit while preserving acceptance coverage.
+Core smoke tests, recipe tests, and customer tests share one acceptance shard. Orders are split into
+core workflow and link workflow shards because the order suite is the slowest owner-facing area. CI
+runs at most five macOS jobs in parallel: one unit/integration job and four acceptance jobs. This
+matches the current macOS runner concurrency limit while preserving acceptance coverage.
 
 CI prefers a known modern iPhone simulator when the runner provides one, then falls back to the
 first available iPhone. Failed CI test jobs upload their `.xcresult` bundle as a GitHub Actions
