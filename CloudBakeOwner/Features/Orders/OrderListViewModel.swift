@@ -47,6 +47,9 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftFulfillmentType: OrderFulfillmentType = .pickup
     @Published var draftDeliveryAddress = ""
     @Published var draftCakeNotes = ""
+    @Published var draftQuotedPrice = ""
+    @Published var draftDepositPaid = ""
+    @Published var draftPaymentNotes = ""
     @Published var errorMessage: String?
 
     private let repository: any OrderRepository & CustomerRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository
@@ -306,6 +309,9 @@ final class OrderListViewModel: ObservableObject {
             fulfillmentType: draftFulfillmentType,
             deliveryAddress: optionalText(draftDeliveryAddress),
             cakeNotes: optionalText(draftCakeNotes),
+            quotedPrice: draft.quotedPrice,
+            depositPaid: draft.depositPaid,
+            paymentNotes: optionalText(draftPaymentNotes),
             createdAt: now,
             updatedAt: now
         )
@@ -343,6 +349,9 @@ final class OrderListViewModel: ObservableObject {
         draftFulfillmentType = selectedOrder.fulfillmentType
         draftDeliveryAddress = selectedOrder.deliveryAddress ?? ""
         draftCakeNotes = selectedOrder.cakeNotes ?? ""
+        draftQuotedPrice = decimalText(selectedOrder.quotedPrice)
+        draftDepositPaid = decimalText(selectedOrder.depositPaid)
+        draftPaymentNotes = selectedOrder.paymentNotes ?? ""
         errorMessage = nil
         loadFormReferences()
     }
@@ -368,6 +377,9 @@ final class OrderListViewModel: ObservableObject {
             fulfillmentType: draftFulfillmentType,
             deliveryAddress: optionalText(draftDeliveryAddress),
             cakeNotes: optionalText(draftCakeNotes),
+            quotedPrice: draft.quotedPrice,
+            depositPaid: draft.depositPaid,
+            paymentNotes: optionalText(draftPaymentNotes),
             createdAt: editingOrder.createdAt,
             updatedAt: dateProvider()
         )
@@ -628,9 +640,12 @@ final class OrderListViewModel: ObservableObject {
         draftFulfillmentType = .pickup
         draftDeliveryAddress = ""
         draftCakeNotes = ""
+        draftQuotedPrice = ""
+        draftDepositPaid = ""
+        draftPaymentNotes = ""
     }
 
-    private func validatedDraft() -> (title: String, customerName: String)? {
+    private func validatedDraft() -> (title: String, customerName: String, quotedPrice: Decimal?, depositPaid: Decimal?)? {
         let title = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else {
             errorMessage = "Order title is required."
@@ -643,7 +658,18 @@ final class OrderListViewModel: ObservableObject {
             return nil
         }
 
-        return (title, customerName)
+        guard let quotedPrice = decimalAmount(from: draftQuotedPrice, fieldName: "Quoted price") else {
+            return nil
+        }
+        guard let depositPaid = decimalAmount(from: draftDepositPaid, fieldName: "Deposit paid") else {
+            return nil
+        }
+        if let quotedPrice, let depositPaid, depositPaid > quotedPrice {
+            errorMessage = "Deposit paid cannot be more than quoted price."
+            return nil
+        }
+
+        return (title, customerName, quotedPrice, depositPaid)
     }
 
     private func optionalText(_ value: String) -> String? {
@@ -655,6 +681,28 @@ final class OrderListViewModel: ObservableObject {
         text
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
+    }
+
+    private func decimalAmount(from text: String, fieldName: String) -> Decimal?? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return .some(nil)
+        }
+
+        guard let amount = Decimal(string: trimmed), amount >= 0 else {
+            errorMessage = "\(fieldName) must be a positive number."
+            return nil
+        }
+
+        return .some(amount)
+    }
+
+    private func decimalText(_ value: Decimal?) -> String {
+        guard let value else {
+            return ""
+        }
+
+        return NSDecimalNumber(decimal: value).stringValue
     }
 }
 

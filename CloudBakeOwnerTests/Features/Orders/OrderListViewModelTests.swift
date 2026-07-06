@@ -216,6 +216,9 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.draftFulfillmentType = .delivery
         viewModel.draftDeliveryAddress = " 10 Cake Street "
         viewModel.draftCakeNotes = " Less sweet "
+        viewModel.draftQuotedPrice = "125.50"
+        viewModel.draftDepositPaid = "25.50"
+        viewModel.draftPaymentNotes = " Bank transfer received "
 
         XCTAssertTrue(viewModel.addOrder())
 
@@ -234,6 +237,9 @@ final class OrderListViewModelTests: XCTestCase {
                     fulfillmentType: .delivery,
                     deliveryAddress: "10 Cake Street",
                     cakeNotes: "Less sweet",
+                    quotedPrice: Decimal(string: "125.50"),
+                    depositPaid: Decimal(string: "25.50"),
+                    paymentNotes: "Bank transfer received",
                     createdAt: now,
                     updatedAt: now
                 )
@@ -241,6 +247,23 @@ final class OrderListViewModelTests: XCTestCase {
         )
         XCTAssertEqual(viewModel.draftTitle, "")
         XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testAddOrderRejectsInvalidPricingAmounts() {
+        let repository = FakeOrderRepository()
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.draftTitle = "Vanilla Birthday"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.draftQuotedPrice = "abc"
+
+        XCTAssertFalse(viewModel.addOrder())
+        XCTAssertEqual(viewModel.errorMessage, "Quoted price must be a positive number.")
+
+        viewModel.draftQuotedPrice = "100"
+        viewModel.draftDepositPaid = "125"
+        XCTAssertFalse(viewModel.addOrder())
+        XCTAssertEqual(viewModel.errorMessage, "Deposit paid cannot be more than quoted price.")
+        XCTAssertTrue(repository.orders.isEmpty)
     }
 
     func testDesignSelectionStateUsesLoadedDesigns() {
@@ -635,6 +658,9 @@ final class OrderListViewModelTests: XCTestCase {
             fulfillmentType: .delivery,
             deliveryAddress: "10 Cake Street",
             cakeNotes: "Pink flowers",
+            quotedPrice: Decimal(string: "200"),
+            depositPaid: Decimal(string: "50"),
+            paymentNotes: "Cash deposit",
             createdAt: Date(timeIntervalSince1970: 1_800_060_000),
             updatedAt: Date(timeIntervalSince1970: 1_800_060_000)
         )
@@ -653,6 +679,9 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftFulfillmentType, .delivery)
         XCTAssertEqual(viewModel.draftDeliveryAddress, "10 Cake Street")
         XCTAssertEqual(viewModel.draftCakeNotes, "Pink flowers")
+        XCTAssertEqual(viewModel.draftQuotedPrice, "200")
+        XCTAssertEqual(viewModel.draftDepositPaid, "50")
+        XCTAssertEqual(viewModel.draftPaymentNotes, "Cash deposit")
     }
 
     func testSaveEditedOrderPersistsChangesAndStatusTransition() {
@@ -677,6 +706,9 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.draftFulfillmentType = .delivery
         viewModel.draftDeliveryAddress = "11 Cake Street"
         viewModel.draftCakeNotes = "Add gold leaf"
+        viewModel.draftQuotedPrice = "175"
+        viewModel.draftDepositPaid = "75"
+        viewModel.draftPaymentNotes = "Deposit paid by card"
 
         XCTAssertTrue(viewModel.saveEditedOrder())
 
@@ -692,6 +724,9 @@ final class OrderListViewModelTests: XCTestCase {
             fulfillmentType: .delivery,
             deliveryAddress: "11 Cake Street",
             cakeNotes: "Add gold leaf",
+            quotedPrice: Decimal(175),
+            depositPaid: Decimal(75),
+            paymentNotes: "Deposit paid by card",
             createdAt: createdAt,
             updatedAt: updatedAt
         )
@@ -989,6 +1024,9 @@ private final class FakeOrderRepository: OrderRepository,
             fulfillmentType: order.fulfillmentType,
             deliveryAddress: order.deliveryAddress,
             cakeNotes: order.cakeNotes,
+            quotedPrice: order.quotedPrice,
+            depositPaid: order.depositPaid,
+            paymentNotes: order.paymentNotes,
             createdAt: order.createdAt,
             updatedAt: updatedAt
         )
