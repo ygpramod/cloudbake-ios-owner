@@ -54,6 +54,10 @@ notes, and changing customer requests without forcing the owner into a rigid ret
 
 - The owner must be able to create an order from the app.
 - The owner must be able to see upcoming orders in a list and calendar-oriented view.
+- Calendar view must be the default Orders screen view for active work.
+- Completed orders must move out of the active Orders view into a Completed tab.
+- Active and completed order lists must be ordered by entry order unless a specific view, such as
+  calendar grouping, requires a different grouping.
 - The owner must be able to view a single order with all business-critical details.
 - The owner must be able to edit an order while it is active.
 - Each order must have a status.
@@ -64,6 +68,9 @@ notes, and changing customer requests without forcing the owner into a rigid ret
 - Each order must capture cake type, flavor, size, servings, message text, and design notes when known.
 - Each order must support owner-controlled price and payment tracking.
 - Each order must support reminders three days, two days, and one day before due date.
+- Orders screen must not show a separate Reminders Due section; reminder context should stay in the
+  main order presentation and order detail.
+- Order checklist items must stay ordered by entry order and support deletion.
 - Each order must be able to link to cake photos, design references, recipes, and inventory usage in later slices.
 - The app must preserve order history after completion.
 
@@ -122,6 +129,7 @@ Orders should eventually include these screens:
 
 - Orders list grouped by due date.
 - Calendar view for due dates.
+- Completed orders tab.
 - Add order flow.
 - Order detail view.
 - Edit order flow.
@@ -160,6 +168,9 @@ A customer-safe order preview model for future consumer-facing surfaces is imple
 Order add/edit can link one existing cake design reference, and order detail can show the linked
 design name, notes, and photo reference through
 `docs/rfc/slices/0051-order-design-reference.md`.
+Completed order tab behavior, calendar default view, active order entry ordering, removal of the
+standalone Reminders Due section, and checklist deletion/order behavior are captured for the next
+workflow polish slice in `docs/rfc/slices/0052-order-workflow-polish.md`.
 
 ## Reminder Model
 
@@ -174,9 +185,10 @@ calendar integration. Reminder slices must define whether reminders are local no
 in-app alerts, or both.
 
 The first reminder slice provides in-app reminder planning only. Order detail shows the next
-reminder from the three/two/one-day reminder plan, and the Orders screen surfaces the latest reached
-reminder for active orders. Scheduled local notifications, snooze, configurable offsets, and
-calendar integration remain future work.
+reminder from the three/two/one-day reminder plan. The Orders screen should avoid a standalone
+Reminders Due section because reminder context belongs in the main order presentation and order
+detail. Scheduled local notifications, snooze, configurable offsets, and calendar integration
+remain future work.
 
 ## Pricing And Payment
 
@@ -241,7 +253,8 @@ Recommended order slices:
 9. iPad Order Layout
 10. Future Consumer Order Preview Model
 11. Order Design References And Photos
-12. Pricing And Payment Summary
+12. Order Workflow Polish
+13. Pricing And Payment Summary
 
 Each slice must include its own RFC under `docs/rfc/slices/`, focused tests, and wiki updates when
 owner workflow truth changes.
