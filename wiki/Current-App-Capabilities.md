@@ -79,11 +79,11 @@ The app currently supports:
 70. regular-width iPad order list/detail split view,
 71. optional saved cake design link from order add/edit,
 72. simple Completed orders tab ordered by delivery or pickup date-time descending,
-72. linked design name, notes, and photo reference in order detail,
-73. completed order tab that keeps completed orders out of active order views,
-74. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
+73. linked design name, notes, and photo reference in order detail,
+74. completed order tab that keeps completed orders out of active order views,
+75. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
     notes,
-75. unit, integration, and feature-sharded acceptance test lanes.
+76. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
