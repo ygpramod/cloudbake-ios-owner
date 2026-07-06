@@ -14,7 +14,7 @@ Current direction:
 1. work offline on iPhone and iPad,
 2. store data on the device first,
 3. support handmade cake workflows instead of generic restaurant inventory workflows,
-4. support recipe-driven inventory reduction from owner-confirmed Ready orders,
+4. support recipe-driven inventory reduction when Confirmed orders become Ready or Completed,
 5. grow toward order calendar reminders,
 6. grow toward cake design and customer preference memory,
 7. add iCloud or backend sync only when the owner workflow needs it,

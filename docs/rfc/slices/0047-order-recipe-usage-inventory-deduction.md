@@ -8,7 +8,7 @@ ingredient rows.
 
 In scope:
 
-- recording that a linked recipe has been used when the order becomes ready,
+- recording that a linked recipe has been used when a Confirmed order becomes Ready or Completed,
 - deducting linked recipe ingredients from inventory,
 - converting ingredient units into the inventory item's stored unit,
 - consuming stock batches from the oldest expiry first,
@@ -30,10 +30,10 @@ Out of scope:
 
 - Order detail must show whether the linked recipe has been used.
 - Order detail must let the owner change status without opening the full edit form.
-- Moving an order with an unused linked recipe to Ready must ask for confirmation before changing
-  inventory.
-- Moving an order with an unused linked recipe to Ready must record recipe usage and deduct
-  inventory.
+- Moving a Confirmed order with an unused linked recipe to Ready or Completed must ask for
+  confirmation before changing inventory.
+- Moving a Confirmed order with an unused linked recipe to Ready or Completed must record recipe
+  usage and deduct inventory.
 - The app must deduct each recipe ingredient from its linked inventory item.
 - Deduction must convert from the recipe ingredient unit to the inventory item unit when compatible.
 - Deduction must fail with an owner-visible error when units are incompatible.
@@ -50,7 +50,7 @@ Out of scope:
   owner acceptance flow.
 - The implementation must reuse existing local-first GRDB patterns.
 - The workflow must remain owner-driven; inventory deduction happens only from an owner-confirmed
-  Ready status transition.
+  transition from Confirmed to Ready or Completed.
 
 ## Design
 
@@ -72,18 +72,19 @@ write transaction:
 - write inventory consumption transactions,
 - save the usage record.
 
-`OrderDetailView` shows linked recipe usage state and exposes a compact status menu. When the owner
-changes an order with an unused linked recipe to Ready, the app asks for confirmation and then uses
-the atomic repository status-change path.
+`OrderDetailView` shows linked recipe usage state and exposes a compact status action on the status
+row. When the owner changes a Confirmed order with an unused linked recipe to Ready or Completed,
+the app asks for confirmation and then uses the atomic repository status-change path.
 
 ## Testing
 
-- Unit tests cover `OrderListViewModel.changeSelectedOrderStatus` for Ready-triggered recipe usage
-  and owner-visible recipe usage errors.
+- Unit tests cover `OrderListViewModel.changeSelectedOrderStatus` for Confirmed-to-Ready and
+  Confirmed-to-Completed recipe usage and owner-visible recipe usage errors.
 - Integration tests cover GRDB recipe usage deduction, unit conversion, oldest-expiry-first batch
   consumption, consumption transaction creation, and duplicate usage rejection.
-- Acceptance test covers adding inventory, creating a recipe ingredient, linking the recipe to an
-  order, marking the order Ready from detail, and seeing inventory current quantity reduce.
+- Acceptance test covers adding inventory, creating a recipe ingredient, linking the recipe to a
+  Confirmed order, marking the order Ready from detail, and seeing inventory current quantity
+  reduce.
 
 ## Documentation Updates
 
