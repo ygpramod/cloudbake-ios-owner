@@ -240,7 +240,9 @@ appears in the detail column. On iPhone, order detail continues to open as a foc
 
 The Orders screen no longer has a standalone Reminders Due section. Order detail shows the next
 reminder for that cake. Completed and cancelled orders do not appear in due reminder calculations.
-Scheduled iOS notifications and snooze are future work.
+Confirmed, In Progress, and Ready orders also schedule local owner notifications for future
+three-day, two-day, and one-day reminder times. Snooze, configurable reminder offsets, day-of
+reminders, and calendar integration are future work.
 
 Customer record selection opens from the order form. The owner can search customers by name, phone,
 email, or address, select a saved customer, or clear the link and keep manually entered order text.
