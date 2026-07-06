@@ -444,6 +444,7 @@ private struct OrderDetailView: View {
     @State private var selectedCustomerReferencePhotoItem: PhotosPickerItem?
     @State private var selectedFinalCakePhotoItem: PhotosPickerItem?
     @State private var cameraPhotoKind: OrderPhotoKind?
+    @State private var previewingPhoto: OrderPhoto?
     @State private var partialPaymentAmount = ""
     @FocusState private var isChecklistTitleFocused: Bool
 
@@ -777,6 +778,26 @@ private struct OrderDetailView: View {
                 .ignoresSafeArea()
             }
         }
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { previewingPhoto != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        previewingPhoto = nil
+                    }
+                }
+            )
+        ) {
+            if let previewingPhoto {
+                OrderPhotoPreviewView(
+                    photo: previewingPhoto,
+                    photoURL: viewModel.orderPhotoURL(previewingPhoto),
+                    onClose: {
+                        self.previewingPhoto = nil
+                    }
+                )
+            }
+        }
         .navigationTitle(viewModel.selectedOrder?.title ?? "Order")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -967,34 +988,40 @@ private struct OrderDetailView: View {
     }
 
     private func orderPhotoRow(_ photo: OrderPhoto) -> some View {
-        HStack(spacing: 12) {
-            AsyncImage(url: viewModel.orderPhotoURL(photo)) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                default:
-                    Image(systemName: "photo")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(.quaternary)
+        Button {
+            previewingPhoto = photo
+        } label: {
+            HStack(spacing: 12) {
+                AsyncImage(url: viewModel.orderPhotoURL(photo)) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        Image(systemName: "photo")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(.quaternary)
+                    }
                 }
-            }
-            .frame(width: 56, height: 56)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .frame(width: 56, height: 56)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(photo.caption ?? photo.kind.displayName)
-                    .font(.body)
-                    .accessibilityIdentifier("orders.detail.photos.item.\(photo.id)")
-                Text(photo.createdAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(photo.caption ?? photo.kind.displayName)
+                        .font(.body)
+                        .accessibilityIdentifier("orders.detail.photos.item.\(photo.id)")
+                    Text(photo.createdAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
 
-            Spacer()
+                Spacer()
+            }
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("orders.detail.photos.preview.\(photo.id)")
         .accessibilityElement(children: .combine)
     }
 
@@ -1049,6 +1076,77 @@ private extension OrderPhotoKind {
             return "Reference Photo"
         case .finalCake:
             return "Final Cake Photo"
+        }
+    }
+}
+
+private struct OrderPhotoPreviewView: View {
+    let photo: OrderPhoto
+    let photoURL: URL
+    let onClose: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                HStack {
+                    Spacer()
+
+                    Button(action: onClose) {
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("Close Photo Preview")
+                    .accessibilityIdentifier("orders.detail.photos.preview.close")
+                }
+
+                Spacer(minLength: 0)
+
+                AsyncImage(url: photoURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                    default:
+                        ContentUnavailableView(
+                            "Photo Unavailable",
+                            systemImage: "photo",
+                            description: Text("The saved image could not be opened.")
+                        )
+                        .foregroundStyle(.white)
+                    }
+                }
+                .accessibilityIdentifier("orders.detail.photos.preview.image")
+
+                Spacer(minLength: 0)
+
+                VStack(spacing: 6) {
+                    Text(photo.caption ?? photo.kind.displayName)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("orders.detail.photos.preview.caption")
+
+                    Text(photo.kind.displayName)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.72))
+                        .accessibilityIdentifier("orders.detail.photos.preview.kind")
+
+                    Text(photo.createdAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.64))
+                        .accessibilityIdentifier("orders.detail.photos.preview.createdAt")
+                }
+                .padding(.bottom, 12)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
         }
     }
 }

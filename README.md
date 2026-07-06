@@ -67,6 +67,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0059: Order Photo Detail Foundation
 - Slice RFC-0060: Order Photo Detail Library UI
 - Slice RFC-0061: Order Photo Camera Capture
+- Slice RFC-0062: Order Photo Preview
 
 ## Base RFCs
 

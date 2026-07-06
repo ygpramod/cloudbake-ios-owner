@@ -286,6 +286,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
             in: app,
             timeout: transitionTimeout
         )
+        let referencePreview = app.buttons["orders.detail.photos.preview.photo-ui-fixture-reference"]
+        assertExistsAfterScrolling(referencePreview, in: app, timeout: transitionTimeout)
+        tapWhenReady(referencePreview, timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].label.contains("Customer sketch"))
+        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.kind"].label.contains("Reference Photo"))
+        tapWhenReady(app.buttons["orders.detail.photos.preview.close"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Photo Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+
         assertExistsAfterScrolling(
             app.staticTexts["orders.detail.photos.final.add.header"],
             in: app,
