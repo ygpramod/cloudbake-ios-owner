@@ -50,6 +50,8 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0042: Order Customer Search Selection
 - Slice RFC-0043: iPad Customer Layout
 - Slice RFC-0044: Order Reminders
+- Slice RFC-0045: Parallel Acceptance CI Shards
+- Slice RFC-0046: Order Recipe Link
 
 ## Base RFCs
 

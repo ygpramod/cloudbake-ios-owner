@@ -206,7 +206,9 @@ Today, the owner can:
     Cancelled,
 13. review linked customer allergies, dietary restrictions, likes, dislikes, and notes from order
     detail,
-14. review reminders three days, two days, and one day before due date.
+14. link an order to one saved recipe for preparation context,
+15. review the linked recipe name from order detail,
+16. review reminders three days, two days, and one day before due date.
 
 Calendar mode groups orders by due date and opens the same order detail screen as List mode.
 
@@ -222,7 +224,11 @@ Linked customer details remain owner-facing context. The order keeps a customer 
 the order itself, while allergies and longer-term preferences continue to come from the customer
 record.
 
-Future order slices should add scheduled notifications, reminder snooze, recipe links, inventory
+Recipe selection opens from the order form when saved recipes exist. The owner can link one saved
+recipe, clear the link, and review the linked recipe from order detail. This is preparation context
+only; marking a recipe as used and deducting inventory are future slices.
+
+Future order slices should add scheduled notifications, reminder snooze, recipe usage, inventory
 deduction, checklist, design references and photos, and pricing/payment summary.
 
 ## Customer Workflow
