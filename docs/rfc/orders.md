@@ -151,6 +151,8 @@ Order detail can change status without opening the full edit form. Moving a Conf
 unused linked recipe to Ready or Completed records one-time recipe usage and deducts recipe
 ingredients from inventory through
 `docs/rfc/slices/0047-order-recipe-usage-inventory-deduction.md`.
+Order detail can now store simple preparation checklist items through
+`docs/rfc/slices/0048-order-checklist.md`.
 
 ## Reminder Model
 
@@ -273,6 +275,9 @@ pricing, and recipe links.
 - Orders can now change status from detail without opening the full edit form.
 - Orders can now deduct linked recipe ingredients once when a Confirmed order is marked Ready or
   Completed.
+- Orders can now store owner checklist items in order detail. The first checklist slice supports
+  add and complete/incomplete toggle; edit, delete, reorder, templates, and checklist-driven status
+  changes remain future work.
 
 ## Open Questions
 

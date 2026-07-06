@@ -75,7 +75,8 @@ The app currently supports:
 66. status changes from order detail without opening the full edit form,
 67. owner-confirmed linked recipe usage when a Confirmed order is marked Ready or Completed,
 68. recipe-driven inventory deduction with unit conversion and oldest-expiry-first batch usage,
-69. unit, integration, and feature-sharded acceptance test lanes.
+69. order detail checklist item add and complete/incomplete toggle,
+70. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
@@ -104,7 +105,7 @@ Planned product areas include:
 2. optional LLM-assisted recipe interpretation,
 3. recipe scaling before usage,
 4. partial recipe usage,
-5. order checklist,
+5. richer order checklist editing, deletion, reordering, and templates,
 6. delivery reminders,
 7. cake photo storage,
 8. pricing calculator,
