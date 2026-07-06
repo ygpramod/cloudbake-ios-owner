@@ -226,6 +226,7 @@ struct Order: Equatable {
     let customerId: String?
     let cakeDesignId: String?
     let recipeId: String?
+    let recipeScaleMultiplier: Decimal
     let title: String
     let customerName: String
     let status: OrderStatus
@@ -269,6 +270,7 @@ struct Order: Equatable {
         customerId: String?,
         cakeDesignId: String?,
         recipeId: String? = nil,
+        recipeScaleMultiplier: Decimal = 1,
         title: String,
         customerName: String,
         status: OrderStatus,
@@ -286,6 +288,7 @@ struct Order: Equatable {
         self.customerId = customerId
         self.cakeDesignId = cakeDesignId
         self.recipeId = recipeId
+        self.recipeScaleMultiplier = recipeScaleMultiplier
         self.title = title
         self.customerName = customerName
         self.status = status
@@ -305,9 +308,28 @@ struct OrderRecipeUsage: Equatable {
     let id: String
     let orderId: String
     let recipeId: String
+    let recipeScaleMultiplier: Decimal
     let usedAt: Date
     let createdAt: Date
     let updatedAt: Date
+
+    init(
+        id: String,
+        orderId: String,
+        recipeId: String,
+        recipeScaleMultiplier: Decimal = 1,
+        usedAt: Date,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.orderId = orderId
+        self.recipeId = recipeId
+        self.recipeScaleMultiplier = recipeScaleMultiplier
+        self.usedAt = usedAt
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
 struct OrderChecklistItem: Equatable {

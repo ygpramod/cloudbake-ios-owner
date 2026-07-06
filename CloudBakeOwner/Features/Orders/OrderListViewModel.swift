@@ -41,6 +41,7 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftCustomerName = ""
     @Published var draftCustomerId = ""
     @Published var draftRecipeId = ""
+    @Published var draftRecipeScaleMultiplier = "1"
     @Published var draftCakeDesignId = ""
     @Published var draftChecklistItemTitle = ""
     @Published var draftDueAt = Date()
@@ -232,6 +233,7 @@ final class OrderListViewModel: ObservableObject {
 
     func clearDraftRecipeLink() {
         draftRecipeId = ""
+        draftRecipeScaleMultiplier = "1"
     }
 
     func draftRecipeName() -> String {
@@ -316,6 +318,7 @@ final class OrderListViewModel: ObservableObject {
             customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
             cakeDesignId: draftCakeDesignId.isEmpty ? nil : draftCakeDesignId,
             recipeId: draftRecipeId.isEmpty ? nil : draftRecipeId,
+            recipeScaleMultiplier: draftRecipeId.isEmpty ? 1 : draft.recipeScaleMultiplier,
             title: draft.title,
             customerName: draft.customerName,
             status: draftStatus,
@@ -357,6 +360,7 @@ final class OrderListViewModel: ObservableObject {
         draftCustomerName = selectedOrder.customerName
         draftCustomerId = selectedOrder.customerId ?? ""
         draftRecipeId = selectedOrder.recipeId ?? ""
+        draftRecipeScaleMultiplier = decimalText(selectedOrder.recipeScaleMultiplier)
         draftCakeDesignId = selectedOrder.cakeDesignId ?? ""
         draftDueAt = selectedOrder.dueAt
         draftStatus = selectedOrder.status
@@ -400,6 +404,7 @@ final class OrderListViewModel: ObservableObject {
             customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
             cakeDesignId: draftCakeDesignId.isEmpty ? nil : draftCakeDesignId,
             recipeId: draftRecipeId.isEmpty ? nil : draftRecipeId,
+            recipeScaleMultiplier: draftRecipeId.isEmpty ? 1 : draft.recipeScaleMultiplier,
             title: draft.title,
             customerName: draft.customerName,
             status: draftStatus,
@@ -422,6 +427,7 @@ final class OrderListViewModel: ObservableObject {
                     customerId: order.customerId,
                     cakeDesignId: order.cakeDesignId,
                     recipeId: order.recipeId,
+                    recipeScaleMultiplier: order.recipeScaleMultiplier,
                     title: order.title,
                     customerName: order.customerName,
                     status: editingOrder.status,
@@ -604,6 +610,7 @@ final class OrderListViewModel: ObservableObject {
             customerId: order.customerId,
             cakeDesignId: cakeDesignId ?? order.cakeDesignId,
             recipeId: order.recipeId,
+            recipeScaleMultiplier: order.recipeScaleMultiplier,
             title: order.title,
             customerName: order.customerName,
             status: status ?? order.status,
@@ -1006,6 +1013,7 @@ final class OrderListViewModel: ObservableObject {
         draftCustomerName = ""
         draftCustomerId = ""
         draftRecipeId = ""
+        draftRecipeScaleMultiplier = "1"
         draftCakeDesignId = ""
         draftDueAt = dateProvider()
         draftStatus = .draft
@@ -1017,7 +1025,13 @@ final class OrderListViewModel: ObservableObject {
         draftPaymentNotes = ""
     }
 
-    private func validatedDraft() -> (title: String, customerName: String, quotedPrice: Decimal?, depositPaid: Decimal?)? {
+    private func validatedDraft() -> (
+        title: String,
+        customerName: String,
+        recipeScaleMultiplier: Decimal,
+        quotedPrice: Decimal?,
+        depositPaid: Decimal?
+    )? {
         let title = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else {
             errorMessage = "Order title is required."
@@ -1036,12 +1050,18 @@ final class OrderListViewModel: ObservableObject {
         guard let depositPaid = decimalAmount(from: draftDepositPaid, fieldName: "Deposit paid") else {
             return nil
         }
+        guard let recipeScaleMultiplier = requiredPositiveDecimalAmount(
+            from: draftRecipeScaleMultiplier,
+            fieldName: "Recipe multiplier"
+        ) else {
+            return nil
+        }
         if let quotedPrice, let depositPaid, depositPaid > quotedPrice {
             errorMessage = "Deposit paid cannot be more than quoted price."
             return nil
         }
 
-        return (title, customerName, quotedPrice, depositPaid)
+        return (title, customerName, recipeScaleMultiplier, quotedPrice, depositPaid)
     }
 
     private func optionalText(_ value: String) -> String? {
@@ -1067,6 +1087,16 @@ final class OrderListViewModel: ObservableObject {
         }
 
         return .some(amount)
+    }
+
+    private func requiredPositiveDecimalAmount(from text: String, fieldName: String) -> Decimal? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let amount = Decimal(string: trimmed), amount > 0 else {
+            errorMessage = "\(fieldName) must be greater than zero."
+            return nil
+        }
+
+        return amount
     }
 
     private func decimalText(_ value: Decimal?) -> String {

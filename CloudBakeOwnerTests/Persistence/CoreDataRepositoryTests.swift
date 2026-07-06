@@ -630,6 +630,104 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchInventoryTransactions(inventoryItemId: inventoryItem.id).count, 1)
     }
 
+    func testOrderRecipeUsageAppliesOrderRecipeScaleMultiplier() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let usedAt = Date(timeIntervalSince1970: 1_800_020_000)
+        let inventoryItem = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla sponge",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-sponge",
+            recipeId: recipe.id,
+            name: "Sponge",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-flour",
+            componentId: component.id,
+            inventoryItemId: inventoryItem.id,
+            quantity: 100,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let order = Order(
+            id: "order-vanilla",
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: recipe.id,
+            recipeScaleMultiplier: Decimal(string: "2.5")!,
+            title: "Large vanilla birthday cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_050_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(inventoryItem)
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try repository.save(order)
+
+        try repository.recordRecipeUsage(
+            for: order,
+            usageId: "usage-order-vanilla",
+            usedAt: usedAt,
+            transactionIdProvider: { "transaction-order-vanilla-flour" }
+        )
+
+        XCTAssertEqual(try repository.fetchInventoryItem(id: inventoryItem.id)?.currentQuantity, 250)
+        XCTAssertEqual(
+            try repository.fetchOrderRecipeUsage(orderId: order.id),
+            OrderRecipeUsage(
+                id: "usage-order-vanilla",
+                orderId: order.id,
+                recipeId: recipe.id,
+                recipeScaleMultiplier: Decimal(string: "2.5")!,
+                usedAt: usedAt,
+                createdAt: usedAt,
+                updatedAt: usedAt
+            )
+        )
+        XCTAssertEqual(
+            try repository.fetchInventoryTransactions(inventoryItemId: inventoryItem.id),
+            [
+                InventoryTransaction(
+                    id: "transaction-order-vanilla-flour",
+                    inventoryItemId: inventoryItem.id,
+                    kind: .consumption,
+                    quantity: 250,
+                    occurredAt: usedAt,
+                    note: "Order recipe usage: Large vanilla birthday cake",
+                    createdAt: usedAt,
+                    updatedAt: usedAt
+                )
+            ]
+        )
+    }
+
     func testOrderPhotosAreFetchedByKindThenEntryOrderAndCanBeDeleted() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)

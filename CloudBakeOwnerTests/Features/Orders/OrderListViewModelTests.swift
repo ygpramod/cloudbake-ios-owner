@@ -220,6 +220,7 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.draftDueAt = dueAt
         viewModel.draftStatus = .confirmed
         viewModel.draftRecipeId = "recipe-vanilla"
+        viewModel.draftRecipeScaleMultiplier = "1.5"
         viewModel.draftCakeDesignId = "design-floral"
         viewModel.draftFulfillmentType = .delivery
         viewModel.draftDeliveryAddress = " 10 Cake Street "
@@ -238,6 +239,7 @@ final class OrderListViewModelTests: XCTestCase {
                     customerId: nil,
                     cakeDesignId: "design-floral",
                     recipeId: "recipe-vanilla",
+                    recipeScaleMultiplier: Decimal(string: "1.5")!,
                     title: "Vanilla Birthday",
                     customerName: "Amy",
                     status: .confirmed,
@@ -255,6 +257,23 @@ final class OrderListViewModelTests: XCTestCase {
         )
         XCTAssertEqual(viewModel.draftTitle, "")
         XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testAddOrderRejectsInvalidRecipeMultiplier() {
+        let repository = FakeOrderRepository()
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.draftTitle = "Vanilla Birthday"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.draftRecipeId = "recipe-vanilla"
+        viewModel.draftRecipeScaleMultiplier = "0"
+
+        XCTAssertFalse(viewModel.addOrder())
+        XCTAssertEqual(viewModel.errorMessage, "Recipe multiplier must be greater than zero.")
+
+        viewModel.draftRecipeScaleMultiplier = "abc"
+        XCTAssertFalse(viewModel.addOrder())
+        XCTAssertEqual(viewModel.errorMessage, "Recipe multiplier must be greater than zero.")
+        XCTAssertTrue(repository.orders.isEmpty)
     }
 
     func testAddOrderRejectsInvalidPricingAmounts() {
@@ -315,6 +334,7 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.recipes(matching: "chocolate"), [chocolate])
         viewModel.clearDraftRecipeLink()
         XCTAssertEqual(viewModel.draftRecipeId, "")
+        XCTAssertEqual(viewModel.draftRecipeScaleMultiplier, "1")
         XCTAssertEqual(viewModel.draftRecipeName(), "No Linked Recipe")
     }
 
@@ -1422,6 +1442,7 @@ private final class FakeOrderRepository: OrderRepository,
                 id: usageId,
                 orderId: order.id,
                 recipeId: recipeId,
+                recipeScaleMultiplier: order.recipeScaleMultiplier,
                 usedAt: usedAt,
                 createdAt: usedAt,
                 updatedAt: usedAt
@@ -1445,6 +1466,7 @@ private final class FakeOrderRepository: OrderRepository,
             customerId: order.customerId,
             cakeDesignId: order.cakeDesignId,
             recipeId: order.recipeId,
+            recipeScaleMultiplier: order.recipeScaleMultiplier,
             title: order.title,
             customerName: order.customerName,
             status: status,
@@ -1469,6 +1491,7 @@ private final class FakeOrderRepository: OrderRepository,
                     id: usageId,
                     orderId: order.id,
                     recipeId: recipeId,
+                    recipeScaleMultiplier: order.recipeScaleMultiplier,
                     usedAt: updatedAt,
                     createdAt: updatedAt,
                     updatedAt: updatedAt

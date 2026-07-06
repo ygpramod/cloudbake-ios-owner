@@ -31,9 +31,9 @@ photo, choosing an image from the photo library, or manually entering recognized
 the image locally with Apple Vision OCR, creates an editable draft, parses likely ingredient rows,
 and saves it only after the owner reviews it.
 
-Recipe usage from an order can now deduct linked ingredient rows from inventory. Recipe scaling,
-stronger OCR cleanup, richer component grouping, and optional LLM-assisted interpretation remain
-future work.
+Recipe usage from an order can now deduct linked ingredient rows from inventory and apply an
+order-level recipe multiplier before deduction. Stronger OCR cleanup, richer component grouping,
+and optional LLM-assisted interpretation remain future work.
 
 ## Recipe Ingredients
 
@@ -271,9 +271,11 @@ When a Confirmed order with an unused linked recipe is marked Ready or Completed
 the app asks for confirmation and then deducts the recipe's inventory-backed ingredient rows. When
 the same status transition is saved through edit order, the app uses the same one-time deduction
 rule.
-Quantities are converted into each inventory item's unit when compatible. Stock batches are consumed
-oldest-expiry-first, and the usage can be recorded only once for the order to prevent accidental
-double deduction.
+The order form includes a Recipe Multiplier for scaling the linked recipe up or down before usage.
+Quantities are converted into each inventory item's unit when compatible, then multiplied by the
+order recipe multiplier. Stock batches are consumed oldest-expiry-first, and the usage can be
+recorded only once for the order to prevent accidental double deduction. Partial recipe usage,
+multi-recipe orders, inventory reservation, and serving/yield modeling remain future work.
 
 Order detail includes a Checklist section for owner preparation tasks such as crumb coat, topper
 pickup, box ready, or final photo. The owner can add checklist items, edit item titles, and tap any
@@ -291,8 +293,9 @@ Order rows also expose swipe actions for quick status changes and payment record
 actions use centered popups and ask for confirmation before saving. Pricing suggestions,
 recipe-cost calculation, discounts, refunds, and online payment processing remain future work.
 
-Future order slices should add reminder snooze, recipe scaling, partial recipe usage, checklist
-reordering/templates, and richer order photo/design library workflows.
+Future order slices should add reminder snooze, configurable reminders, partial recipe usage,
+multi-recipe orders, inventory reservation, checklist reordering/templates, pricing calculation,
+and richer order photo/design library workflows.
 
 ## Customer Workflow
 
