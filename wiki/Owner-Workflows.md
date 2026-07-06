@@ -209,16 +209,17 @@ Today, the owner can:
     detail,
 14. link an order to one saved recipe for preparation context,
 15. review the linked recipe name from order detail,
-16. mark the linked recipe as used from order detail,
-17. deduct recipe ingredients from inventory with unit conversion,
-18. review reminders three days, two days, and one day before due date.
+16. change order status from detail without opening the full edit form,
+17. mark an order Ready and deduct linked recipe ingredients from inventory with unit conversion,
+18. review the next relevant reminder near the bottom of the Orders screen and order detail.
 
 Calendar mode groups orders by due date and opens the same order detail screen as List mode.
 
 The Orders screen shows a Reminders Due section when an active order has a reminder time at or
 before now. Due reminders are grouped by cake so one order appears once even when multiple reminder
-offsets are due. Completed and cancelled orders do not appear in due reminders. Order detail shows
-the full reminder plan for that cake. Scheduled iOS notifications and snooze are future work.
+offsets are due, and only the latest reached reminder is shown. Completed and cancelled orders do
+not appear in due reminders. Order detail shows the next reminder for that cake. Scheduled iOS
+notifications and snooze are future work.
 
 Customer record selection opens from the order form. The owner can search customers by name, phone,
 email, or address, select a saved customer, or clear the link and keep manually entered order text.
@@ -230,10 +231,11 @@ record.
 Recipe selection opens from the order form when saved recipes exist. The owner can link one saved
 recipe, clear the link, and review the linked recipe from order detail.
 
-When a linked recipe is used from order detail, the app asks for confirmation and then deducts the
-recipe's inventory-backed ingredient rows. Quantities are converted into each inventory item's unit
-when compatible. Stock batches are consumed oldest-expiry-first, and the usage can be recorded only
-once for the order to prevent accidental double deduction.
+When an order with an unused linked recipe is marked Ready from order detail, the app asks for
+confirmation and then deducts the recipe's inventory-backed ingredient rows. Quantities are
+converted into each inventory item's unit when compatible. Stock batches are consumed
+oldest-expiry-first, and the usage can be recorded only once for the order to prevent accidental
+double deduction.
 
 Future order slices should add scheduled notifications, reminder snooze, recipe scaling, partial
 recipe usage, checklist, design references and photos, and pricing/payment summary.
