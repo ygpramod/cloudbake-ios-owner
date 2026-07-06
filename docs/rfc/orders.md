@@ -171,6 +171,9 @@ design name, notes, and photo reference through
 Completed order tab behavior, calendar default view, active order entry ordering, removal of the
 standalone Reminders Due section, and checklist deletion/order behavior are implemented through
 `docs/rfc/slices/0052-order-workflow-polish.md`.
+Order add/edit can capture owner-entered quoted price, deposit paid, and payment notes; order detail
+shows the derived balance and payment status through
+`docs/rfc/slices/0053-order-pricing-payment-summary.md`.
 
 ## Reminder Model
 
@@ -207,8 +210,8 @@ Pricing inputs may eventually include:
 - discounts,
 - manual override.
 
-The first order model should capture quoted price, deposit paid, balance due, and payment notes
-without trying to automate the full pricing calculation.
+The first order model captures quoted price, deposit paid, derived balance due, payment status, and
+payment notes without trying to automate the full pricing calculation.
 
 ## Recipe And Inventory Relationship
 
