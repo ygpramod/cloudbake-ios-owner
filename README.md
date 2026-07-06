@@ -62,6 +62,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0054: Order Active And Completed Tabs
 - Slice RFC-0055: Order Status And Payment Quick Actions
 - Slice RFC-0056: Order Scheduled Reminder Notifications
+- Slice RFC-0057: Order Photos
 
 ## Base RFCs
 
