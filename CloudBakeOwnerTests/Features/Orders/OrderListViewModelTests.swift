@@ -3,19 +3,22 @@ import XCTest
 
 @MainActor
 final class OrderListViewModelTests: XCTestCase {
-    func testLoadFetchesOrdersAndCustomers() {
+    func testLoadFetchesOrdersCustomersAndRecipes() {
         let repository = FakeOrderRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
         let order = makeOrder(id: "order-vanilla", dueAt: timestamp)
         let customer = makeCustomer(id: "customer-amy", name: "Amy")
+        let recipe = makeRecipe(id: "recipe-vanilla", name: "Vanilla sponge")
         repository.orders = [order]
         repository.customers = [customer]
+        repository.recipes = [recipe]
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.load()
 
         XCTAssertEqual(viewModel.orders, [order])
         XCTAssertEqual(viewModel.customers, [customer])
+        XCTAssertEqual(viewModel.recipes, [recipe])
         XCTAssertNil(viewModel.errorMessage)
     }
 
@@ -135,6 +138,7 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.draftCustomerName = " Amy "
         viewModel.draftDueAt = dueAt
         viewModel.draftStatus = .confirmed
+        viewModel.draftRecipeId = "recipe-vanilla"
         viewModel.draftFulfillmentType = .delivery
         viewModel.draftDeliveryAddress = " 10 Cake Street "
         viewModel.draftCakeNotes = " Less sweet "
@@ -148,6 +152,7 @@ final class OrderListViewModelTests: XCTestCase {
                     id: "order-vanilla",
                     customerId: nil,
                     cakeDesignId: nil,
+                    recipeId: "recipe-vanilla",
                     title: "Vanilla Birthday",
                     customerName: "Amy",
                     status: .confirmed,
@@ -162,6 +167,25 @@ final class OrderListViewModelTests: XCTestCase {
         )
         XCTAssertEqual(viewModel.draftTitle, "")
         XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testRecipeSelectionStateUsesLoadedRecipes() {
+        let repository = FakeOrderRepository()
+        let vanilla = makeRecipe(id: "recipe-vanilla", name: "Vanilla sponge", notes: "Birthday base")
+        let chocolate = makeRecipe(id: "recipe-chocolate", name: "Chocolate sponge")
+        repository.recipes = [vanilla, chocolate]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.load()
+        viewModel.selectDraftRecipe(id: "recipe-vanilla")
+
+        XCTAssertEqual(viewModel.draftRecipeId, "recipe-vanilla")
+        XCTAssertEqual(viewModel.draftRecipeName(), "Vanilla sponge")
+        XCTAssertEqual(viewModel.recipes(matching: "birthday"), [vanilla])
+        XCTAssertEqual(viewModel.recipes(matching: "chocolate"), [chocolate])
+        viewModel.clearDraftRecipeLink()
+        XCTAssertEqual(viewModel.draftRecipeId, "")
+        XCTAssertEqual(viewModel.draftRecipeName(), "No Linked Recipe")
     }
 
     func testAddOrderRequiresTitleAndCustomerName() {
@@ -255,6 +279,7 @@ final class OrderListViewModelTests: XCTestCase {
         let order = makeOrder(
             id: "order-vanilla",
             customerId: "customer-amy",
+            recipeId: "recipe-vanilla",
             dueAt: Date(timeIntervalSince1970: 1_800_140_000)
         )
         let customer = makeCustomer(
@@ -267,15 +292,19 @@ final class OrderListViewModelTests: XCTestCase {
             notes: "Prefers pale colors"
         )
         repository.customers = [customer]
+        let recipe = makeRecipe(id: "recipe-vanilla", name: "Vanilla sponge")
+        repository.recipes = [recipe]
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.beginViewingOrder(order)
 
         XCTAssertEqual(viewModel.selectedOrder, order)
         XCTAssertEqual(viewModel.selectedOrderCustomer, customer)
+        XCTAssertEqual(viewModel.selectedOrderRecipe, recipe)
         viewModel.closeOrderDetail()
         XCTAssertNil(viewModel.selectedOrder)
         XCTAssertNil(viewModel.selectedOrderCustomer)
+        XCTAssertNil(viewModel.selectedOrderRecipe)
     }
 
     func testBeginViewingUnlinkedOrderClearsLinkedCustomer() {
@@ -283,10 +312,12 @@ final class OrderListViewModelTests: XCTestCase {
         let linkedOrder = makeOrder(
             id: "order-vanilla",
             customerId: "customer-amy",
+            recipeId: "recipe-vanilla",
             dueAt: Date(timeIntervalSince1970: 1_800_140_000)
         )
         let unlinkedOrder = makeOrder(id: "order-chocolate", dueAt: Date(timeIntervalSince1970: 1_800_150_000))
         repository.customers = [makeCustomer(id: "customer-amy", name: "Amy", allergies: "Nuts")]
+        repository.recipes = [makeRecipe(id: "recipe-vanilla", name: "Vanilla sponge")]
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.beginViewingOrder(linkedOrder)
@@ -294,6 +325,7 @@ final class OrderListViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.selectedOrder, unlinkedOrder)
         XCTAssertNil(viewModel.selectedOrderCustomer)
+        XCTAssertNil(viewModel.selectedOrderRecipe)
     }
 
     func testBeginEditingOrderPrefillsDraft() {
@@ -303,6 +335,7 @@ final class OrderListViewModelTests: XCTestCase {
             id: "order-vanilla",
             customerId: "customer-amy",
             cakeDesignId: nil,
+            recipeId: "recipe-vanilla",
             title: "Vanilla Birthday",
             customerName: "Amy",
             status: .confirmed,
@@ -321,6 +354,7 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftTitle, "Vanilla Birthday")
         XCTAssertEqual(viewModel.draftCustomerName, "Amy")
         XCTAssertEqual(viewModel.draftCustomerId, "customer-amy")
+        XCTAssertEqual(viewModel.draftRecipeId, "recipe-vanilla")
         XCTAssertEqual(viewModel.draftDueAt, dueAt)
         XCTAssertEqual(viewModel.draftStatus, .confirmed)
         XCTAssertEqual(viewModel.draftFulfillmentType, .delivery)
@@ -344,6 +378,7 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.beginEditingOrder()
         viewModel.draftTitle = "Chocolate Birthday"
         viewModel.draftCustomerName = "Amy B"
+        viewModel.draftRecipeId = "recipe-chocolate"
         viewModel.draftStatus = .ready
         viewModel.draftFulfillmentType = .delivery
         viewModel.draftDeliveryAddress = "11 Cake Street"
@@ -355,6 +390,7 @@ final class OrderListViewModelTests: XCTestCase {
             id: "order-vanilla",
             customerId: nil,
             cakeDesignId: nil,
+            recipeId: "recipe-chocolate",
             title: "Chocolate Birthday",
             customerName: "Amy B",
             status: .ready,
@@ -396,6 +432,7 @@ final class OrderListViewModelTests: XCTestCase {
         id: String,
         title: String = "Vanilla Birthday",
         customerId: String? = nil,
+        recipeId: String? = nil,
         status: OrderStatus = .draft,
         dueAt: Date
     ) -> Order {
@@ -404,6 +441,7 @@ final class OrderListViewModelTests: XCTestCase {
             id: id,
             customerId: customerId,
             cakeDesignId: nil,
+            recipeId: recipeId,
             title: title,
             customerName: "Amy",
             status: status,
@@ -450,11 +488,23 @@ final class OrderListViewModelTests: XCTestCase {
             updatedAt: timestamp
         )
     }
+
+    private func makeRecipe(id: String, name: String, notes: String? = nil) -> Recipe {
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        return Recipe(
+            id: id,
+            name: name,
+            notes: notes,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+    }
 }
 
-private final class FakeOrderRepository: OrderRepository, CustomerRepository {
+private final class FakeOrderRepository: OrderRepository, CustomerRepository, RecipeRepository {
     var orders: [Order] = []
     var customers: [Customer] = []
+    var recipes: [Recipe] = []
 
     func save(_ order: Order) throws {
         orders.removeAll { $0.id == order.id }
@@ -482,5 +532,20 @@ private final class FakeOrderRepository: OrderRepository, CustomerRepository {
 
     func fetchCustomers() throws -> [Customer] {
         customers
+    }
+
+    func save(_ recipe: Recipe) throws {
+        recipes.removeAll { $0.id == recipe.id }
+        recipes.append(recipe)
+    }
+
+    func fetchRecipe(id: String) throws -> Recipe? {
+        recipes.first { $0.id == id }
+    }
+
+    func fetchRecipes() throws -> [Recipe] {
+        recipes.sorted { lhs, rhs in
+            lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
     }
 }
