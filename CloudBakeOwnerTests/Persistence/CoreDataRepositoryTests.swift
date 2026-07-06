@@ -100,6 +100,7 @@ final class CoreDataRepositoryTests: XCTestCase {
             id: "order-rose-garden",
             customerId: customer.id,
             cakeDesignId: design.id,
+            recipeId: recipe.id,
             title: "Rose garden birthday cake",
             customerName: customer.name,
             status: .confirmed,
