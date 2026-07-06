@@ -110,3 +110,9 @@ When implemented, update:
   the next relevant reminder.
 - Checklist rows remain in entry order after completion toggles and can be deleted from order
   detail. Persistence deletes only the checklist row and keeps the parent order.
+
+## Superseded Behavior
+
+Slice RFC-0054 supersedes this slice's Orders screen view-mode and order-sorting rules. Active work
+is now always calendar-style due-day grouping, active orders are sorted by delivery/pickup date-time
+ascending, and completed orders are sorted by delivery/pickup date-time descending.

@@ -192,7 +192,7 @@ is the base product RFC for this area.
 
 Today, the owner can:
 
-1. view active orders in Calendar mode by default or switch to List mode,
+1. view active orders grouped by delivery or pickup day,
 2. add an order,
 3. search and link an order to an existing customer record when useful,
 4. enter a customer name directly for quick drafts,
@@ -216,13 +216,12 @@ Today, the owner can:
 19. review completed orders in a separate Completed tab,
 20. review the next relevant reminder in order detail.
 
-Calendar mode groups active orders by due date and opens the same order detail screen as List mode.
-Active and completed order lists preserve entry order. Completed orders are kept out of active work
-and appear in the Completed tab.
+Active orders are grouped by due day, with orders inside each day ordered by delivery or pickup time
+ascending. Completed orders are kept out of active work and appear in a simple Completed tab ordered
+by delivery or pickup date-time descending.
 
-On iPad, Orders uses a list/detail layout: the order list and calendar mode stay
-visible while selected order detail appears in the detail column. On iPhone, order detail continues
-to open as a focused sheet.
+On iPad, Orders uses a list/detail layout: the order list stays visible while selected order detail
+appears in the detail column. On iPhone, order detail continues to open as a focused sheet.
 
 The Orders screen no longer has a standalone Reminders Due section. Order detail shows the next
 reminder for that cake. Completed and cancelled orders do not appear in due reminder calculations.

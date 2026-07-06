@@ -53,11 +53,12 @@ notes, and changing customer requests without forcing the owner into a rigid ret
 ## Requirements Summary
 
 - The owner must be able to create an order from the app.
-- The owner must be able to see upcoming orders in a list and calendar-oriented view.
-- Calendar view must be the default Orders screen view for active work.
+- The owner must be able to see upcoming active orders in a calendar-oriented view.
+- The Orders screen must expose only Active and Completed tabs.
+- Active orders must be grouped by due day and ordered by delivery/pickup date-time ascending.
 - Completed orders must move out of the active Orders view into a Completed tab.
-- Active and completed order lists must be ordered by entry order unless a specific view, such as
-  calendar grouping, requires a different grouping.
+- Completed orders must display as a simple ungrouped list ordered by delivery/pickup date-time
+  descending.
 - The owner must be able to view a single order with all business-critical details.
 - The owner must be able to edit an order while it is active.
 - Each order must have a status.
@@ -168,12 +169,16 @@ A customer-safe order preview model for future consumer-facing surfaces is imple
 Order add/edit can link one existing cake design reference, and order detail can show the linked
 design name, notes, and photo reference through
 `docs/rfc/slices/0051-order-design-reference.md`.
-Completed order tab behavior, calendar default view, active order entry ordering, removal of the
-standalone Reminders Due section, and checklist deletion/order behavior are implemented through
+Completed order tab behavior, calendar default view, removal of the standalone Reminders Due
+section, and checklist deletion/order behavior are implemented through
 `docs/rfc/slices/0052-order-workflow-polish.md`.
 Order add/edit can capture owner-entered quoted price, deposit paid, and payment notes; order detail
 shows the derived balance and payment status through
 `docs/rfc/slices/0053-order-pricing-payment-summary.md`.
+The Orders screen now exposes only Active and Completed tabs. Active orders are grouped by due day
+and ordered by delivery/pickup time ascending; completed orders are shown in a simple list ordered
+by delivery/pickup date-time descending through
+`docs/rfc/slices/0054-order-active-completed-tabs.md`.
 
 ## Reminder Model
 
@@ -307,9 +312,10 @@ pricing, and recipe links.
   checklist-driven status changes remain future work.
 - Orders now use a regular-width iPad split view so the list and calendar can remain
   visible while reviewing selected order detail. Compact iPhone layouts keep the modal detail flow.
-- Orders now open Calendar by default for active work and move completed orders into a separate
-  Completed tab. The standalone Orders screen Reminders Due section is removed; order detail
-  continues to show the next relevant reminder.
+- Orders now expose only Active and Completed tabs. Active work is always shown as due-day groups
+  ordered by delivery/pickup time ascending. Completed work is an ungrouped list ordered by
+  delivery/pickup date-time descending. The standalone Orders screen Reminders Due section is
+  removed; order detail continues to show the next relevant reminder.
 - Orders now have a customer-safe preview projection for future consumer surfaces. It maps owner
   statuses into consumer language and deliberately excludes private owner/customer operational
   fields.

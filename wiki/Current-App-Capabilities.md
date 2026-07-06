@@ -66,7 +66,7 @@ The app currently supports:
 58. order due date/time, status, fulfillment type, delivery address, and cake notes,
 59. order editing from detail,
 60. manual order status changes,
-61. orders calendar view grouped by due date and used as the default active order view,
+61. orders Active tab grouped by due day with delivery or pickup time ordering,
 62. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
 63. in-app order reminder planning for three, two, and one day before due date with one next
     relevant reminder shown in the UI,
@@ -78,6 +78,7 @@ The app currently supports:
 69. order detail checklist item add, complete/incomplete toggle, entry-order display, and deletion,
 70. regular-width iPad order list/detail split view,
 71. optional saved cake design link from order add/edit,
+72. simple Completed orders tab ordered by delivery or pickup date-time descending,
 72. linked design name, notes, and photo reference in order detail,
 73. completed order tab that keeps completed orders out of active order views,
 74. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
