@@ -80,6 +80,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkRecipeFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkDesignFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrderMovesToCompletedTab
           - feature: inventory
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDuplicateNameShowsWarningBeforeAdding

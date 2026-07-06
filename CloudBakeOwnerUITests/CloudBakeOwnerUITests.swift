@@ -79,16 +79,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.staticTexts["Orders"])
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
 
-        let reminderRow = app.buttons.matching(
+        XCTAssertFalse(app.staticTexts["orders.remindersDue.header"].exists)
+        let orderRow = app.buttons.matching(
             NSPredicate(
                 format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
-                "orders.reminder.",
+                "orders.item.",
                 orderTitle
             )
         )
             .firstMatch
-        assertExistsAfterScrolling(reminderRow, in: app, timeout: transitionTimeout)
-        tapWhenReady(reminderRow, timeout: transitionTimeout)
+        assertExistsAfterScrolling(orderRow, in: app, timeout: transitionTimeout)
+        tapWhenReady(orderRow, timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars[orderTitle].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.reminder.1"], in: app, timeout: transitionTimeout)
@@ -157,24 +158,35 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         let checklistItem = app.descendants(matching: .any).matching(
             NSPredicate(
-                format: "identifier BEGINSWITH %@ AND identifier ENDSWITH %@",
-                "orders.detail.checklist.item.",
-                ".incomplete"
+                format: "identifier BEGINSWITH %@",
+                "orders.detail.checklist.item."
             )
         )
             .firstMatch
         XCTAssertTrue(checklistItem.waitForExistence(timeout: transitionTimeout))
+        XCTAssertEqual(checklistItem.value as? String, "Incomplete")
 
         tapExisting(checklistItem, timeout: transitionTimeout)
-        let completedChecklistItem = app.descendants(matching: .any).matching(
-            NSPredicate(
-                format: "identifier BEGINSWITH %@ AND identifier ENDSWITH %@",
-                "orders.detail.checklist.item.",
-                ".complete"
-            )
+        let completedState = NSPredicate(format: "value == %@", "Complete")
+        let completedExpectation = XCTNSPredicateExpectation(predicate: completedState, object: checklistItem)
+        if XCTWaiter.wait(for: [completedExpectation], timeout: 2) != .completed {
+            tapExisting(checklistItem, timeout: transitionTimeout)
+        }
+        XCTAssertEqual(
+            XCTWaiter.wait(
+                for: [XCTNSPredicateExpectation(predicate: completedState, object: checklistItem)],
+                timeout: transitionTimeout
+            ),
+            .completed
+        )
+
+        checklistItem.swipeLeft()
+        let deleteButton = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "orders.detail.checklist.delete.")
         )
             .firstMatch
-        XCTAssertTrue(completedChecklistItem.waitForExistence(timeout: transitionTimeout))
+        tapExisting(deleteButton, timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["orders.detail.checklist.empty"].waitForExistence(timeout: transitionTimeout))
     }
 
     func testOrderCanLinkCustomerFromSearchableSelection() throws {
@@ -414,8 +426,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
-        tapWhenReady(app.buttons["Calendar"], timeout: transitionTimeout)
-
         XCTAssertTrue(app.staticTexts["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: transitionTimeout))
         let orderRow = app.buttons.matching(
@@ -429,6 +439,47 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(orderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(orderRow, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+    }
+
+    func testCompletedOrderMovesToCompletedTab() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        addOrder(named: "Completed Birthday", notes: "Boxed", customerName: "Amy", in: app)
+
+        let activeOrderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Completed Birthday"
+            )
+        )
+            .firstMatch
+        assertExistsAfterScrolling(activeOrderRow, in: app, timeout: transitionTimeout)
+        tapWhenReady(activeOrderRow, timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["Completed Birthday"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
+        tapExisting(app.buttons["Completed"], timeout: transitionTimeout)
+        let completedStatus = app.staticTexts["orders.detail.status"]
+        XCTAssertTrue(completedStatus.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(completedStatus.label.contains("Completed"))
+        app.buttons["orders.detail.done"].tap()
+
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["Completed"], timeout: transitionTimeout)
+        let completedOrderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Completed Birthday"
+            )
+        )
+            .firstMatch
+        assertExistsAfterScrolling(completedOrderRow, in: app, timeout: transitionTimeout)
     }
 
     func testOrderDetailUsesSplitViewOnIPad() throws {
