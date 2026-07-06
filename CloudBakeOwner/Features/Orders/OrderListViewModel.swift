@@ -35,6 +35,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var selectedOrderCakeDesign: CakeDesign?
     @Published private(set) var selectedOrderRecipeUsage: OrderRecipeUsage?
     @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
+    @Published private(set) var selectedOrderPhotos: [OrderPhoto] = []
     @Published private(set) var editingOrder: Order?
     @Published var draftTitle = ""
     @Published var draftCustomerName = ""
@@ -52,18 +53,21 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftPaymentNotes = ""
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & CustomerRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository
+    private let repository: any OrderRepository & CustomerRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let photoFileStore: OrderPhotoFileStore
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let calendar: Calendar
 
     init(
-        repository: any OrderRepository & CustomerRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository,
+        repository: any OrderRepository & CustomerRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository & OrderPhotoRepository,
+        photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
     ) {
         self.repository = repository
+        self.photoFileStore = photoFileStore
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
         self.calendar = calendar
@@ -92,6 +96,14 @@ final class OrderListViewModel: ObservableObject {
         orders
             .filter(\.hasCompletedHistoryState)
             .sorted(by: orderWasDueAfter)
+    }
+
+    var selectedCustomerReferencePhotos: [OrderPhoto] {
+        selectedOrderPhotos.filter { $0.kind == .customerReference }
+    }
+
+    var selectedFinalCakePhotos: [OrderPhoto] {
+        selectedOrderPhotos.filter { $0.kind == .finalCake }
     }
 
     var dueReminderGroups: [OrderReminderDueGroup] {
@@ -167,6 +179,7 @@ final class OrderListViewModel: ObservableObject {
         loadSelectedOrderCakeDesign(for: order)
         loadSelectedOrderRecipeUsage(for: order)
         loadSelectedOrderChecklistItems(for: order)
+        loadSelectedOrderPhotos(for: order)
     }
 
     func closeOrderDetail() {
@@ -176,6 +189,7 @@ final class OrderListViewModel: ObservableObject {
         selectedOrderCakeDesign = nil
         selectedOrderRecipeUsage = nil
         selectedOrderChecklistItems = []
+        selectedOrderPhotos = []
         draftChecklistItemTitle = ""
         editingOrder = nil
         errorMessage = nil
@@ -441,6 +455,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderCakeDesign(for: savedOrder)
             loadSelectedOrderRecipeUsage(for: savedOrder)
             loadSelectedOrderChecklistItems(for: savedOrder)
+            loadSelectedOrderPhotos(for: savedOrder)
             return true
         } catch let error as OrderRecipeUsageError {
             errorMessage = recipeUsageErrorMessage(for: error)
@@ -571,6 +586,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderCakeDesign(for: order)
             loadSelectedOrderRecipeUsage(for: order)
             loadSelectedOrderChecklistItems(for: order)
+            loadSelectedOrderPhotos(for: order)
         }
 
         load()
@@ -676,6 +692,64 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func addOrderPhoto(kind: OrderPhotoKind, imageData: Data, caption: String? = nil) -> Bool {
+        guard let selectedOrder else {
+            errorMessage = "Order could not be found."
+            return false
+        }
+        guard !imageData.isEmpty else {
+            errorMessage = "Order photo is required."
+            return false
+        }
+
+        let photoId = idGenerator()
+        let now = dateProvider()
+        var savedRelativePath: String?
+
+        do {
+            let relativePath = try photoFileStore.saveOrderPhoto(
+                data: imageData,
+                orderId: selectedOrder.id,
+                photoId: photoId
+            )
+            savedRelativePath = relativePath
+            let photo = OrderPhoto(
+                id: photoId,
+                orderId: selectedOrder.id,
+                kind: kind,
+                localPhotoPath: relativePath,
+                caption: optionalText(caption ?? ""),
+                createdAt: now,
+                updatedAt: now
+            )
+            try repository.save(photo)
+            loadSelectedOrderPhotos(for: selectedOrder)
+            errorMessage = nil
+            return true
+        } catch {
+            if let savedRelativePath {
+                try? photoFileStore.deleteOrderPhoto(relativePath: savedRelativePath)
+            }
+            errorMessage = "Order photo could not be saved."
+            return false
+        }
+    }
+
+    func deleteOrderPhoto(_ photo: OrderPhoto) -> Bool {
+        do {
+            try repository.deleteOrderPhoto(id: photo.id)
+            try photoFileStore.deleteOrderPhoto(relativePath: photo.localPhotoPath)
+            if let selectedOrder {
+                loadSelectedOrderPhotos(for: selectedOrder)
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Order photo could not be deleted."
+            return false
+        }
+    }
+
     func cancelEditingOrder() {
         editingOrder = nil
         resetDraft()
@@ -753,6 +827,15 @@ final class OrderListViewModel: ObservableObject {
         } catch {
             selectedOrderChecklistItems = []
             errorMessage = "Checklist could not be loaded."
+        }
+    }
+
+    private func loadSelectedOrderPhotos(for order: Order) {
+        do {
+            selectedOrderPhotos = try repository.fetchOrderPhotos(orderId: order.id)
+        } catch {
+            selectedOrderPhotos = []
+            errorMessage = "Order photos could not be loaded."
         }
     }
 

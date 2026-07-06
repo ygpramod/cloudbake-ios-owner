@@ -57,6 +57,7 @@
 		410000000000000000000030 /* OrderReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000038 /* OrderReminderScheduler.swift */; };
 		410000000000000000000031 /* OrderStateRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000039 /* OrderStateRules.swift */; };
 		410000000000000000000032 /* OrderReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003A /* OrderReminderSchedulerTests.swift */; };
+		410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003B /* OrderPhotoFileStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -129,6 +130,7 @@
 		420000000000000000000038 /* OrderReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderReminderScheduler.swift; sourceTree = "<group>"; };
 		420000000000000000000039 /* OrderStateRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderStateRules.swift; sourceTree = "<group>"; };
 		42000000000000000000003A /* OrderReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/OrderReminderSchedulerTests.swift; sourceTree = "<group>"; };
+		42000000000000000000003B /* OrderPhotoFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoFileStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -255,6 +257,7 @@
 			children = (
 				420000000000000000000033 /* OrderListView.swift */,
 				420000000000000000000034 /* OrderListViewModel.swift */,
+				42000000000000000000003B /* OrderPhotoFileStore.swift */,
 			);
 			path = Orders;
 			sourceTree = "<group>";
@@ -557,6 +560,7 @@
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
 				41000000000000000000002B /* OrderListView.swift in Sources */,
 				41000000000000000000002C /* OrderListViewModel.swift in Sources */,
+				410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */,
 				41000000000000000000002F /* OrderConsumerPreview.swift in Sources */,
 				41000000000000000000002E /* OrderDisplay.swift in Sources */,
 				410000000000000000000031 /* OrderStateRules.swift in Sources */,
