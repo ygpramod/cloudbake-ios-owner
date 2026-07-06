@@ -12,25 +12,6 @@ struct OrderListView: View {
 
     var body: some View {
         List {
-            if !viewModel.dueReminderGroups.isEmpty {
-                Section {
-                    ForEach(viewModel.dueReminderGroups, id: \.order.id) { group in
-                        Button {
-                            viewModel.beginViewingOrder(group.order)
-                            isViewingOrder = true
-                        } label: {
-                            OrderReminderDueRow(group: group)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("orders.reminder.\(group.order.id)")
-                        .accessibilityLabel("Reminder due for \(group.order.title)")
-                    }
-                } header: {
-                    Text("Reminders Due")
-                        .accessibilityIdentifier("orders.remindersDue.header")
-                }
-            }
-
             Section {
                 Picker("Order View", selection: $displayMode) {
                     ForEach(OrderDisplayMode.allCases, id: \.self) { mode in
@@ -69,6 +50,25 @@ struct OrderListView: View {
                             }
                         }
                     }
+                }
+            }
+
+            if !viewModel.dueReminderGroups.isEmpty {
+                Section {
+                    ForEach(viewModel.dueReminderGroups, id: \.order.id) { group in
+                        Button {
+                            viewModel.beginViewingOrder(group.order)
+                            isViewingOrder = true
+                        } label: {
+                            OrderReminderDueRow(group: group)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("orders.reminder.\(group.order.id)")
+                        .accessibilityLabel("Reminder due for \(group.order.title)")
+                    }
+                } header: {
+                    Text("Reminders Due")
+                        .accessibilityIdentifier("orders.remindersDue.header")
                 }
             }
 
@@ -173,7 +173,8 @@ private struct OrderDetailView: View {
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
     @State private var isEditingOrder = false
-    @State private var isConfirmingRecipeUsage = false
+    @State private var isSelectingStatus = false
+    @State private var isConfirmingReadyStatus = false
 
     var body: some View {
         List {
@@ -184,21 +185,23 @@ private struct OrderDetailView: View {
                             .accessibilityIdentifier("orders.detail.cake")
                     }
                     LabeledContent("Status") {
-                        Text(order.status.displayName)
-                            .accessibilityIdentifier("orders.detail.status")
+                        HStack(spacing: 8) {
+                            Text(order.status.displayName)
+                                .accessibilityIdentifier("orders.detail.status")
+                            Button {
+                                isSelectingStatus = true
+                            } label: {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .imageScale(.small)
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Change Status")
+                            .accessibilityIdentifier("orders.detail.statusMenu")
+                        }
                     }
                     LabeledContent("Due") {
                         Text(order.dueAt.formatted(date: .abbreviated, time: .shortened))
                             .accessibilityIdentifier("orders.detail.due")
-                    }
-                }
-
-                Section("Reminders") {
-                    ForEach(viewModel.reminderPlan(for: order), id: \.offsetDays) { reminder in
-                        LabeledContent(reminder.title) {
-                            Text(reminder.remindAt.formatted(date: .abbreviated, time: .shortened))
-                                .accessibilityIdentifier("orders.detail.reminder.\(reminder.offsetDays)")
-                        }
                     }
                 }
 
@@ -223,7 +226,7 @@ private struct OrderDetailView: View {
                                 Text(usage.usedAt.formatted(date: .abbreviated, time: .shortened))
                                     .accessibilityIdentifier("orders.detail.recipeUsage")
                             } else {
-                                Text("Not Used")
+                                Text("When Ready")
                                     .accessibilityIdentifier("orders.detail.recipeUsage")
                             }
                         }
@@ -287,6 +290,15 @@ private struct OrderDetailView: View {
                     }
                 }
 
+                Section("Reminders") {
+                    if let reminder = viewModel.nextReminder(for: order) {
+                        LabeledContent(reminder.title) {
+                            Text(reminder.remindAt.formatted(date: .abbreviated, time: .shortened))
+                                .accessibilityIdentifier("orders.detail.reminder.\(reminder.offsetDays)")
+                        }
+                    }
+                }
+
                 if let errorMessage = viewModel.errorMessage {
                     Section {
                         Text(errorMessage)
@@ -298,17 +310,6 @@ private struct OrderDetailView: View {
         }
         .navigationTitle(viewModel.selectedOrder?.title ?? "Order")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                if viewModel.selectedOrder?.recipeId != nil && viewModel.selectedOrderRecipeUsage == nil {
-                    Button {
-                        isConfirmingRecipeUsage = true
-                    } label: {
-                        Label("Use Recipe", systemImage: "checkmark.circle")
-                    }
-                    .accessibilityIdentifier("orders.detail.useRecipe")
-                }
-            }
-
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     viewModel.beginEditingOrder()
@@ -327,14 +328,30 @@ private struct OrderDetailView: View {
             }
         }
         .confirmationDialog(
-            "Use linked recipe?",
-            isPresented: $isConfirmingRecipeUsage,
+            "Change status",
+            isPresented: $isSelectingStatus,
             titleVisibility: .visible
         ) {
-            Button("Use Recipe") {
-                _ = viewModel.recordSelectedOrderRecipeUsage()
+            if let order = viewModel.selectedOrder {
+                ForEach(OrderStatus.allCases, id: \.self) { status in
+                    Button(status.displayName) {
+                        changeStatus(status, for: order)
+                    }
+                    .accessibilityIdentifier("orders.detail.status.\(status.rawValue)")
+                }
             }
-            .accessibilityIdentifier("orders.detail.confirmUseRecipe")
+
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "Mark order ready?",
+            isPresented: $isConfirmingReadyStatus,
+            titleVisibility: .visible
+        ) {
+            Button("Mark Ready") {
+                _ = viewModel.changeSelectedOrderStatus(to: .ready)
+            }
+            .accessibilityIdentifier("orders.detail.confirmReady")
 
             Button("Cancel", role: .cancel) {}
         }
@@ -349,6 +366,14 @@ private struct OrderDetailView: View {
                     onSave: viewModel.saveEditedOrder
                 )
             }
+        }
+    }
+
+    private func changeStatus(_ status: OrderStatus, for order: Order) {
+        if status == .ready, order.recipeId != nil, viewModel.selectedOrderRecipeUsage == nil {
+            isConfirmingReadyStatus = true
+        } else {
+            _ = viewModel.changeSelectedOrderStatus(to: status)
         }
     }
 }

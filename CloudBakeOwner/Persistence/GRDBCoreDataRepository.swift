@@ -9,6 +9,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     CustomerRepository,
     CustomerImportantDateRepository,
     OrderRepository,
+    OrderStatusChangeRepository,
     OrderRecipeUsageRepository,
     InventoryTransactionRepository,
     InventoryStockBatchRepository,
@@ -328,42 +329,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 
     func save(_ order: Order) throws {
         try writer.write { db in
-            try db.execute(
-                sql: """
-                    INSERT OR REPLACE INTO orders
-                    (
-                        id,
-                        customer_id,
-                        cake_design_id,
-                        recipe_id,
-                        title,
-                        customer_name,
-                        status,
-                        due_at_unix_time,
-                        fulfillment_type,
-                        delivery_address,
-                        cake_notes,
-                        created_at_unix_time,
-                        updated_at_unix_time
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                arguments: arguments([
-                    order.id,
-                    order.customerId,
-                    order.cakeDesignId,
-                    order.recipeId,
-                    order.title,
-                    order.customerName,
-                    order.status.rawValue,
-                    order.dueAt.timeIntervalSince1970,
-                    order.fulfillmentType.rawValue,
-                    order.deliveryAddress,
-                    order.cakeNotes,
-                    order.createdAt.timeIntervalSince1970,
-                    order.updatedAt.timeIntervalSince1970
-                ])
-            )
+            try save(order, in: db)
         }
     }
 
@@ -387,6 +353,47 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                     """
             ).map(order)
         }
+    }
+
+    func changeOrderStatus(
+        order: Order,
+        status: OrderStatus,
+        updatedAt: Date,
+        usageId: String,
+        transactionIdProvider: () -> String
+    ) throws -> Order {
+        let updatedOrder = Order(
+            id: order.id,
+            customerId: order.customerId,
+            cakeDesignId: order.cakeDesignId,
+            recipeId: order.recipeId,
+            title: order.title,
+            customerName: order.customerName,
+            status: status,
+            dueAt: order.dueAt,
+            fulfillmentType: order.fulfillmentType,
+            deliveryAddress: order.deliveryAddress,
+            cakeNotes: order.cakeNotes,
+            createdAt: order.createdAt,
+            updatedAt: updatedAt
+        )
+
+        try writer.write { db in
+            if status == .ready, let recipeId = order.recipeId {
+                try recordRecipeUsageIfNeeded(
+                    order: order,
+                    recipeId: recipeId,
+                    usageId: usageId,
+                    usedAt: updatedAt,
+                    transactionIdProvider: transactionIdProvider,
+                    in: db
+                )
+            }
+
+            try save(updatedOrder, in: db)
+        }
+
+        return updatedOrder
     }
 
     func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? {
@@ -414,25 +421,12 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         }
 
         try writer.write { db in
-            try ensureOrderRecipeUsageIsNotRecorded(orderId: order.id, in: db)
-            let pendingUsages = try pendingInventoryUsages(recipeId: recipeId, in: db)
-            try validateStock(for: pendingUsages, in: db)
-            try applyRecipeUsage(
-                pendingUsages,
+            try recordRecipeUsage(
                 order: order,
+                recipeId: recipeId,
+                usageId: usageId,
                 usedAt: usedAt,
                 transactionIdProvider: transactionIdProvider,
-                in: db
-            )
-            try save(
-                OrderRecipeUsage(
-                    id: usageId,
-                    orderId: order.id,
-                    recipeId: recipeId,
-                    usedAt: usedAt,
-                    createdAt: usedAt,
-                    updatedAt: usedAt
-                ),
                 in: db
             )
         }
@@ -783,6 +777,120 @@ private extension GRDBCoreDataRepository {
         guard existingUsageCount == 0 else {
             throw OrderRecipeUsageError.alreadyRecorded
         }
+    }
+
+    func hasOrderRecipeUsage(orderId: String, in db: Database) throws -> Bool {
+        let existingUsageCount = try Int.fetchOne(
+            db,
+            sql: "SELECT COUNT(*) FROM order_recipe_usages WHERE order_id = ?",
+            arguments: [orderId]
+        ) ?? 0
+        return existingUsageCount > 0
+    }
+
+    func recordRecipeUsageIfNeeded(
+        order: Order,
+        recipeId: String,
+        usageId: String,
+        usedAt: Date,
+        transactionIdProvider: () -> String,
+        in db: Database
+    ) throws {
+        guard try !hasOrderRecipeUsage(orderId: order.id, in: db) else {
+            return
+        }
+
+        try recordRecipeUsage(
+            order: order,
+            recipeId: recipeId,
+            usageId: usageId,
+            usedAt: usedAt,
+            transactionIdProvider: transactionIdProvider,
+            in: db
+        )
+    }
+
+    func recordRecipeUsage(
+        order: Order,
+        recipeId: String,
+        usageId: String,
+        usedAt: Date,
+        transactionIdProvider: () -> String,
+        in db: Database
+    ) throws {
+        try ensureOrderRecipeUsageIsNotRecorded(orderId: order.id, in: db)
+        let pendingUsages = try pendingInventoryUsages(recipeId: recipeId, in: db)
+        try validateStock(for: pendingUsages, in: db)
+        try applyRecipeUsage(
+            pendingUsages,
+            order: order,
+            usedAt: usedAt,
+            transactionIdProvider: transactionIdProvider,
+            in: db
+        )
+        try save(
+            OrderRecipeUsage(
+                id: usageId,
+                orderId: order.id,
+                recipeId: recipeId,
+                usedAt: usedAt,
+                createdAt: usedAt,
+                updatedAt: usedAt
+            ),
+            in: db
+        )
+    }
+
+    func save(_ order: Order, in db: Database) throws {
+        try db.execute(
+            sql: """
+                INSERT INTO orders
+                (
+                    id,
+                    customer_id,
+                    cake_design_id,
+                    recipe_id,
+                    title,
+                    customer_name,
+                    status,
+                    due_at_unix_time,
+                    fulfillment_type,
+                    delivery_address,
+                    cake_notes,
+                    created_at_unix_time,
+                    updated_at_unix_time
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                customer_id = excluded.customer_id,
+                cake_design_id = excluded.cake_design_id,
+                recipe_id = excluded.recipe_id,
+                title = excluded.title,
+                customer_name = excluded.customer_name,
+                status = excluded.status,
+                due_at_unix_time = excluded.due_at_unix_time,
+                fulfillment_type = excluded.fulfillment_type,
+                delivery_address = excluded.delivery_address,
+                cake_notes = excluded.cake_notes,
+                created_at_unix_time = excluded.created_at_unix_time,
+                updated_at_unix_time = excluded.updated_at_unix_time
+                """,
+            arguments: arguments([
+                order.id,
+                order.customerId,
+                order.cakeDesignId,
+                order.recipeId,
+                order.title,
+                order.customerName,
+                order.status.rawValue,
+                order.dueAt.timeIntervalSince1970,
+                order.fulfillmentType.rawValue,
+                order.deliveryAddress,
+                order.cakeNotes,
+                order.createdAt.timeIntervalSince1970,
+                order.updatedAt.timeIntervalSince1970
+            ])
+        )
     }
 
     func pendingInventoryUsages(recipeId: String, in db: Database) throws -> [PendingInventoryUsage] {
