@@ -73,7 +73,7 @@ The app currently supports:
 64. optional saved recipe link from order add/edit,
 65. linked recipe name in order detail,
 66. status changes from order detail without opening the full edit form,
-67. owner-confirmed linked recipe usage when an order is marked Ready,
+67. owner-confirmed linked recipe usage when a Confirmed order is marked Ready or Completed,
 68. recipe-driven inventory deduction with unit conversion and oldest-expiry-first batch usage,
 69. unit, integration, and feature-sharded acceptance test lanes.
 

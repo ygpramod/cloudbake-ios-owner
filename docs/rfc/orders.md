@@ -147,9 +147,10 @@ Owner-visible order reminder planning is implemented in
 `docs/rfc/slices/0044-order-reminders.md`.
 Order add/edit can link one saved recipe for preparation context through
 `docs/rfc/slices/0046-order-recipe-link.md`.
-Order detail can change status without opening the full edit form. Moving an order with an unused
-linked recipe to Ready records one-time recipe usage and deducts recipe ingredients from inventory
-through `docs/rfc/slices/0047-order-recipe-usage-inventory-deduction.md`.
+Order detail can change status without opening the full edit form. Moving a Confirmed order with an
+unused linked recipe to Ready or Completed records one-time recipe usage and deducts recipe
+ingredients from inventory through
+`docs/rfc/slices/0047-order-recipe-usage-inventory-deduction.md`.
 
 ## Reminder Model
 
@@ -190,10 +191,11 @@ without trying to automate the full pricing calculation.
 
 ## Recipe And Inventory Relationship
 
-Orders can now link to one saved recipe. When the owner marks an order with an unused linked recipe
-as Ready from order detail, inventory is deducted from the recipe ingredient rows. Ingredient
-quantities are converted into the linked inventory item's stored unit when compatible, and stock
-batches are consumed from the oldest expiry first with no-expiry batches last.
+Orders can now link to one saved recipe. When the owner marks a Confirmed order with an unused
+linked recipe as Ready or Completed from order detail, inventory is deducted from the recipe
+ingredient rows. Ingredient quantities are converted into the linked inventory item's stored unit
+when compatible, and stock batches are consumed from the oldest expiry first with no-expiry batches
+last.
 
 Recipe usage is owner-confirmed and one-time per order. Recipe scaling, partial recipe usage,
 multi-recipe orders, and inventory reservation remain future work.
@@ -269,7 +271,8 @@ pricing, and recipe links.
   only the next relevant reminder, and completed or cancelled orders are excluded from due reminder
   alerts.
 - Orders can now change status from detail without opening the full edit form.
-- Orders can now deduct linked recipe ingredients once when the order is marked Ready.
+- Orders can now deduct linked recipe ingredients once when a Confirmed order is marked Ready or
+  Completed.
 
 ## Open Questions
 

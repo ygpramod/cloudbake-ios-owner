@@ -104,9 +104,9 @@ points to an inventory item and records quantity, unit, and optional note. The a
 local Apple Vision OCR to turn a paper or book recipe image into an editable recipe draft with
 structured ingredient rows.
 
-When an order links to a saved recipe, marking the order Ready records one usage event for the order
-and deducts ingredient quantities from inventory using compatible unit conversion and
-oldest-expiry-first stock batches. Future recipe work should add
+When an order links to a saved recipe, marking the Confirmed order Ready or Completed records one
+usage event for the order and deducts ingredient quantities from inventory using compatible unit
+conversion and oldest-expiry-first stock batches. Future recipe work should add
 stronger OCR cleanup, richer component grouping, method details, scaling, and optional LLM-assisted
 interpretation.
 

@@ -210,7 +210,8 @@ Today, the owner can:
 14. link an order to one saved recipe for preparation context,
 15. review the linked recipe name from order detail,
 16. change order status from detail without opening the full edit form,
-17. mark an order Ready and deduct linked recipe ingredients from inventory with unit conversion,
+17. mark a Confirmed order Ready or Completed and deduct linked recipe ingredients from inventory
+    with unit conversion,
 18. review the next relevant reminder near the bottom of the Orders screen and order detail.
 
 Calendar mode groups orders by due date and opens the same order detail screen as List mode.
@@ -231,9 +232,9 @@ record.
 Recipe selection opens from the order form when saved recipes exist. The owner can link one saved
 recipe, clear the link, and review the linked recipe from order detail.
 
-When an order with an unused linked recipe is marked Ready from order detail, the app asks for
-confirmation and then deducts the recipe's inventory-backed ingredient rows. Quantities are
-converted into each inventory item's unit when compatible. Stock batches are consumed
+When a Confirmed order with an unused linked recipe is marked Ready or Completed from order detail,
+the app asks for confirmation and then deducts the recipe's inventory-backed ingredient rows.
+Quantities are converted into each inventory item's unit when compatible. Stock batches are consumed
 oldest-expiry-first, and the usage can be recorded only once for the order to prevent accidental
 double deduction.
 
