@@ -164,6 +164,22 @@ Customer preferences include likes, dislikes, allergies, flavor choices, and des
 
 Allergies and preferences are private owner data and must be handled carefully.
 
+## Order Checklist Item
+
+An order checklist item is a small preparation task attached to one cake order.
+
+Examples:
+
+1. bake sponge,
+2. crumb coat,
+3. make topper,
+4. pack cake box,
+5. take final photo.
+
+Checklist items help the owner track handmade preparation steps without changing the order status
+automatically. They remain visible after completion so the owner can review what was done for the
+order.
+
 ## Owner Price
 
 The app may help suggest pricing from ingredients, time, size, and complexity, but the owner decides

@@ -212,7 +212,8 @@ Today, the owner can:
 16. change order status from detail without opening the full edit form,
 17. mark a Confirmed order Ready or Completed and deduct linked recipe ingredients from inventory
     with unit conversion,
-18. review the next relevant reminder near the bottom of the Orders screen and order detail.
+18. add and complete simple preparation checklist items from order detail,
+19. review the next relevant reminder near the bottom of the Orders screen and order detail.
 
 Calendar mode groups orders by due date and opens the same order detail screen as List mode.
 
@@ -238,8 +239,13 @@ Quantities are converted into each inventory item's unit when compatible. Stock 
 oldest-expiry-first, and the usage can be recorded only once for the order to prevent accidental
 double deduction.
 
+Order detail includes a Checklist section for owner preparation tasks such as crumb coat, topper
+pickup, box ready, or final photo. The owner can add checklist items and tap any checklist row to
+mark it complete or incomplete. Checklist editing, deletion, reordering, templates, and
+checklist-driven status changes are future work.
+
 Future order slices should add scheduled notifications, reminder snooze, recipe scaling, partial
-recipe usage, checklist, design references and photos, and pricing/payment summary.
+recipe usage, design references and photos, and pricing/payment summary.
 
 ## Customer Workflow
 
