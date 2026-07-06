@@ -744,7 +744,34 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testSaveEditedOrderFromConfirmedToReadyRecordsLinkedRecipeUsage() {
+    func testSaveEditedOrderFromConfirmedToReadyRequiresInventoryDeductionConfirmation() {
+        let repository = FakeOrderRepository()
+        let updatedAt = Date(timeIntervalSince1970: 1_800_080_000)
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let original = makeOrder(
+            id: "order-vanilla",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: dueAt
+        )
+        repository.orders = [original]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { updatedAt }
+        )
+
+        viewModel.beginViewingOrder(original)
+        viewModel.beginEditingOrder()
+        viewModel.draftStatus = .ready
+
+        XCTAssertTrue(viewModel.editedOrderRequiresInventoryDeductionConfirmation)
+        XCTAssertFalse(viewModel.saveEditedOrder())
+        XCTAssertEqual(repository.orders, [original])
+        XCTAssertNil(viewModel.selectedOrderRecipeUsage)
+        XCTAssertEqual(viewModel.errorMessage, "Confirm inventory deduction before saving.")
+    }
+
+    func testSaveEditedOrderFromConfirmedToReadyRecordsLinkedRecipeUsageAfterConfirmation() {
         let repository = FakeOrderRepository()
         let updatedAt = Date(timeIntervalSince1970: 1_800_080_000)
         let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
@@ -765,7 +792,7 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.beginEditingOrder()
         viewModel.draftStatus = .ready
 
-        XCTAssertTrue(viewModel.saveEditedOrder())
+        XCTAssertTrue(viewModel.saveEditedOrder(confirmingRecipeUsage: true))
         XCTAssertEqual(viewModel.selectedOrder?.status, .ready)
         XCTAssertEqual(
             viewModel.selectedOrderRecipeUsage,
