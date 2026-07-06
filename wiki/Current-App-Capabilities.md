@@ -68,12 +68,14 @@ The app currently supports:
 60. manual order status changes,
 61. orders calendar view grouped by due date,
 62. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
-63. in-app order reminder planning for three, two, and one day before due date,
+63. in-app order reminder planning for three, two, and one day before due date with one next
+    relevant reminder shown in the UI,
 64. optional saved recipe link from order add/edit,
 65. linked recipe name in order detail,
-66. owner-triggered linked recipe usage from order detail,
-67. recipe-driven inventory deduction with unit conversion and oldest-expiry-first batch usage,
-68. unit, integration, and feature-sharded acceptance test lanes.
+66. status changes from order detail without opening the full edit form,
+67. owner-confirmed linked recipe usage when an order is marked Ready,
+68. recipe-driven inventory deduction with unit conversion and oldest-expiry-first batch usage,
+69. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 

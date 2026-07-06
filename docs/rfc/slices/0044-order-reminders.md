@@ -34,9 +34,10 @@ This slice does not include:
 - Each order must expose reminder dates for three days, two days, and one day before due date.
 - The Orders screen must surface reminders whose reminder time has been reached.
 - Due reminders should be grouped by order so one overdue cake does not create multiple list rows.
+- Due reminders should show only the latest reached reminder for each order.
 - Completed and cancelled orders must not appear in due reminders.
 - Tapping a due reminder must open the order detail.
-- Order detail must show the full reminder plan for owner review.
+- Order detail must show only the next reminder for owner review.
 
 ## Design
 
@@ -44,10 +45,10 @@ This slice does not include:
 configured calendar. No new persistence is introduced in this slice because reminder dates are
 deterministic from `Order.dueAt`.
 
-The Orders screen shows a `Reminders Due` section before the list/calendar mode picker when at
-least one active order has a reminder at or before the current time. Each order appears once in that
-section with its due reminder offsets summarized. Order detail shows the full three/two/one-day
-reminder plan.
+The Orders screen shows a `Reminders Due` section after the main order content when at least one
+active order has a reminder at or before the current time. Each order appears once in that
+section with only its latest reached reminder shown. Order detail shows the next reminder from the
+three/two/one-day plan instead of all reminder rows.
 
 Local notifications remain a later slice so notification permission, scheduling, rescheduling, and
 snooze behavior can be designed deliberately.
@@ -55,10 +56,10 @@ snooze behavior can be designed deliberately.
 ## Testing
 
 - View-model tests cover the three/two/one-day reminder plan.
-- View-model tests cover due reminder filtering, ordering, and exclusion of completed or cancelled
-  orders.
+- View-model tests cover due reminder filtering, single-reminder grouping, ordering, and exclusion
+  of completed or cancelled orders.
 - A targeted acceptance test verifies that due reminders appear in Orders and open order detail,
-  where the full reminder plan is visible.
+  where the next reminder is visible.
 
 ## Documentation Updates
 
