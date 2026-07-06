@@ -445,6 +445,8 @@ private struct OrderDetailView: View {
     @State private var selectedFinalCakePhotoItem: PhotosPickerItem?
     @State private var cameraPhotoKind: OrderPhotoKind?
     @State private var previewingPhoto: OrderPhoto?
+    @State private var editingChecklistItem: OrderChecklistItem?
+    @State private var editedChecklistItemTitle = ""
     @State private var partialPaymentAmount = ""
     @FocusState private var isChecklistTitleFocused: Bool
 
@@ -702,6 +704,15 @@ private struct OrderDetailView: View {
                                 _ = viewModel.toggleChecklistItem(item)
                             }
                             .swipeActions(edge: .trailing) {
+                                Button {
+                                    editingChecklistItem = item
+                                    editedChecklistItemTitle = item.title
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.blue)
+                                .accessibilityIdentifier("orders.detail.checklist.edit.\(item.id)")
+
                                 Button(role: .destructive) {
                                     _ = viewModel.deleteChecklistItem(item)
                                 } label: {
@@ -744,6 +755,53 @@ private struct OrderDetailView: View {
                         Text(errorMessage)
                             .foregroundStyle(.red)
                             .accessibilityIdentifier("orders.detail.error")
+                    }
+                }
+            }
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { editingChecklistItem != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        editingChecklistItem = nil
+                        editedChecklistItemTitle = ""
+                    }
+                }
+            )
+        ) {
+            NavigationStack {
+                Form {
+                    Section("Checklist Item") {
+                        TextField("Title", text: $editedChecklistItemTitle)
+                            .textInputAutocapitalization(.sentences)
+                            .accessibilityIdentifier("orders.detail.checklist.edit.title")
+                    }
+                }
+                .navigationTitle("Edit Checklist Item")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            editingChecklistItem = nil
+                            editedChecklistItemTitle = ""
+                        }
+                        .accessibilityIdentifier("orders.detail.checklist.edit.cancel")
+                    }
+
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            guard let editingChecklistItem else {
+                                return
+                            }
+                            if viewModel.updateChecklistItemTitle(
+                                editingChecklistItem,
+                                title: editedChecklistItemTitle
+                            ) {
+                                self.editingChecklistItem = nil
+                                editedChecklistItemTitle = ""
+                            }
+                        }
+                        .accessibilityIdentifier("orders.detail.checklist.edit.save")
                     }
                 }
             }

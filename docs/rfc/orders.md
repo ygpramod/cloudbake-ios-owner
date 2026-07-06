@@ -324,7 +324,7 @@ pricing, and recipe links.
 - Orders can now deduct linked recipe ingredients once when a Confirmed order is marked Ready or
   Completed.
 - Orders can now store owner checklist items in order detail. Checklist items remain in entry order
-  and support add, complete/incomplete toggle, and deletion; edit, reorder, templates, and
+  and support add, edit, complete/incomplete toggle, and deletion; reorder, templates, and
   checklist-driven status changes remain future work.
 - Orders now use a regular-width iPad split view so the list and calendar can remain
   visible while reviewing selected order detail. Compact iPhone layouts keep the modal detail flow.

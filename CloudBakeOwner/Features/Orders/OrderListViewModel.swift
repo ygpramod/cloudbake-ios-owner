@@ -679,6 +679,36 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func updateChecklistItemTitle(_ item: OrderChecklistItem, title: String) -> Bool {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else {
+            errorMessage = "Checklist item is required."
+            return false
+        }
+
+        let updatedItem = OrderChecklistItem(
+            id: item.id,
+            orderId: item.orderId,
+            title: trimmedTitle,
+            isCompleted: item.isCompleted,
+            sortOrder: item.sortOrder,
+            createdAt: item.createdAt,
+            updatedAt: dateProvider()
+        )
+
+        do {
+            try repository.save(updatedItem)
+            if let selectedOrder {
+                loadSelectedOrderChecklistItems(for: selectedOrder)
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Checklist item could not be updated."
+            return false
+        }
+    }
+
     func deleteChecklistItem(_ item: OrderChecklistItem) -> Bool {
         do {
             try repository.deleteOrderChecklistItem(id: item.id)
