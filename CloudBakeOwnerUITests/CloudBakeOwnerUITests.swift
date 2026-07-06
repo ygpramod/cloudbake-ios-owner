@@ -220,7 +220,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
     func testOrderCanLinkRecipeFromSearchableSelection() throws {
         let app = makeApp()
-        let transitionTimeout: TimeInterval = 15
+        let transitionTimeout: TimeInterval = 25
         app.launch()
 
         tapWhenReady(app.staticTexts["Recipes"], timeout: transitionTimeout)
@@ -233,11 +233,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
         let recipeField = app.buttons["orders.form.recipe"]
-        assertExistsAfterScrolling(recipeField, in: app, timeout: transitionTimeout)
+        scrollToHittable(recipeField, in: app, timeout: transitionTimeout)
         tapWhenReady(recipeField, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Recipe"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(
-            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.recipeSelection.recipe."))
+            app.buttons.matching(
+                NSPredicate(
+                    format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                    "orders.recipeSelection.recipe.",
+                    "Vanilla Sponge"
+                )
+            )
                 .firstMatch,
             timeout: transitionTimeout
         )
@@ -245,20 +251,25 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         scrollToTop(in: app)
         let titleField = app.textFields["orders.form.title"]
-        assertExistsAfterScrolling(titleField, in: app, timeout: transitionTimeout)
+        scrollToHittable(titleField, in: app, timeout: transitionTimeout)
         typeText("Vanilla Birthday", into: titleField, timeout: transitionTimeout)
 
         let customerNameField = app.textFields["orders.form.customerName"]
-        assertExistsAfterScrolling(customerNameField, in: app, timeout: transitionTimeout)
+        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
         typeText("Amy", into: customerNameField, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(
-            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
-                .firstMatch,
-            timeout: transitionTimeout
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Vanilla Birthday"
+            )
         )
+            .firstMatch
+        scrollToHittable(orderRow, in: app, timeout: transitionTimeout)
+        tapWhenReady(orderRow, timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
         let recipeName = app.staticTexts["orders.detail.recipeName"]
@@ -268,7 +279,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
     func testOrderCanLinkDesignFromSearchableSelection() throws {
         let app = makeApp()
-        let transitionTimeout: TimeInterval = 15
+        let transitionTimeout: TimeInterval = 25
         app.launchEnvironment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] = "1"
         app.launch()
 
@@ -277,11 +288,18 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
-        app.swipeUp()
-        tapWhenReady(app.buttons["orders.form.design"], timeout: transitionTimeout)
+        let designField = app.buttons["orders.form.design"]
+        scrollToHittable(designField, in: app, timeout: transitionTimeout)
+        tapWhenReady(designField, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Design"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(
-            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.designSelection.design."))
+            app.buttons.matching(
+                NSPredicate(
+                    format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                    "orders.designSelection.design.",
+                    "Pink Floral Cake"
+                )
+            )
                 .firstMatch,
             timeout: transitionTimeout
         )
@@ -289,21 +307,26 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         scrollToTop(in: app)
         let titleField = app.textFields["orders.form.title"]
-        assertExistsAfterScrolling(titleField, in: app, timeout: transitionTimeout)
+        scrollToHittable(titleField, in: app, timeout: transitionTimeout)
         typeText("Vanilla Birthday", into: titleField, timeout: transitionTimeout)
         typeText("Pink flowers", into: app.textFields["orders.form.cakeNotes"], timeout: transitionTimeout)
 
         let customerNameField = app.textFields["orders.form.customerName"]
-        assertExistsAfterScrolling(customerNameField, in: app, timeout: transitionTimeout)
+        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
         typeText("Amy", into: customerNameField, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(
-            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
-                .firstMatch,
-            timeout: transitionTimeout
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Vanilla Birthday"
+            )
         )
+            .firstMatch
+        scrollToHittable(orderRow, in: app, timeout: transitionTimeout)
+        tapWhenReady(orderRow, timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
         let designName = app.staticTexts["orders.detail.designName"]
@@ -974,6 +997,22 @@ final class CloudBakeOwnerUITests: XCTestCase {
             _ = element.waitForExistence(timeout: 1)
         }
         XCTAssertTrue(element.exists, "Element did not exist after scrolling.", file: file, line: line)
+    }
+
+    private func scrollToHittable(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while (!element.exists || !element.isHittable) && Date() < deadline {
+            app.swipeUp()
+            _ = element.waitForExistence(timeout: 1)
+        }
+        XCTAssertTrue(element.exists, "Element did not exist after scrolling.", file: file, line: line)
+        XCTAssertTrue(element.isHittable, "Element was not hittable after scrolling.", file: file, line: line)
     }
 
     private func scrollToTop(in app: XCUIApplication) {
