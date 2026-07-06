@@ -17,7 +17,7 @@ struct RootView: View {
         }
         .accessibilityIdentifier("app.shell")
         .task {
-            await refreshExpiryReminders()
+            await refreshLocalReminders()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else {
@@ -25,7 +25,7 @@ struct RootView: View {
             }
 
             Task {
-                await refreshExpiryReminders()
+                await refreshLocalReminders()
             }
         }
     }
@@ -68,13 +68,17 @@ struct RootView: View {
         }
     }
 
-    private func refreshExpiryReminders() async {
+    private func refreshLocalReminders() async {
         guard ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] != "1" else {
             return
         }
 
+        let repository = database.makeCoreDataRepository()
         await ExpiryReminderScheduler(
-            repository: database.makeCoreDataRepository()
+            repository: repository
+        ).refreshReminders()
+        await OrderReminderScheduler(
+            repository: repository
         ).refreshReminders()
     }
 }

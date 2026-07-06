@@ -893,13 +893,3 @@ final class OrderListViewModel: ObservableObject {
         return NSDecimalNumber(decimal: value).stringValue
     }
 }
-
-private extension Order {
-    var hasActiveReminderState: Bool {
-        status != .completed && status != .cancelled
-    }
-
-    var hasCompletedHistoryState: Bool {
-        status == .completed || status == .cancelled
-    }
-}

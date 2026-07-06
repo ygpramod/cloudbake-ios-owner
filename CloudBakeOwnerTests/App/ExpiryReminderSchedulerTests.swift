@@ -186,7 +186,7 @@ private final class FakeExpiryReminderRepository: InventoryItemRepository, Inven
     }
 }
 
-private final class FakeExpiryReminderNotificationCenter: ExpiryReminderNotificationCenter {
+private final class FakeExpiryReminderNotificationCenter: LocalNotificationCenter {
     var requestedAuthorizationOptions: UNAuthorizationOptions?
     var pendingRequests: [UNNotificationRequest] = []
     var removedIdentifiers: [String] = []
