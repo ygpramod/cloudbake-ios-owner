@@ -38,10 +38,9 @@ This slice does not apply to:
 - The Active tab must always use the calendar-oriented day grouping.
 - Active day groups must be ordered by due day ascending.
 - Orders inside each Active day must be ordered by delivery/pickup date-time ascending.
-- The Completed tab must be a simple ungrouped list.
-- Completed orders must be ordered by delivery/pickup date-time descending.
-- Cancelled orders must remain outside the Completed tab unless a later RFC changes cancellation
-  history behavior.
+- The Completed tab must be a simple ungrouped history list.
+- Completed and cancelled orders must be ordered by delivery/pickup date-time descending.
+- Cancelled orders must be visually marked with a small red cancellation indicator.
 
 ## Testing
 
@@ -50,9 +49,9 @@ Required tests:
 - Unit/integration coverage for active versus completed order filtering.
 - Unit/integration coverage for active order due date-time ascending ordering.
 - Unit/integration coverage for active calendar day grouping and within-day due time ordering.
-- Unit/integration coverage for completed order due date-time descending ordering.
+- Unit/integration coverage for completed and cancelled order due date-time descending ordering.
 - Focused Orders acceptance coverage for opening an active order from the calendar-style list and
-  moving completed work to the Completed tab.
+  moving completed or cancelled work to the Completed tab.
 
 ## Documentation
 
@@ -69,4 +68,6 @@ When implemented, update:
 - The older Orders display-mode segmented control was removed.
 - Active orders use `OrderListViewModel.calendarDays` for presentation.
 - Active ordering uses due date-time ascending with entry-order/id tie breakers.
-- Completed ordering uses due date-time descending with stable tie breakers.
+- Completed ordering includes completed and cancelled orders and uses due date-time descending with
+  stable tie breakers.
+- Cancelled rows show a red cancellation badge in the Completed tab.

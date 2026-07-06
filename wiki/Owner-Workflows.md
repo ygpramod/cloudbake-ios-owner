@@ -210,15 +210,16 @@ Today, the owner can:
 14. link an order to one saved recipe for preparation context,
 15. review the linked recipe name from order detail,
 16. change order status from detail without opening the full edit form,
-17. mark a Confirmed order Ready or Completed and deduct linked recipe ingredients from inventory
-    with unit conversion,
+17. mark a Confirmed order Ready or Completed from detail or edit order and deduct linked recipe
+    ingredients from inventory with unit conversion,
 18. add, complete, and delete simple preparation checklist items from order detail,
-19. review completed orders in a separate Completed tab,
+19. review completed and cancelled orders in a separate Completed tab,
 20. review the next relevant reminder in order detail.
 
 Active orders are grouped by due day, with orders inside each day ordered by delivery or pickup time
-ascending. Completed orders are kept out of active work and appear in a simple Completed tab ordered
-by delivery or pickup date-time descending.
+ascending. Completed and cancelled orders are kept out of active work and appear in a simple
+Completed tab ordered by delivery or pickup date-time descending. Cancelled rows show a small red
+indicator so they are not mistaken for fulfilled work.
 
 On iPad, Orders uses a list/detail layout: the order list stays visible while selected order detail
 appears in the detail column. On iPhone, order detail continues to open as a focused sheet.
@@ -243,7 +244,9 @@ reference from order detail. Creating new designs, capturing order-specific cust
 photos, and final cake photo capture are future work.
 
 When a Confirmed order with an unused linked recipe is marked Ready or Completed from order detail,
-the app asks for confirmation and then deducts the recipe's inventory-backed ingredient rows.
+the app asks for confirmation and then deducts the recipe's inventory-backed ingredient rows. When
+the same status transition is saved through edit order, the app uses the same one-time deduction
+rule.
 Quantities are converted into each inventory item's unit when compatible. Stock batches are consumed
 oldest-expiry-first, and the usage can be recorded only once for the order to prevent accidental
 double deduction.

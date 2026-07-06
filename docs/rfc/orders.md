@@ -56,9 +56,9 @@ notes, and changing customer requests without forcing the owner into a rigid ret
 - The owner must be able to see upcoming active orders in a calendar-oriented view.
 - The Orders screen must expose only Active and Completed tabs.
 - Active orders must be grouped by due day and ordered by delivery/pickup date-time ascending.
-- Completed orders must move out of the active Orders view into a Completed tab.
-- Completed orders must display as a simple ungrouped list ordered by delivery/pickup date-time
-  descending.
+- Completed and cancelled orders must move out of the active Orders view into a Completed tab.
+- Completed tab orders must display as a simple ungrouped list ordered by delivery/pickup date-time
+  descending, with cancelled orders visibly marked.
 - The owner must be able to view a single order with all business-critical details.
 - The owner must be able to edit an order while it is active.
 - Each order must have a status.
@@ -176,8 +176,8 @@ Order add/edit can capture owner-entered quoted price, deposit paid, and payment
 shows the derived balance and payment status through
 `docs/rfc/slices/0053-order-pricing-payment-summary.md`.
 The Orders screen now exposes only Active and Completed tabs. Active orders are grouped by due day
-and ordered by delivery/pickup time ascending; completed orders are shown in a simple list ordered
-by delivery/pickup date-time descending through
+and ordered by delivery/pickup time ascending; completed and cancelled orders are shown in a simple
+list ordered by delivery/pickup date-time descending, with cancelled rows visibly marked, through
 `docs/rfc/slices/0054-order-active-completed-tabs.md`.
 
 ## Reminder Model
@@ -221,10 +221,10 @@ payment notes without trying to automate the full pricing calculation.
 ## Recipe And Inventory Relationship
 
 Orders can now link to one saved recipe. When the owner marks a Confirmed order with an unused
-linked recipe as Ready or Completed from order detail, inventory is deducted from the recipe
-ingredient rows. Ingredient quantities are converted into the linked inventory item's stored unit
-when compatible, and stock batches are consumed from the oldest expiry first with no-expiry batches
-last.
+linked recipe as Ready or Completed from order detail or through edit order, inventory is deducted
+from the recipe ingredient rows. Ingredient quantities are converted into the linked inventory
+item's stored unit when compatible, and stock batches are consumed from the oldest expiry first with
+no-expiry batches last.
 
 Recipe usage is owner-confirmed and one-time per order. Recipe scaling, partial recipe usage,
 multi-recipe orders, and inventory reservation remain future work.
@@ -313,9 +313,10 @@ pricing, and recipe links.
 - Orders now use a regular-width iPad split view so the list and calendar can remain
   visible while reviewing selected order detail. Compact iPhone layouts keep the modal detail flow.
 - Orders now expose only Active and Completed tabs. Active work is always shown as due-day groups
-  ordered by delivery/pickup time ascending. Completed work is an ungrouped list ordered by
-  delivery/pickup date-time descending. The standalone Orders screen Reminders Due section is
-  removed; order detail continues to show the next relevant reminder.
+  ordered by delivery/pickup time ascending. Completed and cancelled work is an ungrouped history
+  list ordered by delivery/pickup date-time descending, with cancelled rows visibly marked. The
+  standalone Orders screen Reminders Due section is removed; order detail continues to show the next
+  relevant reminder.
 - Orders now have a customer-safe preview projection for future consumer surfaces. It maps owner
   statuses into consumer language and deliberately excludes private owner/customer operational
   fields.
