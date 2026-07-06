@@ -393,6 +393,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             customerId: order.customerId,
             cakeDesignId: order.cakeDesignId,
             recipeId: order.recipeId,
+            recipeScaleMultiplier: order.recipeScaleMultiplier,
             title: order.title,
             customerName: order.customerName,
             status: status,
@@ -775,6 +776,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             customerId: row["customer_id"],
             cakeDesignId: row["cake_design_id"],
             recipeId: row["recipe_id"],
+            recipeScaleMultiplier: optionalDecimal(row["recipe_scale_multiplier_decimal"]) ?? 1,
             title: row["title"],
             customerName: row["customer_name"],
             status: status,
@@ -795,6 +797,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             id: row["id"],
             orderId: row["order_id"],
             recipeId: row["recipe_id"],
+            recipeScaleMultiplier: optionalDecimal(row["recipe_scale_multiplier_decimal"]) ?? 1,
             usedAt: date(row["used_at_unix_time"]),
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
@@ -990,7 +993,11 @@ private extension GRDBCoreDataRepository {
         in db: Database
     ) throws {
         try ensureOrderRecipeUsageIsNotRecorded(orderId: order.id, in: db)
-        let pendingUsages = try pendingInventoryUsages(recipeId: recipeId, in: db)
+        let pendingUsages = try pendingInventoryUsages(
+            recipeId: recipeId,
+            scaleMultiplier: order.recipeScaleMultiplier,
+            in: db
+        )
         try validateStock(for: pendingUsages, in: db)
         try applyRecipeUsage(
             pendingUsages,
@@ -1004,6 +1011,7 @@ private extension GRDBCoreDataRepository {
                 id: usageId,
                 orderId: order.id,
                 recipeId: recipeId,
+                recipeScaleMultiplier: order.recipeScaleMultiplier,
                 usedAt: usedAt,
                 createdAt: usedAt,
                 updatedAt: usedAt
@@ -1021,6 +1029,7 @@ private extension GRDBCoreDataRepository {
                     customer_id,
                     cake_design_id,
                     recipe_id,
+                    recipe_scale_multiplier_decimal,
                     title,
                     customer_name,
                     status,
@@ -1034,11 +1043,12 @@ private extension GRDBCoreDataRepository {
                     created_at_unix_time,
                     updated_at_unix_time
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                 customer_id = excluded.customer_id,
                 cake_design_id = excluded.cake_design_id,
                 recipe_id = excluded.recipe_id,
+                recipe_scale_multiplier_decimal = excluded.recipe_scale_multiplier_decimal,
                 title = excluded.title,
                 customer_name = excluded.customer_name,
                 status = excluded.status,
@@ -1057,6 +1067,7 @@ private extension GRDBCoreDataRepository {
                 order.customerId,
                 order.cakeDesignId,
                 order.recipeId,
+                decimalString(order.recipeScaleMultiplier),
                 order.title,
                 order.customerName,
                 order.status.rawValue,
@@ -1099,7 +1110,7 @@ private extension GRDBCoreDataRepository {
         )
     }
 
-    func pendingInventoryUsages(recipeId: String, in db: Database) throws -> [PendingInventoryUsage] {
+    func pendingInventoryUsages(recipeId: String, scaleMultiplier: Decimal = 1, in db: Database) throws -> [PendingInventoryUsage] {
         let ingredients = try recipeIngredients(recipeId: recipeId, in: db)
         guard !ingredients.isEmpty else {
             throw OrderRecipeUsageError.recipeHasNoIngredients
@@ -1110,9 +1121,10 @@ private extension GRDBCoreDataRepository {
             guard let item = try inventoryItem(id: ingredient.inventoryItemId, in: db) else {
                 throw OrderRecipeUsageError.missingInventoryItem(ingredient.inventoryItemId)
             }
-            guard let requiredQuantity = ingredient.unit.convertedQuantity(ingredient.quantity, to: item.unit) else {
+            guard let convertedQuantity = ingredient.unit.convertedQuantity(ingredient.quantity, to: item.unit) else {
                 throw OrderRecipeUsageError.incompatibleIngredientUnit(itemName: item.name)
             }
+            let requiredQuantity = convertedQuantity * NSDecimalNumber(decimal: scaleMultiplier).doubleValue
             guard requiredQuantity > 0 else {
                 continue
             }
@@ -1268,13 +1280,14 @@ private extension GRDBCoreDataRepository {
         try db.execute(
             sql: """
                 INSERT INTO order_recipe_usages
-                (id, order_id, recipe_id, used_at_unix_time, created_at_unix_time, updated_at_unix_time)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (id, order_id, recipe_id, recipe_scale_multiplier_decimal, used_at_unix_time, created_at_unix_time, updated_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
             arguments: arguments([
                 usage.id,
                 usage.orderId,
                 usage.recipeId,
+                decimalString(usage.recipeScaleMultiplier),
                 usage.usedAt.timeIntervalSince1970,
                 usage.createdAt.timeIntervalSince1970,
                 usage.updatedAt.timeIntervalSince1970

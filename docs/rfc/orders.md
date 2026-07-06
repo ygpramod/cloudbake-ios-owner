@@ -239,8 +239,10 @@ from the recipe ingredient rows. Ingredient quantities are converted into the li
 item's stored unit when compatible, and stock batches are consumed from the oldest expiry first with
 no-expiry batches last.
 
-Recipe usage is owner-confirmed and one-time per order. Recipe scaling, partial recipe usage,
-multi-recipe orders, and inventory reservation remain future work.
+Recipe usage is owner-confirmed and one-time per order. Orders can now store a positive recipe
+multiplier; usage applies that multiplier after unit conversion and records it on the usage event.
+Partial recipe usage, multi-recipe orders, inventory reservation, and serving/yield modeling remain
+future work.
 
 ## Design And Photo Relationship
 
@@ -279,6 +281,7 @@ Recommended order slices:
 11. Order Design References And Photos
 12. Order Workflow Polish
 13. Pricing And Payment Summary
+14. Order Recipe Usage Scaling
 
 Each slice must include its own RFC under `docs/rfc/slices/`, focused tests, and wiki updates when
 owner workflow truth changes.
@@ -322,7 +325,7 @@ pricing, and recipe links.
   alerts.
 - Orders can now change status from detail without opening the full edit form.
 - Orders can now deduct linked recipe ingredients once when a Confirmed order is marked Ready or
-  Completed.
+  Completed. Linked recipe usage can be scaled with an owner-entered positive recipe multiplier.
 - Orders can now store owner checklist items in order detail. Checklist items remain in entry order
   and support add, edit, complete/incomplete toggle, and deletion; reorder, templates, and
   checklist-driven status changes remain future work.
@@ -340,6 +343,17 @@ pricing, and recipe links.
 - Orders now have a customer-safe preview projection for future consumer surfaces. It maps owner
   statuses into consumer language and deliberately excludes private owner/customer operational
   fields.
+
+## Future Goals
+
+The following Orders RFC items are intentionally deferred until after other MVP areas are stronger:
+
+- reminder snooze, configurable reminder offsets, day-of reminders, and calendar integration,
+- checklist reordering, checklist templates, and checklist-driven status suggestions,
+- partial recipe usage, multi-recipe orders, inventory reservation, and serving/yield modeling,
+- pricing calculator and recipe-cost suggestions,
+- multiple design references and broader design library management,
+- public consumer-facing ordering or preview UI.
 
 ## Open Questions
 

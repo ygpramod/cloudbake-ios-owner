@@ -74,7 +74,8 @@ The app currently supports:
 65. linked recipe name in order detail,
 66. status changes from order detail without opening the full edit form,
 67. owner-confirmed linked recipe usage when a Confirmed order is marked Ready or Completed,
-68. recipe-driven inventory deduction with unit conversion and oldest-expiry-first batch usage,
+68. recipe-driven inventory deduction with unit conversion, recipe scaling, and
+    oldest-expiry-first batch usage,
 69. order detail checklist item add, edit, complete/incomplete toggle, entry-order display, and
     deletion,
 70. regular-width iPad order list/detail split view,
@@ -124,10 +125,10 @@ Planned product areas include:
 
 1. stronger OCR cleanup and page correction for scanned recipes,
 2. optional LLM-assisted recipe interpretation,
-3. recipe scaling before usage,
-4. partial recipe usage,
+3. partial recipe usage,
+4. multi-recipe orders and inventory reservation,
 5. order checklist reordering and templates,
-6. delivery reminders,
+6. reminder snooze and configurable reminder offsets,
 7. pricing calculator,
 8. customer-facing cake browsing,
 9. sync through iCloud or backend when needed.

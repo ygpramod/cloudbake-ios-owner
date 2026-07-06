@@ -243,6 +243,20 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0013_add_order_recipe_scaling") { db in
+            try db.alter(table: "orders") { table in
+                table.add(column: "recipe_scale_multiplier_decimal", .text)
+                    .notNull()
+                    .defaults(to: "1")
+            }
+
+            try db.alter(table: "order_recipe_usages") { table in
+                table.add(column: "recipe_scale_multiplier_decimal", .text)
+                    .notNull()
+                    .defaults(to: "1")
+            }
+        }
+
         return migrator
     }
 }

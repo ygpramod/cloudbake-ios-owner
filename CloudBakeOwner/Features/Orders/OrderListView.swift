@@ -2,6 +2,10 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
+private func decimalText(_ value: Decimal) -> String {
+    NSDecimalNumber(decimal: value).stringValue
+}
+
 struct OrderListView: View {
     @StateObject private var viewModel: OrderListViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -505,9 +509,13 @@ private struct OrderDetailView: View {
                             Text(viewModel.selectedOrderRecipe?.name ?? "Recipe unavailable")
                                 .accessibilityIdentifier("orders.detail.recipeName")
                         }
+                        LabeledContent("Recipe Multiplier") {
+                            Text(decimalText(order.recipeScaleMultiplier))
+                                .accessibilityIdentifier("orders.detail.recipeScaleMultiplier")
+                        }
                         LabeledContent("Usage") {
                             if let usage = viewModel.selectedOrderRecipeUsage {
-                                Text(usage.usedAt.formatted(date: .abbreviated, time: .shortened))
+                                Text("\(usage.usedAt.formatted(date: .abbreviated, time: .shortened)) at \(decimalText(usage.recipeScaleMultiplier))x")
                                     .accessibilityIdentifier("orders.detail.recipeUsage")
                             } else {
                                 Text("When Ready")
@@ -1507,6 +1515,10 @@ private struct OrderForm: View {
                             RecipeSelectionView(viewModel: viewModel, isPresented: $isSelectingRecipe)
                         }
                     }
+
+                    TextField("Recipe Multiplier", text: $viewModel.draftRecipeScaleMultiplier)
+                        .keyboardType(.decimalPad)
+                        .accessibilityIdentifier("orders.form.recipeScaleMultiplier")
                 }
             }
 

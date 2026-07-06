@@ -541,8 +541,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
-        app.swipeUp()
-        tapWhenReady(app.buttons["orders.form.recipe"], timeout: transitionTimeout)
+        typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
+        dismissKeyboard(in: app)
+        let customerNameField = app.textFields["orders.form.customerName"]
+        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
+        typeText("Amy", into: customerNameField, timeout: transitionTimeout)
+        dismissKeyboard(in: app)
+        let recipeButton = app.buttons["orders.form.recipe"]
+        scrollToHittable(recipeButton, in: app, timeout: transitionTimeout)
+        tapWhenReady(recipeButton, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Recipe"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(
             app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.recipeSelection.recipe."))
@@ -550,12 +557,14 @@ final class CloudBakeOwnerUITests: XCTestCase {
             timeout: transitionTimeout
         )
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
-        scrollToTop(in: app)
-        typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
-        let customerNameField = app.textFields["orders.form.customerName"]
-        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
-        typeText("Amy", into: customerNameField, timeout: transitionTimeout)
-        tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
+        let recipeMultiplierField = app.textFields["orders.form.recipeScaleMultiplier"]
+        scrollToHittable(recipeMultiplierField, in: app, timeout: transitionTimeout)
+        tapWhenReady(recipeMultiplierField, timeout: transitionTimeout)
+        recipeMultiplierField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 10))
+        recipeMultiplierField.typeText("2")
+        let saveButton = app.buttons["orders.form.save"]
+        scrollToHittable(saveButton, in: app, timeout: transitionTimeout)
+        tapWhenReady(saveButton, timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(
@@ -580,7 +589,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.navigationBars.buttons["CloudBake"].tap()
 
         tapWhenReady(app.staticTexts["Inventory"], timeout: transitionTimeout)
-        XCTAssertTrue(app.staticTexts["Current Quantity: 750 g"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["Current Quantity: 500 g"].waitForExistence(timeout: transitionTimeout))
     }
 
     func testOrderCalendarViewShowsOrders() throws {
@@ -1286,6 +1295,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
     ) {
         tapWhenReady(element, timeout: timeout, file: file, line: line)
         element.typeText(text)
+    }
+
+    private func dismissKeyboard(in app: XCUIApplication) {
+        guard app.keyboards.firstMatch.exists else { return }
+        if app.keyboards.buttons["Return"].exists {
+            app.keyboards.buttons["Return"].tap()
+        } else if app.keyboards.buttons["Done"].exists {
+            app.keyboards.buttons["Done"].tap()
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
+        }
     }
 
     private func assertExistsAfterScrolling(
