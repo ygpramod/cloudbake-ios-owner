@@ -41,7 +41,7 @@ Out of scope:
 
 - Order detail must show a Photos section.
 - The Photos section must separate customer reference photos from final cake photos.
-- Each photo group must show an add action.
+- Each photo group must show compact inline photo actions beside the group title.
 - The add action must use the iOS photo library and save through the order photo view-model path.
 - Imported photos must remain local-first and app-owned.
 - Saved photos must show a thumbnail area, caption or type fallback, and entry timestamp.
@@ -51,7 +51,9 @@ Out of scope:
 
 ## Design
 
-`OrderDetail` adds a Photos section after the design section. Each group uses `PhotosPicker`:
+`OrderDetail` adds a Photos section after the design section. Each group shows its title with
+trailing icon actions for photo-library import and camera capture. The photo-library action uses
+`PhotosPicker`:
 
 - `Add Reference Photo`,
 - `Add Final Cake Photo`.
