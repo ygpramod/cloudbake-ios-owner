@@ -261,6 +261,49 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(recipeName.label.contains("Vanilla Sponge"))
     }
 
+    func testOrderCanLinkDesignFromSearchableSelection() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launchEnvironment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] = "1"
+        app.launch()
+
+        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+
+        app.swipeUp()
+        tapWhenReady(app.buttons["orders.form.design"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Design"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.designSelection.design."))
+                .firstMatch,
+            timeout: transitionTimeout
+        )
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+
+        app.swipeDown()
+        typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
+        typeText("Pink flowers", into: app.textFields["orders.form.cakeNotes"], timeout: transitionTimeout)
+        app.swipeUp()
+        typeText("Amy", into: app.textFields["orders.form.customerName"], timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
+                .firstMatch,
+            timeout: transitionTimeout
+        )
+
+        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        let designName = app.staticTexts["orders.detail.designName"]
+        assertExistsAfterScrolling(designName, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(designName.label.contains("Pink Floral Cake"))
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.designNotes"], in: app, timeout: transitionTimeout)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.designPhotoReference"], in: app, timeout: transitionTimeout)
+    }
+
     func testOrderCanUseLinkedRecipeToDeductInventory() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15

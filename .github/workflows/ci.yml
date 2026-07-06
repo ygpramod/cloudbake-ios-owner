@@ -78,6 +78,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeEditedFromDetail
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkCustomerFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkRecipeFromSearchableSelection
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkDesignFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
           - feature: inventory
             only_testing: |

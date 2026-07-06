@@ -13,6 +13,7 @@ final class AppDatabase {
             let database = try makeInMemory()
             try database.seedCustomerFixtureIfRequested()
             try database.seedOrderReminderFixtureIfRequested()
+            try database.seedCakeDesignFixtureIfRequested()
             return database
         }
 
@@ -112,6 +113,25 @@ final class AppDatabase {
             updatedAt: timestamp
         )
         try repository.save(order)
+    }
+
+    private func seedCakeDesignFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        try repository.save(
+            CakeDesign(
+                id: "design-ui-fixture-floral",
+                name: "Pink Floral Cake",
+                notes: "Hand-piped buttercream flowers",
+                photoReference: "photos/pink-floral.jpg",
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
     }
 
     private static func configuration() -> Configuration {
