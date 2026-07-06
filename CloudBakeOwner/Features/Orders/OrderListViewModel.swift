@@ -67,18 +67,28 @@ final class OrderListViewModel: ObservableObject {
     }
 
     var calendarDays: [OrderCalendarDay] {
-        let groupedOrders = Dictionary(grouping: orders) { order in
+        let groupedOrders = Dictionary(grouping: activeOrders) { order in
             calendar.startOfDay(for: order.dueAt)
         }
 
         return groupedOrders.keys.sorted().map { day in
             OrderCalendarDay(
                 day: day,
-                orders: groupedOrders[day, default: []].sorted { lhs, rhs in
-                    lhs.dueAt == rhs.dueAt ? lhs.title < rhs.title : lhs.dueAt < rhs.dueAt
-                }
+                orders: groupedOrders[day, default: []].sorted(by: orderWasEnteredBefore)
             )
         }
+    }
+
+    var activeOrders: [Order] {
+        orders
+            .filter(\.hasActiveReminderState)
+            .sorted(by: orderWasEnteredBefore)
+    }
+
+    var completedOrders: [Order] {
+        orders
+            .filter { $0.status == .completed }
+            .sorted(by: orderWasEnteredBefore)
     }
 
     var dueReminderGroups: [OrderReminderDueGroup] {
@@ -476,6 +486,20 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func deleteChecklistItem(_ item: OrderChecklistItem) -> Bool {
+        do {
+            try repository.deleteOrderChecklistItem(id: item.id)
+            if let selectedOrder {
+                loadSelectedOrderChecklistItems(for: selectedOrder)
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Checklist item could not be deleted."
+            return false
+        }
+    }
+
     func cancelEditingOrder() {
         editingOrder = nil
         resetDraft()
@@ -549,10 +573,31 @@ final class OrderListViewModel: ObservableObject {
     private func loadSelectedOrderChecklistItems(for order: Order) {
         do {
             selectedOrderChecklistItems = try repository.fetchOrderChecklistItems(orderId: order.id)
+                .sorted(by: checklistItemWasEnteredBefore)
         } catch {
             selectedOrderChecklistItems = []
             errorMessage = "Checklist could not be loaded."
         }
+    }
+
+    private func orderWasEnteredBefore(_ lhs: Order, _ rhs: Order) -> Bool {
+        if lhs.createdAt == rhs.createdAt {
+            return lhs.id < rhs.id
+        }
+
+        return lhs.createdAt < rhs.createdAt
+    }
+
+    private func checklistItemWasEnteredBefore(_ lhs: OrderChecklistItem, _ rhs: OrderChecklistItem) -> Bool {
+        if lhs.sortOrder == rhs.sortOrder {
+            if lhs.createdAt == rhs.createdAt {
+                return lhs.id < rhs.id
+            }
+
+            return lhs.createdAt < rhs.createdAt
+        }
+
+        return lhs.sortOrder < rhs.sortOrder
     }
 
     private func recipeUsageErrorMessage(for error: OrderRecipeUsageError) -> String {
