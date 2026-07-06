@@ -73,11 +73,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
         let orderTitle = "Reminder Vanilla Birthday"
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_REMINDER_FIXTURE"] = "1"
         app.launch()
 
         tapWhenReady(app.staticTexts["Orders"])
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
-        addOrder(named: orderTitle, notes: "Pink flowers", customerName: "Amy", in: app)
 
         scrollToTop(in: app)
         XCTAssertTrue(app.staticTexts["Reminders Due"].waitForExistence(timeout: transitionTimeout))
