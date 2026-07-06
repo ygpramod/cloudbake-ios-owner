@@ -380,6 +380,9 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             fulfillmentType: order.fulfillmentType,
             deliveryAddress: order.deliveryAddress,
             cakeNotes: order.cakeNotes,
+            quotedPrice: order.quotedPrice,
+            depositPaid: order.depositPaid,
+            paymentNotes: order.paymentNotes,
             createdAt: order.createdAt,
             updatedAt: updatedAt
         )
@@ -708,6 +711,9 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             fulfillmentType: fulfillmentType,
             deliveryAddress: row["delivery_address"],
             cakeNotes: row["cake_notes"],
+            quotedPrice: optionalDecimal(row["quoted_price_decimal"]),
+            depositPaid: optionalDecimal(row["deposit_paid_decimal"]),
+            paymentNotes: row["payment_notes"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )
@@ -818,6 +824,22 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     private func optionalDate(_ timeInterval: Double?) -> Date? {
         timeInterval.map(Date.init(timeIntervalSince1970:))
     }
+
+    private func optionalDecimal(_ value: String?) -> Decimal? {
+        guard let value else {
+            return nil
+        }
+
+        return Decimal(string: value)
+    }
+
+    private func decimalString(_ value: Decimal?) -> String? {
+        guard let value else {
+            return nil
+        }
+
+        return NSDecimalNumber(decimal: value).stringValue
+    }
 }
 
 private extension GRDBCoreDataRepository {
@@ -919,10 +941,13 @@ private extension GRDBCoreDataRepository {
                     fulfillment_type,
                     delivery_address,
                     cake_notes,
+                    quoted_price_decimal,
+                    deposit_paid_decimal,
+                    payment_notes,
                     created_at_unix_time,
                     updated_at_unix_time
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                 customer_id = excluded.customer_id,
                 cake_design_id = excluded.cake_design_id,
@@ -934,6 +959,9 @@ private extension GRDBCoreDataRepository {
                 fulfillment_type = excluded.fulfillment_type,
                 delivery_address = excluded.delivery_address,
                 cake_notes = excluded.cake_notes,
+                quoted_price_decimal = excluded.quoted_price_decimal,
+                deposit_paid_decimal = excluded.deposit_paid_decimal,
+                payment_notes = excluded.payment_notes,
                 created_at_unix_time = excluded.created_at_unix_time,
                 updated_at_unix_time = excluded.updated_at_unix_time
                 """,
@@ -949,6 +977,9 @@ private extension GRDBCoreDataRepository {
                 order.fulfillmentType.rawValue,
                 order.deliveryAddress,
                 order.cakeNotes,
+                decimalString(order.quotedPrice),
+                decimalString(order.depositPaid),
+                order.paymentNotes,
                 order.createdAt.timeIntervalSince1970,
                 order.updatedAt.timeIntervalSince1970
             ])

@@ -233,8 +233,36 @@ struct Order: Equatable {
     let fulfillmentType: OrderFulfillmentType
     let deliveryAddress: String?
     let cakeNotes: String?
+    let quotedPrice: Decimal?
+    let depositPaid: Decimal?
+    let paymentNotes: String?
     let createdAt: Date
     let updatedAt: Date
+
+    var balanceDue: Decimal? {
+        guard let quotedPrice else {
+            return nil
+        }
+
+        return quotedPrice - (depositPaid ?? 0)
+    }
+
+    var paymentStatus: String {
+        guard let quotedPrice else {
+            return "Not Priced"
+        }
+
+        let paid = depositPaid ?? 0
+        if paid <= 0 {
+            return "Unpaid"
+        }
+
+        if paid >= quotedPrice {
+            return "Paid"
+        }
+
+        return "Part Paid"
+    }
 
     init(
         id: String,
@@ -248,6 +276,9 @@ struct Order: Equatable {
         fulfillmentType: OrderFulfillmentType,
         deliveryAddress: String?,
         cakeNotes: String?,
+        quotedPrice: Decimal? = nil,
+        depositPaid: Decimal? = nil,
+        paymentNotes: String? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -262,6 +293,9 @@ struct Order: Equatable {
         self.fulfillmentType = fulfillmentType
         self.deliveryAddress = deliveryAddress
         self.cakeNotes = cakeNotes
+        self.quotedPrice = quotedPrice
+        self.depositPaid = depositPaid
+        self.paymentNotes = paymentNotes
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

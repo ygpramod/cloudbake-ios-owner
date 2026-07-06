@@ -39,6 +39,50 @@ final class CoreModelsTests: XCTestCase {
         XCTAssertEqual(OrderFulfillmentType.delivery.rawValue, "delivery")
     }
 
+    func testOrderPaymentSummaryDerivesStatusAndBalance() {
+        let timestamp = Date(timeIntervalSince1970: 1_800_120_000)
+        let order = Order(
+            id: "order-vanilla",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Vanilla Birthday",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            quotedPrice: Decimal(150),
+            depositPaid: Decimal(50),
+            paymentNotes: "Deposit received",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        XCTAssertEqual(order.balanceDue, Decimal(100))
+        XCTAssertEqual(order.paymentStatus, "Part Paid")
+
+        let paidOrder = Order(
+            id: "order-paid",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Paid Cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            quotedPrice: Decimal(150),
+            depositPaid: Decimal(150),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        XCTAssertEqual(paidOrder.balanceDue, Decimal(0))
+        XCTAssertEqual(paidOrder.paymentStatus, "Paid")
+    }
+
     func testConsumerOrderPreviewProjectsCustomerSafeOrderFields() {
         let timestamp = Date(timeIntervalSince1970: 1_800_120_000)
         let order = Order(

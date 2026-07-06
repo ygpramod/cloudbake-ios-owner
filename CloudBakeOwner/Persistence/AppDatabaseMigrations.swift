@@ -221,6 +221,14 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0011_add_order_pricing_summary") { db in
+            try db.alter(table: "orders") { table in
+                table.add(column: "quoted_price_decimal", .text)
+                table.add(column: "deposit_paid_decimal", .text)
+                table.add(column: "payment_notes", .text)
+            }
+        }
+
         return migrator
     }
 }
