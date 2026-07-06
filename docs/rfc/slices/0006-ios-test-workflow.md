@@ -14,18 +14,21 @@ It does not change product behavior, production code, persistence, or acceptance
 
 - Provide a fast local test lane for day-to-day development feedback.
 - Preserve acceptance/UI tests as required verification for implementation pull requests.
-- Make CI failures easier to diagnose by separating unit/integration tests from acceptance UI tests.
+- Make CI failures easier to diagnose by separating unit/integration tests from feature-sharded
+  acceptance UI tests.
 - Document the expected local commands so contributors do not need to rediscover them.
 
 ## Design
 
-CI runs two jobs:
+CI runs two lanes:
 
 - `Unit and Integration Tests` runs the `CloudBakeOwnerUnitIntegration` scheme.
-- `Acceptance UI Tests` runs the `CloudBakeOwnerAcceptance` scheme.
+- `Acceptance UI Tests (<feature>)` runs the `CloudBakeOwnerAcceptance` scheme with feature-specific
+  `-only-testing` filters for core navigation, orders, inventory, recipes, and customers.
 
-Both CI jobs are time-boxed. This keeps hosted-runner simulator hangs visible as CI failures instead
-of leaving pull requests permanently pending.
+Both CI lanes are time-boxed. Acceptance shards run in parallel and use `fail-fast: false`, so a
+failure in one feature does not hide another feature's failure. This keeps hosted-runner simulator
+hangs visible as CI failures instead of leaving pull requests permanently pending.
 
 CI prefers a known modern iPhone simulator when the runner provides one, then falls back to the
 first available iPhone. Failed CI test jobs upload their `.xcresult` bundle as a GitHub Actions
@@ -41,9 +44,12 @@ xcodebuild test \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-Focused schemes are used instead of only `-only-testing` filters because scheme-level test membership controls which test bundles Xcode builds.
+Focused schemes control which test bundles Xcode builds. CI then applies `-only-testing` filters
+inside the acceptance scheme to split the growing UI suite by feature area.
 
-Implementation pull requests still require acceptance confidence through either the full local scheme test or passing CI jobs.
+Implementation pull requests still require acceptance confidence through either targeted local
+acceptance tests for impacted workflows plus passing CI, or a full local scheme run when broader
+risk justifies it.
 
 ## Non-Functional Requirements
 
@@ -55,7 +61,7 @@ Implementation pull requests still require acceptance confidence through either 
 
 ## Acceptance Criteria
 
-- CI exposes separate unit/integration and acceptance UI jobs.
+- CI exposes a separate unit/integration job and feature-sharded acceptance UI jobs.
 - Documentation explains fast and full test lanes.
 - The fast local lane can be run independently of the UI acceptance suite.
 - Failed CI test jobs preserve their Xcode result bundles as artifacts.

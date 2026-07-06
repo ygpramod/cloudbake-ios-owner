@@ -55,9 +55,45 @@ jobs:
           if-no-files-found: ignore
 
   acceptance-tests:
-    name: Acceptance UI Tests
+    name: Acceptance UI Tests (${{ matrix.feature }})
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - feature: core
+            only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testAppLaunchesToDashboard
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testPrimaryNavigationDestinationsAreReachable
+          - feature: orders
+            only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeAddedAndListed
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeOpenedFromListAndViewed
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsDueRemindersAndReminderPlan
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeEditedFromDetail
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkCustomerFromSearchableSelection
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
+          - feature: inventory
+            only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDuplicateNameShowsWarningBeforeAdding
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryOwnerJourneyShowsDetailEditsStockHistoryAndDashboard
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCanBeArchivedAndRestored
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDetailShowsStockActionsInMoreMenu
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryPurchaseBillImportShowsCameraAndManualDraftControls
+          - feature: recipes
+            only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipesCanBeAdded
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeNotesCanBeEditedFromDetail
+          - feature: customers
+            only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeAddedAndViewed
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDetailUsesSplitViewOnIPad
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerAddOffersContactsImportAndManualEntry
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDuplicateWarningAppearsBeforeSaving
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeEditedFromDetail
 
     steps:
       - name: Checkout
@@ -87,16 +123,26 @@ jobs:
           echo "Using iOS simulator: $SIMULATOR_NAME"
 
           mkdir -p TestResults
+          TEST_FILTERS=()
+          while IFS= read -r test_name; do
+            if [ -n "$test_name" ]; then
+              TEST_FILTERS+=("-only-testing:$test_name")
+            fi
+          done <<< "$ONLY_TESTING"
+
           xcodebuild test \
             -project CloudBakeOwner.xcodeproj \
             -scheme CloudBakeOwnerAcceptance \
             -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" \
-            -resultBundlePath TestResults/Acceptance.xcresult
+            "${TEST_FILTERS[@]}" \
+            -resultBundlePath "TestResults/Acceptance-${{ matrix.feature }}.xcresult"
+        env:
+          ONLY_TESTING: ${{ matrix.only_testing }}
 
       - name: Upload acceptance result bundle
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: acceptance-xcresult
-          path: TestResults/Acceptance.xcresult
+          name: acceptance-${{ matrix.feature }}-xcresult
+          path: TestResults/Acceptance-${{ matrix.feature }}.xcresult
           if-no-files-found: ignore

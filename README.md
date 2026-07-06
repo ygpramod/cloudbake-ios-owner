@@ -84,8 +84,13 @@ During development, run the fast unit and integration lane first:
 xcodebuild test -project CloudBakeOwner.xcodeproj -scheme CloudBakeOwnerUnitIntegration -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-Before opening or merging implementation pull requests, run the full scheme test command or confirm CI has passed both jobs:
+Before opening or merging implementation pull requests, run the full scheme test command or confirm
+CI has passed the unit/integration job and all feature-sharded acceptance jobs:
 
 ```sh
 xcodebuild test -project CloudBakeOwner.xcodeproj -scheme CloudBakeOwner -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
+
+GitHub Actions runs acceptance UI tests in parallel shards for core navigation, orders, inventory,
+recipes, and customers. When adding a new acceptance test, add it to the matching CI shard in
+`.github/workflows/ci.yml`.

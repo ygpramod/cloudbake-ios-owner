@@ -32,7 +32,8 @@ xcodebuild test \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-Use the full lane before an implementation PR is ready to merge, or rely on CI passing both the unit/integration and acceptance UI jobs:
+Use the full lane before an implementation PR is ready to merge, or rely on CI passing the
+unit/integration job and all feature-sharded acceptance UI jobs:
 
 ```sh
 xcodebuild test \
@@ -54,8 +55,9 @@ Keep the acceptance lane focused on critical owner journeys. When a slice adds d
 behavior, prefer unit or integration tests for the detailed cases and update an existing journey only
 when the owner-facing workflow changes.
 
-GitHub Actions time-boxes the unit/integration job and the acceptance UI job so stuck simulator
-automation fails clearly instead of blocking a pull request indefinitely.
+GitHub Actions time-boxes the unit/integration job and feature-sharded acceptance UI jobs so stuck simulator
+automation fails clearly instead of blocking a pull request indefinitely. Acceptance UI tests run in
+parallel shards for core navigation, orders, inventory, recipes, and customers.
 CI prefers known iPhone simulator names when available, falls back to the first available iPhone,
 and uploads the Xcode result bundle for failed test jobs.
 
