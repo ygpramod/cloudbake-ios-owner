@@ -1065,6 +1065,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
     }
 
     private func addCustomer(named name: String, phone: String, in app: XCUIApplication) {
+        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 10))
         tapWhenReady(app.buttons["customers.add"])
         XCTAssertTrue(app.buttons["Enter Manually"].waitForExistence(timeout: 5))
         tapWhenReady(app.buttons["Enter Manually"])
