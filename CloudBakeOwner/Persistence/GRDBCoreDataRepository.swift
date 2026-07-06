@@ -72,9 +72,14 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         try writer.write { db in
             try db.execute(
                 sql: """
-                    INSERT OR REPLACE INTO recipes
+                    INSERT INTO recipes
                     (id, name, notes, created_at_unix_time, updated_at_unix_time)
                     VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        name = excluded.name,
+                        notes = excluded.notes,
+                        created_at_unix_time = excluded.created_at_unix_time,
+                        updated_at_unix_time = excluded.updated_at_unix_time
                     """,
                 arguments: arguments([
                     recipe.id,
@@ -110,9 +115,15 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         try writer.write { db in
             try db.execute(
                 sql: """
-                    INSERT OR REPLACE INTO recipe_components
+                    INSERT INTO recipe_components
                     (id, recipe_id, name, sort_order, created_at_unix_time, updated_at_unix_time)
                     VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        recipe_id = excluded.recipe_id,
+                        name = excluded.name,
+                        sort_order = excluded.sort_order,
+                        created_at_unix_time = excluded.created_at_unix_time,
+                        updated_at_unix_time = excluded.updated_at_unix_time
                     """,
                 arguments: arguments([
                     component.id,
@@ -183,9 +194,17 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         try writer.write { db in
             try db.execute(
                 sql: """
-                    INSERT OR REPLACE INTO recipe_ingredients
+                    INSERT INTO recipe_ingredients
                     (id, component_id, inventory_item_id, quantity, unit, note, created_at_unix_time, updated_at_unix_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        component_id = excluded.component_id,
+                        inventory_item_id = excluded.inventory_item_id,
+                        quantity = excluded.quantity,
+                        unit = excluded.unit,
+                        note = excluded.note,
+                        created_at_unix_time = excluded.created_at_unix_time,
+                        updated_at_unix_time = excluded.updated_at_unix_time
                     """,
                 arguments: arguments([
                     ingredient.id,

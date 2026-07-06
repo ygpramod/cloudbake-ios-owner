@@ -168,6 +168,63 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchPricingRule(id: pricingRule.id), pricingRule)
     }
 
+    func testSavingEditedRecipePreservesComponentsAndIngredients() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_001_000)
+        let updatedAt = Date(timeIntervalSince1970: 1_800_002_000)
+        let inventoryItem = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 750,
+            minimumQuantity: 500,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla sponge",
+            notes: "Original notes",
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        let component = RecipeComponent(
+            id: "component-sponge",
+            recipeId: recipe.id,
+            name: "Sponge",
+            sortOrder: 0,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-flour",
+            componentId: component.id,
+            inventoryItemId: inventoryItem.id,
+            quantity: 250,
+            unit: .gram,
+            note: "Sift",
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+
+        try repository.save(inventoryItem)
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try repository.save(
+            Recipe(
+                id: recipe.id,
+                name: "Vanilla sponge cake",
+                notes: "Edited notes",
+                createdAt: recipe.createdAt,
+                updatedAt: updatedAt
+            )
+        )
+
+        XCTAssertEqual(try repository.fetchRecipeComponents(recipeId: recipe.id), [component])
+        XCTAssertEqual(try repository.fetchRecipeIngredients(componentId: component.id), [ingredient])
+    }
+
     func testOrderChecklistItemsFetchInEntryOrderForOneOrder() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
