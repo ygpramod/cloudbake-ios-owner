@@ -23,6 +23,7 @@ struct OrderListView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("orders.reminder.\(group.order.id)")
+                        .accessibilityLabel("Reminder due for \(group.order.title)")
                     }
                 }
             }
