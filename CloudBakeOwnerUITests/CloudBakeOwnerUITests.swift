@@ -82,6 +82,50 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(app.staticTexts["orders.detail.paymentNotes"], in: app, timeout: transitionTimeout)
     }
 
+    func testOrderDetailCanMarkPaymentPaid() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        addOrder(
+            named: "Payment Vanilla",
+            notes: "Paid on pickup",
+            customerName: "Amy",
+            quotedPrice: "125",
+            depositPaid: "25",
+            in: app,
+            timeout: transitionTimeout
+        )
+
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Payment Vanilla"
+            )
+        )
+            .firstMatch
+        tapWhenReady(orderRow, timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Payment Vanilla"].waitForExistence(timeout: transitionTimeout))
+
+        let paymentMenu = app.buttons["orders.detail.paymentStatusMenu"]
+        assertExistsAfterScrolling(paymentMenu, in: app, timeout: transitionTimeout)
+        tapWhenReady(paymentMenu, timeout: transitionTimeout)
+        tapExisting(app.buttons["orders.detail.payment.paid"], timeout: transitionTimeout)
+
+        let paymentStatus = app.staticTexts["orders.detail.paymentStatus"]
+        assertExistsAfterScrolling(paymentStatus, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(paymentStatus.label.contains("Paid"))
+        let depositPaid = app.staticTexts["orders.detail.depositPaid"]
+        assertExistsAfterScrolling(depositPaid, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(depositPaid.label.contains("125"))
+        let balanceDue = app.staticTexts["orders.detail.balanceDue"]
+        assertExistsAfterScrolling(balanceDue, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(balanceDue.label.contains("0"))
+    }
+
     func testOrderShowsDueRemindersAndReminderPlan() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15

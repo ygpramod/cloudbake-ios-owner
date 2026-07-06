@@ -6,6 +6,11 @@ struct OrderListView: View {
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
     @State private var orderScope: OrderScope = .active
+    @State private var orderSelectingStatus: Order?
+    @State private var pendingStatusChange: OrderStatusChangeRequest?
+    @State private var orderReceivingPayment: Order?
+    @State private var orderAddingPartialPayment: Order?
+    @State private var partialPaymentAmount = ""
 
     init(viewModel: OrderListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -96,9 +101,7 @@ struct OrderListView: View {
                 } else {
                     Section("Completed") {
                         ForEach(viewModel.completedOrders, id: \.id) { order in
-                            OrderRow(order: order) {
-                                openOrder(order)
-                            }
+                            orderRow(order)
                         }
                     }
                 }
@@ -112,9 +115,7 @@ struct OrderListView: View {
                 ForEach(viewModel.calendarDays, id: \.day) { calendarDay in
                     Section(calendarDay.day.formatted(date: .complete, time: .omitted)) {
                         ForEach(calendarDay.orders, id: \.id) { order in
-                            OrderRow(order: order, showsDate: false) {
-                                openOrder(order)
-                            }
+                            orderRow(order, showsDate: false)
                         }
                     }
                 }
@@ -127,6 +128,104 @@ struct OrderListView: View {
                         .accessibilityIdentifier("orders.error")
                 }
             }
+        }
+        .confirmationDialog(
+            "Change status",
+            isPresented: Binding(
+                get: { orderSelectingStatus != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        orderSelectingStatus = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let order = orderSelectingStatus {
+                ForEach(OrderStatus.allCases, id: \.self) { status in
+                    Button(status.displayName) {
+                        pendingStatusChange = OrderStatusChangeRequest(order: order, status: status)
+                        orderSelectingStatus = nil
+                    }
+                    .accessibilityIdentifier("orders.row.status.\(status.rawValue).\(order.id)")
+                }
+            }
+
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "Confirm status change",
+            isPresented: Binding(
+                get: { pendingStatusChange != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        pendingStatusChange = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let request = pendingStatusChange {
+                Button(statusConfirmationTitle(for: request)) {
+                    _ = viewModel.changeOrderStatus(request.order, to: request.status)
+                    pendingStatusChange = nil
+                }
+                .accessibilityIdentifier("orders.row.confirmStatus")
+            }
+
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "Record payment",
+            isPresented: Binding(
+                get: { orderReceivingPayment != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        orderReceivingPayment = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let order = orderReceivingPayment {
+                Button("Mark Paid") {
+                    _ = viewModel.markOrderPaid(order)
+                    orderReceivingPayment = nil
+                }
+                .accessibilityIdentifier("orders.row.payment.paid.\(order.id)")
+
+                Button("Add Partial Payment") {
+                    partialPaymentAmount = ""
+                    orderAddingPartialPayment = order
+                    orderReceivingPayment = nil
+                }
+                .accessibilityIdentifier("orders.row.payment.partial.\(order.id)")
+            }
+
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert(
+            "Add Partial Payment",
+            isPresented: Binding(
+                get: { orderAddingPartialPayment != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        orderAddingPartialPayment = nil
+                    }
+                }
+            )
+        ) {
+            TextField("Amount", text: $partialPaymentAmount)
+                .keyboardType(.decimalPad)
+            Button("Save") {
+                if let order = orderAddingPartialPayment,
+                   viewModel.addPayment(to: order, amountText: partialPaymentAmount) {
+                    orderAddingPartialPayment = nil
+                    partialPaymentAmount = ""
+                }
+            }
+            .accessibilityIdentifier("orders.row.payment.partial.save")
+            Button("Cancel", role: .cancel) {}
         }
     }
 
@@ -142,11 +241,47 @@ struct OrderListView: View {
         }
     }
 
+    private func orderRow(_ order: Order, showsDate: Bool = true) -> some View {
+        OrderRow(
+            order: order,
+            showsDate: showsDate,
+            onChangeStatus: {
+                orderSelectingStatus = order
+            },
+            onReceivePayment: {
+                orderReceivingPayment = order
+            },
+            action: {
+                openOrder(order)
+            }
+        )
+    }
+
     private func openOrder(_ order: Order) {
         viewModel.beginViewingOrder(order)
         if horizontalSizeClass != .regular {
             isViewingOrder = true
         }
+    }
+
+    private func statusConfirmationTitle(for request: OrderStatusChangeRequest) -> String {
+        if request.requiresInventoryDeductionConfirmation {
+            return "Mark \(request.status.displayName) And Deduct"
+        }
+
+        return "Mark \(request.status.displayName)"
+    }
+}
+
+private struct OrderStatusChangeRequest: Identifiable {
+    let id = UUID()
+    let order: Order
+    let status: OrderStatus
+
+    var requiresInventoryDeductionConfirmation: Bool {
+        order.status == .confirmed &&
+            (status == .ready || status == .completed) &&
+            order.recipeId != nil
     }
 }
 
@@ -167,11 +302,21 @@ private enum OrderScope: CaseIterable {
 private struct OrderRow: View {
     let order: Order
     let showsDate: Bool
+    let onChangeStatus: () -> Void
+    let onReceivePayment: () -> Void
     let action: () -> Void
 
-    init(order: Order, showsDate: Bool = true, action: @escaping () -> Void) {
+    init(
+        order: Order,
+        showsDate: Bool = true,
+        onChangeStatus: @escaping () -> Void,
+        onReceivePayment: @escaping () -> Void,
+        action: @escaping () -> Void
+    ) {
         self.order = order
         self.showsDate = showsDate
+        self.onChangeStatus = onChangeStatus
+        self.onReceivePayment = onReceivePayment
         self.action = action
     }
 
@@ -209,6 +354,24 @@ private struct OrderRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("orders.item.\(order.id)")
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            Button {
+                onChangeStatus()
+            } label: {
+                Label("Status", systemImage: "arrow.triangle.2.circlepath")
+            }
+            .tint(.blue)
+            .accessibilityIdentifier("orders.item.status.\(order.id)")
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button {
+                onReceivePayment()
+            } label: {
+                Label("Payment", systemImage: "banknote")
+            }
+            .tint(.green)
+            .accessibilityIdentifier("orders.item.payment.\(order.id)")
+        }
     }
 }
 
@@ -220,6 +383,9 @@ private struct OrderDetailView: View {
     @State private var isSelectingStatus = false
     @State private var statusPendingInventoryDeduction: OrderStatus?
     @State private var isConfirmingEditedOrderInventoryDeduction = false
+    @State private var isSelectingPaymentStatus = false
+    @State private var isAddingPartialPayment = false
+    @State private var partialPaymentAmount = ""
     @FocusState private var isChecklistTitleFocused: Bool
 
     init(
@@ -372,8 +538,19 @@ private struct OrderDetailView: View {
 
                 Section("Pricing And Payment") {
                     LabeledContent("Status") {
-                        Text(order.paymentStatus)
-                            .accessibilityIdentifier("orders.detail.paymentStatus")
+                        HStack(spacing: 8) {
+                            Text(order.paymentStatus)
+                                .accessibilityIdentifier("orders.detail.paymentStatus")
+                            Button {
+                                isSelectingPaymentStatus = true
+                            } label: {
+                                Image(systemName: "banknote")
+                                    .imageScale(.small)
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Change Payment Status")
+                            .accessibilityIdentifier("orders.detail.paymentStatusMenu")
+                        }
                     }
 
                     if let quotedPrice = order.quotedPrice {
@@ -536,6 +713,36 @@ private struct OrderDetailView: View {
                 .accessibilityIdentifier("orders.detail.confirmInventoryDeduction")
             }
 
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "Record payment",
+            isPresented: $isSelectingPaymentStatus,
+            titleVisibility: .visible
+        ) {
+            Button("Mark Paid") {
+                _ = viewModel.markSelectedOrderPaid()
+            }
+            .accessibilityIdentifier("orders.detail.payment.paid")
+
+            Button("Add Partial Payment") {
+                partialPaymentAmount = ""
+                isAddingPartialPayment = true
+            }
+            .accessibilityIdentifier("orders.detail.payment.partial")
+
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert("Add Partial Payment", isPresented: $isAddingPartialPayment) {
+            TextField("Amount", text: $partialPaymentAmount)
+                .keyboardType(.decimalPad)
+            Button("Save") {
+                if viewModel.addPaymentToSelectedOrder(amountText: partialPaymentAmount) {
+                    isAddingPartialPayment = false
+                    partialPaymentAmount = ""
+                }
+            }
+            .accessibilityIdentifier("orders.detail.payment.partial.save")
             Button("Cancel", role: .cancel) {}
         }
         .sheet(isPresented: $isEditingOrder, onDismiss: viewModel.cancelEditingOrder) {
