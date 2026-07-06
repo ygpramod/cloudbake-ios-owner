@@ -54,7 +54,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.staticTexts["Orders"])
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
 
-        addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
+        addOrder(
+            named: "Vanilla Birthday",
+            notes: "Pink flowers",
+            customerName: "Amy",
+            quotedPrice: "125.50",
+            depositPaid: "25.50",
+            paymentNotes: "Bank transfer",
+            in: app
+        )
 
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
@@ -67,6 +75,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(app.staticTexts["orders.detail.customerName"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.fulfillmentType"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.cakeNotes"], in: app, timeout: transitionTimeout)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.paymentStatus"], in: app, timeout: transitionTimeout)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.quotedPrice"], in: app, timeout: transitionTimeout)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.depositPaid"], in: app, timeout: transitionTimeout)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.balanceDue"], in: app, timeout: transitionTimeout)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.paymentNotes"], in: app, timeout: transitionTimeout)
     }
 
     func testOrderShowsDueRemindersAndReminderPlan() throws {
@@ -929,6 +942,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         named name: String,
         notes: String,
         customerName: String,
+        quotedPrice: String? = nil,
+        depositPaid: String? = nil,
+        paymentNotes: String? = nil,
         in app: XCUIApplication,
         timeout: TimeInterval = 15
     ) {
@@ -937,6 +953,18 @@ final class CloudBakeOwnerUITests: XCTestCase {
         typeText(name, into: app.textFields["orders.form.title"])
         typeText(notes, into: app.textFields["orders.form.cakeNotes"])
         typeText(customerName, into: app.textFields["orders.form.customerName"])
+        if let quotedPrice {
+            scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: timeout)
+            typeText(quotedPrice, into: app.textFields["orders.form.quotedPrice"])
+        }
+        if let depositPaid {
+            scrollToHittable(app.textFields["orders.form.depositPaid"], in: app, timeout: timeout)
+            typeText(depositPaid, into: app.textFields["orders.form.depositPaid"])
+        }
+        if let paymentNotes {
+            scrollToHittable(app.textFields["orders.form.paymentNotes"], in: app, timeout: timeout)
+            typeText(paymentNotes, into: app.textFields["orders.form.paymentNotes"])
+        }
         tapWhenReady(app.buttons["orders.form.save"])
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: timeout))
     }

@@ -395,6 +395,41 @@ private struct OrderDetailView: View {
                     }
                 }
 
+                Section("Pricing And Payment") {
+                    LabeledContent("Status") {
+                        Text(order.paymentStatus)
+                            .accessibilityIdentifier("orders.detail.paymentStatus")
+                    }
+
+                    if let quotedPrice = order.quotedPrice {
+                        LabeledContent("Quoted Price") {
+                            Text(formattedMoney(quotedPrice))
+                                .accessibilityIdentifier("orders.detail.quotedPrice")
+                        }
+                    }
+
+                    if let depositPaid = order.depositPaid {
+                        LabeledContent("Deposit Paid") {
+                            Text(formattedMoney(depositPaid))
+                                .accessibilityIdentifier("orders.detail.depositPaid")
+                        }
+                    }
+
+                    if let balanceDue = order.balanceDue {
+                        LabeledContent("Balance Due") {
+                            Text(formattedMoney(balanceDue))
+                                .accessibilityIdentifier("orders.detail.balanceDue")
+                        }
+                    }
+
+                    if let paymentNotes = order.paymentNotes {
+                        LabeledContent("Notes") {
+                            Text(paymentNotes)
+                                .accessibilityIdentifier("orders.detail.paymentNotes")
+                        }
+                    }
+                }
+
                 Section("Checklist") {
                     if viewModel.selectedOrderChecklistItems.isEmpty {
                         Text("No checklist items")
@@ -555,6 +590,10 @@ private struct OrderDetailView: View {
             (status == .ready || status == .completed) &&
             order.recipeId != nil &&
             viewModel.selectedOrderRecipeUsage == nil
+    }
+
+    private func formattedMoney(_ amount: Decimal) -> String {
+        NSDecimalNumber(decimal: amount).stringValue
     }
 }
 
@@ -742,6 +781,20 @@ private struct OrderForm: View {
                         .lineLimit(2...4)
                         .accessibilityIdentifier("orders.form.deliveryAddress")
                 }
+            }
+
+            Section("Pricing And Payment") {
+                TextField("Quoted Price", text: $viewModel.draftQuotedPrice)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("orders.form.quotedPrice")
+
+                TextField("Deposit Paid", text: $viewModel.draftDepositPaid)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("orders.form.depositPaid")
+
+                TextField("Payment Notes", text: $viewModel.draftPaymentNotes, axis: .vertical)
+                    .lineLimit(2...5)
+                    .accessibilityIdentifier("orders.form.paymentNotes")
             }
 
             if let errorMessage = viewModel.errorMessage {
