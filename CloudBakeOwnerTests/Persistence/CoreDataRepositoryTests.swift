@@ -200,6 +200,225 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchRecipeIngredients(componentId: component.id), [])
     }
 
+    func testOrderRecipeUsageDeductsInventoryFromOldestExpiringBatches() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let usedAt = Date(timeIntervalSince1970: 1_800_020_000)
+        let olderExpiry = Date(timeIntervalSince1970: 1_805_000_000)
+        let newerExpiry = Date(timeIntervalSince1970: 1_806_000_000)
+        let inventoryItem = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla sponge",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-sponge",
+            recipeId: recipe.id,
+            name: "Sponge",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-flour",
+            componentId: component.id,
+            inventoryItemId: inventoryItem.id,
+            quantity: 0.15,
+            unit: .kilogram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let order = Order(
+            id: "order-vanilla",
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: recipe.id,
+            title: "Vanilla birthday cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_050_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(inventoryItem)
+        try repository.save(
+            InventoryStockBatch(
+                id: "batch-newer-flour",
+                inventoryItemId: inventoryItem.id,
+                remainingQuantity: 400,
+                expiresAt: newerExpiry,
+                createdAt: timestamp.addingTimeInterval(20),
+                updatedAt: timestamp.addingTimeInterval(20)
+            )
+        )
+        try repository.save(
+            InventoryStockBatch(
+                id: "batch-older-flour",
+                inventoryItemId: inventoryItem.id,
+                remainingQuantity: 100,
+                expiresAt: olderExpiry,
+                createdAt: timestamp.addingTimeInterval(10),
+                updatedAt: timestamp.addingTimeInterval(10)
+            )
+        )
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try repository.save(order)
+
+        try repository.recordRecipeUsage(
+            for: order,
+            usageId: "usage-order-vanilla",
+            usedAt: usedAt,
+            transactionIdProvider: { "transaction-order-vanilla-flour" }
+        )
+
+        XCTAssertEqual(try repository.fetchInventoryItem(id: inventoryItem.id)?.currentQuantity, 350)
+        XCTAssertEqual(
+            try repository.fetchInventoryStockBatches(inventoryItemId: inventoryItem.id),
+            [
+                InventoryStockBatch(
+                    id: "batch-older-flour",
+                    inventoryItemId: inventoryItem.id,
+                    remainingQuantity: 0,
+                    expiresAt: olderExpiry,
+                    createdAt: timestamp.addingTimeInterval(10),
+                    updatedAt: usedAt
+                ),
+                InventoryStockBatch(
+                    id: "batch-newer-flour",
+                    inventoryItemId: inventoryItem.id,
+                    remainingQuantity: 350,
+                    expiresAt: newerExpiry,
+                    createdAt: timestamp.addingTimeInterval(20),
+                    updatedAt: usedAt
+                )
+            ]
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderRecipeUsage(orderId: order.id),
+            OrderRecipeUsage(
+                id: "usage-order-vanilla",
+                orderId: order.id,
+                recipeId: recipe.id,
+                usedAt: usedAt,
+                createdAt: usedAt,
+                updatedAt: usedAt
+            )
+        )
+        XCTAssertEqual(
+            try repository.fetchInventoryTransactions(inventoryItemId: inventoryItem.id),
+            [
+                InventoryTransaction(
+                    id: "transaction-order-vanilla-flour",
+                    inventoryItemId: inventoryItem.id,
+                    kind: .consumption,
+                    quantity: 150,
+                    occurredAt: usedAt,
+                    note: "Order recipe usage: Vanilla birthday cake",
+                    createdAt: usedAt,
+                    updatedAt: usedAt
+                )
+            ]
+        )
+    }
+
+    func testOrderRecipeUsageRejectsDuplicateWithoutDeductingAgain() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let usedAt = Date(timeIntervalSince1970: 1_800_020_000)
+        let inventoryItem = InventoryItem(
+            id: "inventory-sugar",
+            name: "Sugar",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let recipe = Recipe(
+            id: "recipe-buttercream",
+            name: "Buttercream",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-frosting",
+            recipeId: recipe.id,
+            name: "Frosting",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-sugar",
+            componentId: component.id,
+            inventoryItemId: inventoryItem.id,
+            quantity: 100,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let order = Order(
+            id: "order-buttercream",
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: recipe.id,
+            title: "Buttercream cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_050_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(inventoryItem)
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try repository.save(order)
+        try repository.recordRecipeUsage(
+            for: order,
+            usageId: "usage-order-buttercream",
+            usedAt: usedAt,
+            transactionIdProvider: { "transaction-order-buttercream-sugar" }
+        )
+
+        XCTAssertThrowsError(
+            try repository.recordRecipeUsage(
+                for: order,
+                usageId: "usage-order-buttercream-again",
+                usedAt: usedAt.addingTimeInterval(60),
+                transactionIdProvider: { "transaction-order-buttercream-sugar-again" }
+            )
+        ) { error in
+            XCTAssertEqual(error as? OrderRecipeUsageError, .alreadyRecorded)
+        }
+        XCTAssertEqual(try repository.fetchInventoryItem(id: inventoryItem.id)?.currentQuantity, 400)
+        XCTAssertEqual(try repository.fetchInventoryTransactions(inventoryItemId: inventoryItem.id).count, 1)
+    }
+
     func testInventoryItemsFetchInNameOrder() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)

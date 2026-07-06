@@ -307,6 +307,56 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.selectedOrderRecipe)
     }
 
+    func testRecordSelectedOrderRecipeUsagePersistsUsageAndRefreshesDetail() {
+        let repository = FakeOrderRepository()
+        let usedAt = Date(timeIntervalSince1970: 1_800_080_000)
+        let order = makeOrder(
+            id: "order-vanilla",
+            recipeId: "recipe-vanilla",
+            dueAt: Date(timeIntervalSince1970: 1_800_150_000)
+        )
+        repository.orders = [order]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "generated"),
+            dateProvider: { usedAt }
+        )
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.recordSelectedOrderRecipeUsage())
+        XCTAssertEqual(
+            viewModel.selectedOrderRecipeUsage,
+            OrderRecipeUsage(
+                id: "generated-1",
+                orderId: order.id,
+                recipeId: "recipe-vanilla",
+                usedAt: usedAt,
+                createdAt: usedAt,
+                updatedAt: usedAt
+            )
+        )
+        XCTAssertEqual(repository.recordedTransactionIds, ["generated-2"])
+    }
+
+    func testRecordSelectedOrderRecipeUsageShowsDomainError() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-vanilla",
+            recipeId: "recipe-vanilla",
+            dueAt: Date(timeIntervalSince1970: 1_800_150_000)
+        )
+        repository.orders = [order]
+        repository.recordRecipeUsageError = OrderRecipeUsageError.insufficientStock(itemName: "Cake Flour")
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertFalse(viewModel.recordSelectedOrderRecipeUsage())
+        XCTAssertEqual(viewModel.errorMessage, "Not enough Cake Flour in inventory.")
+        XCTAssertNil(viewModel.selectedOrderRecipeUsage)
+    }
+
     func testBeginViewingUnlinkedOrderClearsLinkedCustomer() {
         let repository = FakeOrderRepository()
         let linkedOrder = makeOrder(
@@ -499,12 +549,23 @@ final class OrderListViewModelTests: XCTestCase {
             updatedAt: timestamp
         )
     }
+
+    private func makeIncrementingIdGenerator(prefix: String) -> () -> String {
+        var counter = 0
+        return {
+            counter += 1
+            return "\(prefix)-\(counter)"
+        }
+    }
 }
 
-private final class FakeOrderRepository: OrderRepository, CustomerRepository, RecipeRepository {
+private final class FakeOrderRepository: OrderRepository, CustomerRepository, RecipeRepository, OrderRecipeUsageRepository {
     var orders: [Order] = []
     var customers: [Customer] = []
     var recipes: [Recipe] = []
+    var usages: [OrderRecipeUsage] = []
+    var recordedTransactionIds: [String] = []
+    var recordRecipeUsageError: Error?
 
     func save(_ order: Order) throws {
         orders.removeAll { $0.id == order.id }
@@ -547,5 +608,35 @@ private final class FakeOrderRepository: OrderRepository, CustomerRepository, Re
         recipes.sorted { lhs, rhs in
             lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
+    }
+
+    func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? {
+        usages.first { $0.orderId == orderId }
+    }
+
+    func recordRecipeUsage(
+        for order: Order,
+        usageId: String,
+        usedAt: Date,
+        transactionIdProvider: () -> String
+    ) throws {
+        if let recordRecipeUsageError {
+            throw recordRecipeUsageError
+        }
+        guard let recipeId = order.recipeId else {
+            throw OrderRecipeUsageError.orderHasNoLinkedRecipe
+        }
+
+        recordedTransactionIds.append(transactionIdProvider())
+        usages.append(
+            OrderRecipeUsage(
+                id: usageId,
+                orderId: order.id,
+                recipeId: recipeId,
+                usedAt: usedAt,
+                createdAt: usedAt,
+                updatedAt: usedAt
+            )
+        )
     }
 }
