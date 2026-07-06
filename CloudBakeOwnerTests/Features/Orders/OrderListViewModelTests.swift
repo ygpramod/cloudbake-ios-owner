@@ -320,6 +320,68 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.selectedOrder)
         XCTAssertNil(viewModel.selectedOrderCustomer)
         XCTAssertNil(viewModel.selectedOrderRecipe)
+        XCTAssertTrue(viewModel.selectedOrderChecklistItems.isEmpty)
+        XCTAssertEqual(viewModel.draftChecklistItemTitle, "")
+    }
+
+    func testBeginViewingOrderLoadsChecklistItems() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let checklistItem = makeChecklistItem(id: "checklist-crumb-coat", orderId: order.id, title: "Crumb coat")
+        repository.checklistItems = [checklistItem]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertEqual(viewModel.selectedOrderChecklistItems, [checklistItem])
+    }
+
+    func testAddChecklistItemToSelectedOrderPersistsTrimmedTitle() {
+        let repository = FakeOrderRepository()
+        let now = Date(timeIntervalSince1970: 1_800_080_000)
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        repository.checklistItems = [
+            makeChecklistItem(id: "checklist-existing", orderId: order.id, title: "Bake sponge", sortOrder: 0)
+        ]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: { "checklist-crumb-coat" },
+            dateProvider: { now }
+        )
+
+        viewModel.beginViewingOrder(order)
+        viewModel.draftChecklistItemTitle = " Crumb coat "
+
+        XCTAssertTrue(viewModel.addChecklistItemToSelectedOrder())
+        XCTAssertEqual(viewModel.draftChecklistItemTitle, "")
+        XCTAssertEqual(
+            repository.checklistItems.last,
+            OrderChecklistItem(
+                id: "checklist-crumb-coat",
+                orderId: order.id,
+                title: "Crumb coat",
+                isCompleted: false,
+                sortOrder: 1,
+                createdAt: now,
+                updatedAt: now
+            )
+        )
+        XCTAssertEqual(viewModel.selectedOrderChecklistItems.map(\.title), ["Bake sponge", "Crumb coat"])
+    }
+
+    func testToggleChecklistItemUpdatesCompletionState() {
+        let repository = FakeOrderRepository()
+        let now = Date(timeIntervalSince1970: 1_800_080_000)
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let checklistItem = makeChecklistItem(id: "checklist-bake", orderId: order.id, title: "Bake sponge")
+        repository.checklistItems = [checklistItem]
+        let viewModel = OrderListViewModel(repository: repository, dateProvider: { now })
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.toggleChecklistItem(checklistItem))
+        XCTAssertEqual(viewModel.selectedOrderChecklistItems.first?.isCompleted, true)
+        XCTAssertEqual(viewModel.selectedOrderChecklistItems.first?.updatedAt, now)
     }
 
     func testChangeSelectedOrderStatusToReadyRecordsLinkedRecipeUsage() {
@@ -612,6 +674,25 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
+    private func makeChecklistItem(
+        id: String,
+        orderId: String,
+        title: String,
+        isCompleted: Bool = false,
+        sortOrder: Int = 0
+    ) -> OrderChecklistItem {
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        return OrderChecklistItem(
+            id: id,
+            orderId: orderId,
+            title: title,
+            isCompleted: isCompleted,
+            sortOrder: sortOrder,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+    }
+
     private func makeIncrementingIdGenerator(prefix: String) -> () -> String {
         var counter = 0
         return {
@@ -621,11 +702,17 @@ final class OrderListViewModelTests: XCTestCase {
     }
 }
 
-private final class FakeOrderRepository: OrderRepository, CustomerRepository, RecipeRepository, OrderRecipeUsageRepository, OrderStatusChangeRepository {
+private final class FakeOrderRepository: OrderRepository,
+    CustomerRepository,
+    RecipeRepository,
+    OrderRecipeUsageRepository,
+    OrderStatusChangeRepository,
+    OrderChecklistRepository {
     var orders: [Order] = []
     var customers: [Customer] = []
     var recipes: [Recipe] = []
     var usages: [OrderRecipeUsage] = []
+    var checklistItems: [OrderChecklistItem] = []
     var recordedTransactionIds: [String] = []
     var recordRecipeUsageError: Error?
     var changeOrderStatusError: Error?
@@ -675,6 +762,23 @@ private final class FakeOrderRepository: OrderRepository, CustomerRepository, Re
 
     func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? {
         usages.first { $0.orderId == orderId }
+    }
+
+    func save(_ item: OrderChecklistItem) throws {
+        checklistItems.removeAll { $0.id == item.id }
+        checklistItems.append(item)
+    }
+
+    func fetchOrderChecklistItems(orderId: String) throws -> [OrderChecklistItem] {
+        checklistItems
+            .filter { $0.orderId == orderId }
+            .sorted {
+                if $0.isCompleted != $1.isCompleted {
+                    return !$0.isCompleted && $1.isCompleted
+                }
+
+                return $0.sortOrder == $1.sortOrder ? $0.id < $1.id : $0.sortOrder < $1.sortOrder
+            }
     }
 
     func recordRecipeUsage(

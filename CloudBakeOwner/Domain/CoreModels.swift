@@ -276,6 +276,16 @@ struct OrderRecipeUsage: Equatable {
     let updatedAt: Date
 }
 
+struct OrderChecklistItem: Equatable {
+    let id: String
+    let orderId: String
+    let title: String
+    let isCompleted: Bool
+    let sortOrder: Int
+    let createdAt: Date
+    let updatedAt: Date
+}
+
 enum OrderRecipeUsageError: Error, Equatable {
     case orderHasNoLinkedRecipe
     case alreadyRecorded

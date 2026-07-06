@@ -11,6 +11,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     OrderRepository,
     OrderStatusChangeRepository,
     OrderRecipeUsageRepository,
+    OrderChecklistRepository,
     InventoryTransactionRepository,
     InventoryStockBatchRepository,
     PricingRuleRepository {
@@ -432,6 +433,26 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         }
     }
 
+    func save(_ item: OrderChecklistItem) throws {
+        try writer.write { db in
+            try save(item, in: db)
+        }
+    }
+
+    func fetchOrderChecklistItems(orderId: String) throws -> [OrderChecklistItem] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM order_checklist_items
+                    WHERE order_id = ?
+                    ORDER BY is_completed ASC, sort_order ASC, created_at_unix_time ASC, id
+                    """,
+                arguments: [orderId]
+            ).map(orderChecklistItem)
+        }
+    }
+
     func save(_ transaction: InventoryTransaction) throws {
         try writer.write { db in
             try db.execute(
@@ -678,6 +699,18 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
+    private func orderChecklistItem(from row: Row) -> OrderChecklistItem {
+        OrderChecklistItem(
+            id: row["id"],
+            orderId: row["order_id"],
+            title: row["title"],
+            isCompleted: row["is_completed"],
+            sortOrder: row["sort_order"],
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
     private func inventoryExpiryState(
         in db: Database,
         inventoryItemId: String
@@ -893,6 +926,32 @@ private extension GRDBCoreDataRepository {
                 order.cakeNotes,
                 order.createdAt.timeIntervalSince1970,
                 order.updatedAt.timeIntervalSince1970
+            ])
+        )
+    }
+
+    func save(_ item: OrderChecklistItem, in db: Database) throws {
+        try db.execute(
+            sql: """
+                INSERT INTO order_checklist_items
+                (id, order_id, title, is_completed, sort_order, created_at_unix_time, updated_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                order_id = excluded.order_id,
+                title = excluded.title,
+                is_completed = excluded.is_completed,
+                sort_order = excluded.sort_order,
+                created_at_unix_time = excluded.created_at_unix_time,
+                updated_at_unix_time = excluded.updated_at_unix_time
+                """,
+            arguments: arguments([
+                item.id,
+                item.orderId,
+                item.title,
+                item.isCompleted,
+                item.sortOrder,
+                item.createdAt.timeIntervalSince1970,
+                item.updatedAt.timeIntervalSince1970
             ])
         )
     }

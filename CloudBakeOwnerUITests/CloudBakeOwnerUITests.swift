@@ -134,6 +134,49 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
     }
 
+    func testOrderChecklistItemCanBeAddedAndCompleted() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
+
+        tapWhenReady(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
+                .firstMatch,
+            timeout: transitionTimeout
+        )
+        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+
+        let checklistTitle = app.textFields["orders.detail.checklist.title"]
+        assertExistsAfterScrolling(checklistTitle, in: app, timeout: transitionTimeout)
+        typeText("Crumb coat", into: checklistTitle, timeout: transitionTimeout)
+        tapExisting(app.buttons["orders.detail.checklist.add"], timeout: transitionTimeout)
+
+        let checklistItem = app.descendants(matching: .any).matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND identifier ENDSWITH %@",
+                "orders.detail.checklist.item.",
+                ".incomplete"
+            )
+        )
+            .firstMatch
+        XCTAssertTrue(checklistItem.waitForExistence(timeout: transitionTimeout))
+
+        tapExisting(checklistItem, timeout: transitionTimeout)
+        let completedChecklistItem = app.descendants(matching: .any).matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND identifier ENDSWITH %@",
+                "orders.detail.checklist.item.",
+                ".complete"
+            )
+        )
+            .firstMatch
+        XCTAssertTrue(completedChecklistItem.waitForExistence(timeout: transitionTimeout))
+    }
+
     func testOrderCanLinkCustomerFromSearchableSelection() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
