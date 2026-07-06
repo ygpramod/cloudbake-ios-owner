@@ -9,6 +9,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     CustomerRepository,
     CustomerImportantDateRepository,
     OrderRepository,
+    OrderRecipeUsageRepository,
     InventoryTransactionRepository,
     InventoryStockBatchRepository,
     PricingRuleRepository {
@@ -388,6 +389,55 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         }
     }
 
+    func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? {
+        try writer.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: "SELECT * FROM order_recipe_usages WHERE order_id = ?",
+                arguments: [orderId]
+            ) else {
+                return nil
+            }
+
+            return orderRecipeUsage(from: row)
+        }
+    }
+
+    func recordRecipeUsage(
+        for order: Order,
+        usageId: String,
+        usedAt: Date,
+        transactionIdProvider: () -> String
+    ) throws {
+        guard let recipeId = order.recipeId else {
+            throw OrderRecipeUsageError.orderHasNoLinkedRecipe
+        }
+
+        try writer.write { db in
+            try ensureOrderRecipeUsageIsNotRecorded(orderId: order.id, in: db)
+            let pendingUsages = try pendingInventoryUsages(recipeId: recipeId, in: db)
+            try validateStock(for: pendingUsages, in: db)
+            try applyRecipeUsage(
+                pendingUsages,
+                order: order,
+                usedAt: usedAt,
+                transactionIdProvider: transactionIdProvider,
+                in: db
+            )
+            try save(
+                OrderRecipeUsage(
+                    id: usageId,
+                    orderId: order.id,
+                    recipeId: recipeId,
+                    usedAt: usedAt,
+                    createdAt: usedAt,
+                    updatedAt: usedAt
+                ),
+                in: db
+            )
+        }
+    }
+
     func save(_ transaction: InventoryTransaction) throws {
         try writer.write { db in
             try db.execute(
@@ -623,6 +673,17 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
+    private func orderRecipeUsage(from row: Row) -> OrderRecipeUsage {
+        OrderRecipeUsage(
+            id: row["id"],
+            orderId: row["order_id"],
+            recipeId: row["recipe_id"],
+            usedAt: date(row["used_at_unix_time"]),
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
     private func inventoryExpiryState(
         in db: Database,
         inventoryItemId: String
@@ -708,6 +769,115 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 }
 
 private extension GRDBCoreDataRepository {
+    struct PendingInventoryUsage {
+        let item: InventoryItem
+        var quantity: Double
+    }
+
+    func ensureOrderRecipeUsageIsNotRecorded(orderId: String, in db: Database) throws {
+        let existingUsageCount = try Int.fetchOne(
+            db,
+            sql: "SELECT COUNT(*) FROM order_recipe_usages WHERE order_id = ?",
+            arguments: [orderId]
+        ) ?? 0
+        guard existingUsageCount == 0 else {
+            throw OrderRecipeUsageError.alreadyRecorded
+        }
+    }
+
+    func pendingInventoryUsages(recipeId: String, in db: Database) throws -> [PendingInventoryUsage] {
+        let ingredients = try recipeIngredients(recipeId: recipeId, in: db)
+        guard !ingredients.isEmpty else {
+            throw OrderRecipeUsageError.recipeHasNoIngredients
+        }
+
+        var pendingUsagesByItemId: [String: PendingInventoryUsage] = [:]
+        for ingredient in ingredients {
+            guard let item = try inventoryItem(id: ingredient.inventoryItemId, in: db) else {
+                throw OrderRecipeUsageError.missingInventoryItem(ingredient.inventoryItemId)
+            }
+            guard let requiredQuantity = ingredient.unit.convertedQuantity(ingredient.quantity, to: item.unit) else {
+                throw OrderRecipeUsageError.incompatibleIngredientUnit(itemName: item.name)
+            }
+            guard requiredQuantity > 0 else {
+                continue
+            }
+
+            if var pendingUsage = pendingUsagesByItemId[item.id] {
+                pendingUsage.quantity += requiredQuantity
+                pendingUsagesByItemId[item.id] = pendingUsage
+            } else {
+                pendingUsagesByItemId[item.id] = PendingInventoryUsage(item: item, quantity: requiredQuantity)
+            }
+        }
+
+        let pendingUsages = pendingUsagesByItemId.values.sorted { lhs, rhs in
+            lhs.item.name.localizedCaseInsensitiveCompare(rhs.item.name) == .orderedAscending
+        }
+        guard !pendingUsages.isEmpty else {
+            throw OrderRecipeUsageError.recipeHasNoIngredients
+        }
+
+        return pendingUsages
+    }
+
+    func validateStock(for pendingUsages: [PendingInventoryUsage], in db: Database) throws {
+        for pendingUsage in pendingUsages {
+            guard pendingUsage.item.currentQuantity - pendingUsage.quantity >= 0 else {
+                throw OrderRecipeUsageError.insufficientStock(itemName: pendingUsage.item.name)
+            }
+
+            let batches = try inventoryStockBatches(inventoryItemId: pendingUsage.item.id, in: db)
+            if !batches.isEmpty {
+                let availableBatchQuantity = batches.reduce(0) { $0 + $1.remainingQuantity }
+                guard availableBatchQuantity - pendingUsage.quantity >= 0 else {
+                    throw OrderRecipeUsageError.insufficientStock(itemName: pendingUsage.item.name)
+                }
+            }
+        }
+    }
+
+    func applyRecipeUsage(
+        _ pendingUsages: [PendingInventoryUsage],
+        order: Order,
+        usedAt: Date,
+        transactionIdProvider: () -> String,
+        in db: Database
+    ) throws {
+        for pendingUsage in pendingUsages {
+            let item = pendingUsage.item
+            let updatedItem = InventoryItem(
+                id: item.id,
+                name: item.name,
+                unit: item.unit,
+                currentQuantity: item.currentQuantity - pendingUsage.quantity,
+                minimumQuantity: item.minimumQuantity,
+                earliestExpiryAt: item.earliestExpiryAt,
+                hasExpiredStock: item.hasExpiredStock,
+                hasExpiringSoonStock: item.hasExpiringSoonStock,
+                createdAt: item.createdAt,
+                updatedAt: usedAt,
+                archivedAt: item.archivedAt
+            )
+            let batches = try inventoryStockBatches(inventoryItemId: item.id, in: db)
+            try consume(quantity: pendingUsage.quantity, from: batches, updatedAt: usedAt, in: db)
+            try save(updatedItem, in: db)
+            try save(
+                InventoryTransaction(
+                    id: transactionIdProvider(),
+                    inventoryItemId: item.id,
+                    kind: .consumption,
+                    quantity: pendingUsage.quantity,
+                    occurredAt: usedAt,
+                    note: "Order recipe usage: \(order.title)",
+                    createdAt: usedAt,
+                    updatedAt: usedAt
+                ),
+                in: db
+            )
+        }
+    }
+
     func save(_ item: InventoryItem, in db: Database) throws {
         try db.execute(
             sql: """
@@ -736,6 +906,26 @@ private extension GRDBCoreDataRepository {
         )
     }
 
+    func save(_ transaction: InventoryTransaction, in db: Database) throws {
+        try db.execute(
+            sql: """
+                INSERT OR REPLACE INTO inventory_transactions
+                (id, inventory_item_id, kind, quantity, occurred_at_unix_time, note, created_at_unix_time, updated_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+            arguments: arguments([
+                transaction.id,
+                transaction.inventoryItemId,
+                transaction.kind.rawValue,
+                transaction.quantity,
+                transaction.occurredAt.timeIntervalSince1970,
+                transaction.note,
+                transaction.createdAt.timeIntervalSince1970,
+                transaction.updatedAt.timeIntervalSince1970
+            ])
+        )
+    }
+
     func save(_ batch: InventoryStockBatch, in db: Database) throws {
         try db.execute(
             sql: """
@@ -758,5 +948,91 @@ private extension GRDBCoreDataRepository {
                 batch.updatedAt.timeIntervalSince1970
             ])
         )
+    }
+
+    func save(_ usage: OrderRecipeUsage, in db: Database) throws {
+        try db.execute(
+            sql: """
+                INSERT INTO order_recipe_usages
+                (id, order_id, recipe_id, used_at_unix_time, created_at_unix_time, updated_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+            arguments: arguments([
+                usage.id,
+                usage.orderId,
+                usage.recipeId,
+                usage.usedAt.timeIntervalSince1970,
+                usage.createdAt.timeIntervalSince1970,
+                usage.updatedAt.timeIntervalSince1970
+            ])
+        )
+    }
+
+    func inventoryItem(id: String, in db: Database) throws -> InventoryItem? {
+        guard let row = try Row.fetchOne(db, sql: "SELECT * FROM inventory_items WHERE id = ?", arguments: [id]),
+              let unit = InventoryUnit(rawValue: row["unit"]) else {
+            return nil
+        }
+
+        return try inventoryItem(from: row, unit: unit, db: db)
+    }
+
+    func recipeIngredients(recipeId: String, in db: Database) throws -> [RecipeIngredient] {
+        try Row.fetchAll(
+            db,
+            sql: """
+                SELECT recipe_ingredients.*
+                FROM recipe_ingredients
+                INNER JOIN recipe_components
+                ON recipe_components.id = recipe_ingredients.component_id
+                WHERE recipe_components.recipe_id = ?
+                ORDER BY recipe_components.sort_order ASC,
+                         recipe_ingredients.created_at_unix_time ASC,
+                         recipe_ingredients.id
+                """,
+            arguments: [recipeId]
+        ).compactMap { row in
+            guard let unit = InventoryUnit(rawValue: row["unit"]) else {
+                return nil
+            }
+
+            return recipeIngredient(from: row, unit: unit)
+        }
+    }
+
+    func inventoryStockBatches(inventoryItemId: String, in db: Database) throws -> [InventoryStockBatch] {
+        try Row.fetchAll(
+            db,
+            sql: """
+                SELECT * FROM inventory_stock_batches
+                WHERE inventory_item_id = ?
+                ORDER BY expires_at_unix_time IS NULL, expires_at_unix_time ASC, created_at_unix_time ASC, id
+                """,
+            arguments: [inventoryItemId]
+        ).map(inventoryStockBatch(from:))
+    }
+
+    func consume(
+        quantity: Double,
+        from batches: [InventoryStockBatch],
+        updatedAt: Date,
+        in db: Database
+    ) throws {
+        var remainingQuantityToUse = quantity
+        for batch in batches where remainingQuantityToUse > 0 && batch.remainingQuantity > 0 {
+            let quantityFromBatch = min(batch.remainingQuantity, remainingQuantityToUse)
+            try save(
+                InventoryStockBatch(
+                    id: batch.id,
+                    inventoryItemId: batch.inventoryItemId,
+                    remainingQuantity: batch.remainingQuantity - quantityFromBatch,
+                    expiresAt: batch.expiresAt,
+                    createdAt: batch.createdAt,
+                    updatedAt: updatedAt
+                ),
+                in: db
+            )
+            remainingQuantityToUse -= quantityFromBatch
+        }
     }
 }
