@@ -255,8 +255,13 @@ mark it complete or incomplete. Checklist items stay in entry order and can be d
 detail. Checklist editing, reordering, templates, and checklist-driven status changes are future
 work.
 
+Order add/edit includes a Pricing And Payment section for the owner-entered quoted price, deposit
+paid, and payment notes. Order detail shows payment status, quoted price, deposit paid, and derived
+balance due. Pricing suggestions, recipe-cost calculation, discounts, refunds, and online payment
+processing remain future work.
+
 Future order slices should add scheduled notifications, reminder snooze, recipe scaling, partial
-recipe usage, order-specific design photos, and pricing/payment summary.
+recipe usage, and order-specific design photos.
 
 ## Customer Workflow
 

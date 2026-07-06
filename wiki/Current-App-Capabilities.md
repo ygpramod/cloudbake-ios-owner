@@ -80,7 +80,9 @@ The app currently supports:
 71. optional saved cake design link from order add/edit,
 72. linked design name, notes, and photo reference in order detail,
 73. completed order tab that keeps completed orders out of active order views,
-74. unit, integration, and feature-sharded acceptance test lanes.
+74. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
+    notes,
+75. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
@@ -89,16 +91,15 @@ The app has domain foundations or partial workflows for:
 1. recipe components and ingredients,
 2. cake designs,
 3. customer-safe order preview projection for future consumer-facing surfaces,
-4. pricing,
-5. scheduled order delivery notifications,
-6. inventory transactions,
-7. purchase bill filtering by baking catalog,
-8. purchase bill draft inventory parsing,
-9. purchase bill text recognition through Apple Vision,
-10. purchase bill draft review flow,
-11. purchase bill camera import flow,
-12. purchase bill duplicate matching,
-13. recipe ingredient quantity extraction.
+4. scheduled order delivery notifications,
+5. inventory transactions,
+6. purchase bill filtering by baking catalog,
+7. purchase bill draft inventory parsing,
+8. purchase bill text recognition through Apple Vision,
+9. purchase bill draft review flow,
+10. purchase bill camera import flow,
+11. purchase bill duplicate matching,
+12. recipe ingredient quantity extraction.
 
 These are not all owner-facing workflows yet.
 
