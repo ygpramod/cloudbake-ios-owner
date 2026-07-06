@@ -30,6 +30,7 @@ It must:
 - Start from a fresh branch based on the intended base branch.
 - Link work to an RFC slice, ADR, issue, or documented user request.
 - Add or update unit, integration, and acceptance tests according to risk.
+- Add each new acceptance test to the appropriate feature shard in `.github/workflows/ci.yml`.
 - Run the fastest relevant local test lane before handoff.
 - Run targeted acceptance tests for touched owner workflows when practical.
 - Update RFCs, wiki pages, README, ADRs, or guardrails when durable truth changes.

@@ -12,7 +12,12 @@ CloudBake manages correctness-sensitive workflows such as inventory, pricing, or
 
 Use XCTest for iOS unit and integration tests and XCUITest for acceptance/UI tests.
 
-CI runs unit/integration tests and acceptance/UI tests as separate jobs with focused Xcode schemes. Local development should use the unit/integration lane for fast feedback and the full scheme test or both CI jobs before merging implementation work.
+CI runs unit/integration tests and acceptance/UI tests as separate lanes with focused Xcode schemes.
+The acceptance lane is sharded by feature area in GitHub Actions so owner workflow tests can run in
+parallel while still reporting feature-specific failures. Local development should use the
+unit/integration lane for fast feedback and targeted acceptance filters for touched workflows.
+Implementation work is ready to merge only after the unit/integration lane and all acceptance shards
+pass in CI, unless the user explicitly accepts a documented exception.
 
 Swift Testing may be introduced later for pure Swift domain tests if it improves readability without weakening CI or tooling support.
 
@@ -20,4 +25,4 @@ Swift Testing may be introduced later for pure Swift domain tests if it improves
 
 Implementation slices must include automated tests as part of the definition of done.
 
-Separating test lanes makes failures easier to diagnose and avoids requiring the slower UI acceptance suite for every local edit.
+Separating test lanes and feature-sharding acceptance tests makes failures easier to diagnose and avoids requiring the full slower UI acceptance suite for every local edit.
