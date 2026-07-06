@@ -12,6 +12,7 @@ final class AppDatabase {
         if ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1" {
             let database = try makeInMemory()
             try database.seedCustomerFixtureIfRequested()
+            try database.seedOrderReminderFixtureIfRequested()
             return database
         }
 
@@ -82,6 +83,30 @@ final class AppDatabase {
                 updatedAt: timestamp
             )
         )
+    }
+
+    private func seedOrderReminderFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_ORDER_REMINDER_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date()
+        let order = Order(
+            id: "order-ui-fixture-reminder",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Reminder Vanilla Birthday",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: "Pink flowers",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(order)
     }
 
     private static func configuration() -> Configuration {
