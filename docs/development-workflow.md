@@ -57,7 +57,8 @@ when the owner-facing workflow changes.
 
 GitHub Actions time-boxes the unit/integration job and feature-sharded acceptance UI jobs so stuck simulator
 automation fails clearly instead of blocking a pull request indefinitely. Acceptance UI tests run in
-parallel shards for core navigation, orders, inventory, recipes, and customers.
+parallel shards for core/recipes, orders, inventory, and customers. Core and recipes share one shard
+so the unit/integration job plus acceptance jobs stay within a five-runner macOS concurrency limit.
 CI prefers known iPhone simulator names when available, falls back to the first available iPhone,
 and uploads the Xcode result bundle for failed test jobs.
 
