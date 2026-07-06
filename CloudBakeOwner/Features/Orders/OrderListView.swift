@@ -298,37 +298,41 @@ private struct CenteredOrderPopup<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.32)
-                .ignoresSafeArea()
-                .onTapGesture(perform: onCancel)
+        GeometryReader { proxy in
+            ZStack {
+                Color.black.opacity(0.32)
+                    .ignoresSafeArea()
+                    .onTapGesture(perform: onCancel)
 
-            VStack(spacing: 14) {
-                Text(title)
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
+                VStack(spacing: 14) {
+                    Text(title)
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
 
-                VStack(spacing: 10) {
-                    content()
+                    VStack(spacing: 10) {
+                        content()
+                    }
+
+                    Divider()
+
+                    Button("Cancel", role: .cancel, action: onCancel)
+                        .font(.body.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 36)
+                        .accessibilityIdentifier("orders.popup.cancel")
                 }
-
-                Divider()
-
-                Button("Cancel", role: .cancel, action: onCancel)
-                    .font(.body.weight(.semibold))
-                    .frame(maxWidth: .infinity, minHeight: 36)
-                    .accessibilityIdentifier("orders.popup.cancel")
+                .padding(18)
+                .frame(maxWidth: 340)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(.separator, lineWidth: 0.5)
+                }
+                .padding(.horizontal, 24)
+                .shadow(color: .black.opacity(0.22), radius: 20, y: 10)
+                .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
             }
-            .padding(18)
-            .frame(maxWidth: 340)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(.separator, lineWidth: 0.5)
-            }
-            .padding(.horizontal, 24)
-            .shadow(color: .black.opacity(0.22), radius: 20, y: 10)
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .transition(.opacity.combined(with: .scale(scale: 0.98)))
