@@ -44,13 +44,13 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftCakeNotes = ""
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository
+    private let repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let calendar: Calendar
 
     init(
-        repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository,
+        repository: any OrderRepository & CustomerRepository & RecipeRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
@@ -88,7 +88,11 @@ final class OrderListViewModel: ObservableObject {
                     return nil
                 }
 
-                return OrderReminderDueGroup(order: order, reminders: dueReminders)
+                guard let nextDueReminder = dueReminders.max(by: { $0.remindAt < $1.remindAt }) else {
+                    return nil
+                }
+
+                return OrderReminderDueGroup(order: order, reminders: [nextDueReminder])
             }
             .sorted { lhs, rhs in
                 if lhs.earliestRemindAt == rhs.earliestRemindAt {
@@ -111,6 +115,12 @@ final class OrderListViewModel: ObservableObject {
 
             return OrderReminderPlanItem(offsetDays: offsetDays, remindAt: remindAt)
         }
+    }
+
+    func nextReminder(for order: Order) -> OrderReminderPlanItem? {
+        let now = dateProvider()
+        let reminders = reminderPlan(for: order)
+        return reminders.first { $0.remindAt > now } ?? reminders.last
     }
 
     func load() {
@@ -324,29 +334,36 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
-    func recordSelectedOrderRecipeUsage() -> Bool {
+    func changeSelectedOrderStatus(to status: OrderStatus) -> Bool {
         guard let selectedOrder else {
             errorMessage = "Order could not be found."
             return false
         }
+        guard selectedOrder.status != status else {
+            return true
+        }
 
         do {
-            let usedAt = dateProvider()
-            try repository.recordRecipeUsage(
-                for: selectedOrder,
+            let now = dateProvider()
+            let updatedOrder = try repository.changeOrderStatus(
+                order: selectedOrder,
+                status: status,
+                updatedAt: now,
                 usageId: idGenerator(),
-                usedAt: usedAt,
                 transactionIdProvider: idGenerator
             )
+            self.selectedOrder = updatedOrder
             load()
-            loadSelectedOrderRecipeUsage(for: selectedOrder)
+            loadSelectedOrderCustomer(for: updatedOrder)
+            loadSelectedOrderRecipe(for: updatedOrder)
+            loadSelectedOrderRecipeUsage(for: updatedOrder)
             errorMessage = nil
             return true
         } catch let error as OrderRecipeUsageError {
             errorMessage = recipeUsageErrorMessage(for: error)
             return false
         } catch {
-            errorMessage = "Recipe usage could not be recorded."
+            errorMessage = "Order status could not be updated."
             return false
         }
     }

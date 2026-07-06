@@ -79,7 +79,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.staticTexts["Orders"])
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
 
-        scrollToTop(in: app)
         let reminderRow = app.buttons.matching(
             NSPredicate(
                 format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
@@ -88,12 +87,10 @@ final class CloudBakeOwnerUITests: XCTestCase {
             )
         )
             .firstMatch
-        XCTAssertTrue(reminderRow.waitForExistence(timeout: transitionTimeout))
+        assertExistsAfterScrolling(reminderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(reminderRow, timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars[orderTitle].waitForExistence(timeout: transitionTimeout))
-        assertExistsAfterScrolling(app.staticTexts["orders.detail.reminder.3"], in: app, timeout: transitionTimeout)
-        assertExistsAfterScrolling(app.staticTexts["orders.detail.reminder.2"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.reminder.1"], in: app, timeout: transitionTimeout)
     }
 
@@ -271,10 +268,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
             timeout: transitionTimeout
         )
         XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
-        assertExistsAfterScrolling(app.buttons["orders.detail.useRecipe"], in: app, timeout: transitionTimeout)
-        tapWhenReady(app.buttons["orders.detail.useRecipe"], timeout: transitionTimeout)
-        tapExisting(app.buttons["orders.detail.confirmUseRecipe"], timeout: transitionTimeout)
-        XCTAssertFalse(app.buttons["orders.detail.useRecipe"].waitForExistence(timeout: 2))
+        assertExistsAfterScrolling(app.buttons["orders.detail.statusMenu"], in: app, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
+        tapExisting(app.buttons["Ready"], timeout: transitionTimeout)
+        tapExisting(app.buttons["orders.detail.confirmReady"], timeout: transitionTimeout)
+        let readyStatus = app.staticTexts["orders.detail.status"]
+        XCTAssertTrue(readyStatus.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(readyStatus.label.contains("Ready"))
         app.buttons["orders.detail.done"].tap()
         app.navigationBars.buttons["CloudBake"].tap()
 

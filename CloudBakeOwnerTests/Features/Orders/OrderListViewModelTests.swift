@@ -115,14 +115,29 @@ final class OrderListViewModelTests: XCTestCase {
             [
                 OrderReminderDueGroup(
                     order: tomorrowOrder,
-                    reminders: viewModel.reminderPlan(for: tomorrowOrder)
+                    reminders: [viewModel.reminderPlan(for: tomorrowOrder)[2]]
                 ),
                 OrderReminderDueGroup(
                     order: activeOrder,
-                    reminders: Array(viewModel.reminderPlan(for: activeOrder).prefix(2))
+                    reminders: [viewModel.reminderPlan(for: activeOrder)[1]]
                 )
             ]
         )
+    }
+
+    func testNextReminderReturnsOnlyNextUpcomingReminder() {
+        let repository = FakeOrderRepository()
+        let calendar = utcCalendar()
+        let now = Date(timeIntervalSince1970: 1_800_057_600)
+        let dueInTwoDays = calendar.date(byAdding: .day, value: 2, to: now)!
+        let order = makeOrder(id: "order-active", title: "Active Cake", dueAt: dueInTwoDays)
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { now },
+            calendar: calendar
+        )
+
+        XCTAssertEqual(viewModel.nextReminder(for: order), viewModel.reminderPlan(for: order)[2])
     }
 
     func testAddOrderPersistsRequiredAndOptionalFields() {
@@ -307,9 +322,9 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.selectedOrderRecipe)
     }
 
-    func testRecordSelectedOrderRecipeUsagePersistsUsageAndRefreshesDetail() {
+    func testChangeSelectedOrderStatusToReadyRecordsLinkedRecipeUsage() {
         let repository = FakeOrderRepository()
-        let usedAt = Date(timeIntervalSince1970: 1_800_080_000)
+        let updatedAt = Date(timeIntervalSince1970: 1_800_080_000)
         let order = makeOrder(
             id: "order-vanilla",
             recipeId: "recipe-vanilla",
@@ -319,27 +334,28 @@ final class OrderListViewModelTests: XCTestCase {
         let viewModel = OrderListViewModel(
             repository: repository,
             idGenerator: makeIncrementingIdGenerator(prefix: "generated"),
-            dateProvider: { usedAt }
+            dateProvider: { updatedAt }
         )
 
         viewModel.beginViewingOrder(order)
 
-        XCTAssertTrue(viewModel.recordSelectedOrderRecipeUsage())
+        XCTAssertTrue(viewModel.changeSelectedOrderStatus(to: .ready))
+        XCTAssertEqual(viewModel.selectedOrder?.status, .ready)
         XCTAssertEqual(
             viewModel.selectedOrderRecipeUsage,
             OrderRecipeUsage(
                 id: "generated-1",
                 orderId: order.id,
                 recipeId: "recipe-vanilla",
-                usedAt: usedAt,
-                createdAt: usedAt,
-                updatedAt: usedAt
+                usedAt: updatedAt,
+                createdAt: updatedAt,
+                updatedAt: updatedAt
             )
         )
         XCTAssertEqual(repository.recordedTransactionIds, ["generated-2"])
     }
 
-    func testRecordSelectedOrderRecipeUsageShowsDomainError() {
+    func testChangeSelectedOrderStatusShowsRecipeUsageError() {
         let repository = FakeOrderRepository()
         let order = makeOrder(
             id: "order-vanilla",
@@ -347,15 +363,16 @@ final class OrderListViewModelTests: XCTestCase {
             dueAt: Date(timeIntervalSince1970: 1_800_150_000)
         )
         repository.orders = [order]
-        repository.recordRecipeUsageError = OrderRecipeUsageError.insufficientStock(itemName: "Cake Flour")
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock(itemName: "Cake Flour")
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.beginViewingOrder(order)
 
-        XCTAssertFalse(viewModel.recordSelectedOrderRecipeUsage())
+        XCTAssertFalse(viewModel.changeSelectedOrderStatus(to: .ready))
+        XCTAssertEqual(viewModel.selectedOrder?.status, .draft)
         XCTAssertEqual(viewModel.errorMessage, "Not enough Cake Flour in inventory.")
-        XCTAssertNil(viewModel.selectedOrderRecipeUsage)
     }
+
 
     func testBeginViewingUnlinkedOrderClearsLinkedCustomer() {
         let repository = FakeOrderRepository()
@@ -559,13 +576,14 @@ final class OrderListViewModelTests: XCTestCase {
     }
 }
 
-private final class FakeOrderRepository: OrderRepository, CustomerRepository, RecipeRepository, OrderRecipeUsageRepository {
+private final class FakeOrderRepository: OrderRepository, CustomerRepository, RecipeRepository, OrderRecipeUsageRepository, OrderStatusChangeRepository {
     var orders: [Order] = []
     var customers: [Customer] = []
     var recipes: [Recipe] = []
     var usages: [OrderRecipeUsage] = []
     var recordedTransactionIds: [String] = []
     var recordRecipeUsageError: Error?
+    var changeOrderStatusError: Error?
 
     func save(_ order: Order) throws {
         orders.removeAll { $0.id == order.id }
@@ -638,5 +656,52 @@ private final class FakeOrderRepository: OrderRepository, CustomerRepository, Re
                 updatedAt: usedAt
             )
         )
+    }
+
+    func changeOrderStatus(
+        order: Order,
+        status: OrderStatus,
+        updatedAt: Date,
+        usageId: String,
+        transactionIdProvider: () -> String
+    ) throws -> Order {
+        if let changeOrderStatusError {
+            throw changeOrderStatusError
+        }
+
+        let updatedOrder = Order(
+            id: order.id,
+            customerId: order.customerId,
+            cakeDesignId: order.cakeDesignId,
+            recipeId: order.recipeId,
+            title: order.title,
+            customerName: order.customerName,
+            status: status,
+            dueAt: order.dueAt,
+            fulfillmentType: order.fulfillmentType,
+            deliveryAddress: order.deliveryAddress,
+            cakeNotes: order.cakeNotes,
+            createdAt: order.createdAt,
+            updatedAt: updatedAt
+        )
+        try save(updatedOrder)
+
+        if status == .ready,
+           let recipeId = order.recipeId,
+           usages.first(where: { $0.orderId == order.id }) == nil {
+            recordedTransactionIds.append(transactionIdProvider())
+            usages.append(
+                OrderRecipeUsage(
+                    id: usageId,
+                    orderId: order.id,
+                    recipeId: recipeId,
+                    usedAt: updatedAt,
+                    createdAt: updatedAt,
+                    updatedAt: updatedAt
+                )
+            )
+        }
+
+        return updatedOrder
     }
 }
