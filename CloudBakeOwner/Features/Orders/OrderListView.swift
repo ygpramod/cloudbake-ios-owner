@@ -6,7 +6,6 @@ struct OrderListView: View {
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
     @State private var orderScope: OrderScope = .active
-    @State private var displayMode: OrderDisplayMode = .calendar
 
     init(viewModel: OrderListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -81,16 +80,6 @@ struct OrderListView: View {
                 .accessibilityIdentifier("orders.scope")
             }
 
-            Section {
-                Picker("Order View", selection: $displayMode) {
-                    ForEach(OrderDisplayMode.allCases, id: \.self) { mode in
-                        Text(mode.title).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .accessibilityIdentifier("orders.displayMode")
-            }
-
             if viewModel.orders.isEmpty {
                 ContentUnavailableView(
                     "No orders yet",
@@ -117,25 +106,14 @@ struct OrderListView: View {
                 ContentUnavailableView(
                     "No active orders",
                     systemImage: "calendar",
-                    description: Text("Draft, confirmed, in-progress, and ready orders will appear here.")
+                    description: Text("Draft, confirmed, in-progress, and ready orders will appear by delivery day.")
                 )
             } else {
-                switch displayMode {
-                case .list:
-                    Section("Orders") {
-                        ForEach(viewModel.activeOrders, id: \.id) { order in
-                            OrderRow(order: order) {
+                ForEach(viewModel.calendarDays, id: \.day) { calendarDay in
+                    Section(calendarDay.day.formatted(date: .complete, time: .omitted)) {
+                        ForEach(calendarDay.orders, id: \.id) { order in
+                            OrderRow(order: order, showsDate: false) {
                                 openOrder(order)
-                            }
-                        }
-                    }
-                case .calendar:
-                    ForEach(viewModel.calendarDays, id: \.day) { calendarDay in
-                        Section(calendarDay.day.formatted(date: .complete, time: .omitted)) {
-                            ForEach(calendarDay.orders, id: \.id) { order in
-                                OrderRow(order: order, showsDate: false) {
-                                    openOrder(order)
-                                }
                             }
                         }
                     }
@@ -182,20 +160,6 @@ private enum OrderScope: CaseIterable {
             return "Active"
         case .completed:
             return "Completed"
-        }
-    }
-}
-
-private enum OrderDisplayMode: CaseIterable {
-    case list
-    case calendar
-
-    var title: String {
-        switch self {
-        case .list:
-            return "List"
-        case .calendar:
-            return "Calendar"
         }
     }
 }
