@@ -77,7 +77,7 @@ final class OrderListViewModel: ObservableObject {
         return groupedOrders.keys.sorted().map { day in
             OrderCalendarDay(
                 day: day,
-                orders: groupedOrders[day, default: []].sorted(by: orderWasEnteredBefore)
+                orders: groupedOrders[day, default: []].sorted(by: orderIsDueBefore)
             )
         }
     }
@@ -85,13 +85,13 @@ final class OrderListViewModel: ObservableObject {
     var activeOrders: [Order] {
         orders
             .filter(\.hasActiveReminderState)
-            .sorted(by: orderWasEnteredBefore)
+            .sorted(by: orderIsDueBefore)
     }
 
     var completedOrders: [Order] {
         orders
             .filter { $0.status == .completed }
-            .sorted(by: orderWasEnteredBefore)
+            .sorted(by: orderWasDueAfter)
     }
 
     var dueReminderGroups: [OrderReminderDueGroup] {
@@ -598,6 +598,26 @@ final class OrderListViewModel: ObservableObject {
         }
 
         return lhs.createdAt < rhs.createdAt
+    }
+
+    private func orderIsDueBefore(_ lhs: Order, _ rhs: Order) -> Bool {
+        if lhs.dueAt == rhs.dueAt {
+            return orderWasEnteredBefore(lhs, rhs)
+        }
+
+        return lhs.dueAt < rhs.dueAt
+    }
+
+    private func orderWasDueAfter(_ lhs: Order, _ rhs: Order) -> Bool {
+        if lhs.dueAt == rhs.dueAt {
+            if lhs.createdAt == rhs.createdAt {
+                return lhs.id < rhs.id
+            }
+
+            return lhs.createdAt > rhs.createdAt
+        }
+
+        return lhs.dueAt > rhs.dueAt
     }
 
     private func checklistItemWasEnteredBefore(_ lhs: OrderChecklistItem, _ rhs: OrderChecklistItem) -> Bool {

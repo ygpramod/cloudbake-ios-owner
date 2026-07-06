@@ -35,13 +35,13 @@ final class OrderListViewModelTests: XCTestCase {
             id: "order-morning",
             title: "Morning Cake",
             dueAt: firstDayMorning,
-            createdAt: Date(timeIntervalSince1970: 1_800_010_000)
+            createdAt: Date(timeIntervalSince1970: 1_800_020_000)
         )
         let secondOrder = makeOrder(
             id: "order-afternoon",
             title: "Afternoon Cake",
             dueAt: firstDayAfternoon,
-            createdAt: Date(timeIntervalSince1970: 1_800_020_000)
+            createdAt: Date(timeIntervalSince1970: 1_800_010_000)
         )
         let thirdOrder = makeOrder(
             id: "order-next-day",
@@ -69,44 +69,52 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
-    func testOrderScopesSeparateActiveAndCompletedOrdersInEntryOrder() {
+    func testOrderScopesSortActiveByDueDateAndCompletedDescending() {
         let repository = FakeOrderRepository()
-        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
-        let olderActive = makeOrder(
-            id: "order-older-active",
-            title: "Older Active",
+        let earlierDueAt = Date(timeIntervalSince1970: 1_800_120_000)
+        let laterDueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let firstActiveDue = makeOrder(
+            id: "order-first-active-due",
+            title: "First Active Due",
             status: .confirmed,
-            dueAt: dueAt,
-            createdAt: Date(timeIntervalSince1970: 1_800_010_000)
-        )
-        let newerActive = makeOrder(
-            id: "order-newer-active",
-            title: "Newer Active",
-            status: .ready,
-            dueAt: dueAt,
+            dueAt: earlierDueAt,
             createdAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let secondActiveDue = makeOrder(
+            id: "order-second-active-due",
+            title: "Second Active Due",
+            status: .ready,
+            dueAt: laterDueAt,
+            createdAt: Date(timeIntervalSince1970: 1_800_010_000)
         )
         let cancelled = makeOrder(
             id: "order-cancelled",
             title: "Cancelled",
             status: .cancelled,
-            dueAt: dueAt,
+            dueAt: earlierDueAt,
             createdAt: Date(timeIntervalSince1970: 1_800_020_000)
         )
-        let completed = makeOrder(
-            id: "order-completed",
-            title: "Completed",
+        let laterCompleted = makeOrder(
+            id: "order-later-completed",
+            title: "Later Completed",
             status: .completed,
-            dueAt: dueAt,
+            dueAt: laterDueAt,
             createdAt: Date(timeIntervalSince1970: 1_800_040_000)
         )
-        repository.orders = [completed, newerActive, cancelled, olderActive]
+        let earlierCompleted = makeOrder(
+            id: "order-earlier-completed",
+            title: "Earlier Completed",
+            status: .completed,
+            dueAt: earlierDueAt,
+            createdAt: Date(timeIntervalSince1970: 1_800_050_000)
+        )
+        repository.orders = [earlierCompleted, secondActiveDue, laterCompleted, cancelled, firstActiveDue]
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.load()
 
-        XCTAssertEqual(viewModel.activeOrders, [olderActive, newerActive])
-        XCTAssertEqual(viewModel.completedOrders, [completed])
+        XCTAssertEqual(viewModel.activeOrders, [firstActiveDue, secondActiveDue])
+        XCTAssertEqual(viewModel.completedOrders, [laterCompleted, earlierCompleted])
     }
 
     func testReminderPlanUsesThreeTwoAndOneDaysBeforeDueDate() {
