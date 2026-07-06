@@ -301,6 +301,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
+        typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
+        let customerNameField = app.textFields["orders.form.customerName"]
+        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
+        typeText("Amy", into: customerNameField, timeout: transitionTimeout)
+
         let recipeField = app.buttons["orders.form.recipe"]
         scrollToHittable(recipeField, in: app, timeout: transitionTimeout)
         tapWhenReady(recipeField, timeout: transitionTimeout)
@@ -318,14 +323,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
-        scrollToTop(in: app)
-        let titleField = app.textFields["orders.form.title"]
-        scrollToHittable(titleField, in: app, timeout: transitionTimeout)
-        typeText("Vanilla Birthday", into: titleField, timeout: transitionTimeout)
-
-        let customerNameField = app.textFields["orders.form.customerName"]
-        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
-        typeText("Amy", into: customerNameField, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
@@ -357,6 +354,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
+        typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
+        typeText("Pink flowers", into: app.textFields["orders.form.cakeNotes"], timeout: transitionTimeout)
+
+        let customerNameField = app.textFields["orders.form.customerName"]
+        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
+        typeText("Amy", into: customerNameField, timeout: transitionTimeout)
+
         let designField = app.buttons["orders.form.design"]
         scrollToHittable(designField, in: app, timeout: transitionTimeout)
         tapWhenReady(designField, timeout: transitionTimeout)
@@ -374,15 +378,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
-        scrollToTop(in: app)
-        let titleField = app.textFields["orders.form.title"]
-        scrollToHittable(titleField, in: app, timeout: transitionTimeout)
-        typeText("Vanilla Birthday", into: titleField, timeout: transitionTimeout)
-        typeText("Pink flowers", into: app.textFields["orders.form.cakeNotes"], timeout: transitionTimeout)
-
-        let customerNameField = app.textFields["orders.form.customerName"]
-        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
-        typeText("Amy", into: customerNameField, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
