@@ -147,6 +147,8 @@ Owner-visible order reminder planning is implemented in
 `docs/rfc/slices/0044-order-reminders.md`.
 Order add/edit can link one saved recipe for preparation context through
 `docs/rfc/slices/0046-order-recipe-link.md`.
+Order detail can record one-time usage of the linked recipe and deduct recipe ingredients from
+inventory through `docs/rfc/slices/0047-order-recipe-usage-inventory-deduction.md`.
 
 ## Reminder Model
 
@@ -187,12 +189,13 @@ without trying to automate the full pricing calculation.
 
 ## Recipe And Inventory Relationship
 
-Orders should eventually link to one or more recipes. When the owner marks a recipe as used for an
-order, inventory should be deducted from the oldest-expiring stock batches first.
+Orders can now link to one saved recipe. When the owner marks the linked recipe as used from order
+detail, inventory is deducted from the recipe ingredient rows. Ingredient quantities are converted
+into the linked inventory item's stored unit when compatible, and stock batches are consumed from
+the oldest expiry first with no-expiry batches last.
 
-Orders can now link to one saved recipe for preparation context. Recipe usage, recipe scaling, and
-inventory deduction remain future work and should be implemented after the owner confirms how a
-recipe is marked as used for an order.
+Recipe usage is owner-triggered and one-time per order. Recipe scaling, partial recipe usage,
+multi-recipe orders, and inventory reservation remain future work.
 
 ## Design And Photo Relationship
 
@@ -263,6 +266,7 @@ pricing, and recipe links.
   from the linked customer record for owner visibility.
 - Orders now show in-app reminders three days, two days, and one day before due date. Completed and
   cancelled orders are excluded from due reminder alerts.
+- Orders can now use a linked recipe once to deduct inventory through recipe ingredient rows.
 
 ## Open Questions
 

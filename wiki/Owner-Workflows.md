@@ -31,8 +31,9 @@ photo, choosing an image from the photo library, or manually entering recognized
 the image locally with Apple Vision OCR, creates an editable draft, parses likely ingredient rows,
 and saves it only after the owner reviews it.
 
-Recipe scaling, stronger OCR cleanup, richer component grouping, optional LLM-assisted
-interpretation, and recipe-driven inventory reduction are future work.
+Recipe usage from an order can now deduct linked ingredient rows from inventory. Recipe scaling,
+stronger OCR cleanup, richer component grouping, and optional LLM-assisted interpretation remain
+future work.
 
 ## Recipe Ingredients
 
@@ -208,7 +209,9 @@ Today, the owner can:
     detail,
 14. link an order to one saved recipe for preparation context,
 15. review the linked recipe name from order detail,
-16. review reminders three days, two days, and one day before due date.
+16. mark the linked recipe as used from order detail,
+17. deduct recipe ingredients from inventory with unit conversion,
+18. review reminders three days, two days, and one day before due date.
 
 Calendar mode groups orders by due date and opens the same order detail screen as List mode.
 
@@ -225,11 +228,15 @@ the order itself, while allergies and longer-term preferences continue to come f
 record.
 
 Recipe selection opens from the order form when saved recipes exist. The owner can link one saved
-recipe, clear the link, and review the linked recipe from order detail. This is preparation context
-only; marking a recipe as used and deducting inventory are future slices.
+recipe, clear the link, and review the linked recipe from order detail.
 
-Future order slices should add scheduled notifications, reminder snooze, recipe usage, inventory
-deduction, checklist, design references and photos, and pricing/payment summary.
+When a linked recipe is used from order detail, the app asks for confirmation and then deducts the
+recipe's inventory-backed ingredient rows. Quantities are converted into each inventory item's unit
+when compatible. Stock batches are consumed oldest-expiry-first, and the usage can be recorded only
+once for the order to prevent accidental double deduction.
+
+Future order slices should add scheduled notifications, reminder snooze, recipe scaling, partial
+recipe usage, checklist, design references and photos, and pricing/payment summary.
 
 ## Customer Workflow
 
