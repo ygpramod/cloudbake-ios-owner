@@ -39,6 +39,85 @@ final class CoreModelsTests: XCTestCase {
         XCTAssertEqual(OrderFulfillmentType.delivery.rawValue, "delivery")
     }
 
+    func testConsumerOrderPreviewProjectsCustomerSafeOrderFields() {
+        let timestamp = Date(timeIntervalSince1970: 1_800_120_000)
+        let order = Order(
+            id: "order-vanilla",
+            customerId: "customer-amy",
+            cakeDesignId: "design-flowers",
+            recipeId: "recipe-private",
+            title: "Vanilla Birthday",
+            customerName: "Amy Private",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .delivery,
+            deliveryAddress: "Private address",
+            cakeNotes: "Owner-only buttercream note",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let design = CakeDesign(
+            id: "design-flowers",
+            name: "Pink Floral Cake",
+            notes: "Owner-only design correction",
+            photoReference: "cloudbake://designs/pink-floral.jpg",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        let preview = ConsumerOrderPreview(order: order, cakeDesign: design)
+
+        XCTAssertEqual(
+            preview,
+            ConsumerOrderPreview(
+                orderId: "order-vanilla",
+                cakeName: "Vanilla Birthday",
+                status: .accepted,
+                dueAt: timestamp,
+                fulfillmentType: .delivery,
+                designName: "Pink Floral Cake",
+                designPhotoReference: "cloudbake://designs/pink-floral.jpg"
+            )
+        )
+    }
+
+    func testConsumerOrderPreviewDoesNotExposeOwnerOnlyFields() {
+        let timestamp = Date(timeIntervalSince1970: 1_800_120_000)
+        let order = Order(
+            id: "order-vanilla",
+            customerId: "customer-amy",
+            cakeDesignId: nil,
+            recipeId: "recipe-private",
+            title: "Vanilla Birthday",
+            customerName: "Amy Private",
+            status: .draft,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: "Private address",
+            cakeNotes: "Owner-only buttercream note",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        let preview = ConsumerOrderPreview(order: order)
+        let exposedFieldNames = Set(Mirror(reflecting: preview).children.compactMap(\.label))
+
+        XCTAssertFalse(exposedFieldNames.contains("customerId"))
+        XCTAssertFalse(exposedFieldNames.contains("customerName"))
+        XCTAssertFalse(exposedFieldNames.contains("recipeId"))
+        XCTAssertFalse(exposedFieldNames.contains("cakeNotes"))
+        XCTAssertFalse(exposedFieldNames.contains("deliveryAddress"))
+    }
+
+    func testConsumerOrderPreviewStatusMapsOwnerLifecycleToCustomerLanguage() {
+        XCTAssertEqual(ConsumerOrderPreview(order: makeOrder(status: .draft)).status, .requested)
+        XCTAssertEqual(ConsumerOrderPreview(order: makeOrder(status: .confirmed)).status, .accepted)
+        XCTAssertEqual(ConsumerOrderPreview(order: makeOrder(status: .inProgress)).status, .inProgress)
+        XCTAssertEqual(ConsumerOrderPreview(order: makeOrder(status: .ready)).status, .ready)
+        XCTAssertEqual(ConsumerOrderPreview(order: makeOrder(status: .completed)).status, .fulfilled)
+        XCTAssertEqual(ConsumerOrderPreview(order: makeOrder(status: .cancelled)).status, .cancelled)
+    }
+
     func testCustomerRequiresExplicitNameAndPhoneInModel() {
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
         let customer = Customer(
@@ -116,5 +195,23 @@ final class CoreModelsTests: XCTestCase {
         )
 
         XCTAssertTrue(item.isArchived)
+    }
+
+    private func makeOrder(status: OrderStatus) -> Order {
+        let timestamp = Date(timeIntervalSince1970: 1_800_120_000)
+        return Order(
+            id: "order-\(status.rawValue)",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Vanilla Birthday",
+            customerName: "Amy",
+            status: status,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
     }
 }
