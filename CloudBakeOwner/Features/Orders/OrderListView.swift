@@ -443,6 +443,7 @@ private struct OrderDetailView: View {
     @State private var isAddingPartialPayment = false
     @State private var selectedCustomerReferencePhotoItem: PhotosPickerItem?
     @State private var selectedFinalCakePhotoItem: PhotosPickerItem?
+    @State private var cameraPhotoKind: OrderPhotoKind?
     @State private var partialPaymentAmount = ""
     @FocusState private var isChecklistTitleFocused: Bool
 
@@ -545,7 +546,12 @@ private struct OrderDetailView: View {
                         pickerTitle: "Add Reference Photo",
                         pickerSystemImage: "photo.badge.plus",
                         pickerIdentifier: "orders.detail.photos.reference.add",
-                        selection: $selectedCustomerReferencePhotoItem
+                        cameraTitle: "Take Reference Photo",
+                        cameraIdentifier: "orders.detail.photos.reference.camera",
+                        selection: $selectedCustomerReferencePhotoItem,
+                        onCameraSelected: {
+                            cameraPhotoKind = .customerReference
+                        }
                     )
 
                     photoGroup(
@@ -555,7 +561,12 @@ private struct OrderDetailView: View {
                         pickerTitle: "Add Final Cake Photo",
                         pickerSystemImage: "photo.on.rectangle",
                         pickerIdentifier: "orders.detail.photos.final.add",
-                        selection: $selectedFinalCakePhotoItem
+                        cameraTitle: "Take Final Cake Photo",
+                        cameraIdentifier: "orders.detail.photos.final.camera",
+                        selection: $selectedFinalCakePhotoItem,
+                        onCameraSelected: {
+                            cameraPhotoKind = .finalCake
+                        }
                     )
                 }
 
@@ -748,6 +759,24 @@ private struct OrderDetailView: View {
                 selectedFinalCakePhotoItem = nil
             }
         }
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { cameraPhotoKind != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        cameraPhotoKind = nil
+                    }
+                }
+            )
+        ) {
+            if let cameraPhotoKind {
+                OrderPhotoCameraView { image in
+                    saveCameraPhoto(image, kind: cameraPhotoKind)
+                    self.cameraPhotoKind = nil
+                }
+                .ignoresSafeArea()
+            }
+        }
         .navigationTitle(viewModel.selectedOrder?.title ?? "Order")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -896,7 +925,10 @@ private struct OrderDetailView: View {
         pickerTitle: String,
         pickerSystemImage: String,
         pickerIdentifier: String,
-        selection: Binding<PhotosPickerItem?>
+        cameraTitle: String,
+        cameraIdentifier: String,
+        selection: Binding<PhotosPickerItem?>,
+        onCameraSelected: @escaping () -> Void
     ) -> some View {
         Text(title)
             .font(.subheadline.weight(.semibold))
@@ -906,6 +938,14 @@ private struct OrderDetailView: View {
             Label(pickerTitle, systemImage: pickerSystemImage)
         }
         .accessibilityIdentifier(pickerIdentifier)
+
+        Button {
+            onCameraSelected()
+        } label: {
+            Label(cameraTitle, systemImage: "camera")
+        }
+        .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+        .accessibilityIdentifier(cameraIdentifier)
 
         if photos.isEmpty {
             Text(emptyText)
@@ -958,6 +998,15 @@ private struct OrderDetailView: View {
         .accessibilityElement(children: .combine)
     }
 
+    private func saveCameraPhoto(_ image: UIImage, kind: OrderPhotoKind) {
+        guard let imageData = image.jpegData(compressionQuality: 0.85) else {
+            viewModel.errorMessage = "Order photo could not be read."
+            return
+        }
+
+        _ = viewModel.addOrderPhoto(kind: kind, imageData: imageData)
+    }
+
     private func importOrderPhoto(_ item: PhotosPickerItem?, kind: OrderPhotoKind) async {
         guard let item else {
             return
@@ -1000,6 +1049,53 @@ private extension OrderPhotoKind {
             return "Reference Photo"
         case .finalCake:
             return "Final Cake Photo"
+        }
+    }
+}
+
+private struct OrderPhotoCameraView: UIViewControllerRepresentable {
+    let onImageCaptured: (UIImage) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.cameraCaptureMode = .photo
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onImageCaptured: onImageCaptured, dismiss: dismiss)
+    }
+
+    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        private let onImageCaptured: (UIImage) -> Void
+        private let dismiss: DismissAction
+
+        init(onImageCaptured: @escaping (UIImage) -> Void, dismiss: DismissAction) {
+            self.onImageCaptured = onImageCaptured
+            self.dismiss = dismiss
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            defer {
+                dismiss()
+            }
+
+            guard let image = info[.originalImage] as? UIImage else {
+                return
+            }
+            onImageCaptured(image)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            dismiss()
         }
     }
 }

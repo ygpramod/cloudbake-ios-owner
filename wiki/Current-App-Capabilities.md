@@ -91,8 +91,9 @@ The app currently supports:
 79. local order photo metadata and app-owned local photo file storage,
 80. order detail photo groups for customer reference photos and final cake photos,
 81. photo library import for order reference and final cake photos,
-82. saved order photo deletion from order detail,
-83. unit, integration, and feature-sharded acceptance test lanes.
+82. camera capture for order reference and final cake photos,
+83. saved order photo deletion from order detail,
+84. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
@@ -123,7 +124,7 @@ Planned product areas include:
 4. partial recipe usage,
 5. richer order checklist editing, reordering, and templates,
 6. delivery reminders,
-7. order photo camera capture,
+7. order photo caption editing and full-screen preview,
 8. pricing calculator,
 9. customer-facing cake browsing,
 10. sync through iCloud or backend when needed.

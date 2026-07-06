@@ -277,6 +277,16 @@ final class CloudBakeOwnerUITests: XCTestCase {
             timeout: transitionTimeout
         )
         assertExistsAfterScrolling(
+            app.buttons["orders.detail.photos.reference.add"],
+            in: app,
+            timeout: transitionTimeout
+        )
+        assertExistsAfterScrolling(
+            app.buttons["orders.detail.photos.reference.camera"],
+            in: app,
+            timeout: transitionTimeout
+        )
+        assertExistsAfterScrolling(
             app.staticTexts["orders.detail.photos.final.add.header"],
             in: app,
             timeout: transitionTimeout
@@ -287,12 +297,12 @@ final class CloudBakeOwnerUITests: XCTestCase {
             timeout: transitionTimeout
         )
         assertExistsAfterScrolling(
-            app.buttons["orders.detail.photos.reference.add"],
+            app.buttons["orders.detail.photos.final.add"],
             in: app,
             timeout: transitionTimeout
         )
         assertExistsAfterScrolling(
-            app.buttons["orders.detail.photos.final.add"],
+            app.buttons["orders.detail.photos.final.camera"],
             in: app,
             timeout: transitionTimeout
         )
