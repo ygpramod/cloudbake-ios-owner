@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OrderListView: View {
     @StateObject private var viewModel: OrderListViewModel
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
     @State private var displayMode: OrderDisplayMode = .list
@@ -11,85 +12,36 @@ struct OrderListView: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                Picker("Order View", selection: $displayMode) {
-                    ForEach(OrderDisplayMode.allCases, id: \.self) { mode in
-                        Text(mode.title).tag(mode)
+        Group {
+            if horizontalSizeClass == .regular {
+                NavigationSplitView {
+                    orderList
+                        .navigationTitle("Orders")
+                        .toolbar {
+                            addOrderToolbarItem
+                        }
+                } detail: {
+                    if viewModel.selectedOrder == nil {
+                        ContentUnavailableView(
+                            "Select an order",
+                            systemImage: "calendar",
+                            description: Text("Choose an order to view cake details, customer context, reminders, and checklist.")
+                        )
+                        .accessibilityIdentifier("orders.detail.empty")
+                    } else {
+                        OrderDetailView(
+                            viewModel: viewModel,
+                            isPresented: .constant(true),
+                            showsDoneButton: false
+                        )
                     }
                 }
-                .pickerStyle(.segmented)
-                .accessibilityIdentifier("orders.displayMode")
-            }
-
-            if viewModel.orders.isEmpty {
-                ContentUnavailableView(
-                    "No orders yet",
-                    systemImage: "calendar",
-                    description: Text("Add accepted or draft cake orders to track due dates and customer requests.")
-                )
             } else {
-                switch displayMode {
-                case .list:
-                    Section("Orders") {
-                        ForEach(viewModel.orders, id: \.id) { order in
-                            OrderRow(order: order) {
-                                viewModel.beginViewingOrder(order)
-                                isViewingOrder = true
-                            }
-                        }
+                orderList
+                    .navigationTitle("Orders")
+                    .toolbar {
+                        addOrderToolbarItem
                     }
-                case .calendar:
-                    ForEach(viewModel.calendarDays, id: \.day) { calendarDay in
-                        Section(calendarDay.day.formatted(date: .complete, time: .omitted)) {
-                            ForEach(calendarDay.orders, id: \.id) { order in
-                                OrderRow(order: order, showsDate: false) {
-                                    viewModel.beginViewingOrder(order)
-                                    isViewingOrder = true
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if !viewModel.dueReminderGroups.isEmpty {
-                Section {
-                    ForEach(viewModel.dueReminderGroups, id: \.order.id) { group in
-                        Button {
-                            viewModel.beginViewingOrder(group.order)
-                            isViewingOrder = true
-                        } label: {
-                            OrderReminderDueRow(group: group)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("orders.reminder.\(group.order.id)")
-                        .accessibilityLabel("Reminder due for \(group.order.title)")
-                    }
-                } header: {
-                    Text("Reminders Due")
-                        .accessibilityIdentifier("orders.remindersDue.header")
-                }
-            }
-
-            if let errorMessage = viewModel.errorMessage {
-                Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .accessibilityIdentifier("orders.error")
-                }
-            }
-        }
-        .navigationTitle("Orders")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    viewModel.beginAddingOrder()
-                    isAddingOrder = true
-                } label: {
-                    Label("Add Order", systemImage: "plus")
-                }
-                .accessibilityIdentifier("orders.add")
             }
         }
         .sheet(isPresented: $isAddingOrder, onDismiss: viewModel.cancelAddOrder) {
@@ -114,6 +66,94 @@ struct OrderListView: View {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.orders.screenAccessibilityIdentifier)
+    }
+
+    private var orderList: some View {
+        List {
+            Section {
+                Picker("Order View", selection: $displayMode) {
+                    ForEach(OrderDisplayMode.allCases, id: \.self) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("orders.displayMode")
+            }
+
+            if viewModel.orders.isEmpty {
+                ContentUnavailableView(
+                    "No orders yet",
+                    systemImage: "calendar",
+                    description: Text("Add accepted or draft cake orders to track due dates and customer requests.")
+                )
+            } else {
+                switch displayMode {
+                case .list:
+                    Section("Orders") {
+                        ForEach(viewModel.orders, id: \.id) { order in
+                            OrderRow(order: order) {
+                                openOrder(order)
+                            }
+                        }
+                    }
+                case .calendar:
+                    ForEach(viewModel.calendarDays, id: \.day) { calendarDay in
+                        Section(calendarDay.day.formatted(date: .complete, time: .omitted)) {
+                            ForEach(calendarDay.orders, id: \.id) { order in
+                                OrderRow(order: order, showsDate: false) {
+                                    openOrder(order)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !viewModel.dueReminderGroups.isEmpty {
+                Section {
+                    ForEach(viewModel.dueReminderGroups, id: \.order.id) { group in
+                        Button {
+                            openOrder(group.order)
+                        } label: {
+                            OrderReminderDueRow(group: group)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("orders.reminder.\(group.order.id)")
+                        .accessibilityLabel("Reminder due for \(group.order.title)")
+                    }
+                } header: {
+                    Text("Reminders Due")
+                        .accessibilityIdentifier("orders.remindersDue.header")
+                }
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("orders.error")
+                }
+            }
+        }
+    }
+
+    private var addOrderToolbarItem: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                viewModel.beginAddingOrder()
+                isAddingOrder = true
+            } label: {
+                Label("Add Order", systemImage: "plus")
+            }
+            .accessibilityIdentifier("orders.add")
+        }
+    }
+
+    private func openOrder(_ order: Order) {
+        viewModel.beginViewingOrder(order)
+        if horizontalSizeClass != .regular {
+            isViewingOrder = true
+        }
     }
 }
 
@@ -172,10 +212,21 @@ private struct OrderRow: View {
 private struct OrderDetailView: View {
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
+    let showsDoneButton: Bool
     @State private var isEditingOrder = false
     @State private var isSelectingStatus = false
     @State private var statusPendingInventoryDeduction: OrderStatus?
     @FocusState private var isChecklistTitleFocused: Bool
+
+    init(
+        viewModel: OrderListViewModel,
+        isPresented: Binding<Bool>,
+        showsDoneButton: Bool = true
+    ) {
+        self.viewModel = viewModel
+        _isPresented = isPresented
+        self.showsDoneButton = showsDoneButton
+    }
 
     var body: some View {
         List {
@@ -369,11 +420,13 @@ private struct OrderDetailView: View {
                 .accessibilityIdentifier("orders.detail.edit")
             }
 
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    isPresented = false
+            if showsDoneButton {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        isPresented = false
+                    }
+                    .accessibilityIdentifier("orders.detail.done")
                 }
-                .accessibilityIdentifier("orders.detail.done")
             }
         }
         .confirmationDialog(

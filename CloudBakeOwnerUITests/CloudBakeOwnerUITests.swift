@@ -351,6 +351,34 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
     }
 
+    func testOrderDetailUsesSplitViewOnIPad() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        guard app.windows.firstMatch.waitForExistence(timeout: 5),
+              app.windows.firstMatch.frame.width >= 700 else {
+            throw XCTSkip("Order split view is only expected on regular-width iPad layouts.")
+        }
+
+        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["Select an order"].waitForExistence(timeout: transitionTimeout))
+
+        addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
+        tapWhenReady(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
+                .firstMatch,
+            timeout: transitionTimeout
+        )
+
+        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertFalse(app.buttons["orders.detail.done"].exists)
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.customerName"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.fulfillmentType"].waitForExistence(timeout: transitionTimeout))
+    }
+
     func testInventoryDuplicateNameShowsWarningBeforeAdding() throws {
         let app = makeApp()
         app.launch()
