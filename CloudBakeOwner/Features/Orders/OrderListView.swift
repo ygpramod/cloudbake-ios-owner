@@ -801,6 +801,14 @@ private struct OrderDetailView: View {
                         self.previewingPhoto = updatedPhoto
                         return updatedPhoto
                     },
+                    onPromoteToDesign: { name, notes in
+                        if viewModel.promoteFinalCakePhotoToDesign(previewingPhoto, name: name, notes: notes) {
+                            self.previewingPhoto = nil
+                            return true
+                        }
+
+                        return false
+                    },
                     onClose: {
                         self.previewingPhoto = nil
                     }
@@ -1093,20 +1101,26 @@ private struct OrderPhotoPreviewView: View {
     let photo: OrderPhoto
     let photoURL: URL
     let onSaveCaption: (String) -> OrderPhoto?
+    let onPromoteToDesign: (String, String) -> Bool
     let onClose: () -> Void
     @State private var displayedPhoto: OrderPhoto
     @State private var draftCaption = ""
     @State private var isEditingCaption = false
+    @State private var draftDesignName = ""
+    @State private var draftDesignNotes = ""
+    @State private var isPromotingToDesign = false
 
     init(
         photo: OrderPhoto,
         photoURL: URL,
         onSaveCaption: @escaping (String) -> OrderPhoto?,
+        onPromoteToDesign: @escaping (String, String) -> Bool,
         onClose: @escaping () -> Void
     ) {
         self.photo = photo
         self.photoURL = photoURL
         self.onSaveCaption = onSaveCaption
+        self.onPromoteToDesign = onPromoteToDesign
         self.onClose = onClose
         _displayedPhoto = State(initialValue: photo)
     }
@@ -1131,6 +1145,23 @@ private struct OrderPhotoPreviewView: View {
                     }
                     .accessibilityLabel("Edit Photo Caption")
                     .accessibilityIdentifier("orders.detail.photos.preview.editCaption")
+
+                    if displayedPhoto.kind == .finalCake {
+                        Button {
+                            draftDesignName = displayedPhoto.caption ?? "Design From Final Cake"
+                            draftDesignNotes = displayedPhoto.caption ?? ""
+                            isPromotingToDesign = true
+                        } label: {
+                            Label("Save As Design", systemImage: "photo.on.rectangle.angled")
+                                .labelStyle(.iconOnly)
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .accessibilityLabel("Save Final Photo As Design")
+                        .accessibilityIdentifier("orders.detail.photos.preview.promoteDesign")
+                    }
 
                     Spacer()
 
@@ -1187,6 +1218,38 @@ private struct OrderPhotoPreviewView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
+        }
+        .sheet(isPresented: $isPromotingToDesign) {
+            NavigationStack {
+                Form {
+                    Section("Design") {
+                        TextField("Name", text: $draftDesignName)
+                            .textInputAutocapitalization(.words)
+                            .accessibilityIdentifier("orders.detail.photos.design.name")
+                        TextField("Notes", text: $draftDesignNotes, axis: .vertical)
+                            .lineLimit(2...4)
+                            .accessibilityIdentifier("orders.detail.photos.design.notes")
+                    }
+                }
+                .navigationTitle("Save Design")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            isPromotingToDesign = false
+                        }
+                        .accessibilityIdentifier("orders.detail.photos.design.cancel")
+                    }
+
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            if onPromoteToDesign(draftDesignName, draftDesignNotes) {
+                                isPromotingToDesign = false
+                            }
+                        }
+                        .accessibilityIdentifier("orders.detail.photos.design.save")
+                    }
+                }
+            }
         }
         .sheet(isPresented: $isEditingCaption) {
             NavigationStack {

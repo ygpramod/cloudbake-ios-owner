@@ -595,13 +595,14 @@ final class OrderListViewModel: ObservableObject {
     private func copy(
         _ order: Order,
         status: OrderStatus? = nil,
+        cakeDesignId: String? = nil,
         depositPaid: Decimal? = nil,
         updatedAt: Date
     ) -> Order {
         Order(
             id: order.id,
             customerId: order.customerId,
-            cakeDesignId: order.cakeDesignId,
+            cakeDesignId: cakeDesignId ?? order.cakeDesignId,
             recipeId: order.recipeId,
             title: order.title,
             customerName: order.customerName,
@@ -770,6 +771,48 @@ final class OrderListViewModel: ObservableObject {
             return true
         } catch {
             errorMessage = "Order photo caption could not be saved."
+            return false
+        }
+    }
+
+    func promoteFinalCakePhotoToDesign(_ photo: OrderPhoto, name: String, notes: String) -> Bool {
+        guard let selectedOrder, selectedOrder.id == photo.orderId else {
+            errorMessage = "Order could not be found."
+            return false
+        }
+        guard photo.kind == .finalCake else {
+            errorMessage = "Only final cake photos can be saved as designs."
+            return false
+        }
+        guard let designName = optionalText(name) else {
+            errorMessage = "Design name is required."
+            return false
+        }
+
+        let now = dateProvider()
+        let designId = idGenerator()
+        let design = CakeDesign(
+            id: designId,
+            name: designName,
+            notes: optionalText(notes),
+            photoReference: photo.localPhotoPath,
+            createdAt: now,
+            updatedAt: now
+        )
+        let updatedOrder = copy(
+            selectedOrder,
+            cakeDesignId: designId,
+            updatedAt: now
+        )
+
+        do {
+            try repository.save(design)
+            try repository.save(updatedOrder)
+            refreshAfterSavingOrder(updatedOrder)
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Design could not be saved."
             return false
         }
     }
