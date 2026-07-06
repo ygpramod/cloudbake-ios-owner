@@ -13,7 +13,7 @@ struct OrderListView: View {
     var body: some View {
         List {
             if !viewModel.dueReminderGroups.isEmpty {
-                Section("Reminders Due") {
+                Section {
                     ForEach(viewModel.dueReminderGroups, id: \.order.id) { group in
                         Button {
                             viewModel.beginViewingOrder(group.order)
@@ -25,6 +25,9 @@ struct OrderListView: View {
                         .accessibilityIdentifier("orders.reminder.\(group.order.id)")
                         .accessibilityLabel("Reminder due for \(group.order.title)")
                     }
+                } header: {
+                    Text("Reminders Due")
+                        .accessibilityIdentifier("orders.remindersDue.header")
                 }
             }
 

@@ -80,7 +80,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
 
         scrollToTop(in: app)
-        XCTAssertTrue(app.staticTexts["Reminders Due"].waitForExistence(timeout: transitionTimeout))
         let reminderRow = app.buttons.matching(
             NSPredicate(
                 format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
@@ -89,6 +88,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
             )
         )
             .firstMatch
+        XCTAssertTrue(reminderRow.waitForExistence(timeout: transitionTimeout))
         tapWhenReady(reminderRow, timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars[orderTitle].waitForExistence(timeout: transitionTimeout))

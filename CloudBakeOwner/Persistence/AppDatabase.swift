@@ -92,6 +92,11 @@ final class AppDatabase {
 
         let repository = makeCoreDataRepository()
         let timestamp = Date()
+        let dueAt = Calendar(identifier: .gregorian).date(
+            byAdding: .day,
+            value: 1,
+            to: timestamp
+        ) ?? timestamp
         let order = Order(
             id: "order-ui-fixture-reminder",
             customerId: nil,
@@ -99,7 +104,7 @@ final class AppDatabase {
             title: "Reminder Vanilla Birthday",
             customerName: "Amy",
             status: .confirmed,
-            dueAt: timestamp,
+            dueAt: dueAt,
             fulfillmentType: .pickup,
             deliveryAddress: nil,
             cakeNotes: "Pink flowers",
