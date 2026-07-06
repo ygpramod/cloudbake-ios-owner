@@ -451,10 +451,19 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 sql: """
                     SELECT * FROM order_checklist_items
                     WHERE order_id = ?
-                    ORDER BY is_completed ASC, sort_order ASC, created_at_unix_time ASC, id
+                    ORDER BY sort_order ASC, created_at_unix_time ASC, id
                     """,
                 arguments: [orderId]
             ).map(orderChecklistItem)
+        }
+    }
+
+    func deleteOrderChecklistItem(id: String) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: "DELETE FROM order_checklist_items WHERE id = ?",
+                arguments: [id]
+            )
         }
     }
 

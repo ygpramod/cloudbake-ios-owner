@@ -5,7 +5,8 @@ struct OrderListView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
-    @State private var displayMode: OrderDisplayMode = .list
+    @State private var orderScope: OrderScope = .active
+    @State private var displayMode: OrderDisplayMode = .calendar
 
     init(viewModel: OrderListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -71,6 +72,16 @@ struct OrderListView: View {
     private var orderList: some View {
         List {
             Section {
+                Picker("Order Status", selection: $orderScope) {
+                    ForEach(OrderScope.allCases, id: \.self) { scope in
+                        Text(scope.title).tag(scope)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("orders.scope")
+            }
+
+            Section {
                 Picker("Order View", selection: $displayMode) {
                     ForEach(OrderDisplayMode.allCases, id: \.self) { mode in
                         Text(mode.title).tag(mode)
@@ -86,11 +97,33 @@ struct OrderListView: View {
                     systemImage: "calendar",
                     description: Text("Add accepted or draft cake orders to track due dates and customer requests.")
                 )
+            } else if orderScope == .completed {
+                if viewModel.completedOrders.isEmpty {
+                    ContentUnavailableView(
+                        "No completed orders",
+                        systemImage: "checkmark.circle",
+                        description: Text("Orders marked completed will appear here.")
+                    )
+                } else {
+                    Section("Completed") {
+                        ForEach(viewModel.completedOrders, id: \.id) { order in
+                            OrderRow(order: order) {
+                                openOrder(order)
+                            }
+                        }
+                    }
+                }
+            } else if viewModel.activeOrders.isEmpty {
+                ContentUnavailableView(
+                    "No active orders",
+                    systemImage: "calendar",
+                    description: Text("Draft, confirmed, in-progress, and ready orders will appear here.")
+                )
             } else {
                 switch displayMode {
                 case .list:
                     Section("Orders") {
-                        ForEach(viewModel.orders, id: \.id) { order in
+                        ForEach(viewModel.activeOrders, id: \.id) { order in
                             OrderRow(order: order) {
                                 openOrder(order)
                             }
@@ -106,24 +139,6 @@ struct OrderListView: View {
                             }
                         }
                     }
-                }
-            }
-
-            if !viewModel.dueReminderGroups.isEmpty {
-                Section {
-                    ForEach(viewModel.dueReminderGroups, id: \.order.id) { group in
-                        Button {
-                            openOrder(group.order)
-                        } label: {
-                            OrderReminderDueRow(group: group)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("orders.reminder.\(group.order.id)")
-                        .accessibilityLabel("Reminder due for \(group.order.title)")
-                    }
-                } header: {
-                    Text("Reminders Due")
-                        .accessibilityIdentifier("orders.remindersDue.header")
                 }
             }
 
@@ -153,6 +168,20 @@ struct OrderListView: View {
         viewModel.beginViewingOrder(order)
         if horizontalSizeClass != .regular {
             isViewingOrder = true
+        }
+    }
+}
+
+private enum OrderScope: CaseIterable {
+    case active
+    case completed
+
+    var title: String {
+        switch self {
+        case .active:
+            return "Active"
+        case .completed:
+            return "Completed"
         }
     }
 }
@@ -387,12 +416,20 @@ private struct OrderDetailView: View {
                             }
                             .accessibilityElement(children: .combine)
                             .accessibilityAddTraits(.isButton)
-                            .id("\(item.id)-\(item.isCompleted)")
-                            .accessibilityIdentifier(
-                                "orders.detail.checklist.item.\(item.id).\(item.isCompleted ? "complete" : "incomplete")"
-                            )
+                            .accessibilityIdentifier("orders.detail.checklist.item.\(item.id)")
                             .accessibilityLabel(item.title)
                             .accessibilityValue(item.isCompleted ? "Complete" : "Incomplete")
+                            .accessibilityAction {
+                                _ = viewModel.toggleChecklistItem(item)
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    _ = viewModel.deleteChecklistItem(item)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                .accessibilityIdentifier("orders.detail.checklist.delete.\(item.id)")
+                            }
                         }
                     }
 
