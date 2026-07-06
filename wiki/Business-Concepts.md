@@ -180,6 +180,15 @@ Checklist items help the owner track handmade preparation steps without changing
 automatically. They remain visible after completion so the owner can review what was done for the
 order.
 
+## Consumer Order Preview
+
+A consumer order preview is a customer-safe summary of an owner order for future customer-facing
+surfaces.
+
+It can show cake name, customer-facing status, due date/time, fulfillment type, and safe cake design
+display data. It must not expose owner-only recipe links, cake notes, private customer data,
+delivery address, checklist items, inventory usage, reminders, supplier details, or pricing internals.
+
 ## Owner Price
 
 The app may help suggest pricing from ingredients, time, size, and complexity, but the owner decides
