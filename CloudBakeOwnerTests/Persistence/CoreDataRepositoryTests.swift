@@ -109,6 +109,9 @@ final class CoreDataRepositoryTests: XCTestCase {
             fulfillmentType: .delivery,
             deliveryAddress: "10 Cake Street",
             cakeNotes: "Vanilla sponge with pink flowers",
+            quotedPrice: Decimal(string: "180.75"),
+            depositPaid: Decimal(string: "50.25"),
+            paymentNotes: "Deposit paid by bank transfer",
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt
         )
