@@ -744,7 +744,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = CloudBake;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSCameraUsageDescription = "CloudBake uses the camera to scan purchase bills and recipes into editable drafts.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "CloudBake uses the camera to scan purchase bills and recipes, and to capture order photos.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "CloudBake lets you choose a contact to prefill editable customer details.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "CloudBake lets you choose purchase bill, recipe, and order photos from the photo library.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -770,7 +770,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = CloudBake;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSCameraUsageDescription = "CloudBake uses the camera to scan purchase bills and recipes into editable drafts.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "CloudBake uses the camera to scan purchase bills and recipes, and to capture order photos.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "CloudBake lets you choose a contact to prefill editable customer details.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "CloudBake lets you choose purchase bill, recipe, and order photos from the photo library.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
