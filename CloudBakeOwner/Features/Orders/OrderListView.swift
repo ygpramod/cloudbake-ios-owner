@@ -792,6 +792,15 @@ private struct OrderDetailView: View {
                 OrderPhotoPreviewView(
                     photo: previewingPhoto,
                     photoURL: viewModel.orderPhotoURL(previewingPhoto),
+                    onSaveCaption: { caption in
+                        guard viewModel.updateOrderPhotoCaption(previewingPhoto, caption: caption),
+                              let updatedPhoto = viewModel.selectedOrderPhotos.first(where: { $0.id == previewingPhoto.id }) else {
+                            return nil
+                        }
+
+                        self.previewingPhoto = updatedPhoto
+                        return updatedPhoto
+                    },
                     onClose: {
                         self.previewingPhoto = nil
                     }
@@ -1083,7 +1092,24 @@ private extension OrderPhotoKind {
 private struct OrderPhotoPreviewView: View {
     let photo: OrderPhoto
     let photoURL: URL
+    let onSaveCaption: (String) -> OrderPhoto?
     let onClose: () -> Void
+    @State private var displayedPhoto: OrderPhoto
+    @State private var draftCaption = ""
+    @State private var isEditingCaption = false
+
+    init(
+        photo: OrderPhoto,
+        photoURL: URL,
+        onSaveCaption: @escaping (String) -> OrderPhoto?,
+        onClose: @escaping () -> Void
+    ) {
+        self.photo = photo
+        self.photoURL = photoURL
+        self.onSaveCaption = onSaveCaption
+        self.onClose = onClose
+        _displayedPhoto = State(initialValue: photo)
+    }
 
     var body: some View {
         ZStack {
@@ -1092,6 +1118,20 @@ private struct OrderPhotoPreviewView: View {
 
             VStack(spacing: 18) {
                 HStack {
+                    Button {
+                        draftCaption = displayedPhoto.caption ?? ""
+                        isEditingCaption = true
+                    } label: {
+                        Label("Edit Caption", systemImage: "pencil")
+                            .labelStyle(.iconOnly)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("Edit Photo Caption")
+                    .accessibilityIdentifier("orders.detail.photos.preview.editCaption")
+
                     Spacer()
 
                     Button(action: onClose) {
@@ -1127,18 +1167,18 @@ private struct OrderPhotoPreviewView: View {
                 Spacer(minLength: 0)
 
                 VStack(spacing: 6) {
-                    Text(photo.caption ?? photo.kind.displayName)
+                    Text(displayedPhoto.caption ?? displayedPhoto.kind.displayName)
                         .font(.headline)
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("orders.detail.photos.preview.caption")
 
-                    Text(photo.kind.displayName)
+                    Text(displayedPhoto.kind.displayName)
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.72))
                         .accessibilityIdentifier("orders.detail.photos.preview.kind")
 
-                    Text(photo.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    Text(displayedPhoto.createdAt.formatted(date: .abbreviated, time: .shortened))
                         .font(.footnote)
                         .foregroundStyle(.white.opacity(0.64))
                         .accessibilityIdentifier("orders.detail.photos.preview.createdAt")
@@ -1147,6 +1187,39 @@ private struct OrderPhotoPreviewView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
+        }
+        .sheet(isPresented: $isEditingCaption) {
+            NavigationStack {
+                Form {
+                    Section("Caption") {
+                        TextField("Caption", text: $draftCaption, axis: .vertical)
+                            .lineLimit(2...4)
+                            .accessibilityIdentifier("orders.detail.photos.caption.text")
+                    }
+                }
+                .navigationTitle("Photo Caption")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            isEditingCaption = false
+                        }
+                        .accessibilityIdentifier("orders.detail.photos.caption.cancel")
+                    }
+
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            if let updatedPhoto = onSaveCaption(draftCaption) {
+                                displayedPhoto = updatedPhoto
+                                isEditingCaption = false
+                            }
+                        }
+                        .accessibilityIdentifier("orders.detail.photos.caption.save")
+                    }
+                }
+            }
+        }
+        .onChange(of: photo) { _, newPhoto in
+            displayedPhoto = newPhoto
         }
     }
 }

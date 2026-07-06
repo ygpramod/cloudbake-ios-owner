@@ -257,9 +257,9 @@ with owner-reviewed photos and notes first.
 
 Orders can now link to one existing cake design. This is a reference to saved design memory. Order
 detail can also store order-specific customer reference photos and final cake photos locally, from
-the photo library or camera capture, and saved order photos can be opened in a full-screen preview.
-Multiple design references, promoting final cake photos into the saved design library, and broader
-design library management remain future work.
+the photo library or camera capture. Saved order photos can be opened in a full-screen preview, and
+their captions can be edited from that preview. Multiple design references, promoting final cake
+photos into the saved design library, and broader design library management remain future work.
 
 ## Implementation Slices
 
