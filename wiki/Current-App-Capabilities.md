@@ -85,7 +85,9 @@ The app currently supports:
     cancelled rows visibly marked,
 75. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
     notes,
-76. unit, integration, and feature-sharded acceptance test lanes.
+76. order row swipe actions for quick status changes and payment recording,
+77. order detail payment status actions for marking Paid or adding a partial payment,
+78. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 
