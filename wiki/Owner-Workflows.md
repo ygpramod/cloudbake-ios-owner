@@ -45,7 +45,7 @@ item and stores the quantity, unit, and optional preparation note needed for tha
 Use the edit action in recipe detail when the recipe name or notes need correction.
 
 Use Add Ingredient when the owner wants to manually define the stock needed by a recipe. Tap an
-ingredient row to edit it, or swipe to delete a mistaken row.
+ingredient row to edit it, or use the visible delete action for a mistaken row.
 
 Recipe ingredient rows do not reduce inventory yet. They prepare the app for a future Use Recipe
 flow that will deduct stock from oldest-expiring batches first.
@@ -77,11 +77,11 @@ Tap an inventory row to view the item.
 The view mode shows name, unit, current quantity, minimum quantity, and an expiry table. The expiry
 table lists each remaining stock batch by quantity and expiry date.
 
-The detail toolbar exposes a direct edit action and a more menu for history, use stock, and adjust
-stock, so the owner does not need to return to the list and swipe for common item work.
+The detail view exposes a direct edit action and visible action chips for history, use stock, and
+adjust stock, so the owner does not need to return to the list and swipe for common item work.
 
-Tap a batch in the expiry table when that batch's quantity or expiry date needs correction. Swipe a
-batch when a mistaken batch should be deleted.
+Tap a batch in the expiry table when that batch's quantity or expiry date needs correction. Use the
+visible delete action when a mistaken batch should be deleted.
 
 ## Edit Inventory
 
@@ -203,6 +203,10 @@ and Designs.
 Second-level owner screens use the same CloudBake visual language: warm light background, large
 screen title, circular top actions, compact logo treatment, card-based lists, and bottom quick
 navigation for Home, Orders, Inventory, Recipes, and Designs.
+
+Detail screens use a focused version of the same visual language: custom compact header, hero
+summary card, titled card sections, visible row actions, and centered confirmation popups for
+status/payment actions.
 
 CloudBake currently uses light appearance only while the owner app design is hardened for dark mode.
 

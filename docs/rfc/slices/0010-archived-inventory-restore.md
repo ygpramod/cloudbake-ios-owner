@@ -63,7 +63,11 @@ Restore saves the same inventory item with `archivedAt` cleared and `updatedAt` 
 
 ### UI
 
-Inventory toolbar includes an Archived button. The Archived sheet lists archived items and supports a trailing swipe `Restore` action.
+Inventory toolbar includes an Archived button. The Archived sheet lists archived items and supports
+a visible `Restore` action.
+
+RFC-0070 replaced the original trailing swipe presentation with a visible card action so archived
+inventory matches the CloudBake detail-screen style.
 
 ## Test Plan
 

@@ -72,10 +72,12 @@ Inventory rows open `InventoryItemDetailView`.
 
 The detail view shows item summary fields and an Expiry section with a quantity/expiry table.
 
-The detail toolbar has:
+The current RFC-0070 detail header has:
 
-- `Done`, which closes detail view.
+- a back/done control, which closes detail view,
 - `Edit`, which opens the restricted edit form.
+
+Stock actions are visible chips in inventory detail per RFC-0070.
 
 The edit form hides unit, current quantity, and expiry date for edits. Add Item still captures unit,
 current quantity, minimum quantity, and expiry date.

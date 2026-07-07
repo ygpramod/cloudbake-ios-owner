@@ -43,7 +43,10 @@ This slice excludes:
 
 ## Design
 
-`InventoryListView` exposes a destructive trailing swipe action on stock batch rows.
+`InventoryItemDetailView` exposes a visible destructive delete action on stock batch rows.
+
+RFC-0070 replaced the original trailing swipe presentation with a visible card-row action because
+inventory detail now uses a custom scroll-view layout rather than a native `List`.
 
 `InventoryListViewModel.deleteBatch(_:)` validates the selected item, calculates the new current
 quantity, and asks the repository to save the item correction and delete the batch together.

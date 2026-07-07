@@ -75,6 +75,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0067: Future Consumer Customer Profile Model
 - Slice RFC-0068: Dashboard Home Look And Feel
 - Slice RFC-0069: Second Level Screen Look And Feel
+- Slice RFC-0070: Detail Screen Look And Feel
 
 ## Base RFCs
 
