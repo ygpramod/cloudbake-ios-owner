@@ -35,7 +35,6 @@ final class OrderListViewModel: ObservableObject {
     private let photoFileStore: OrderPhotoFileStore
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
-    private let calendar: Calendar
     private let presentation: OrderListPresentation
 
     init(
@@ -49,7 +48,6 @@ final class OrderListViewModel: ObservableObject {
         self.photoFileStore = photoFileStore
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
-        self.calendar = calendar
         self.presentation = OrderListPresentation(
             dateProvider: dateProvider,
             calendar: calendar
