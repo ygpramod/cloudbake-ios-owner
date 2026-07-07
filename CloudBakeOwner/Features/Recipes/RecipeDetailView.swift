@@ -7,79 +7,110 @@ struct RecipeDetailView: View {
     @State private var isEditingRecipe = false
 
     var body: some View {
-        List {
+        CloudBakeDetailScaffold(
+            title: viewModel.selectedRecipe?.name ?? "Recipe",
+            backAccessibilityIdentifier: "recipes.detail.done",
+            primaryAction: CloudBakeDetailAction(
+                title: "Edit",
+                systemImage: "pencil",
+                accessibilityIdentifier: "recipes.detail.edit",
+                action: {
+                    viewModel.beginEditingRecipe()
+                    isEditingRecipe = true
+                }
+            ),
+            secondaryActions: [
+                CloudBakeDetailAction(
+                    title: "Add Ingredient",
+                    systemImage: "plus",
+                    accessibilityIdentifier: "recipes.ingredient.add",
+                    action: {
+                        viewModel.beginAddingIngredient()
+                        isEditingIngredient = true
+                    }
+                )
+            ],
+            onBack: {
+                isPresented = false
+            }
+        ) {
             if let recipe = viewModel.selectedRecipe {
+                CloudBakeHeroCard(systemImage: "book", tint: .cloudBakeMint) {
+                    Text("Recipe")
+                        .font(.caption.weight(.bold))
+                        .textCase(.uppercase)
+                        .foregroundStyle(Color.cloudBakeMint)
+
+                    Text(recipe.name)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.primary)
+
+                    Text("\(viewModel.recipeIngredients.count) ingredient\(viewModel.recipeIngredients.count == 1 ? "" : "s")")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
                 if let notes = recipe.notes {
-                    Section("Notes") {
-                        Text(notes)
+                    CloudBakeSection("Notes") {
+                        CloudBakeDetailCard {
+                            Text(notes)
+                                .font(.subheadline)
+                                .foregroundStyle(.primary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 14)
+                        }
                     }
                 }
 
                 if viewModel.recipeIngredients.isEmpty {
-                    ContentUnavailableView(
-                        "No ingredients yet",
+                    CloudBakeEmptyState(
+                        title: "No ingredients yet",
                         systemImage: "list.bullet",
-                        description: Text("Add linked inventory items with the quantity needed for this recipe.")
+                        message: "Add linked inventory items with the quantity needed for this recipe."
                     )
                 } else {
-                    Section("Ingredients") {
+                    CloudBakeSection("Ingredients") {
+                        CloudBakeDetailCard {
                         ForEach(viewModel.recipeIngredients) { row in
-                            Button {
-                                viewModel.beginEditingIngredient(row.ingredient)
-                                isEditingIngredient = true
-                            } label: {
-                                RecipeIngredientListRow(row: row)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("recipes.ingredient.view.\(row.id)")
-                            .swipeActions(edge: .trailing) {
+                            HStack(spacing: 12) {
+                                Button {
+                                    viewModel.beginEditingIngredient(row.ingredient)
+                                    isEditingIngredient = true
+                                } label: {
+                                    RecipeIngredientListRow(row: row)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("recipes.ingredient.view.\(row.id)")
+
                                 Button(role: .destructive) {
                                     viewModel.deleteIngredient(row.ingredient)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Image(systemName: "trash")
+                                        .frame(width: 34, height: 34)
                                 }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.red)
+                                .accessibilityLabel("Delete ingredient")
                                 .accessibilityIdentifier("recipes.ingredient.delete.\(row.id)")
                             }
+                            .padding(.vertical, 12)
+
+                            if row.id != viewModel.recipeIngredients.last?.id {
+                                CloudBakeDetailDivider()
+                            }
+                        }
                         }
                     }
                 }
 
                 if let errorMessage = viewModel.errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .accessibilityIdentifier("recipes.detail.error")
-                    }
+                    CloudBakeErrorBanner(
+                        message: errorMessage,
+                        accessibilityIdentifier: "recipes.detail.error"
+                    )
                 }
-            }
-        }
-        .navigationTitle(viewModel.selectedRecipe?.name ?? "Recipe")
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Done") {
-                    isPresented = false
-                }
-                .accessibilityIdentifier("recipes.detail.done")
-            }
-
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    viewModel.beginEditingRecipe()
-                    isEditingRecipe = true
-                } label: {
-                    Label("Edit Recipe", systemImage: "pencil")
-                }
-                .accessibilityIdentifier("recipes.detail.edit")
-
-                Button {
-                    viewModel.beginAddingIngredient()
-                    isEditingIngredient = true
-                } label: {
-                    Label("Add Ingredient", systemImage: "plus")
-                }
-                .accessibilityIdentifier("recipes.ingredient.add")
             }
         }
         .sheet(isPresented: $isEditingRecipe, onDismiss: viewModel.cancelAddRecipe) {

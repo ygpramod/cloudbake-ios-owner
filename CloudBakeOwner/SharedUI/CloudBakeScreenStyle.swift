@@ -60,6 +60,141 @@ struct CloudBakeScreenAction: Identifiable {
     let action: () -> Void
 }
 
+struct CloudBakeDetailScaffold<Content: View>: View {
+    let title: String
+    let showsBackButton: Bool
+    let backAccessibilityIdentifier: String
+    let primaryAction: CloudBakeDetailAction?
+    let secondaryActions: [CloudBakeDetailAction]
+    let onBack: () -> Void
+    @ViewBuilder let content: Content
+
+    init(
+        title: String,
+        showsBackButton: Bool = true,
+        backAccessibilityIdentifier: String,
+        primaryAction: CloudBakeDetailAction? = nil,
+        secondaryActions: [CloudBakeDetailAction] = [],
+        onBack: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.showsBackButton = showsBackButton
+        self.backAccessibilityIdentifier = backAccessibilityIdentifier
+        self.primaryAction = primaryAction
+        self.secondaryActions = secondaryActions
+        self.onBack = onBack
+        self.content = content()
+    }
+
+    var body: some View {
+        ZStack {
+            CloudBakeScreenBackground()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    CloudBakeDetailHeader(
+                        title: title,
+                        showsBackButton: showsBackButton,
+                        backAccessibilityIdentifier: backAccessibilityIdentifier,
+                        primaryAction: primaryAction,
+                        secondaryActions: secondaryActions,
+                        onBack: onBack
+                    )
+
+                    content
+                }
+                .padding(.horizontal, 22)
+                .padding(.top, 18)
+                .padding(.bottom, 36)
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
+struct CloudBakeDetailAction: Identifiable {
+    let id = UUID()
+    let title: String
+    let systemImage: String
+    let accessibilityIdentifier: String
+    let action: () -> Void
+}
+
+struct CloudBakeHeroCard<Content: View>: View {
+    let systemImage: String
+    let tint: Color
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 18) {
+            CloudBakeRowIcon(systemImage: systemImage, tint: tint)
+
+            VStack(alignment: .leading, spacing: 8) {
+                content
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(22)
+        .cloudBakeCardStyle()
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(tint)
+                .frame(width: 3)
+                .padding(.vertical, 0)
+        }
+    }
+}
+
+struct CloudBakeDetailCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            content
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 6)
+        .cloudBakeCardStyle()
+    }
+}
+
+struct CloudBakeDetailRow<Value: View>: View {
+    let title: String
+    @ViewBuilder let value: Value
+
+    init(_ title: String, @ViewBuilder value: () -> Value) {
+        self.title = title
+        self.value = value()
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 16) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            Spacer(minLength: 12)
+
+            value
+                .font(.subheadline)
+                .multilineTextAlignment(.trailing)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 14)
+    }
+}
+
+struct CloudBakeDetailDivider: View {
+    var body: some View {
+        Divider()
+            .padding(.leading, 0)
+    }
+}
+
 struct CloudBakeSection<Content: View>: View {
     let title: String?
     @ViewBuilder let content: Content
@@ -232,6 +367,80 @@ private struct CloudBakeScreenHeader: View {
                     .accessibilityHidden(true)
             }
         }
+    }
+}
+
+private struct CloudBakeDetailHeader: View {
+    let title: String
+    let showsBackButton: Bool
+    let backAccessibilityIdentifier: String
+    let primaryAction: CloudBakeDetailAction?
+    let secondaryActions: [CloudBakeDetailAction]
+    let onBack: () -> Void
+
+    var body: some View {
+        ZStack {
+            HStack {
+                if showsBackButton {
+                    Button(action: onBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(Color.cloudBakePink)
+                            .frame(width: 50, height: 50)
+                            .background(.white.opacity(0.92), in: Circle())
+                            .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
+                    }
+                    .accessibilityLabel("Back")
+                    .accessibilityIdentifier(backAccessibilityIdentifier)
+                } else {
+                    Color.clear
+                        .frame(width: 50, height: 50)
+                        .accessibilityHidden(true)
+                }
+
+                Spacer()
+
+                ForEach(secondaryActions) { action in
+                    CloudBakeDetailHeaderButton(action: action, isPrimary: false)
+                }
+
+                if let primaryAction {
+                    CloudBakeDetailHeaderButton(action: primaryAction, isPrimary: true)
+                }
+            }
+
+            Text(title)
+                .font(.headline.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .frame(maxWidth: 180)
+        }
+    }
+}
+
+private struct CloudBakeDetailHeaderButton: View {
+    let action: CloudBakeDetailAction
+    let isPrimary: Bool
+
+    var body: some View {
+        Button(action: action.action) {
+            HStack(spacing: isPrimary ? 8 : 0) {
+                Image(systemName: action.systemImage)
+                    .font(.subheadline.weight(.semibold))
+
+                if isPrimary {
+                    Text(action.title)
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+            .foregroundStyle(Color.cloudBakePink)
+            .frame(minWidth: isPrimary ? 86 : 50, minHeight: 50)
+            .padding(.horizontal, isPrimary ? 12 : 0)
+            .background(.white.opacity(0.92), in: Capsule())
+            .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
+        }
+        .accessibilityLabel(action.title)
+        .accessibilityIdentifier(action.accessibilityIdentifier)
     }
 }
 

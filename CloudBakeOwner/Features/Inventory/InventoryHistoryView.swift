@@ -5,44 +5,67 @@ struct InventoryHistoryView: View {
     @Binding var isPresented: Bool
 
     var body: some View {
-        List {
+        CloudBakeDetailScaffold(
+            title: "Stock History",
+            backAccessibilityIdentifier: "inventory.history.done",
+            onBack: {
+                viewModel.closeHistory()
+                isPresented = false
+            }
+        ) {
             if let item = viewModel.historyItem {
-                Section("Item") {
-                    LabeledContent("Name", value: item.name)
-                    LabeledContent("Current", value: "\(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                CloudBakeHeroCard(systemImage: "clock", tint: .cloudBakeTeal) {
+                    Text("Inventory History")
+                        .font(.caption.weight(.bold))
+                        .textCase(.uppercase)
+                        .foregroundStyle(Color.cloudBakeTeal)
+
+                    Text(item.name)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.primary)
+
+                    Text("\(item.currentQuantity.formatted()) \(item.unit.displayName) current")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                CloudBakeSection("Item") {
+                    CloudBakeDetailCard {
+                        CloudBakeDetailRow("Name") {
+                            Text(item.name)
+                        }
+                        CloudBakeDetailDivider()
+                        CloudBakeDetailRow("Current") {
+                            Text("\(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                        }
+                    }
                 }
 
                 if viewModel.historyTransactions.isEmpty {
-                    ContentUnavailableView(
-                        "No stock history",
+                    CloudBakeEmptyState(
+                        title: "No stock history",
                         systemImage: "clock",
-                        description: Text("Adjustments and stock usage will appear here.")
+                        message: "Adjustments and stock usage will appear here."
                     )
                 } else {
-                    Section("Stock Changes") {
+                    CloudBakeSection("Stock Changes") {
+                        CloudBakeDetailCard {
                         ForEach(viewModel.historyTransactions, id: \.id) { transaction in
                             InventoryTransactionRow(transaction: transaction, unit: item.unit)
+                            if transaction.id != viewModel.historyTransactions.last?.id {
+                                CloudBakeDetailDivider()
+                            }
+                        }
                         }
                     }
                 }
             }
 
             if let errorMessage = viewModel.errorMessage {
-                Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .accessibilityIdentifier("inventory.history.error")
-                }
-            }
-        }
-        .navigationTitle("Stock History")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    viewModel.closeHistory()
-                    isPresented = false
-                }
-                .accessibilityIdentifier("inventory.history.done")
+                CloudBakeErrorBanner(
+                    message: errorMessage,
+                    accessibilityIdentifier: "inventory.history.error"
+                )
             }
         }
         .accessibilityIdentifier("inventory.history.screen")
@@ -75,6 +98,7 @@ private struct InventoryTransactionRow: View {
                     .font(.subheadline)
             }
         }
+        .padding(.vertical, 12)
         .accessibilityIdentifier("inventory.history.transaction.\(transaction.id)")
     }
 }
