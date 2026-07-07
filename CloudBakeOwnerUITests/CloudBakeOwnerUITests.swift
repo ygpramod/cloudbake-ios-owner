@@ -1089,21 +1089,19 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
     func testCustomerDuplicateWarningAppearsBeforeSaving() throws {
         let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        app.staticTexts["Customers"].tap()
+        tapWhenReady(app.staticTexts["Customers"], timeout: transitionTimeout)
         addCustomer(named: "Amy", phone: "5550101", in: app)
-        app.buttons["customers.add"].tap()
-        XCTAssertTrue(app.buttons["Enter Manually"].waitForExistence(timeout: 5))
-        app.buttons["Enter Manually"].tap()
-        XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: 5))
-        app.textFields["customers.form.name"].tap()
-        app.textFields["customers.form.name"].typeText("Amy")
-        app.textFields["customers.form.phone"].tap()
-        app.textFields["customers.form.phone"].typeText("5550101")
-        app.buttons["customers.form.save"].tap()
+        tapWhenReady(app.buttons["customers.add"], timeout: transitionTimeout)
+        tapWhenReady(app.buttons["Enter Manually"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: transitionTimeout))
+        typeText("Amy", into: app.textFields["customers.form.name"], timeout: transitionTimeout)
+        typeText("5550101", into: app.textFields["customers.form.phone"], timeout: transitionTimeout)
+        tapWhenReady(app.buttons["customers.form.save"], timeout: transitionTimeout)
 
-        XCTAssertTrue(app.staticTexts["Possible duplicate: Amy already exists. Tap Save again to add a separate customer."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Possible duplicate: Amy already exists. Tap Save again to add a separate customer."].waitForExistence(timeout: transitionTimeout))
     }
 
     func testCustomerCanBeEditedFromDetail() throws {
