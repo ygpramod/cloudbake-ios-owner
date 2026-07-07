@@ -120,6 +120,8 @@
 		41000000000000000000006F /* RecipeImportViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000077 /* RecipeImportViewModelTests.swift */; };
 		410000000000000000000070 /* InventoryBatchEditingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000078 /* InventoryBatchEditingViewModelTests.swift */; };
 		410000000000000000000071 /* OrderPaymentUpdateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000079 /* OrderPaymentUpdateTests.swift */; };
+		410000000000000000000072 /* CustomerDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007A /* CustomerDraftValidation.swift */; };
+		410000000000000000000073 /* CustomerDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007B /* CustomerDraftValidationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -255,6 +257,8 @@
 		420000000000000000000077 /* RecipeImportViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportViewModelTests.swift; sourceTree = "<group>"; };
 		420000000000000000000078 /* InventoryBatchEditingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryBatchEditingViewModelTests.swift; sourceTree = "<group>"; };
 		420000000000000000000079 /* OrderPaymentUpdateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPaymentUpdateTests.swift; sourceTree = "<group>"; };
+		42000000000000000000007A /* CustomerDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDraftValidation.swift; sourceTree = "<group>"; };
+		42000000000000000000007B /* CustomerDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDraftValidationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -390,6 +394,7 @@
 				420000000000000000000031 /* CustomerContactImport.swift */,
 				42000000000000000000005A /* CustomerContactPicker.swift */,
 				42000000000000000000005B /* CustomerDetailView.swift */,
+				42000000000000000000007A /* CustomerDraftValidation.swift */,
 				42000000000000000000005C /* CustomerForm.swift */,
 				42000000000000000000002E /* CustomerListView.swift */,
 				42000000000000000000002F /* CustomerListViewModel.swift */,
@@ -548,6 +553,7 @@
 			children = (
 				420000000000000000000030 /* CustomerListViewModelTests.swift */,
 				420000000000000000000032 /* CustomerContactImportTests.swift */,
+				42000000000000000000007B /* CustomerDraftValidationTests.swift */,
 			);
 			path = Customers;
 			sourceTree = "<group>";
@@ -748,6 +754,7 @@
 				410000000000000000000029 /* CustomerContactImport.swift in Sources */,
 				410000000000000000000052 /* CustomerContactPicker.swift in Sources */,
 				410000000000000000000053 /* CustomerDetailView.swift in Sources */,
+				410000000000000000000072 /* CustomerDraftValidation.swift in Sources */,
 				410000000000000000000054 /* CustomerForm.swift in Sources */,
 				410000000000000000000026 /* CustomerListView.swift in Sources */,
 				410000000000000000000027 /* CustomerListViewModel.swift in Sources */,
@@ -814,6 +821,7 @@
 				410000000000000000000056 /* TextInputFormattingTests.swift in Sources */,
 				410000000000000000000028 /* CustomerListViewModelTests.swift in Sources */,
 				41000000000000000000002A /* CustomerContactImportTests.swift in Sources */,
+				410000000000000000000073 /* CustomerDraftValidationTests.swift in Sources */,
 				41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */,
 				410000000000000000000032 /* OrderReminderSchedulerTests.swift in Sources */,
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
