@@ -1,5 +1,9 @@
 # Slice RFC-0047: Order Recipe Usage And Inventory Deduction
 
+## Status
+
+Implemented
+
 ## Authority And Scope
 
 This slice implements the first owner-controlled recipe usage workflow for orders. It depends on

@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft
+Implemented for current owner MVP
 
 ## Authority And Scope
 
@@ -307,7 +307,7 @@ pricing, and recipe links.
 
 ## Decisions
 
-- Due date means delivery time.
+- Due date means the delivery or pickup time for the order.
 - Delivery address is not mandatory.
 - A draft order only requires customer name.
 - Payment currency should come from an app setting.
@@ -357,4 +357,4 @@ The following Orders RFC items are intentionally deferred until after other MVP 
 
 ## Open Questions
 
-- Should pickup orders also use due date as the pickup time?
+- None for the current owner MVP.
