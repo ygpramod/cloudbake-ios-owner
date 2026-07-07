@@ -84,6 +84,7 @@
 		41000000000000000000004B /* OrderDetailChecklistSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000053 /* OrderDetailChecklistSection.swift */; };
 		41000000000000000000004C /* OrderListPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000054 /* OrderListPresentation.swift */; };
 		41000000000000000000004D /* OrderPaymentUpdate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000055 /* OrderPaymentUpdate.swift */; };
+		41000000000000000000004E /* OrderReferenceSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000056 /* OrderReferenceSelection.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -183,6 +184,7 @@
 		420000000000000000000053 /* OrderDetailChecklistSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailChecklistSection.swift; sourceTree = "<group>"; };
 		420000000000000000000054 /* OrderListPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListPresentation.swift; sourceTree = "<group>"; };
 		420000000000000000000055 /* OrderPaymentUpdate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPaymentUpdate.swift; sourceTree = "<group>"; };
+		420000000000000000000056 /* OrderReferenceSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderReferenceSelection.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -333,6 +335,7 @@
 				42000000000000000000003B /* OrderPhotoFileStore.swift */,
 				42000000000000000000004E /* OrderPhotoPreviewView.swift */,
 				420000000000000000000055 /* OrderPaymentUpdate.swift */,
+				420000000000000000000056 /* OrderReferenceSelection.swift */,
 				42000000000000000000003E /* OrderRow.swift */,
 				420000000000000000000051 /* OrderSelectionViews.swift */,
 			);
@@ -661,6 +664,7 @@
 				41000000000000000000004D /* OrderPaymentUpdate.swift in Sources */,
 				410000000000000000000047 /* OrderPhotoCameraView.swift in Sources */,
 				410000000000000000000046 /* OrderPhotoPreviewView.swift in Sources */,
+				41000000000000000000004E /* OrderReferenceSelection.swift in Sources */,
 				410000000000000000000036 /* OrderRow.swift in Sources */,
 				410000000000000000000049 /* OrderSelectionViews.swift in Sources */,
 				410000000000000000000031 /* OrderStateRules.swift in Sources */,

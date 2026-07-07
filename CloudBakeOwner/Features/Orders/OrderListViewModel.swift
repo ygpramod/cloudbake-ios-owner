@@ -151,12 +151,7 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func draftCustomerRecordName() -> String {
-        guard !draftCustomerId.isEmpty,
-              let customer = customers.first(where: { $0.id == draftCustomerId }) else {
-            return "No Linked Customer"
-        }
-
-        return customer.name
+        OrderReferenceSelection.customerName(for: draftCustomerId, customers: customers)
     }
 
     func selectDraftRecipe(id: String) {
@@ -169,12 +164,7 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func draftRecipeName() -> String {
-        guard !draftRecipeId.isEmpty,
-              let recipe = recipes.first(where: { $0.id == draftRecipeId }) else {
-            return "No Linked Recipe"
-        }
-
-        return recipe.name
+        OrderReferenceSelection.recipeName(for: draftRecipeId, recipes: recipes)
     }
 
     func selectDraftCakeDesign(id: String) {
@@ -186,57 +176,19 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func draftCakeDesignName() -> String {
-        guard !draftCakeDesignId.isEmpty,
-              let design = cakeDesigns.first(where: { $0.id == draftCakeDesignId }) else {
-            return "No Linked Design"
-        }
-
-        return design.name
+        OrderReferenceSelection.cakeDesignName(for: draftCakeDesignId, cakeDesigns: cakeDesigns)
     }
 
     func customers(matching searchText: String) -> [Customer] {
-        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return customers
-        }
-
-        let query = normalizedSearchText(trimmed)
-        return customers.filter { customer in
-            [customer.name, customer.phone, customer.email, customer.address]
-                .compactMap { $0 }
-                .map(normalizedSearchText)
-                .contains { $0.contains(query) }
-        }
+        OrderReferenceSelection.customers(customers, matching: searchText)
     }
 
     func recipes(matching searchText: String) -> [Recipe] {
-        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return recipes
-        }
-
-        let query = normalizedSearchText(trimmed)
-        return recipes.filter { recipe in
-            [recipe.name, recipe.notes]
-                .compactMap { $0 }
-                .map(normalizedSearchText)
-                .contains { $0.contains(query) }
-        }
+        OrderReferenceSelection.recipes(recipes, matching: searchText)
     }
 
     func cakeDesigns(matching searchText: String) -> [CakeDesign] {
-        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return cakeDesigns
-        }
-
-        let query = normalizedSearchText(trimmed)
-        return cakeDesigns.filter { design in
-            [design.name, design.notes, design.photoReference]
-                .compactMap { $0 }
-                .map(normalizedSearchText)
-                .contains { $0.contains(query) }
-        }
+        OrderReferenceSelection.cakeDesigns(cakeDesigns, matching: searchText)
     }
 
     func addOrder() -> Bool {
@@ -936,12 +888,6 @@ final class OrderListViewModel: ObservableObject {
     private func optionalText(_ value: String) -> String? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
-    }
-
-    private func normalizedSearchText(_ text: String) -> String {
-        text
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
     }
 
     private func decimalAmount(from text: String, fieldName: String) -> Decimal?? {
