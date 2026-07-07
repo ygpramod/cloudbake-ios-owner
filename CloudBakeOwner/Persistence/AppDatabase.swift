@@ -15,6 +15,7 @@ final class AppDatabase {
             try database.seedOrderCustomerLinkFixtureIfRequested()
             try database.seedCompletedOrderFixtureIfRequested()
             try database.seedOrderReminderFixtureIfRequested()
+            try database.seedInventoryFixtureIfRequested()
             try database.seedCakeDesignFixtureIfRequested()
             try database.seedOrderPhotoFixtureIfRequested()
             return database
@@ -116,6 +117,40 @@ final class AppDatabase {
             updatedAt: timestamp
         )
         try repository.save(order)
+    }
+
+    private func seedInventoryFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_INVENTORY_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let expiresAt = Calendar(identifier: .gregorian).date(
+            byAdding: .day,
+            value: 7,
+            to: Date()
+        ) ?? Date().addingTimeInterval(7 * 24 * 60 * 60)
+        let item = InventoryItem(
+            id: "inventory-ui-fixture-cake-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(item)
+        try repository.save(
+            InventoryStockBatch(
+                id: "inventory-batch-ui-fixture-cake-flour",
+                inventoryItemId: item.id,
+                remainingQuantity: 250,
+                expiresAt: expiresAt,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
     }
 
     private func seedOrderCustomerLinkFixtureIfRequested() throws {
