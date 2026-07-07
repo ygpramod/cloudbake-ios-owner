@@ -72,6 +72,10 @@
 		41000000000000000000003F /* InventoryStockForms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000047 /* InventoryStockForms.swift */; };
 		410000000000000000000040 /* PurchaseBillImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000048 /* PurchaseBillImportView.swift */; };
 		410000000000000000000041 /* InventoryItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000049 /* InventoryItemDetailView.swift */; };
+		410000000000000000000042 /* RecipeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004A /* RecipeDetailView.swift */; };
+		410000000000000000000043 /* RecipeIngredientForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004B /* RecipeIngredientForm.swift */; };
+		410000000000000000000044 /* RecipeImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004C /* RecipeImportView.swift */; };
+		410000000000000000000045 /* RecipeForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004D /* RecipeForm.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -159,6 +163,10 @@
 		420000000000000000000047 /* InventoryStockForms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockForms.swift; sourceTree = "<group>"; };
 		420000000000000000000048 /* PurchaseBillImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseBillImportView.swift; sourceTree = "<group>"; };
 		420000000000000000000049 /* InventoryItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryItemDetailView.swift; sourceTree = "<group>"; };
+		42000000000000000000004A /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
+		42000000000000000000004B /* RecipeIngredientForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeIngredientForm.swift; sourceTree = "<group>"; };
+		42000000000000000000004C /* RecipeImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportView.swift; sourceTree = "<group>"; };
+		42000000000000000000004D /* RecipeForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeForm.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -271,6 +279,10 @@
 		45000000000000000000001A /* Recipes */ = {
 			isa = PBXGroup;
 			children = (
+				42000000000000000000004A /* RecipeDetailView.swift */,
+				42000000000000000000004D /* RecipeForm.swift */,
+				42000000000000000000004B /* RecipeIngredientForm.swift */,
+				42000000000000000000004C /* RecipeImportView.swift */,
 				420000000000000000000028 /* RecipeListView.swift */,
 				420000000000000000000029 /* RecipeListViewModel.swift */,
 			);
@@ -624,6 +636,10 @@
 				41000000000000000000001A /* PurchaseBillDraftParser.swift in Sources */,
 				41000000000000000000001C /* PurchaseBillTextRecognizer.swift in Sources */,
 				410000000000000000000023 /* RecipeDraftParser.swift in Sources */,
+				410000000000000000000042 /* RecipeDetailView.swift in Sources */,
+				410000000000000000000045 /* RecipeForm.swift in Sources */,
+				410000000000000000000043 /* RecipeIngredientForm.swift in Sources */,
+				410000000000000000000044 /* RecipeImportView.swift in Sources */,
 				410000000000000000000020 /* RecipeListView.swift in Sources */,
 				410000000000000000000021 /* RecipeListViewModel.swift in Sources */,
 			);
