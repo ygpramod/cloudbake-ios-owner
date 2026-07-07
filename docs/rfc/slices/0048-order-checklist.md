@@ -1,5 +1,9 @@
 # Slice RFC-0048: Order Checklist
 
+## Status
+
+Implemented
+
 ## Authority And Scope
 
 This slice adds simple owner checklist items to order detail. It supports preparation tasks that

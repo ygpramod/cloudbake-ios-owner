@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Implemented
 
 ## Parent RFC
 
@@ -104,8 +104,6 @@ delivered.
 
 ## Future Work
 
-- captions and design notes per photo,
-- promoting a final order photo into the saved design library,
 - customer-safe photo sharing,
 - iCloud or backend media sync,
 - AI-assisted design comparison and minor improvement suggestions,

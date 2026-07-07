@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft
+Implemented for current owner MVP
 
 ## Authority And Scope
 
