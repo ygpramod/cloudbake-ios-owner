@@ -179,7 +179,7 @@ struct OrderDetailView: View {
             )
         ) {
             if let cameraPhotoKind {
-                OrderPhotoCameraView { image in
+                CameraImagePickerView { image in
                     saveCameraPhoto(image, kind: cameraPhotoKind)
                     self.cameraPhotoKind = nil
                 }
@@ -397,27 +397,18 @@ struct OrderDetailView: View {
         }
 
         do {
-            guard let data = try await item.loadTransferable(type: Data.self),
-                  !data.isEmpty else {
+            let image = try await PhotoPickerImageLoader.image(from: item)
+            guard let imageData = image.jpegData(compressionQuality: 0.85) else {
                 viewModel.errorMessage = "Order photo could not be read."
                 return
             }
 
             _ = viewModel.addOrderPhoto(
                 kind: kind,
-                imageData: normalizedPhotoData(from: data)
+                imageData: imageData
             )
         } catch {
             viewModel.errorMessage = "Order photo could not be read."
         }
-    }
-
-    private func normalizedPhotoData(from data: Data) -> Data {
-        guard let image = UIImage(data: data),
-              let jpegData = image.jpegData(compressionQuality: 0.85) else {
-            return data
-        }
-
-        return jpegData
     }
 }

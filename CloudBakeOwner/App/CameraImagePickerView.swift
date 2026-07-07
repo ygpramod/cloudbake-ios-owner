@@ -1,8 +1,8 @@
 import SwiftUI
 import UIKit
 
-struct OrderPhotoCameraView: UIViewControllerRepresentable {
-    let onImageCaptured: (UIImage) -> Void
+struct CameraImagePickerView: UIViewControllerRepresentable {
+    let onImageSelected: (UIImage) -> Void
     @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -16,15 +16,15 @@ struct OrderPhotoCameraView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onImageCaptured: onImageCaptured, dismiss: dismiss)
+        Coordinator(onImageSelected: onImageSelected, dismiss: dismiss)
     }
 
     final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        private let onImageCaptured: (UIImage) -> Void
+        private let onImageSelected: (UIImage) -> Void
         private let dismiss: DismissAction
 
-        init(onImageCaptured: @escaping (UIImage) -> Void, dismiss: DismissAction) {
-            self.onImageCaptured = onImageCaptured
+        init(onImageSelected: @escaping (UIImage) -> Void, dismiss: DismissAction) {
+            self.onImageSelected = onImageSelected
             self.dismiss = dismiss
         }
 
@@ -32,14 +32,11 @@ struct OrderPhotoCameraView: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
-            defer {
-                dismiss()
+            if let image = info[.originalImage] as? UIImage {
+                onImageSelected(image)
             }
 
-            guard let image = info[.originalImage] as? UIImage else {
-                return
-            }
-            onImageCaptured(image)
+            dismiss()
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {

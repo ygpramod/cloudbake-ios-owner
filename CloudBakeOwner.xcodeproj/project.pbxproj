@@ -77,7 +77,7 @@
 		410000000000000000000044 /* RecipeImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004C /* RecipeImportView.swift */; };
 		410000000000000000000045 /* RecipeForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004D /* RecipeForm.swift */; };
 		410000000000000000000046 /* OrderPhotoPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004E /* OrderPhotoPreviewView.swift */; };
-		410000000000000000000047 /* OrderPhotoCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004F /* OrderPhotoCameraView.swift */; };
+		410000000000000000000047 /* CameraImagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004F /* CameraImagePickerView.swift */; };
 		410000000000000000000048 /* OrderForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000050 /* OrderForm.swift */; };
 		410000000000000000000049 /* OrderSelectionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000051 /* OrderSelectionViews.swift */; };
 		41000000000000000000004A /* OrderDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000052 /* OrderDetailView.swift */; };
@@ -101,6 +101,7 @@
 		41000000000000000000005C /* CloudBakeOwnerUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */; };
 		41000000000000000000005D /* CloudBakeOwnerInventoryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */; };
 		41000000000000000000005E /* InventoryListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000066 /* InventoryListViewModelTestSupport.swift */; };
+		41000000000000000000005F /* PhotoPickerImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000067 /* PhotoPickerImageLoader.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -193,7 +194,7 @@
 		42000000000000000000004C /* RecipeImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportView.swift; sourceTree = "<group>"; };
 		42000000000000000000004D /* RecipeForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeForm.swift; sourceTree = "<group>"; };
 		42000000000000000000004E /* OrderPhotoPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoPreviewView.swift; sourceTree = "<group>"; };
-		42000000000000000000004F /* OrderPhotoCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoCameraView.swift; sourceTree = "<group>"; };
+		42000000000000000000004F /* CameraImagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraImagePickerView.swift; sourceTree = "<group>"; };
 		420000000000000000000050 /* OrderForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderForm.swift; sourceTree = "<group>"; };
 		420000000000000000000051 /* OrderSelectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderSelectionViews.swift; sourceTree = "<group>"; };
 		420000000000000000000052 /* OrderDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailView.swift; sourceTree = "<group>"; };
@@ -217,6 +218,7 @@
 		420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerUITestSupport.swift; sourceTree = "<group>"; };
 		420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerInventoryUITests.swift; sourceTree = "<group>"; };
 		420000000000000000000066 /* InventoryListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModelTestSupport.swift; sourceTree = "<group>"; };
+		420000000000000000000067 /* PhotoPickerImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPickerImageLoader.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -271,9 +273,11 @@
 			isa = PBXGroup;
 			children = (
 				420000000000000000000002 /* AppDestination.swift */,
+				42000000000000000000004F /* CameraImagePickerView.swift */,
 				420000000000000000000001 /* CloudBakeOwnerApp.swift */,
 				420000000000000000000026 /* ExpiryReminderScheduler.swift */,
 				420000000000000000000038 /* OrderReminderScheduler.swift */,
+				420000000000000000000067 /* PhotoPickerImageLoader.swift */,
 				420000000000000000000024 /* PurchaseBillTextRecognizer.swift */,
 				420000000000000000000003 /* RootView.swift */,
 			);
@@ -369,7 +373,6 @@
 				420000000000000000000033 /* OrderListView.swift */,
 				420000000000000000000034 /* OrderListViewModel.swift */,
 				420000000000000000000054 /* OrderListPresentation.swift */,
-				42000000000000000000004F /* OrderPhotoCameraView.swift */,
 				42000000000000000000003B /* OrderPhotoFileStore.swift */,
 				42000000000000000000004E /* OrderPhotoPreviewView.swift */,
 				420000000000000000000055 /* OrderPaymentUpdate.swift */,
@@ -722,7 +725,8 @@
 				41000000000000000000002E /* OrderDisplay.swift in Sources */,
 				41000000000000000000004C /* OrderListPresentation.swift in Sources */,
 				41000000000000000000004D /* OrderPaymentUpdate.swift in Sources */,
-				410000000000000000000047 /* OrderPhotoCameraView.swift in Sources */,
+				410000000000000000000047 /* CameraImagePickerView.swift in Sources */,
+				41000000000000000000005F /* PhotoPickerImageLoader.swift in Sources */,
 				410000000000000000000046 /* OrderPhotoPreviewView.swift in Sources */,
 				41000000000000000000004E /* OrderReferenceSelection.swift in Sources */,
 				410000000000000000000036 /* OrderRow.swift in Sources */,

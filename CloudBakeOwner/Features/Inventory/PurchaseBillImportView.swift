@@ -132,7 +132,7 @@ struct PurchaseBillImportView: View {
             isShowingCamera = true
         }
         .fullScreenCover(isPresented: $isShowingCamera) {
-            PurchaseBillCameraView { image in
+            CameraImagePickerView { image in
                 selectedBillImage = image
                 recognizeBillPhoto(image)
             }
@@ -142,12 +142,7 @@ struct PurchaseBillImportView: View {
 
     private func importBillPhoto(_ item: PhotosPickerItem) async {
         do {
-            guard let data = try await item.loadTransferable(type: Data.self),
-                  let image = UIImage(data: data) else {
-                viewModel.errorMessage = "The bill photo could not be read. Try another photo or enter the bill text manually."
-                return
-            }
-
+            let image = try await PhotoPickerImageLoader.image(from: item)
             selectedBillImage = image
             recognizeBillPhoto(image)
         } catch {
@@ -167,53 +162,6 @@ struct PurchaseBillImportView: View {
                 recognizer: recognizer,
                 catalog: catalogProvider()
             )
-        }
-    }
-}
-
-private struct PurchaseBillCameraView: UIViewControllerRepresentable {
-    let onImageCaptured: (UIImage) -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.cameraCaptureMode = .photo
-        picker.delegate = context.coordinator
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onImageCaptured: onImageCaptured, dismiss: dismiss)
-    }
-
-    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        private let onImageCaptured: (UIImage) -> Void
-        private let dismiss: DismissAction
-
-        init(onImageCaptured: @escaping (UIImage) -> Void, dismiss: DismissAction) {
-            self.onImageCaptured = onImageCaptured
-            self.dismiss = dismiss
-        }
-
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-        ) {
-            defer {
-                dismiss()
-            }
-
-            guard let image = info[.originalImage] as? UIImage else {
-                return
-            }
-            onImageCaptured(image)
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            dismiss()
         }
     }
 }
