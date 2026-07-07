@@ -78,14 +78,14 @@ final class CustomerListViewModel: ObservableObject {
     }
 
     func addCustomer() -> Bool {
-        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = TextInputFormatting.trimmed(draftName)
         guard !name.isEmpty else {
             errorMessage = "Customer name is required."
             duplicateWarningMessage = nil
             return false
         }
 
-        let phone = draftPhone.trimmingCharacters(in: .whitespacesAndNewlines)
+        let phone = TextInputFormatting.trimmed(draftPhone)
         guard !phone.isEmpty else {
             errorMessage = "Customer phone is required."
             duplicateWarningMessage = nil
@@ -101,19 +101,19 @@ final class CustomerListViewModel: ObservableObject {
             return false
         }
 
-        let importantDateLabel = draftImportantDateLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        let importantDateLabel = TextInputFormatting.trimmed(draftImportantDateLabel)
         let now = dateProvider()
         let customer = Customer(
             id: idGenerator(),
             name: name,
             phone: phone,
-            email: optionalText(draftEmail),
-            address: optionalText(draftAddress),
-            likes: optionalText(draftLikes),
-            dislikes: optionalText(draftDislikes),
-            allergies: optionalText(draftAllergies),
-            dietaryRestrictions: optionalText(draftDietaryRestrictions),
-            notes: optionalText(draftNotes),
+            email: TextInputFormatting.optionalText(draftEmail),
+            address: TextInputFormatting.optionalText(draftAddress),
+            likes: TextInputFormatting.optionalText(draftLikes),
+            dislikes: TextInputFormatting.optionalText(draftDislikes),
+            allergies: TextInputFormatting.optionalText(draftAllergies),
+            dietaryRestrictions: TextInputFormatting.optionalText(draftDietaryRestrictions),
+            notes: TextInputFormatting.optionalText(draftNotes),
             createdAt: now,
             updatedAt: now
         )
@@ -177,14 +177,14 @@ final class CustomerListViewModel: ObservableObject {
             return false
         }
 
-        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = TextInputFormatting.trimmed(draftName)
         guard !name.isEmpty else {
             errorMessage = "Customer name is required."
             duplicateWarningMessage = nil
             return false
         }
 
-        let phone = draftPhone.trimmingCharacters(in: .whitespacesAndNewlines)
+        let phone = TextInputFormatting.trimmed(draftPhone)
         guard !phone.isEmpty else {
             errorMessage = "Customer phone is required."
             duplicateWarningMessage = nil
@@ -204,13 +204,13 @@ final class CustomerListViewModel: ObservableObject {
             id: editingCustomer.id,
             name: name,
             phone: phone,
-            email: optionalText(draftEmail),
-            address: optionalText(draftAddress),
-            likes: optionalText(draftLikes),
-            dislikes: optionalText(draftDislikes),
-            allergies: optionalText(draftAllergies),
-            dietaryRestrictions: optionalText(draftDietaryRestrictions),
-            notes: optionalText(draftNotes),
+            email: TextInputFormatting.optionalText(draftEmail),
+            address: TextInputFormatting.optionalText(draftAddress),
+            likes: TextInputFormatting.optionalText(draftLikes),
+            dislikes: TextInputFormatting.optionalText(draftDislikes),
+            allergies: TextInputFormatting.optionalText(draftAllergies),
+            dietaryRestrictions: TextInputFormatting.optionalText(draftDietaryRestrictions),
+            notes: TextInputFormatting.optionalText(draftNotes),
             createdAt: editingCustomer.createdAt,
             updatedAt: dateProvider()
         )
@@ -265,10 +265,15 @@ final class CustomerListViewModel: ObservableObject {
                 return false
             }
 
-            return normalizedPhone(customer.phone) == normalizedPhone(phone)
-                || normalizedText(customer.name) == normalizedText(name)
-                || normalizedText(customer.name).contains(normalizedText(name))
-                || normalizedText(name).contains(normalizedText(customer.name))
+            let customerPhone = TextInputFormatting.digitsOnly(customer.phone)
+            let draftPhone = TextInputFormatting.digitsOnly(phone)
+            let customerName = TextInputFormatting.normalizedSearchKey(customer.name)
+            let draftName = TextInputFormatting.normalizedSearchKey(name)
+
+            return customerPhone == draftPhone
+                || customerName == draftName
+                || customerName.contains(draftName)
+                || draftName.contains(customerName)
         }
 
         guard let duplicate else {
@@ -277,7 +282,7 @@ final class CustomerListViewModel: ObservableObject {
             return false
         }
 
-        let warningKey = "\(normalizedText(name))|\(normalizedPhone(phone))"
+        let warningKey = "\(TextInputFormatting.normalizedSearchKey(name))|\(TextInputFormatting.digitsOnly(phone))"
         guard acknowledgedDuplicateKey != warningKey else {
             duplicateWarningMessage = nil
             return false
@@ -307,19 +312,4 @@ final class CustomerListViewModel: ObservableObject {
         acknowledgedDuplicateKey = nil
     }
 
-    private func optionalText(_ text: String) -> String? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
-
-    private func normalizedText(_ text: String) -> String {
-        text
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-            .filter { $0.isLetter || $0.isNumber }
-    }
-
-    private func normalizedPhone(_ phone: String) -> String {
-        phone.filter(\.isNumber)
-    }
 }

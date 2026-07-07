@@ -13,12 +13,12 @@ struct OrderDetailRecipeSection: View {
                         .accessibilityIdentifier("orders.detail.recipeName")
                 }
                 LabeledContent("Recipe Multiplier") {
-                    Text(decimalText(order.recipeScaleMultiplier))
+                    Text(TextInputFormatting.decimalText(order.recipeScaleMultiplier))
                         .accessibilityIdentifier("orders.detail.recipeScaleMultiplier")
                 }
                 LabeledContent("Usage") {
                     if let recipeUsage {
-                        Text("\(recipeUsage.usedAt.formatted(date: .abbreviated, time: .shortened)) at \(decimalText(recipeUsage.recipeScaleMultiplier))x")
+                        Text("\(recipeUsage.usedAt.formatted(date: .abbreviated, time: .shortened)) at \(TextInputFormatting.decimalText(recipeUsage.recipeScaleMultiplier))x")
                             .accessibilityIdentifier("orders.detail.recipeUsage")
                     } else {
                         Text("When Ready")
@@ -88,8 +88,4 @@ struct OrderDetailCakeNotesSection: View {
             }
         }
     }
-}
-
-private func decimalText(_ value: Decimal) -> String {
-    NSDecimalNumber(decimal: value).stringValue
 }

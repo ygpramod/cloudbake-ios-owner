@@ -135,7 +135,7 @@ final class OrderListViewModel: ObservableObject {
         }
 
         draftCustomerName = customer.name
-        if draftDeliveryAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+        if TextInputFormatting.trimmed(draftDeliveryAddress).isEmpty,
            let address = customer.address {
             draftDeliveryAddress = address
         }
@@ -208,11 +208,11 @@ final class OrderListViewModel: ObservableObject {
             status: draftStatus,
             dueAt: draftDueAt,
             fulfillmentType: draftFulfillmentType,
-            deliveryAddress: optionalText(draftDeliveryAddress),
-            cakeNotes: optionalText(draftCakeNotes),
+            deliveryAddress: TextInputFormatting.optionalText(draftDeliveryAddress),
+            cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
             quotedPrice: draft.quotedPrice,
             depositPaid: draft.depositPaid,
-            paymentNotes: optionalText(draftPaymentNotes),
+            paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
             createdAt: now,
             updatedAt: now
         )
@@ -244,15 +244,15 @@ final class OrderListViewModel: ObservableObject {
         draftCustomerName = selectedOrder.customerName
         draftCustomerId = selectedOrder.customerId ?? ""
         draftRecipeId = selectedOrder.recipeId ?? ""
-        draftRecipeScaleMultiplier = decimalText(selectedOrder.recipeScaleMultiplier)
+        draftRecipeScaleMultiplier = TextInputFormatting.decimalText(selectedOrder.recipeScaleMultiplier)
         draftCakeDesignId = selectedOrder.cakeDesignId ?? ""
         draftDueAt = selectedOrder.dueAt
         draftStatus = selectedOrder.status
         draftFulfillmentType = selectedOrder.fulfillmentType
         draftDeliveryAddress = selectedOrder.deliveryAddress ?? ""
         draftCakeNotes = selectedOrder.cakeNotes ?? ""
-        draftQuotedPrice = decimalText(selectedOrder.quotedPrice)
-        draftDepositPaid = decimalText(selectedOrder.depositPaid)
+        draftQuotedPrice = TextInputFormatting.decimalText(selectedOrder.quotedPrice)
+        draftDepositPaid = TextInputFormatting.decimalText(selectedOrder.depositPaid)
         draftPaymentNotes = selectedOrder.paymentNotes ?? ""
         errorMessage = nil
         loadFormReferences()
@@ -294,11 +294,11 @@ final class OrderListViewModel: ObservableObject {
             status: draftStatus,
             dueAt: draftDueAt,
             fulfillmentType: draftFulfillmentType,
-            deliveryAddress: optionalText(draftDeliveryAddress),
-            cakeNotes: optionalText(draftCakeNotes),
+            deliveryAddress: TextInputFormatting.optionalText(draftDeliveryAddress),
+            cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
             quotedPrice: draft.quotedPrice,
             depositPaid: draft.depositPaid,
-            paymentNotes: optionalText(draftPaymentNotes),
+            paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
             createdAt: editingOrder.createdAt,
             updatedAt: now
         )
@@ -493,7 +493,7 @@ final class OrderListViewModel: ObservableObject {
             return false
         }
 
-        let title = draftChecklistItemTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = TextInputFormatting.trimmed(draftChecklistItemTitle)
         guard !title.isEmpty else {
             errorMessage = "Checklist item is required."
             return false
@@ -548,7 +548,7 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func updateChecklistItemTitle(_ item: OrderChecklistItem, title: String) -> Bool {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedTitle = TextInputFormatting.trimmed(title)
         guard !trimmedTitle.isEmpty else {
             errorMessage = "Checklist item is required."
             return false
@@ -617,7 +617,7 @@ final class OrderListViewModel: ObservableObject {
                 orderId: selectedOrder.id,
                 kind: kind,
                 localPhotoPath: relativePath,
-                caption: optionalText(caption ?? ""),
+                caption: TextInputFormatting.optionalText(caption ?? ""),
                 createdAt: now,
                 updatedAt: now
             )
@@ -655,7 +655,7 @@ final class OrderListViewModel: ObservableObject {
             orderId: photo.orderId,
             kind: photo.kind,
             localPhotoPath: photo.localPhotoPath,
-            caption: optionalText(caption),
+            caption: TextInputFormatting.optionalText(caption),
             createdAt: photo.createdAt,
             updatedAt: dateProvider()
         )
@@ -682,7 +682,7 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = "Only final cake photos can be saved as designs."
             return false
         }
-        guard let designName = optionalText(name) else {
+        guard let designName = TextInputFormatting.optionalText(name) else {
             errorMessage = "Design name is required."
             return false
         }
@@ -692,7 +692,7 @@ final class OrderListViewModel: ObservableObject {
         let design = CakeDesign(
             id: designId,
             name: designName,
-            notes: optionalText(notes),
+            notes: TextInputFormatting.optionalText(notes),
             photoReference: photo.localPhotoPath,
             createdAt: now,
             updatedAt: now
@@ -853,13 +853,13 @@ final class OrderListViewModel: ObservableObject {
         quotedPrice: Decimal?,
         depositPaid: Decimal?
     )? {
-        let title = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = TextInputFormatting.trimmed(draftTitle)
         guard !title.isEmpty else {
             errorMessage = "Order title is required."
             return nil
         }
 
-        let customerName = draftCustomerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let customerName = TextInputFormatting.trimmed(draftCustomerName)
         guard !customerName.isEmpty else {
             errorMessage = "Customer name is required."
             return nil
@@ -885,13 +885,8 @@ final class OrderListViewModel: ObservableObject {
         return (title, customerName, recipeScaleMultiplier, quotedPrice, depositPaid)
     }
 
-    private func optionalText(_ value: String) -> String? {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
-
     private func decimalAmount(from text: String, fieldName: String) -> Decimal?? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = TextInputFormatting.trimmed(text)
         guard !trimmed.isEmpty else {
             return .some(nil)
         }
@@ -905,7 +900,7 @@ final class OrderListViewModel: ObservableObject {
     }
 
     private func requiredPositiveDecimalAmount(from text: String, fieldName: String) -> Decimal? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = TextInputFormatting.trimmed(text)
         guard let amount = Decimal(string: trimmed), amount > 0 else {
             errorMessage = "\(fieldName) must be greater than zero."
             return nil
@@ -914,11 +909,4 @@ final class OrderListViewModel: ObservableObject {
         return amount
     }
 
-    private func decimalText(_ value: Decimal?) -> String {
-        guard let value else {
-            return ""
-        }
-
-        return NSDecimalNumber(decimal: value).stringValue
-    }
 }
