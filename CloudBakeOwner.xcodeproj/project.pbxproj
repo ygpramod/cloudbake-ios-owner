@@ -91,6 +91,8 @@
 		410000000000000000000052 /* CustomerContactPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005A /* CustomerContactPicker.swift */; };
 		410000000000000000000053 /* CustomerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005B /* CustomerDetailView.swift */; };
 		410000000000000000000054 /* CustomerForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005C /* CustomerForm.swift */; };
+		410000000000000000000055 /* TextInputFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005D /* TextInputFormatting.swift */; };
+		410000000000000000000056 /* TextInputFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005E /* TextInputFormattingTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -197,6 +199,8 @@
 		42000000000000000000005A /* CustomerContactPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerContactPicker.swift; sourceTree = "<group>"; };
 		42000000000000000000005B /* CustomerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDetailView.swift; sourceTree = "<group>"; };
 		42000000000000000000005C /* CustomerForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerForm.swift; sourceTree = "<group>"; };
+		42000000000000000000005D /* TextInputFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInputFormatting.swift; sourceTree = "<group>"; };
+		42000000000000000000005E /* TextInputFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInputFormattingTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -385,6 +389,7 @@
 				420000000000000000000039 /* OrderStateRules.swift */,
 				420000000000000000000022 /* PurchaseBillDraftParser.swift */,
 				42000000000000000000002B /* RecipeDraftParser.swift */,
+				42000000000000000000005D /* TextInputFormatting.swift */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -408,6 +413,7 @@
 				420000000000000000000018 /* CoreModelsTests.swift */,
 				420000000000000000000023 /* PurchaseBillDraftParserTests.swift */,
 				42000000000000000000002C /* RecipeDraftParserTests.swift */,
+				42000000000000000000005E /* TextInputFormattingTests.swift */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -651,6 +657,7 @@
 				41000000000000000000000D /* CoreModels.swift in Sources */,
 				41000000000000000000000E /* CoreDataRepositories.swift in Sources */,
 				41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */,
+				410000000000000000000055 /* TextInputFormatting.swift in Sources */,
 				410000000000000000000034 /* CustomerConsumerProfile.swift in Sources */,
 				410000000000000000000029 /* CustomerContactImport.swift in Sources */,
 				410000000000000000000052 /* CustomerContactPicker.swift in Sources */,
@@ -714,6 +721,7 @@
 				410000000000000000000018 /* BakingCatalogTests.swift in Sources */,
 				410000000000000000000010 /* CoreModelsTests.swift in Sources */,
 				410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
+				410000000000000000000056 /* TextInputFormattingTests.swift in Sources */,
 				410000000000000000000028 /* CustomerListViewModelTests.swift in Sources */,
 				41000000000000000000002A /* CustomerContactImportTests.swift in Sources */,
 				41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */,

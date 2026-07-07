@@ -67,7 +67,7 @@ enum InventoryStockOperation {
             kind: .adjustment,
             quantity: itemQuantity,
             occurredAt: now,
-            note: optionalText(note),
+            note: TextInputFormatting.optionalText(note),
             createdAt: now,
             updatedAt: now
         )
@@ -103,7 +103,7 @@ enum InventoryStockOperation {
             kind: .consumption,
             quantity: itemQuantity,
             occurredAt: now,
-            note: optionalText(note),
+            note: TextInputFormatting.optionalText(note),
             createdAt: now,
             updatedAt: now
         )
@@ -118,17 +118,12 @@ enum InventoryStockOperation {
     }
 
     private static func positiveQuantity(from text: String) -> Double? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = TextInputFormatting.trimmed(text)
         guard let quantity = Double(trimmed), quantity > 0 else {
             return nil
         }
 
         return quantity
-    }
-
-    private static func optionalText(_ value: String) -> String? {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
     }
 
     private static func copy(

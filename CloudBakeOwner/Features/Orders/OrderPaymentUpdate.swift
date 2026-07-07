@@ -28,7 +28,7 @@ enum OrderPaymentUpdate {
             return .failure(OrderPaymentUpdateError(message: "Add quoted price before recording payment."))
         }
 
-        let trimmed = amountText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = TextInputFormatting.trimmed(amountText)
         guard let amount = Decimal(string: trimmed), amount > 0 else {
             return .failure(OrderPaymentUpdateError(message: "Payment amount must be greater than zero."))
         }
