@@ -200,6 +200,8 @@ The home screen shows compact Today cards, Soon rows for reminders and recent de
 section for all owner workflows, and bottom quick navigation for Home, Orders, Inventory, Recipes,
 and Designs.
 
+CloudBake currently uses light appearance only while the owner app design is hardened for dark mode.
+
 ## Order Workflow
 
 Use Orders to track accepted or draft cake work from enquiry through delivery. `docs/rfc/orders.md`
