@@ -5,7 +5,7 @@ extension CloudBakeOwnerUITests {
         let app = makeApp()
         app.launch()
 
-        app.staticTexts["Recipes"].tap()
+        openDashboardDestination("Recipes", in: app)
         XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["No recipes yet"].waitForExistence(timeout: 5))
 
@@ -26,11 +26,11 @@ extension CloudBakeOwnerUITests {
         let app = makeApp()
         app.launch()
 
-        app.staticTexts["Inventory"].tap()
+        openDashboardDestination("Inventory", in: app)
         addInventoryItem(named: "Flour", currentQuantity: "1000", minimumQuantity: "500", in: app)
-        app.navigationBars.buttons["CloudBake"].tap()
+        returnToDashboard(in: app)
 
-        app.staticTexts["Recipes"].tap()
+        openDashboardDestination("Recipes", in: app)
         XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
         app.buttons["recipes.import"].tap()
         XCTAssertTrue(app.navigationBars["Import Recipe"].waitForExistence(timeout: 5))
@@ -62,11 +62,11 @@ extension CloudBakeOwnerUITests {
         let app = makeApp()
         app.launch()
 
-        app.staticTexts["Inventory"].tap()
+        openDashboardDestination("Inventory", in: app)
         addInventoryItem(named: "Cake flour", currentQuantity: "1000", minimumQuantity: "500", in: app)
-        app.navigationBars.buttons["CloudBake"].tap()
+        returnToDashboard(in: app)
 
-        app.staticTexts["Recipes"].tap()
+        openDashboardDestination("Recipes", in: app)
         addRecipe(named: "Vanilla Sponge", notes: "Book page 12", in: app)
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
             .firstMatch
@@ -92,7 +92,7 @@ extension CloudBakeOwnerUITests {
         let app = makeApp()
         app.launch()
 
-        app.staticTexts["Recipes"].tap()
+        openDashboardDestination("Recipes", in: app)
         addRecipe(named: "Vanilla Sponge", notes: "Book page 12", in: app)
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
             .firstMatch

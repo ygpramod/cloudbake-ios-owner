@@ -7,6 +7,90 @@ extension CloudBakeOwnerUITests {
         return app
     }
 
+    func openDashboardDestination(
+        _ title: String,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let identifier: String
+        switch title {
+        case "Orders":
+            identifier = "dashboard.tab.orders"
+        case "Inventory":
+            identifier = "dashboard.tab.inventory"
+        case "Recipes":
+            identifier = "dashboard.tab.recipes"
+        case "Designs":
+            identifier = "dashboard.soon.designs"
+        case "Customers":
+            identifier = "navigation.customers"
+        case "Settings":
+            identifier = "navigation.settings"
+        default:
+            XCTFail("Unsupported dashboard destination: \(title)", file: file, line: line)
+            return
+        }
+
+        let destinationButton: XCUIElement
+        if title == "Customers" || title == "Settings" {
+            let dashboard = app.scrollViews["screen.dashboard"]
+            for _ in 0..<4 where !app.staticTexts[title].exists {
+                dashboard.swipeUp()
+            }
+            destinationButton = app.staticTexts[title]
+        } else if identifier.hasPrefix("dashboard.tab.") {
+            destinationButton = app.buttons.matching(NSPredicate(format: "label == %@", title)).firstMatch
+        } else {
+            destinationButton = app.buttons[identifier]
+        }
+        XCTAssertTrue(
+            destinationButton.waitForExistence(timeout: 2),
+            "Dashboard destination \(title) did not exist before scrolling.",
+            file: file,
+            line: line
+        )
+        scrollToHittable(destinationButton, in: app, timeout: timeout, file: file, line: line)
+        tapWhenReady(destinationButton, timeout: timeout, file: file, line: line)
+    }
+
+    func assertDashboardVisible(
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertTrue(
+            app.scrollViews["screen.dashboard"].waitForExistence(timeout: timeout),
+            "Dashboard screen was not visible.",
+            file: file,
+            line: line
+        )
+    }
+
+    func assertScreenVisible(
+        _ identifier: String,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let screen = app.descendants(matching: .any)[identifier]
+        XCTAssertTrue(screen.waitForExistence(timeout: timeout), "Screen \(identifier) was not visible.", file: file, line: line)
+    }
+
+    func returnToDashboard(
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let backButton = app.navigationBars.buttons.element(boundBy: 0)
+        tapWhenReady(backButton, timeout: timeout, file: file, line: line)
+        assertDashboardVisible(in: app, timeout: timeout, file: file, line: line)
+    }
+
     func addInventoryItem(
         named name: String,
         currentQuantity: String,

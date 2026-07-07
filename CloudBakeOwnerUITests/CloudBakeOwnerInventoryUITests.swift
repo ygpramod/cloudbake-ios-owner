@@ -5,7 +5,7 @@ extension CloudBakeOwnerUITests {
         let app = makeApp()
         app.launch()
 
-        app.staticTexts["Inventory"].tap()
+        openDashboardDestination("Inventory", in: app)
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
         app.buttons["inventory.add"].tap()
         XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
@@ -25,7 +25,7 @@ extension CloudBakeOwnerUITests {
         let app = makeApp()
         app.launch()
 
-        app.staticTexts["Inventory"].tap()
+        openDashboardDestination("Inventory", in: app)
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
@@ -86,9 +86,9 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.staticTexts["Adjustment"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["+100 g"].waitForExistence(timeout: 5))
         app.buttons["inventory.history.done"].tap()
-        app.navigationBars.buttons["CloudBake"].tap()
+        returnToDashboard(in: app)
 
-        XCTAssertTrue(app.navigationBars["CloudBake"].waitForExistence(timeout: 5))
+        assertDashboardVisible(in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["Low inventory"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Expiring soon"].waitForExistence(timeout: 5))
@@ -99,7 +99,7 @@ extension CloudBakeOwnerUITests {
         let transitionTimeout: TimeInterval = 20
         app.launch()
 
-        tapWhenReady(app.staticTexts["Inventory"], timeout: transitionTimeout)
+        openDashboardDestination("Inventory", in: app, timeout: transitionTimeout)
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
 
         let row = inventoryRow(named: "Cake flour", in: app)
@@ -132,7 +132,7 @@ extension CloudBakeOwnerUITests {
         let app = makeApp()
         app.launch()
 
-        app.staticTexts["Inventory"].tap()
+        openDashboardDestination("Inventory", in: app)
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
         firstEditableInventoryRow(in: app).tap()
         XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
@@ -163,7 +163,7 @@ extension CloudBakeOwnerUITests {
         let app = makeApp()
         app.launch()
 
-        app.staticTexts["Inventory"].tap()
+        openDashboardDestination("Inventory", in: app)
         app.buttons["inventory.purchaseBill.import"].tap()
         XCTAssertTrue(app.navigationBars["Import Bill"].waitForExistence(timeout: 5))
 

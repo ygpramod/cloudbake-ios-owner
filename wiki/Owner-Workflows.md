@@ -190,12 +190,15 @@ Archived items can be restored.
 
 ## Dashboard Workflow
 
-Use the dashboard to quickly see inventory that needs attention.
+Use the dashboard home screen to quickly orient the day, see inventory that needs attention, and
+move into the main owner work areas.
 
 Dashboard low inventory includes items below minimum quantity, items with expired remaining stock,
 and items with remaining stock expiring within one month.
 
-The dashboard is expected to become more useful as orders, reminders, and recipes are added.
+The home screen shows compact Today cards, Soon rows for reminders and recent designs, an Areas
+section for all owner workflows, and bottom quick navigation for Home, Orders, Inventory, Recipes,
+and Designs.
 
 ## Order Workflow
 

@@ -5,7 +5,7 @@ extension CloudBakeOwnerUITests {
         let app = makeApp()
         app.launch()
 
-        app.staticTexts["Customers"].tap()
+        openDashboardDestination("Customers", in: app)
         XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["No customers yet"].waitForExistence(timeout: 5))
 
@@ -35,7 +35,7 @@ extension CloudBakeOwnerUITests {
             throw XCTSkip("Customer split view is only expected on regular-width iPad layouts.")
         }
 
-        app.staticTexts["Customers"].tap()
+        openDashboardDestination("Customers", in: app)
         XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Select a customer"].waitForExistence(timeout: 5))
 
@@ -57,7 +57,7 @@ extension CloudBakeOwnerUITests {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Customers"], timeout: transitionTimeout)
+        openDashboardDestination("Customers", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["customers.add"], timeout: transitionTimeout)
 
@@ -71,7 +71,7 @@ extension CloudBakeOwnerUITests {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Customers"], timeout: transitionTimeout)
+        openDashboardDestination("Customers", in: app, timeout: transitionTimeout)
         addCustomer(named: "Amy", phone: "5550101", in: app)
         tapWhenReady(app.buttons["customers.add"], timeout: transitionTimeout)
         tapWhenReady(app.buttons["Enter Manually"], timeout: transitionTimeout)
@@ -87,7 +87,7 @@ extension CloudBakeOwnerUITests {
         let app = makeApp()
         app.launch()
 
-        app.staticTexts["Customers"].tap()
+        openDashboardDestination("Customers", in: app)
         addCustomer(named: "Amy", phone: "5550101", in: app)
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "customers.item."))
             .firstMatch
