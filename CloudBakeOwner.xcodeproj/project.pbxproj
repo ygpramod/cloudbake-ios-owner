@@ -102,6 +102,8 @@
 		41000000000000000000005D /* CloudBakeOwnerInventoryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */; };
 		41000000000000000000005E /* InventoryListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000066 /* InventoryListViewModelTestSupport.swift */; };
 		41000000000000000000005F /* PhotoPickerImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000067 /* PhotoPickerImageLoader.swift */; };
+		410000000000000000000060 /* CloudBakeOwnerRecipeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000068 /* CloudBakeOwnerRecipeUITests.swift */; };
+		410000000000000000000061 /* CloudBakeOwnerCustomerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000069 /* CloudBakeOwnerCustomerUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -219,6 +221,8 @@
 		420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerInventoryUITests.swift; sourceTree = "<group>"; };
 		420000000000000000000066 /* InventoryListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModelTestSupport.swift; sourceTree = "<group>"; };
 		420000000000000000000067 /* PhotoPickerImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPickerImageLoader.swift; sourceTree = "<group>"; };
+		420000000000000000000068 /* CloudBakeOwnerRecipeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerRecipeUITests.swift; sourceTree = "<group>"; };
+		420000000000000000000069 /* CloudBakeOwnerCustomerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerCustomerUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -519,7 +523,9 @@
 			children = (
 				420000000000000000000007 /* CloudBakeOwnerUITests.swift */,
 				420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */,
+				420000000000000000000069 /* CloudBakeOwnerCustomerUITests.swift */,
 				420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */,
+				420000000000000000000068 /* CloudBakeOwnerRecipeUITests.swift */,
 			);
 			path = CloudBakeOwnerUITests;
 			sourceTree = "<group>";
@@ -775,7 +781,9 @@
 			files = (
 				410000000000000000000007 /* CloudBakeOwnerUITests.swift in Sources */,
 				41000000000000000000005C /* CloudBakeOwnerUITestSupport.swift in Sources */,
+				410000000000000000000061 /* CloudBakeOwnerCustomerUITests.swift in Sources */,
 				41000000000000000000005D /* CloudBakeOwnerInventoryUITests.swift in Sources */,
+				410000000000000000000060 /* CloudBakeOwnerRecipeUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
