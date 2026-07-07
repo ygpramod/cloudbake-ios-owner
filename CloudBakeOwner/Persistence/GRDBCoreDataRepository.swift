@@ -16,7 +16,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     InventoryTransactionRepository,
     InventoryStockBatchRepository,
     PricingRuleRepository {
-    private let writer: any DatabaseWriter
+    let writer: any DatabaseWriter
 
     init(writer: any DatabaseWriter) {
         self.writer = writer
@@ -673,11 +673,11 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         }
     }
 
-    private func arguments(_ values: [(any DatabaseValueConvertible)?]) -> StatementArguments {
+    func arguments(_ values: [(any DatabaseValueConvertible)?]) -> StatementArguments {
         StatementArguments(values)
     }
 
-    private func inventoryItem(from row: Row, unit: InventoryUnit, db: Database) throws -> InventoryItem {
+    func inventoryItem(from row: Row, unit: InventoryUnit, db: Database) throws -> InventoryItem {
         let expiryState = try inventoryExpiryState(in: db, inventoryItemId: row["id"])
         return InventoryItem(
             id: row["id"],
@@ -694,7 +694,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func recipe(from row: Row) -> Recipe {
+    func recipe(from row: Row) -> Recipe {
         Recipe(
             id: row["id"],
             name: row["name"],
@@ -704,7 +704,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func recipeComponent(from row: Row) -> RecipeComponent {
+    func recipeComponent(from row: Row) -> RecipeComponent {
         RecipeComponent(
             id: row["id"],
             recipeId: row["recipe_id"],
@@ -715,7 +715,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func recipeIngredient(from row: Row, unit: InventoryUnit) -> RecipeIngredient {
+    func recipeIngredient(from row: Row, unit: InventoryUnit) -> RecipeIngredient {
         RecipeIngredient(
             id: row["id"],
             componentId: row["component_id"],
@@ -728,7 +728,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func customer(from row: Row) -> Customer {
+    func customer(from row: Row) -> Customer {
         Customer(
             id: row["id"],
             name: row["name"],
@@ -745,7 +745,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func cakeDesign(from row: Row) -> CakeDesign {
+    func cakeDesign(from row: Row) -> CakeDesign {
         CakeDesign(
             id: row["id"],
             name: row["name"],
@@ -756,7 +756,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func customerImportantDate(from row: Row) -> CustomerImportantDate {
+    func customerImportantDate(from row: Row) -> CustomerImportantDate {
         CustomerImportantDate(
             id: row["id"],
             customerId: row["customer_id"],
@@ -767,7 +767,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func order(from row: Row) -> Order {
+    func order(from row: Row) -> Order {
         let status = OrderStatus(rawValue: row["status"] as String) ?? .draft
         let fulfillmentType = OrderFulfillmentType(rawValue: row["fulfillment_type"] as String) ?? .pickup
 
@@ -792,7 +792,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func orderRecipeUsage(from row: Row) -> OrderRecipeUsage {
+    func orderRecipeUsage(from row: Row) -> OrderRecipeUsage {
         OrderRecipeUsage(
             id: row["id"],
             orderId: row["order_id"],
@@ -804,7 +804,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func orderChecklistItem(from row: Row) -> OrderChecklistItem {
+    func orderChecklistItem(from row: Row) -> OrderChecklistItem {
         OrderChecklistItem(
             id: row["id"],
             orderId: row["order_id"],
@@ -816,7 +816,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func orderPhoto(from row: Row) -> OrderPhoto? {
+    func orderPhoto(from row: Row) -> OrderPhoto? {
         guard let kind = OrderPhotoKind(rawValue: row["kind"]) else {
             return nil
         }
@@ -832,7 +832,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func inventoryExpiryState(
+    func inventoryExpiryState(
         in db: Database,
         inventoryItemId: String
     ) throws -> (earliestExpiryAt: Date?, hasExpiredStock: Bool, hasExpiringSoonStock: Bool) {
@@ -883,7 +883,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func inventoryTransaction(from row: Row, kind: InventoryTransactionKind) -> InventoryTransaction {
+    func inventoryTransaction(from row: Row, kind: InventoryTransactionKind) -> InventoryTransaction {
         InventoryTransaction(
             id: row["id"],
             inventoryItemId: row["inventory_item_id"],
@@ -896,7 +896,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func inventoryStockBatch(from row: Row) -> InventoryStockBatch {
+    func inventoryStockBatch(from row: Row) -> InventoryStockBatch {
         InventoryStockBatch(
             id: row["id"],
             inventoryItemId: row["inventory_item_id"],
@@ -907,15 +907,15 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    private func date(_ timeInterval: Double) -> Date {
+    func date(_ timeInterval: Double) -> Date {
         Date(timeIntervalSince1970: timeInterval)
     }
 
-    private func optionalDate(_ timeInterval: Double?) -> Date? {
+    func optionalDate(_ timeInterval: Double?) -> Date? {
         timeInterval.map(Date.init(timeIntervalSince1970:))
     }
 
-    private func optionalDecimal(_ value: String?) -> Decimal? {
+    func optionalDecimal(_ value: String?) -> Decimal? {
         guard let value else {
             return nil
         }
@@ -923,7 +923,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         return Decimal(string: value)
     }
 
-    private func decimalString(_ value: Decimal?) -> String? {
+    func decimalString(_ value: Decimal?) -> String? {
         guard let value else {
             return nil
         }
