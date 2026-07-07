@@ -47,9 +47,11 @@ repository migration is needed.
 copy of the checklist item with the same id, order id, completion state, sort order, and created
 timestamp. The updated timestamp uses the current date provider.
 
-Order detail exposes Edit as a trailing row swipe action next to Delete. Edit opens a small sheet
-with a title field and Save/Cancel actions. The row refreshes from the selected order checklist
-after save.
+Order detail exposes visible Edit and Delete row actions. Edit opens a small sheet with a title
+field and Save/Cancel actions. The row refreshes from the selected order checklist after save.
+
+RFC-0070 replaced the original trailing swipe presentation with visible card-row actions because
+order detail now uses a custom scroll-view layout rather than a native `List`.
 
 ## Testing
 

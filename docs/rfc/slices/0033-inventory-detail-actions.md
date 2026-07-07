@@ -18,10 +18,16 @@ Accepted
 Make common stock actions easy to reach from the inventory item detail screen without cluttering
 the top toolbar.
 
+## Superseding Note
+
+RFC-0070 moved inventory detail stock actions from a top toolbar more menu into visible detail
+action chips below the hero card. The owner-facing capability remains the same, but current UI
+truth should follow RFC-0070.
+
 ## Scope
 
 - Replace the text Edit action in inventory detail with a pencil icon action.
-- Add an inventory detail more menu for:
+- Add an inventory detail action area for:
   - history,
   - use stock,
   - adjust stock.
@@ -38,7 +44,7 @@ the top toolbar.
 ## Requirements
 
 - Inventory detail must expose edit directly from the top toolbar.
-- Inventory detail must expose history, use, and adjust actions from a top toolbar more menu.
+- Inventory detail must expose history, use, and adjust actions from the detail screen.
 - Edit must continue to open item edit mode.
 - History must open stock history for the selected item.
 - Use must open stock consumption for the selected item.
@@ -48,15 +54,8 @@ the top toolbar.
 ## Design
 
 `InventoryItemDetailView` owns local presentation state for the action sheets it can open from
-detail. The toolbar keeps edit as a direct pencil action and groups secondary stock actions under
-a more menu:
-
-- `pencil`,
-- `ellipsis.circle`.
-
-Inside the menu, the owner can choose Adjust Stock, Use Stock, or View History. This keeps the
-inventory list dense and stable, keeps the detail toolbar calm, and still makes item-specific
-actions discoverable after the owner taps into the item.
+detail. The current RFC-0070 UI keeps edit as a direct pencil action and exposes secondary stock
+actions as visible detail action chips for Adjust Stock, Use Stock, and View History.
 
 RFC-0069 later moved active inventory rows to card-based styling. The same list stock actions are
 now visible row action chips rather than list-row swipe actions.
@@ -68,9 +67,9 @@ Acceptance coverage:
 - owner creates inventory,
 - opens inventory item detail,
 - sees edit and more actions,
-- opens Adjust Stock from the more menu,
-- opens Use Stock from the more menu,
-- opens Stock History from the more menu.
+- opens Adjust Stock from inventory detail,
+- opens Use Stock from inventory detail,
+- opens Stock History from inventory detail.
 
 ## Documentation
 

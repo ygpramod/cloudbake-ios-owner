@@ -46,8 +46,10 @@ Out of scope:
 `OrderPhotoPreviewView` with `fullScreenCover`. The preview uses the existing
 `OrderListViewModel.orderPhotoURL(_:)` path, so no new persistence behavior is introduced.
 
-The row itself becomes a plain-styled button. This keeps the existing list layout and swipe-delete
-behavior while making the whole photo row an inspection target.
+The row itself becomes a plain-styled button so the whole photo row is an inspection target.
+
+RFC-0070 later moved order detail to card-based styling and replaced swipe-delete with a visible
+delete row action.
 
 The preview uses a dark background so cake photos and customer references can be inspected without
 the surrounding form competing for attention. If the saved image file cannot be opened, the preview

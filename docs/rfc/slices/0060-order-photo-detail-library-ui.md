@@ -66,8 +66,11 @@ Saved photo rows use the view model's app-local file URL to render a compact thu
 is missing or not renderable, the row still shows a photo placeholder so the metadata remains
 visible and deletable.
 
-Deletion uses a trailing swipe action and calls `OrderListViewModel.deleteOrderPhoto(_:)`, which
+Deletion uses a visible row action and calls `OrderListViewModel.deleteOrderPhoto(_:)`, which
 removes metadata and requests local file deletion.
+
+RFC-0070 replaced the original trailing swipe presentation with visible card-row actions because
+order detail now uses a custom scroll-view layout rather than a native `List`.
 
 ## Testing
 

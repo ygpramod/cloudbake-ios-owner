@@ -29,7 +29,7 @@ The app currently supports:
 21. stock batch deletion from inventory detail,
 22. oldest-expiry-first stock consumption,
 23. compatible unit conversion for stock adjustment and stock usage,
-24. inventory detail pencil edit and more-menu actions for history, use, and adjust,
+24. inventory detail pencil edit and visible action chips for history, use, and adjust,
 25. bundled baking catalog config for future purchase bill filtering,
 26. purchase bill text parsing into draft inventory candidates,
 27. local Apple Vision OCR service for purchase bill text recognition,
@@ -100,7 +100,9 @@ The app currently supports:
 86. saved order photo deletion from order detail,
 87. shared CloudBake visual styling for second-level Orders, Inventory, Recipes, Customers, Designs,
     and Settings screens,
-88. unit, integration, and feature-sharded acceptance test lanes.
+88. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,
+89. centered CloudBake confirmation popups for order status and payment actions,
+90. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 

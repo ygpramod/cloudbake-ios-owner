@@ -89,8 +89,8 @@ The detail view shows:
 
 Use the expiry table to see how much stock expires on each date.
 
-Tap a stock batch row from the expiry table to correct that batch's quantity or expiry date. Swipe a
-stock batch row to delete a mistaken batch.
+Tap a stock batch row from the expiry table to correct that batch's quantity or expiry date. Use
+the visible delete action to delete a mistaken batch.
 
 ## Duplicate Warning
 
