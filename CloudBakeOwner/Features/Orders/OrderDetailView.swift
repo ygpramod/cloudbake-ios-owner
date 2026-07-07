@@ -102,70 +102,22 @@ struct OrderDetailView: View {
                     isSelectingPaymentStatus = true
                 }
 
-                Section("Checklist") {
-                    if viewModel.selectedOrderChecklistItems.isEmpty {
-                        Text("No checklist items")
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("orders.detail.checklist.empty")
-                    } else {
-                        ForEach(viewModel.selectedOrderChecklistItems, id: \.id) { item in
-                            HStack(spacing: 10) {
-                                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(item.isCompleted ? .green : .secondary)
-                                Text(item.title)
-                                    .strikethrough(item.isCompleted)
-                                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
-                                Spacer()
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                _ = viewModel.toggleChecklistItem(item)
-                            }
-                            .accessibilityElement(children: .combine)
-                            .accessibilityAddTraits(.isButton)
-                            .accessibilityIdentifier("orders.detail.checklist.item.\(item.id)")
-                            .accessibilityLabel(item.title)
-                            .accessibilityValue(item.isCompleted ? "Complete" : "Incomplete")
-                            .accessibilityAction {
-                                _ = viewModel.toggleChecklistItem(item)
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button {
-                                    editingChecklistItem = item
-                                    editedChecklistItemTitle = item.title
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                .tint(.blue)
-                                .accessibilityIdentifier("orders.detail.checklist.edit.\(item.id)")
-
-                                Button(role: .destructive) {
-                                    _ = viewModel.deleteChecklistItem(item)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                                .accessibilityIdentifier("orders.detail.checklist.delete.\(item.id)")
-                            }
-                        }
+                OrderDetailChecklistSection(
+                    draftTitle: $viewModel.draftChecklistItemTitle,
+                    items: viewModel.selectedOrderChecklistItems,
+                    isTitleFocused: $isChecklistTitleFocused,
+                    onAdd: viewModel.addChecklistItemToSelectedOrder,
+                    onToggle: { item in
+                        _ = viewModel.toggleChecklistItem(item)
+                    },
+                    onEdit: { item in
+                        editingChecklistItem = item
+                        editedChecklistItemTitle = item.title
+                    },
+                    onDelete: { item in
+                        _ = viewModel.deleteChecklistItem(item)
                     }
-
-                    HStack {
-                        TextField("Add checklist item", text: $viewModel.draftChecklistItemTitle)
-                            .textInputAutocapitalization(.sentences)
-                            .focused($isChecklistTitleFocused)
-                            .accessibilityIdentifier("orders.detail.checklist.title")
-
-                        Button {
-                            if viewModel.addChecklistItemToSelectedOrder() {
-                                isChecklistTitleFocused = false
-                            }
-                        } label: {
-                            Label("Add Checklist Item", systemImage: "plus.circle")
-                                .labelStyle(.iconOnly)
-                        }
-                        .accessibilityIdentifier("orders.detail.checklist.add")
-                    }
-                }
+                )
 
                 Section("Reminders") {
                     if let reminder = viewModel.nextReminder(for: order) {
@@ -197,39 +149,11 @@ struct OrderDetailView: View {
             )
         ) {
             NavigationStack {
-                Form {
-                    Section("Checklist Item") {
-                        TextField("Title", text: $editedChecklistItemTitle)
-                            .textInputAutocapitalization(.sentences)
-                            .accessibilityIdentifier("orders.detail.checklist.edit.title")
-                    }
-                }
-                .navigationTitle("Edit Checklist Item")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") {
-                            editingChecklistItem = nil
-                            editedChecklistItemTitle = ""
-                        }
-                        .accessibilityIdentifier("orders.detail.checklist.edit.cancel")
-                    }
-
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
-                            guard let editingChecklistItem else {
-                                return
-                            }
-                            if viewModel.updateChecklistItemTitle(
-                                editingChecklistItem,
-                                title: editedChecklistItemTitle
-                            ) {
-                                self.editingChecklistItem = nil
-                                editedChecklistItemTitle = ""
-                            }
-                        }
-                        .accessibilityIdentifier("orders.detail.checklist.edit.save")
-                    }
-                }
+                OrderChecklistEditForm(
+                    title: $editedChecklistItemTitle,
+                    onCancel: cancelChecklistEdit,
+                    onSave: saveChecklistEdit
+                )
             }
         }
         .onChange(of: selectedCustomerReferencePhotoItem) { _, item in
@@ -437,6 +361,25 @@ struct OrderDetailView: View {
         }
 
         return viewModel.saveEditedOrder()
+    }
+
+    private func cancelChecklistEdit() {
+        editingChecklistItem = nil
+        editedChecklistItemTitle = ""
+    }
+
+    private func saveChecklistEdit() {
+        guard let editingChecklistItem else {
+            return
+        }
+
+        if viewModel.updateChecklistItemTitle(
+            editingChecklistItem,
+            title: editedChecklistItemTitle
+        ) {
+            self.editingChecklistItem = nil
+            editedChecklistItemTitle = ""
+        }
     }
 
     private func saveCameraPhoto(_ image: UIImage, kind: OrderPhotoKind) {

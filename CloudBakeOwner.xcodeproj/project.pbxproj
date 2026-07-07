@@ -81,6 +81,7 @@
 		410000000000000000000048 /* OrderForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000050 /* OrderForm.swift */; };
 		410000000000000000000049 /* OrderSelectionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000051 /* OrderSelectionViews.swift */; };
 		41000000000000000000004A /* OrderDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000052 /* OrderDetailView.swift */; };
+		41000000000000000000004B /* OrderDetailChecklistSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000053 /* OrderDetailChecklistSection.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -177,6 +178,7 @@
 		420000000000000000000050 /* OrderForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderForm.swift; sourceTree = "<group>"; };
 		420000000000000000000051 /* OrderSelectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderSelectionViews.swift; sourceTree = "<group>"; };
 		420000000000000000000052 /* OrderDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailView.swift; sourceTree = "<group>"; };
+		420000000000000000000053 /* OrderDetailChecklistSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailChecklistSection.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -313,6 +315,7 @@
 			isa = PBXGroup;
 			children = (
 				42000000000000000000003D /* OrderCenteredPopup.swift */,
+				420000000000000000000053 /* OrderDetailChecklistSection.swift */,
 				420000000000000000000041 /* OrderDetailCustomerSections.swift */,
 				420000000000000000000040 /* OrderDetailPaymentSection.swift */,
 				42000000000000000000003F /* OrderDetailPhotosSection.swift */,
@@ -639,6 +642,7 @@
 				41000000000000000000002C /* OrderListViewModel.swift in Sources */,
 				410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */,
 				410000000000000000000035 /* OrderCenteredPopup.swift in Sources */,
+				41000000000000000000004B /* OrderDetailChecklistSection.swift in Sources */,
 				410000000000000000000039 /* OrderDetailCustomerSections.swift in Sources */,
 				410000000000000000000038 /* OrderDetailPaymentSection.swift in Sources */,
 				410000000000000000000037 /* OrderDetailPhotosSection.swift in Sources */,
