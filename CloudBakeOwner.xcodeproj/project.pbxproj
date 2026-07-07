@@ -116,6 +116,8 @@
 		41000000000000000000006B /* RecipeImportDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000073 /* RecipeImportDraftValidationTests.swift */; };
 		41000000000000000000006C /* InventoryStockOperationViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000074 /* InventoryStockOperationViewModelTests.swift */; };
 		41000000000000000000006D /* OrderChecklistViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000075 /* OrderChecklistViewModelTests.swift */; };
+		41000000000000000000006E /* RecipeListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000076 /* RecipeListViewModelTestSupport.swift */; };
+		41000000000000000000006F /* RecipeImportViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000077 /* RecipeImportViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -247,6 +249,8 @@
 		420000000000000000000073 /* RecipeImportDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportDraftValidationTests.swift; sourceTree = "<group>"; };
 		420000000000000000000074 /* InventoryStockOperationViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockOperationViewModelTests.swift; sourceTree = "<group>"; };
 		420000000000000000000075 /* OrderChecklistViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderChecklistViewModelTests.swift; sourceTree = "<group>"; };
+		420000000000000000000076 /* RecipeListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeListViewModelTestSupport.swift; sourceTree = "<group>"; };
+		420000000000000000000077 /* RecipeImportViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -527,7 +531,9 @@
 			children = (
 				420000000000000000000071 /* RecipeDraftValidationTests.swift */,
 				420000000000000000000073 /* RecipeImportDraftValidationTests.swift */,
+				420000000000000000000077 /* RecipeImportViewModelTests.swift */,
 				42000000000000000000002A /* RecipeListViewModelTests.swift */,
+				420000000000000000000076 /* RecipeListViewModelTestSupport.swift */,
 			);
 			path = Recipes;
 			sourceTree = "<group>";
@@ -819,7 +825,9 @@
 				410000000000000000000024 /* RecipeDraftParserTests.swift in Sources */,
 				410000000000000000000069 /* RecipeDraftValidationTests.swift in Sources */,
 				41000000000000000000006B /* RecipeImportDraftValidationTests.swift in Sources */,
+				41000000000000000000006F /* RecipeImportViewModelTests.swift in Sources */,
 				410000000000000000000022 /* RecipeListViewModelTests.swift in Sources */,
+				41000000000000000000006E /* RecipeListViewModelTestSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
