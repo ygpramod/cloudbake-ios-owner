@@ -153,7 +153,8 @@ private struct LowInventoryMetricCard: View {
             DashboardMetricCard(
                 title: "Low inventory",
                 count: "\(viewModel.lowInventoryItems.count)",
-                detail: lowInventoryDetail,
+                detail: lowInventoryPrimaryDetail,
+                secondaryDetail: lowInventorySecondaryDetail,
                 systemImage: "shippingbox",
                 tint: .cloudBakeOrange,
                 artworkSystemImage: "shippingbox"
@@ -162,7 +163,7 @@ private struct LowInventoryMetricCard: View {
         }
     }
 
-    private var lowInventoryDetail: String {
+    private var lowInventoryPrimaryDetail: String {
         guard let firstItem = viewModel.displayedLowInventoryItems.first else {
             return "No alerts yet"
         }
@@ -175,6 +176,17 @@ private struct LowInventoryMetricCard: View {
             return "\(firstItem.name) and more"
         }
 
+        return firstItem.name
+    }
+
+    private var lowInventorySecondaryDetail: String? {
+        guard viewModel.additionalLowInventoryCount == 0,
+              viewModel.displayedLowInventoryItems.count == 1,
+              let firstItem = viewModel.displayedLowInventoryItems.first
+        else {
+            return nil
+        }
+
         return firstItem.lowInventoryDetail
     }
 }
@@ -183,9 +195,28 @@ private struct DashboardMetricCard: View {
     let title: String
     let count: String
     let detail: String
+    let secondaryDetail: String?
     let systemImage: String
     let tint: Color
     let artworkSystemImage: String
+
+    init(
+        title: String,
+        count: String,
+        detail: String,
+        secondaryDetail: String? = nil,
+        systemImage: String,
+        tint: Color,
+        artworkSystemImage: String
+    ) {
+        self.title = title
+        self.count = count
+        self.detail = detail
+        self.secondaryDetail = secondaryDetail
+        self.systemImage = systemImage
+        self.tint = tint
+        self.artworkSystemImage = artworkSystemImage
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -213,8 +244,16 @@ private struct DashboardMetricCard: View {
                 Text(detail)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .minimumScaleFactor(0.82)
+
+                if let secondaryDetail {
+                    Text(secondaryDetail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                }
             }
         }
         .frame(maxWidth: .infinity, minHeight: 178, alignment: .leading)
