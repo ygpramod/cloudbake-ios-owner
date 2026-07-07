@@ -118,6 +118,7 @@
 		41000000000000000000006D /* OrderChecklistViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000075 /* OrderChecklistViewModelTests.swift */; };
 		41000000000000000000006E /* RecipeListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000076 /* RecipeListViewModelTestSupport.swift */; };
 		41000000000000000000006F /* RecipeImportViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000077 /* RecipeImportViewModelTests.swift */; };
+		410000000000000000000070 /* InventoryBatchEditingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000078 /* InventoryBatchEditingViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -251,6 +252,7 @@
 		420000000000000000000075 /* OrderChecklistViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderChecklistViewModelTests.swift; sourceTree = "<group>"; };
 		420000000000000000000076 /* RecipeListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeListViewModelTestSupport.swift; sourceTree = "<group>"; };
 		420000000000000000000077 /* RecipeImportViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportViewModelTests.swift; sourceTree = "<group>"; };
+		420000000000000000000078 /* InventoryBatchEditingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryBatchEditingViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -519,6 +521,7 @@
 			isa = PBXGroup;
 			children = (
 				42000000000000000000001C /* InventoryListViewModelTests.swift */,
+				420000000000000000000078 /* InventoryBatchEditingViewModelTests.swift */,
 				420000000000000000000066 /* InventoryListViewModelTestSupport.swift */,
 				42000000000000000000006F /* InventoryPurchaseBillViewModelTests.swift */,
 				420000000000000000000074 /* InventoryStockOperationViewModelTests.swift */,
@@ -811,6 +814,7 @@
 				41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */,
 				410000000000000000000032 /* OrderReminderSchedulerTests.swift in Sources */,
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
+				410000000000000000000070 /* InventoryBatchEditingViewModelTests.swift in Sources */,
 				41000000000000000000005E /* InventoryListViewModelTestSupport.swift in Sources */,
 				410000000000000000000067 /* InventoryPurchaseBillViewModelTests.swift in Sources */,
 				41000000000000000000006C /* InventoryStockOperationViewModelTests.swift in Sources */,
