@@ -86,6 +86,7 @@
 		41000000000000000000004D /* OrderPaymentUpdate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000055 /* OrderPaymentUpdate.swift */; };
 		41000000000000000000004E /* OrderReferenceSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000056 /* OrderReferenceSelection.swift */; };
 		41000000000000000000004F /* InventoryDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000057 /* InventoryDraftValidation.swift */; };
+		410000000000000000000050 /* InventoryStockOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000058 /* InventoryStockOperation.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -187,6 +188,7 @@
 		420000000000000000000055 /* OrderPaymentUpdate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPaymentUpdate.swift; sourceTree = "<group>"; };
 		420000000000000000000056 /* OrderReferenceSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderReferenceSelection.swift; sourceTree = "<group>"; };
 		420000000000000000000057 /* InventoryDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryDraftValidation.swift; sourceTree = "<group>"; };
+		420000000000000000000058 /* InventoryStockOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockOperation.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -291,6 +293,7 @@
 				42000000000000000000001A /* InventoryListView.swift */,
 				42000000000000000000001B /* InventoryListViewModel.swift */,
 				420000000000000000000043 /* InventoryItemRow.swift */,
+				420000000000000000000058 /* InventoryStockOperation.swift */,
 				420000000000000000000047 /* InventoryStockForms.swift */,
 				420000000000000000000048 /* PurchaseBillImportView.swift */,
 			);
@@ -649,6 +652,7 @@
 				410000000000000000000012 /* InventoryListView.swift in Sources */,
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
 				41000000000000000000003B /* InventoryItemRow.swift in Sources */,
+				410000000000000000000050 /* InventoryStockOperation.swift in Sources */,
 				41000000000000000000003F /* InventoryStockForms.swift in Sources */,
 				410000000000000000000040 /* PurchaseBillImportView.swift in Sources */,
 				41000000000000000000002B /* OrderListView.swift in Sources */,
