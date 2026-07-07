@@ -9,7 +9,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let app = makeApp()
         app.launch()
 
-        XCTAssertTrue(app.navigationBars["CloudBake"].waitForExistence(timeout: 5))
+        assertDashboardVisible(in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["Upcoming orders"].exists)
         XCTAssertTrue(app.staticTexts["Low inventory"].exists)
     }
@@ -19,14 +19,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         for title in ["Orders", "Inventory", "Recipes", "Designs", "Customers", "Settings"] {
-            let navigationLink = app.staticTexts[title]
-            if !navigationLink.waitForExistence(timeout: 2) {
-                app.swipeUp()
-            }
-            XCTAssertTrue(navigationLink.waitForExistence(timeout: 5), "Missing navigation link for \(title)")
-            navigationLink.tap()
-            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), "Missing screen for \(title)")
-            app.navigationBars.buttons["CloudBake"].tap()
+            openDashboardDestination(title, in: app)
+            assertScreenVisible("screen.\(title.lowercased())", in: app, timeout: 5)
+            returnToDashboard(in: app)
         }
     }
 
@@ -35,7 +30,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"])
+        openDashboardDestination("Orders", in: app)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["No orders yet"].waitForExistence(timeout: transitionTimeout))
 
@@ -51,7 +46,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"])
+        openDashboardDestination("Orders", in: app)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
 
         addOrder(
@@ -87,7 +82,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         addOrder(
             named: "Payment Vanilla",
@@ -133,7 +128,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_SEED_ORDER_REMINDER_FIXTURE"] = "1"
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"])
+        openDashboardDestination("Orders", in: app)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
 
         XCTAssertFalse(app.staticTexts["orders.remindersDue.header"].exists)
@@ -157,7 +152,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"])
+        openDashboardDestination("Orders", in: app)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
@@ -197,7 +192,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
@@ -267,7 +262,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] = "1"
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
 
         let orderRow = app.buttons.matching(
@@ -364,11 +359,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Customers"])
+        openDashboardDestination("Customers", in: app)
         addCustomer(named: "Amy", phone: "5550101", in: app)
-        app.navigationBars.buttons["CloudBake"].tap()
+        returnToDashboard(in: app)
 
-        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
@@ -408,11 +403,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 25
         app.launch()
 
-        tapWhenReady(app.staticTexts["Recipes"], timeout: transitionTimeout)
+        openDashboardDestination("Recipes", in: app, timeout: transitionTimeout)
         addRecipe(named: "Vanilla Sponge", notes: "Birthday base", in: app)
-        tapWhenReady(app.navigationBars.buttons["CloudBake"], timeout: transitionTimeout)
+        returnToDashboard(in: app, timeout: transitionTimeout)
 
-        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
@@ -467,7 +462,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] = "1"
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
@@ -525,11 +520,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Inventory"], timeout: transitionTimeout)
+        openDashboardDestination("Inventory", in: app, timeout: transitionTimeout)
         addInventoryItem(named: "Cake flour", currentQuantity: "1000", minimumQuantity: "500", in: app)
-        app.navigationBars.buttons["CloudBake"].tap()
+        returnToDashboard(in: app)
 
-        tapWhenReady(app.staticTexts["Recipes"], timeout: transitionTimeout)
+        openDashboardDestination("Recipes", in: app, timeout: transitionTimeout)
         addRecipe(named: "Vanilla Sponge", notes: "Birthday base", in: app)
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
             .firstMatch
@@ -542,9 +537,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.buttons["recipes.ingredient.save"].tap()
         XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: transitionTimeout))
         app.buttons["recipes.detail.done"].tap()
-        app.navigationBars.buttons["CloudBake"].tap()
+        returnToDashboard(in: app)
 
-        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
@@ -593,9 +588,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(readyStatus.waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(readyStatus.label.contains("Ready"))
         app.buttons["orders.detail.done"].tap()
-        app.navigationBars.buttons["CloudBake"].tap()
+        returnToDashboard(in: app)
 
-        tapWhenReady(app.staticTexts["Inventory"], timeout: transitionTimeout)
+        openDashboardDestination("Inventory", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["Current Quantity: 500 g"].waitForExistence(timeout: transitionTimeout))
     }
 
@@ -604,7 +599,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"])
+        openDashboardDestination("Orders", in: app)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
@@ -628,7 +623,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         addOrder(named: "Completed Birthday", notes: "Boxed", customerName: "Amy", in: app)
 
@@ -669,7 +664,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         addOrder(named: "Cancelled Birthday", notes: "Customer changed date", customerName: "Amy", in: app)
 
@@ -720,7 +715,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
             throw XCTSkip("Order split view is only expected on regular-width iPad layouts.")
         }
 
-        tapWhenReady(app.staticTexts["Orders"], timeout: transitionTimeout)
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["Select an order"].waitForExistence(timeout: transitionTimeout))
 

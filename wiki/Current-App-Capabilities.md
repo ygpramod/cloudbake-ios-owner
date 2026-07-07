@@ -7,7 +7,7 @@ This page lists what the app currently supports. It should stay factual and prod
 The app currently supports:
 
 1. native iPhone and iPad app shell,
-2. dashboard navigation,
+2. visual dashboard home screen with Today cards, Soon rows, Areas navigation, and bottom quick navigation,
 3. inventory navigation,
 4. local SQLite persistence,
 5. inventory item creation,
