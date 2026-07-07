@@ -440,24 +440,11 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func markOrderPaid(_ order: Order) -> Bool {
-        guard let quotedPrice = order.quotedPrice else {
-            errorMessage = "Add quoted price before recording payment."
-            return false
-        }
-
-        let updatedOrder = copy(
-            order,
-            depositPaid: quotedPrice,
-            updatedAt: dateProvider()
-        )
-
-        do {
-            try repository.save(updatedOrder)
-            refreshAfterSavingOrder(updatedOrder)
-            errorMessage = nil
-            return true
-        } catch {
-            errorMessage = "Payment could not be updated."
+        switch OrderPaymentUpdate.markingPaid(order, updatedAt: dateProvider()) {
+        case .success(let updatedOrder):
+            return savePaymentUpdate(updatedOrder)
+        case .failure(let error):
+            errorMessage = error.message
             return false
         }
     }
@@ -472,30 +459,20 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func addPayment(to order: Order, amountText: String) -> Bool {
-        guard let quotedPrice = order.quotedPrice else {
-            errorMessage = "Add quoted price before recording payment."
-            return false
-        }
-
-        let trimmed = amountText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let amount = Decimal(string: trimmed), amount > 0 else {
-            errorMessage = "Payment amount must be greater than zero."
-            return false
-        }
-
-        let existingPaid = order.depositPaid ?? 0
-        let updatedPaid = existingPaid + amount
-        guard updatedPaid <= quotedPrice else {
-            errorMessage = "Payment received cannot be more than balance due."
-            return false
-        }
-
-        let updatedOrder = copy(
-            order,
-            depositPaid: updatedPaid,
+        switch OrderPaymentUpdate.addingPayment(
+            amountText,
+            to: order,
             updatedAt: dateProvider()
-        )
+        ) {
+        case .success(let updatedOrder):
+            return savePaymentUpdate(updatedOrder)
+        case .failure(let error):
+            errorMessage = error.message
+            return false
+        }
+    }
 
+    private func savePaymentUpdate(_ updatedOrder: Order) -> Bool {
         do {
             try repository.save(updatedOrder)
             refreshAfterSavingOrder(updatedOrder)
