@@ -2,7 +2,7 @@ import XCTest
 @testable import CloudBakeOwner
 
 @MainActor
-extension OrderListViewModelTests {
+final class OrderPhotoViewModelTests: XCTestCase {
     func testBeginViewingOrderLoadsOrderPhotosGroupedByKind() {
         let repository = FakeOrderRepository()
         let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))

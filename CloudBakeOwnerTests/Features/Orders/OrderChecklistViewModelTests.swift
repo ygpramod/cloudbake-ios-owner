@@ -5,7 +5,7 @@ import XCTest
 final class OrderChecklistViewModelTests: XCTestCase {
     func testBeginViewingOrderLoadsChecklistItems() {
         let repository = FakeOrderRepository()
-        let order = makeChecklistOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
         let checklistItem = makeChecklistItem(id: "checklist-crumb-coat", orderId: order.id, title: "Crumb coat")
         repository.checklistItems = [checklistItem]
         let viewModel = OrderListViewModel(repository: repository)
@@ -18,7 +18,7 @@ final class OrderChecklistViewModelTests: XCTestCase {
     func testAddChecklistItemToSelectedOrderPersistsTrimmedTitle() {
         let repository = FakeOrderRepository()
         let now = Date(timeIntervalSince1970: 1_800_080_000)
-        let order = makeChecklistOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
         repository.checklistItems = [
             makeChecklistItem(id: "checklist-existing", orderId: order.id, title: "Bake sponge", sortOrder: 0)
         ]
@@ -51,7 +51,7 @@ final class OrderChecklistViewModelTests: XCTestCase {
     func testToggleChecklistItemUpdatesCompletionState() {
         let repository = FakeOrderRepository()
         let now = Date(timeIntervalSince1970: 1_800_080_000)
-        let order = makeChecklistOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
         let checklistItem = makeChecklistItem(id: "checklist-bake", orderId: order.id, title: "Bake sponge")
         repository.checklistItems = [checklistItem]
         let viewModel = OrderListViewModel(repository: repository, dateProvider: { now })
@@ -65,7 +65,7 @@ final class OrderChecklistViewModelTests: XCTestCase {
 
     func testToggleChecklistItemPreservesEntryOrder() {
         let repository = FakeOrderRepository()
-        let order = makeChecklistOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
         let firstItem = makeChecklistItem(id: "checklist-first", orderId: order.id, title: "Bake sponge", sortOrder: 0)
         let secondItem = makeChecklistItem(id: "checklist-second", orderId: order.id, title: "Crumb coat", sortOrder: 1)
         repository.checklistItems = [secondItem, firstItem]
@@ -80,7 +80,7 @@ final class OrderChecklistViewModelTests: XCTestCase {
     func testUpdateChecklistItemTitlePersistsTrimmedTitleAndPreservesState() {
         let repository = FakeOrderRepository()
         let now = Date(timeIntervalSince1970: 1_800_080_000)
-        let order = makeChecklistOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
         let item = makeChecklistItem(
             id: "checklist-first",
             orderId: order.id,
@@ -105,7 +105,7 @@ final class OrderChecklistViewModelTests: XCTestCase {
 
     func testUpdateChecklistItemTitleRejectsBlankTitle() {
         let repository = FakeOrderRepository()
-        let order = makeChecklistOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
         let item = makeChecklistItem(id: "checklist-first", orderId: order.id, title: "Crumb coat")
         repository.checklistItems = [item]
         let viewModel = OrderListViewModel(repository: repository)
@@ -119,7 +119,7 @@ final class OrderChecklistViewModelTests: XCTestCase {
 
     func testDeleteChecklistItemRemovesItFromSelectedOrder() {
         let repository = FakeOrderRepository()
-        let order = makeChecklistOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
         let firstItem = makeChecklistItem(id: "checklist-first", orderId: order.id, title: "Bake sponge", sortOrder: 0)
         let secondItem = makeChecklistItem(id: "checklist-second", orderId: order.id, title: "Crumb coat", sortOrder: 1)
         repository.checklistItems = [firstItem, secondItem]
@@ -131,47 +131,4 @@ final class OrderChecklistViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedOrderChecklistItems, [secondItem])
         XCTAssertEqual(repository.checklistItems, [secondItem])
     }
-}
-
-private func makeChecklistOrder(
-    id: String,
-    dueAt: Date,
-    createdAt: Date = Date(timeIntervalSince1970: 1_800_060_000)
-) -> Order {
-    return Order(
-        id: id,
-        customerId: nil,
-        cakeDesignId: nil,
-        recipeId: nil,
-        title: "Vanilla Birthday",
-        customerName: "Amy",
-        status: .draft,
-        dueAt: dueAt,
-        fulfillmentType: .pickup,
-        deliveryAddress: nil,
-        cakeNotes: nil,
-        quotedPrice: nil,
-        depositPaid: nil,
-        createdAt: createdAt,
-        updatedAt: createdAt
-    )
-}
-
-private func makeChecklistItem(
-    id: String,
-    orderId: String,
-    title: String,
-    isCompleted: Bool = false,
-    sortOrder: Int = 0
-) -> OrderChecklistItem {
-    let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
-    return OrderChecklistItem(
-        id: id,
-        orderId: orderId,
-        title: title,
-        isCompleted: isCompleted,
-        sortOrder: sortOrder,
-        createdAt: timestamp,
-        updatedAt: timestamp
-    )
 }

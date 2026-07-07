@@ -2,7 +2,7 @@ import XCTest
 @testable import CloudBakeOwner
 
 @MainActor
-extension OrderListViewModelTests {
+final class OrderPaymentViewModelTests: XCTestCase {
     func testMarkSelectedOrderPaidSetsDepositToQuotedPrice() {
         let repository = FakeOrderRepository()
         let updatedAt = Date(timeIntervalSince1970: 1_800_080_000)
