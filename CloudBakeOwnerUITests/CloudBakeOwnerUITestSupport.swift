@@ -179,10 +179,9 @@ extension CloudBakeOwnerUITests {
     }
 
     func adjustFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
-        let row = firstEditableInventoryRow(in: app)
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
-        row.swipeRight()
-        app.buttons["Adjust"].tap()
+        let adjustButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.adjust.")).firstMatch
+        XCTAssertTrue(adjustButton.waitForExistence(timeout: 5))
+        adjustButton.tap()
         XCTAssertTrue(app.navigationBars["Adjust Stock"].waitForExistence(timeout: 5))
         app.textFields["inventory.adjust.quantity"].tap()
         app.textFields["inventory.adjust.quantity"].typeText(quantity)
@@ -191,10 +190,9 @@ extension CloudBakeOwnerUITests {
     }
 
     func consumeFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
-        let row = firstEditableInventoryRow(in: app)
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
-        row.swipeRight()
-        app.buttons["Use"].tap()
+        let consumeButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.consume.")).firstMatch
+        XCTAssertTrue(consumeButton.waitForExistence(timeout: 5))
+        consumeButton.tap()
         XCTAssertTrue(app.navigationBars["Use Stock"].waitForExistence(timeout: 5))
         app.textFields["inventory.consume.quantity"].tap()
         app.textFields["inventory.consume.quantity"].typeText(quantity)

@@ -74,10 +74,9 @@ extension CloudBakeOwnerUITests {
         consumeFirstInventoryItem(by: "50", in: app)
         XCTAssertTrue(app.staticTexts["Current Quantity: 300 g"].waitForExistence(timeout: 5))
 
-        let row = firstEditableInventoryRow(in: app)
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
-        row.swipeRight()
-        app.buttons["History"].tap()
+        let historyButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.history.")).firstMatch
+        XCTAssertTrue(historyButton.waitForExistence(timeout: 5))
+        historyButton.tap()
 
         XCTAssertTrue(app.navigationBars["Stock History"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
