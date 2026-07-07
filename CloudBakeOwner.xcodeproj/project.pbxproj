@@ -95,6 +95,7 @@
 		410000000000000000000056 /* TextInputFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005E /* TextInputFormattingTests.swift */; };
 		410000000000000000000057 /* GRDBInventoryRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005F /* GRDBInventoryRepository.swift */; };
 		410000000000000000000058 /* GRDBRecipeRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000060 /* GRDBRecipeRepository.swift */; };
+		410000000000000000000059 /* GRDBCustomerRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000061 /* GRDBCustomerRepository.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -205,6 +206,7 @@
 		42000000000000000000005E /* TextInputFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInputFormattingTests.swift; sourceTree = "<group>"; };
 		42000000000000000000005F /* GRDBInventoryRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBInventoryRepository.swift; sourceTree = "<group>"; };
 		420000000000000000000060 /* GRDBRecipeRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBRecipeRepository.swift; sourceTree = "<group>"; };
+		420000000000000000000061 /* GRDBCustomerRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBCustomerRepository.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -405,6 +407,7 @@
 				420000000000000000000012 /* AppDatabaseMigrations.swift */,
 				420000000000000000000016 /* CoreDataRepositories.swift */,
 				420000000000000000000017 /* GRDBCoreDataRepository.swift */,
+				420000000000000000000061 /* GRDBCustomerRepository.swift */,
 				42000000000000000000005F /* GRDBInventoryRepository.swift */,
 				420000000000000000000060 /* GRDBRecipeRepository.swift */,
 				420000000000000000000013 /* HealthCheckRepository.swift */,
@@ -663,6 +666,7 @@
 				41000000000000000000000D /* CoreModels.swift in Sources */,
 				41000000000000000000000E /* CoreDataRepositories.swift in Sources */,
 				41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */,
+				410000000000000000000059 /* GRDBCustomerRepository.swift in Sources */,
 				410000000000000000000057 /* GRDBInventoryRepository.swift in Sources */,
 				410000000000000000000058 /* GRDBRecipeRepository.swift in Sources */,
 				410000000000000000000055 /* TextInputFormatting.swift in Sources */,
