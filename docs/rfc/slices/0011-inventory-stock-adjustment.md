@@ -64,7 +64,8 @@ The view model gains:
 
 ### UI
 
-Inventory rows expose a leading swipe action labeled `Adjust`.
+Inventory rows expose an `Adjust` action. RFC-0069 moved the active inventory list to card-based
+styling, so this action is now a visible row action chip instead of a list-row swipe action.
 
 The Adjust Stock sheet shows the selected item name and current quantity, accepts a quantity to add, and accepts an optional note.
 

@@ -21,7 +21,7 @@ confirmed before save.
 
 This slice applies to:
 
-- order row swipe actions,
+- order row quick actions,
 - order detail status and payment controls,
 - owner confirmation before quick status or payment saves,
 - focused view-model coverage,
@@ -38,8 +38,8 @@ This slice does not apply to:
 
 ## Requirements
 
-- Order rows must expose a quick status action through row swipe.
-- Order rows must expose a quick payment action through row swipe.
+- Order rows must expose a quick status action.
+- Order rows must expose a quick payment action.
 - Row status changes must show a confirmation popup before saving.
 - Row payment changes must show a confirmation popup before saving.
 - Order detail must allow the owner to change payment status without opening full edit.
@@ -87,7 +87,8 @@ When implemented, update:
 
 ## Implementation Notes
 
-- Order rows expose leading `Status` and trailing `Payment` swipe actions.
+- Order rows now expose visible `Status` and `Payment` action chips. RFC-0069 replaced the original
+  list-row swipe implementation when Orders moved to card-based second-level screen styling.
 - Row status changes use centered popups for status selection and confirmation.
 - Row payment actions use centered popups with `Mark Paid` and `Add Partial Payment`.
 - Order detail exposes a payment action beside payment status.

@@ -9,7 +9,7 @@ struct DashboardView: View {
 
     var body: some View {
         ZStack {
-            DashboardBackground()
+            CloudBakeScreenBackground()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
@@ -51,7 +51,7 @@ struct DashboardView: View {
                                 tint: .cloudBakePink
                             )
                         }
-                        .dashboardCardStyle()
+                        .cloudBakeCardStyle()
                     }
 
                     DashboardSection(title: "Areas") {
@@ -68,7 +68,7 @@ struct DashboardView: View {
                             DashboardDivider()
                             DashboardAreaRow(destination: .settings, tint: .gray)
                         }
-                        .dashboardCardStyle()
+                        .cloudBakeCardStyle()
                     }
                 }
                 .padding(.horizontal, 28)
@@ -427,6 +427,7 @@ private struct DashboardBottomItem: View {
                 .frame(maxWidth: .infinity)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(title)
+                .accessibilityIdentifier(destination.accessibilityIdentifier)
             } else {
                 NavigationLink(value: destination) {
                     VStack(spacing: 6) {
@@ -444,7 +445,7 @@ private struct DashboardBottomItem: View {
                     .accessibilityLabel(title)
                 }
                 .buttonStyle(.plain)
-                .accessibilityIdentifier("dashboard.tab.\(destination.rawValue)")
+                .accessibilityIdentifier(destination.accessibilityIdentifier)
             }
         }
         .frame(height: 66)
@@ -472,51 +473,6 @@ private struct DashboardDivider: View {
         Divider()
             .padding(.leading, 92)
     }
-}
-
-private struct DashboardBackground: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color.cloudBakeBlush.opacity(0.44),
-                    .white,
-                    Color.cloudBakeBlush.opacity(0.34)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            Circle()
-                .fill(Color.cloudBakePink.opacity(0.10))
-                .frame(width: 180, height: 180)
-                .blur(radius: 6)
-                .offset(x: -190, y: -320)
-                .accessibilityHidden(true)
-        }
-    }
-}
-
-private extension View {
-    func dashboardCardStyle() -> some View {
-        background(.white.opacity(0.88), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(.white.opacity(0.70), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
-    }
-}
-
-private extension Color {
-    static let cloudBakeBlush = Color(red: 1.00, green: 0.91, blue: 0.92)
-    static let cloudBakeBrown = Color(red: 0.64, green: 0.39, blue: 0.30)
-    static let cloudBakeMint = Color(red: 0.43, green: 0.82, blue: 0.76)
-    static let cloudBakeOrange = Color(red: 0.96, green: 0.60, blue: 0.13)
-    static let cloudBakePink = Color(red: 0.93, green: 0.22, blue: 0.47)
-    static let cloudBakePurple = Color(red: 0.55, green: 0.31, blue: 0.91)
-    static let cloudBakeTeal = Color(red: 0.27, green: 0.75, blue: 0.78)
 }
 
 private extension InventoryItem {

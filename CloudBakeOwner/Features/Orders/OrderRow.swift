@@ -22,56 +22,95 @@ struct OrderRow: View {
     }
 
     var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    Text(order.title)
-                        .font(.headline)
+        VStack(alignment: .leading, spacing: 14) {
+            Button(action: action) {
+                HStack(spacing: 18) {
+                    CloudBakeRowIcon(systemImage: orderIconName, tint: .cloudBakePink)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Text(order.title)
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(2)
+
+                            if order.status == .cancelled {
+                                Image(systemName: "xmark.circle.fill")
+                                    .imageScale(.small)
+                                    .foregroundStyle(.red)
+                                    .accessibilityLabel("Cancelled")
+                                    .accessibilityIdentifier("orders.item.cancelledBadge.\(order.id)")
+                            }
+                        }
+
+                        Text(order.customerName)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock")
+                                .accessibilityHidden(true)
+
+                            Text(orderDateText)
+                            Text("·")
+                            Text(order.fulfillmentType.displayName)
+                        }
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(Color.cloudBakePink)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.cloudBakePink.opacity(0.08), in: Capsule())
+                    }
+
                     Spacer(minLength: 8)
-                    if order.status == .cancelled {
-                        Image(systemName: "xmark.circle.fill")
-                            .imageScale(.small)
-                            .foregroundStyle(.red)
-                            .accessibilityLabel("Cancelled")
-                            .accessibilityIdentifier("orders.item.cancelledBadge.\(order.id)")
-                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Color.cloudBakePink.opacity(0.72))
+                        .accessibilityHidden(true)
                 }
-                Text(order.customerName)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                HStack {
-                    if showsDate {
-                        Text(order.dueAt.formatted(date: .abbreviated, time: .shortened))
-                    } else {
-                        Text(order.dueAt.formatted(date: .omitted, time: .shortened))
-                    }
-                    Text(order.fulfillmentType.displayName)
-                }
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("orders.item.\(order.id)")
+
+            HStack(spacing: 10) {
+                CloudBakeInlineActionButton(
+                    title: "Status",
+                    systemImage: "arrow.triangle.2.circlepath",
+                    tint: .cloudBakePurple,
+                    accessibilityIdentifier: "orders.item.status.\(order.id)",
+                    action: onChangeStatus
+                )
+
+                CloudBakeInlineActionButton(
+                    title: "Payment",
+                    systemImage: "banknote",
+                    tint: .cloudBakeMint,
+                    accessibilityIdentifier: "orders.item.payment.\(order.id)",
+                    action: onReceivePayment
+                )
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("orders.item.\(order.id)")
-        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            Button {
-                onChangeStatus()
-            } label: {
-                Label("Status", systemImage: "arrow.triangle.2.circlepath")
-            }
-            .tint(.blue)
-            .accessibilityIdentifier("orders.item.status.\(order.id)")
+        .padding(20)
+    }
+
+    private var orderDateText: String {
+        if showsDate {
+            return order.dueAt.formatted(date: .abbreviated, time: .shortened)
         }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button {
-                onReceivePayment()
-            } label: {
-                Label("Payment", systemImage: "banknote")
-            }
-            .tint(.green)
-            .accessibilityIdentifier("orders.item.payment.\(order.id)")
+
+        return order.dueAt.formatted(date: .omitted, time: .shortened)
+    }
+
+    private var orderIconName: String {
+        switch order.fulfillmentType {
+        case .pickup:
+            return "birthday.cake"
+        case .delivery:
+            return "car"
         }
     }
 }

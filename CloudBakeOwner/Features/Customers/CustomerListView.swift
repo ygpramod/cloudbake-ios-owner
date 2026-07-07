@@ -17,10 +17,6 @@ struct CustomerListView: View {
             if horizontalSizeClass == .regular {
                 NavigationSplitView {
                     customerList
-                        .navigationTitle("Customers")
-                        .toolbar {
-                            addCustomerToolbarItem
-                        }
                 } detail: {
                     if viewModel.selectedCustomer == nil {
                         ContentUnavailableView(
@@ -39,10 +35,6 @@ struct CustomerListView: View {
                 }
             } else {
                 customerList
-                    .navigationTitle("Customers")
-                    .toolbar {
-                        addCustomerToolbarItem
-                    }
             }
         }
         .confirmationDialog("Add Customer", isPresented: $isChoosingAddMode) {
@@ -90,58 +82,75 @@ struct CustomerListView: View {
     }
 
     private var customerList: some View {
-        List {
+        CloudBakeScreenScaffold(
+            title: "Customers",
+            selectedDestination: .customers,
+            primaryAction: CloudBakeScreenAction(
+                title: "Add Customer",
+                systemImage: "plus",
+                accessibilityIdentifier: "customers.add",
+                action: { isChoosingAddMode = true }
+            )
+        ) {
             if viewModel.customers.isEmpty {
-                ContentUnavailableView(
-                    "No customers yet",
+                CloudBakeEmptyState(
+                    title: "No customers yet",
                     systemImage: "person.2",
-                    description: Text("Add customers before linking preferences and allergy notes to orders.")
+                    message: "Add customers before linking preferences and allergy notes to orders."
                 )
             } else {
-                Section("Customers") {
+                CloudBakeSection("Customers") {
+                    VStack(spacing: 16) {
                     ForEach(viewModel.customers, id: \.id) { customer in
                         Button {
                             openCustomer(customer)
                         } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(customer.name)
-                                    .font(.headline)
-                                Text(customer.phone)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                if let allergies = customer.allergies {
-                                    Label(allergies, systemImage: "exclamationmark.triangle")
-                                        .font(.footnote)
-                                        .foregroundStyle(.orange)
+                            HStack(spacing: 18) {
+                                CloudBakeRowIcon(systemImage: "person.crop.circle", tint: .cloudBakeTeal)
+
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(customer.name)
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(2)
+
+                                    Text(customer.phone)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+
+                                    if let allergies = customer.allergies {
+                                        Label(allergies, systemImage: "exclamationmark.triangle")
+                                            .font(.footnote)
+                                            .foregroundStyle(.orange)
+                                            .lineLimit(1)
+                                    }
                                 }
+
+                                Spacer(minLength: 8)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.headline.weight(.semibold))
+                                    .foregroundStyle(Color.cloudBakePink.opacity(0.72))
+                                    .accessibilityHidden(true)
                             }
+                            .padding(20)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .cloudBakeCardStyle()
                         .accessibilityIdentifier("customers.item.\(customer.id)")
+                    }
                     }
                 }
             }
 
             if let errorMessage = viewModel.errorMessage {
-                Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .accessibilityIdentifier("customers.error")
-                }
+                CloudBakeErrorBanner(
+                    message: errorMessage,
+                    accessibilityIdentifier: "customers.error"
+                )
             }
-        }
-    }
-
-    private var addCustomerToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                isChoosingAddMode = true
-            } label: {
-                Label("Add Customer", systemImage: "plus")
-            }
-            .accessibilityIdentifier("customers.add")
         }
     }
 

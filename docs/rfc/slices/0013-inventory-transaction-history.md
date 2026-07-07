@@ -71,7 +71,8 @@ The view model loads only the selected item's transaction records and exposes th
 
 ### UI
 
-Inventory rows expose a leading swipe action labeled `History`.
+Inventory rows expose a `History` action. RFC-0069 moved the active inventory list to card-based
+styling, so this action is now a visible row action chip instead of a list-row swipe action.
 
 The Stock History sheet shows the selected item, current quantity, and a newest-first list of stock
 changes. Adjustment and purchase rows display positive quantities. Consumption rows display negative

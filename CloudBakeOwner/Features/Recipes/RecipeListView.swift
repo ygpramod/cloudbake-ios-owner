@@ -11,55 +11,72 @@ struct RecipeListView: View {
     }
 
     var body: some View {
-        List {
+        CloudBakeScreenScaffold(
+            title: "Recipes",
+            selectedDestination: .recipes,
+            primaryAction: CloudBakeScreenAction(
+                title: "Add recipe",
+                systemImage: "plus",
+                accessibilityIdentifier: "recipes.add",
+                action: { isAddingRecipe = true }
+            ),
+            secondaryActions: [
+                CloudBakeScreenAction(
+                    title: "Import recipe",
+                    systemImage: "doc.text.viewfinder",
+                    accessibilityIdentifier: "recipes.import",
+                    action: { isImportingRecipe = true }
+                )
+            ]
+        ) {
             if viewModel.recipes.isEmpty {
-                ContentUnavailableView(
-                    "No recipes yet",
+                CloudBakeEmptyState(
+                    title: "No recipes yet",
                     systemImage: "book",
-                    description: Text("Add trusted cake recipes before ingredients and recipe-book conversion arrive.")
+                    message: "Add trusted cake recipes before ingredients and recipe-book conversion arrive."
                 )
             } else {
-                Section("Recipes") {
+                CloudBakeSection("Recipes") {
+                    VStack(spacing: 16) {
                     ForEach(viewModel.recipes, id: \.id) { recipe in
                         Button {
                             viewModel.beginViewingRecipe(recipe)
                             isViewingRecipe = true
                         } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(recipe.name)
-                                    .font(.headline)
-                                if let notes = recipe.notes {
-                                    Text(notes)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
+                            HStack(spacing: 18) {
+                                CloudBakeRowIcon(systemImage: "book", tint: .cloudBakeMint)
+
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(recipe.name)
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(.primary)
                                         .lineLimit(2)
+
+                                    if let notes = recipe.notes {
+                                        Text(notes)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
                                 }
+
+                                Spacer(minLength: 8)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.headline.weight(.semibold))
+                                    .foregroundStyle(Color.cloudBakePink.opacity(0.72))
+                                    .accessibilityHidden(true)
                             }
+                            .padding(20)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .cloudBakeCardStyle()
                         .accessibilityIdentifier("recipes.item.\(recipe.id)")
                     }
+                    }
                 }
-            }
-        }
-        .navigationTitle("Recipes")
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    isImportingRecipe = true
-                } label: {
-                    Label("Import recipe", systemImage: "doc.text.viewfinder")
-                }
-                .accessibilityIdentifier("recipes.import")
-
-                Button {
-                    isAddingRecipe = true
-                } label: {
-                    Label("Add recipe", systemImage: "plus")
-                }
-                .accessibilityIdentifier("recipes.add")
             }
         }
         .sheet(isPresented: $isAddingRecipe, onDismiss: viewModel.cancelAddRecipe) {

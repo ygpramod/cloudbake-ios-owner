@@ -86,7 +86,17 @@ extension CloudBakeOwnerUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        let backButton = app.navigationBars.buttons.element(boundBy: 0)
+        let homeTab = app.buttons["navigation.dashboard"]
+        if homeTab.waitForExistence(timeout: 1) {
+            tapWhenReady(homeTab, timeout: timeout, file: file, line: line)
+            assertDashboardVisible(in: app, timeout: timeout, file: file, line: line)
+            return
+        }
+
+        let styledBackButton = app.buttons["cloudBake.back"]
+        let backButton = styledBackButton.waitForExistence(timeout: 1)
+            ? styledBackButton
+            : app.navigationBars.buttons.element(boundBy: 0)
         tapWhenReady(backButton, timeout: timeout, file: file, line: line)
         assertDashboardVisible(in: app, timeout: timeout, file: file, line: line)
     }
