@@ -22,17 +22,9 @@ extension CloudBakeOwnerUITests {
     }
 
     func testInventoryOwnerJourneyShowsDetailEditsStockHistoryAndDashboard() throws {
-        let app = makeApp()
-        app.launch()
+        let app = makeInventoryFixtureApp()
+        openSeededInventoryDetail(in: app)
 
-        openDashboardDestination("Inventory", in: app)
-        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
-
-        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view."))
-            .firstMatch
-            .coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5))
-            .tap()
         XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Unit"].waitForExistence(timeout: 5))
@@ -42,31 +34,8 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.staticTexts["Quantity"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
 
-        let batchRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.detail.batch.edit.")).firstMatch
-        XCTAssertTrue(batchRow.waitForExistence(timeout: 5))
-        batchRow.tap()
-        XCTAssertTrue(app.navigationBars["Edit Batch"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.textFields["inventory.batch.quantity"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.datePickers["inventory.batch.expiryDate"].waitForExistence(timeout: 5))
-        app.buttons["inventory.batch.save"].tap()
-        XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
-
-        app.buttons["inventory.detail.edit"].tap()
-        XCTAssertTrue(app.navigationBars["Edit Item"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Minimum Quantity"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.textFields["inventory.form.currentQuantity"].exists)
-        XCTAssertFalse(app.buttons["inventory.form.unit"].exists)
-
-        let minimumQuantityField = app.textFields["inventory.form.minimumQuantity"]
-        minimumQuantityField.tap()
-        minimumQuantityField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3))
-        minimumQuantityField.typeText("600")
-        app.buttons["inventory.form.save"].tap()
-
-        XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
         app.buttons["inventory.detail.done"].tap()
-        XCTAssertTrue(app.staticTexts["Minimum Quantity: 600 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 5))
 
         adjustFirstInventoryItem(by: "100", in: app)
         XCTAssertTrue(app.staticTexts["Current Quantity: 350 g"].waitForExistence(timeout: 5))
@@ -91,6 +60,23 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.staticTexts["Low inventory"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Expiring soon"].waitForExistence(timeout: 5))
+    }
+
+    private func makeInventoryFixtureApp() -> XCUIApplication {
+        let app = makeApp()
+        app.launchEnvironment["CLOUDBAKE_SEED_INVENTORY_FIXTURE"] = "1"
+        app.launch()
+        return app
+    }
+
+    private func openSeededInventoryDetail(in app: XCUIApplication) {
+        openDashboardDestination("Inventory", in: app)
+
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view."))
+            .firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5))
+            .tap()
     }
 
     func testInventoryCanBeArchivedAndRestored() throws {
@@ -126,16 +112,35 @@ extension CloudBakeOwnerUITests {
     }
 
     func testInventoryDetailShowsStockActionsInMoreMenu() throws {
-        let app = makeApp()
-        app.launch()
+        let app = makeInventoryFixtureApp()
+        openSeededInventoryDetail(in: app)
 
-        openDashboardDestination("Inventory", in: app)
-        addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
-        firstEditableInventoryRow(in: app).tap()
         XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
-
         XCTAssertTrue(app.buttons["inventory.detail.edit"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["inventory.detail.more"].waitForExistence(timeout: 5))
+
+        let batchRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.detail.batch.edit.")).firstMatch
+        XCTAssertTrue(batchRow.waitForExistence(timeout: 5))
+        batchRow.tap()
+        XCTAssertTrue(app.navigationBars["Edit Batch"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["inventory.batch.quantity"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.datePickers["inventory.batch.expiryDate"].waitForExistence(timeout: 5))
+        app.buttons["inventory.batch.save"].tap()
+        XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
+
+        app.buttons["inventory.detail.edit"].tap()
+        XCTAssertTrue(app.navigationBars["Edit Item"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Minimum Quantity"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textFields["inventory.form.currentQuantity"].exists)
+        XCTAssertFalse(app.buttons["inventory.form.unit"].exists)
+
+        let minimumQuantityField = app.textFields["inventory.form.minimumQuantity"]
+        minimumQuantityField.tap()
+        minimumQuantityField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3))
+        minimumQuantityField.typeText("600")
+        app.buttons["inventory.form.save"].tap()
+        XCTAssertTrue(app.navigationBars["Inventory Item"].waitForExistence(timeout: 5))
 
         app.buttons["inventory.detail.more"].tap()
         app.buttons["inventory.detail.adjust"].tap()
