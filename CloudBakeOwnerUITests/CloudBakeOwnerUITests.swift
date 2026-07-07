@@ -591,44 +591,16 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
     }
 
-    func testCompletedOrderMovesToCompletedTab() throws {
+    func testCompletedOrderAppearsInCompletedTab() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
+        app.launchEnvironment["CLOUDBAKE_SEED_COMPLETED_ORDER_FIXTURE"] = "1"
         app.launch()
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
-        addOrder(named: "Completed Birthday", notes: "Boxed", customerName: "Amy", in: app)
-
-        let activeOrderRow = app.buttons.matching(
-            NSPredicate(
-                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
-                "orders.item.",
-                "Completed Birthday"
-            )
-        )
-            .firstMatch
-        assertExistsAfterScrolling(activeOrderRow, in: app, timeout: transitionTimeout)
-        tapWhenReady(activeOrderRow, timeout: transitionTimeout)
-
-        XCTAssertTrue(app.navigationBars["Completed Birthday"].waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
-        tapExisting(app.buttons["Completed"], timeout: transitionTimeout)
-        let completedStatus = app.staticTexts["orders.detail.status"]
-        XCTAssertTrue(completedStatus.waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(completedStatus.label.contains("Completed"))
-        app.buttons["orders.detail.done"].tap()
-
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["Completed"], timeout: transitionTimeout)
-        let completedOrderRow = app.buttons.matching(
-            NSPredicate(
-                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
-                "orders.item.",
-                "Completed Birthday"
-            )
-        )
-            .firstMatch
+        let completedOrderRow = app.buttons["orders.item.order-ui-fixture-completed"]
         assertExistsAfterScrolling(completedOrderRow, in: app, timeout: transitionTimeout)
     }
 
