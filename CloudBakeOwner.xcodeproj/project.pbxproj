@@ -119,6 +119,7 @@
 		41000000000000000000006E /* RecipeListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000076 /* RecipeListViewModelTestSupport.swift */; };
 		41000000000000000000006F /* RecipeImportViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000077 /* RecipeImportViewModelTests.swift */; };
 		410000000000000000000070 /* InventoryBatchEditingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000078 /* InventoryBatchEditingViewModelTests.swift */; };
+		410000000000000000000071 /* OrderPaymentUpdateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000079 /* OrderPaymentUpdateTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -253,6 +254,7 @@
 		420000000000000000000076 /* RecipeListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeListViewModelTestSupport.swift; sourceTree = "<group>"; };
 		420000000000000000000077 /* RecipeImportViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportViewModelTests.swift; sourceTree = "<group>"; };
 		420000000000000000000078 /* InventoryBatchEditingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryBatchEditingViewModelTests.swift; sourceTree = "<group>"; };
+		420000000000000000000079 /* OrderPaymentUpdateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPaymentUpdateTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -556,6 +558,7 @@
 				42000000000000000000006B /* OrderDraftValidationTests.swift */,
 				420000000000000000000035 /* OrderListViewModelTests.swift */,
 				42000000000000000000006D /* OrderPaymentViewModelTests.swift */,
+				420000000000000000000079 /* OrderPaymentUpdateTests.swift */,
 				42000000000000000000006C /* OrderPhotoViewModelTests.swift */,
 				42000000000000000000006E /* OrderStatusEditingViewModelTests.swift */,
 				420000000000000000000075 /* OrderChecklistViewModelTests.swift */,
@@ -821,6 +824,7 @@
 				410000000000000000000063 /* OrderDraftValidationTests.swift in Sources */,
 				41000000000000000000002D /* OrderListViewModelTests.swift in Sources */,
 				410000000000000000000065 /* OrderPaymentViewModelTests.swift in Sources */,
+				410000000000000000000071 /* OrderPaymentUpdateTests.swift in Sources */,
 				410000000000000000000064 /* OrderPhotoViewModelTests.swift in Sources */,
 				410000000000000000000066 /* OrderStatusEditingViewModelTests.swift in Sources */,
 				41000000000000000000006D /* OrderChecklistViewModelTests.swift in Sources */,
