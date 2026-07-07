@@ -390,37 +390,22 @@ private struct OrderDetailView: View {
                     }
                 }
 
-                Section("Photos") {
-                    photoGroup(
-                        title: "Customer References",
-                        emptyText: "No reference photos",
-                        photos: viewModel.selectedCustomerReferencePhotos,
-                        pickerTitle: "Add Reference Photo",
-                        pickerSystemImage: "plus",
-                        pickerIdentifier: "orders.detail.photos.reference.add",
-                        cameraTitle: "Take Reference Photo",
-                        cameraIdentifier: "orders.detail.photos.reference.camera",
-                        selection: $selectedCustomerReferencePhotoItem,
-                        onCameraSelected: {
-                            cameraPhotoKind = .customerReference
-                        }
-                    )
-
-                    photoGroup(
-                        title: "Final Cake Photos",
-                        emptyText: "No final cake photos",
-                        photos: viewModel.selectedFinalCakePhotos,
-                        pickerTitle: "Add Final Cake Photo",
-                        pickerSystemImage: "plus",
-                        pickerIdentifier: "orders.detail.photos.final.add",
-                        cameraTitle: "Take Final Cake Photo",
-                        cameraIdentifier: "orders.detail.photos.final.camera",
-                        selection: $selectedFinalCakePhotoItem,
-                        onCameraSelected: {
-                            cameraPhotoKind = .finalCake
-                        }
-                    )
-                }
+                OrderDetailPhotosSection(
+                    customerReferencePhotos: viewModel.selectedCustomerReferencePhotos,
+                    finalCakePhotos: viewModel.selectedFinalCakePhotos,
+                    selectedCustomerReferencePhotoItem: $selectedCustomerReferencePhotoItem,
+                    selectedFinalCakePhotoItem: $selectedFinalCakePhotoItem,
+                    photoURL: viewModel.orderPhotoURL,
+                    onPreviewPhoto: { photo in
+                        previewingPhoto = photo
+                    },
+                    onDeletePhoto: { photo in
+                        _ = viewModel.deleteOrderPhoto(photo)
+                    },
+                    onTakePhoto: { kind in
+                        cameraPhotoKind = kind
+                    }
+                )
 
                 if let customer = viewModel.selectedOrderCustomer, customer.hasOrderContext {
                     Section("Customer Details") {
@@ -862,103 +847,6 @@ private struct OrderDetailView: View {
         return viewModel.saveEditedOrder()
     }
 
-    @ViewBuilder
-    private func photoGroup(
-        title: String,
-        emptyText: String,
-        photos: [OrderPhoto],
-        pickerTitle: String,
-        pickerSystemImage: String,
-        pickerIdentifier: String,
-        cameraTitle: String,
-        cameraIdentifier: String,
-        selection: Binding<PhotosPickerItem?>,
-        onCameraSelected: @escaping () -> Void
-    ) -> some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .accessibilityIdentifier("\(pickerIdentifier).header")
-
-            Spacer()
-
-            PhotosPicker(selection: selection, matching: .images, photoLibrary: .shared()) {
-                Image(systemName: pickerSystemImage)
-                    .frame(width: 32, height: 32)
-            }
-            .buttonStyle(.borderless)
-            .accessibilityLabel(pickerTitle)
-            .accessibilityIdentifier(pickerIdentifier)
-
-            Button {
-                onCameraSelected()
-            } label: {
-                Image(systemName: "camera")
-                    .frame(width: 32, height: 32)
-            }
-            .buttonStyle(.borderless)
-            .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-            .accessibilityLabel(cameraTitle)
-            .accessibilityIdentifier(cameraIdentifier)
-        }
-
-        if photos.isEmpty {
-            Text(emptyText)
-                .foregroundStyle(.secondary)
-                .accessibilityIdentifier("\(pickerIdentifier).empty")
-        } else {
-            ForEach(photos, id: \.id) { photo in
-                orderPhotoRow(photo)
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            _ = viewModel.deleteOrderPhoto(photo)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .accessibilityIdentifier("orders.detail.photos.delete.\(photo.id)")
-                    }
-            }
-        }
-    }
-
-    private func orderPhotoRow(_ photo: OrderPhoto) -> some View {
-        Button {
-            previewingPhoto = photo
-        } label: {
-            HStack(spacing: 12) {
-                AsyncImage(url: viewModel.orderPhotoURL(photo)) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    default:
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(.quaternary)
-                    }
-                }
-                .frame(width: 56, height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(photo.caption ?? photo.kind.displayName)
-                        .font(.body)
-                        .accessibilityIdentifier("orders.detail.photos.item.\(photo.id)")
-                    Text(photo.createdAt.formatted(date: .abbreviated, time: .shortened))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("orders.detail.photos.preview.\(photo.id)")
-        .accessibilityElement(children: .combine)
-    }
-
     private func saveCameraPhoto(_ image: UIImage, kind: OrderPhotoKind) {
         guard let imageData = image.jpegData(compressionQuality: 0.85) else {
             viewModel.errorMessage = "Order photo could not be read."
@@ -1000,17 +888,6 @@ private struct OrderDetailView: View {
 
     private func formattedMoney(_ amount: Decimal) -> String {
         NSDecimalNumber(decimal: amount).stringValue
-    }
-}
-
-private extension OrderPhotoKind {
-    var displayName: String {
-        switch self {
-        case .customerReference:
-            return "Reference Photo"
-        case .finalCake:
-            return "Final Cake Photo"
-        }
     }
 }
 
