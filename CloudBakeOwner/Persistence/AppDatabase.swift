@@ -13,6 +13,7 @@ final class AppDatabase {
             let database = try makeInMemory()
             try database.seedCustomerFixtureIfRequested()
             try database.seedOrderCustomerLinkFixtureIfRequested()
+            try database.seedCompletedOrderFixtureIfRequested()
             try database.seedOrderReminderFixtureIfRequested()
             try database.seedCakeDesignFixtureIfRequested()
             try database.seedOrderPhotoFixtureIfRequested()
@@ -152,6 +153,31 @@ final class AppDatabase {
                 fulfillmentType: .pickup,
                 deliveryAddress: nil,
                 cakeNotes: "Pink flowers",
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+    }
+
+    private func seedCompletedOrderFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_COMPLETED_ORDER_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        try repository.save(
+            Order(
+                id: "order-ui-fixture-completed",
+                customerId: nil,
+                cakeDesignId: nil,
+                title: "Completed Birthday",
+                customerName: "Amy",
+                status: .completed,
+                dueAt: Date(timeIntervalSince1970: 1_800_140_000),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: "Boxed",
                 createdAt: timestamp,
                 updatedAt: timestamp
             )
