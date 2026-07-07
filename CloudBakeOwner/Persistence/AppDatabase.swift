@@ -12,6 +12,7 @@ final class AppDatabase {
         if ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1" {
             let database = try makeInMemory()
             try database.seedCustomerFixtureIfRequested()
+            try database.seedOrderCustomerLinkFixtureIfRequested()
             try database.seedOrderReminderFixtureIfRequested()
             try database.seedCakeDesignFixtureIfRequested()
             try database.seedOrderPhotoFixtureIfRequested()
@@ -114,6 +115,47 @@ final class AppDatabase {
             updatedAt: timestamp
         )
         try repository.save(order)
+    }
+
+    private func seedOrderCustomerLinkFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_ORDER_CUSTOMER_LINK_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        try repository.save(
+            Customer(
+                id: "customer-ui-fixture-amy",
+                name: "Amy",
+                phone: "5550101",
+                email: "amy@example.com",
+                address: "10 Cake Street",
+                likes: nil,
+                dislikes: nil,
+                allergies: "Nuts",
+                dietaryRestrictions: nil,
+                notes: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+        try repository.save(
+            Order(
+                id: "order-ui-fixture-customer-link",
+                customerId: "customer-ui-fixture-amy",
+                cakeDesignId: nil,
+                title: "Vanilla Birthday",
+                customerName: "Amy",
+                status: .confirmed,
+                dueAt: Date(timeIntervalSince1970: 1_800_140_000),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: "Pink flowers",
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
     }
 
     private func seedCakeDesignFixtureIfRequested() throws {
