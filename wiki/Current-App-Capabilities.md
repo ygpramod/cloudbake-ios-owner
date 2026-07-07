@@ -107,15 +107,16 @@ The app has domain foundations or partial workflows for:
 1. recipe components and ingredients,
 2. cake designs,
 3. customer-safe order preview projection for future consumer-facing surfaces,
-4. order reminder snooze and configurable reminder offsets,
-5. inventory transactions,
-6. purchase bill filtering by baking catalog,
-7. purchase bill draft inventory parsing,
-8. purchase bill text recognition through Apple Vision,
-9. purchase bill draft review flow,
-10. purchase bill camera import flow,
-11. purchase bill duplicate matching,
-12. recipe ingredient quantity extraction.
+4. customer-safe profile projection for future consumer-facing surfaces,
+5. order reminder snooze and configurable reminder offsets,
+6. inventory transactions,
+7. purchase bill filtering by baking catalog,
+8. purchase bill draft inventory parsing,
+9. purchase bill text recognition through Apple Vision,
+10. purchase bill draft review flow,
+11. purchase bill camera import flow,
+12. purchase bill duplicate matching,
+13. recipe ingredient quantity extraction.
 
 These are not all owner-facing workflows yet.
 
