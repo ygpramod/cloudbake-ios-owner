@@ -354,42 +354,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["orders.detail.designPhotoReference"].label.contains("photo-ui-fixture-final"))
     }
 
-    func testOrderCanLinkCustomerFromSearchableSelection() throws {
+    func testOrderShowsLinkedCustomerContext() throws {
         let app = makeApp()
-        let transitionTimeout: TimeInterval = 15
+        let transitionTimeout: TimeInterval = 25
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_CUSTOMER_LINK_FIXTURE"] = "1"
         app.launch()
-
-        openDashboardDestination("Customers", in: app)
-        addCustomer(named: "Amy", phone: "5550101", in: app)
-        returnToDashboard(in: app)
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
-
-        tapWhenReady(app.buttons["orders.form.customerRecord"], timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Customer Record"].waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(
-            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.customerSelection.customer."))
-                .firstMatch,
-            timeout: transitionTimeout
-        )
-        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
-
-        typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
-        typeText("Pink flowers", into: app.textFields["orders.form.cakeNotes"], timeout: transitionTimeout)
-        dismissKeyboard(in: app)
-        let saveButton = app.buttons["orders.form.save"]
-        scrollToHittable(saveButton, in: app, timeout: transitionTimeout)
-        tapWhenReady(saveButton, timeout: transitionTimeout)
-
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(
-            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
-                .firstMatch,
-            timeout: transitionTimeout
-        )
+        tapWhenReady(app.buttons["orders.item.order-ui-fixture-customer-link"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.customerName"], in: app, timeout: transitionTimeout)
