@@ -846,67 +846,22 @@ final class OrderListViewModel: ObservableObject {
         draftPaymentNotes = ""
     }
 
-    private func validatedDraft() -> (
-        title: String,
-        customerName: String,
-        recipeScaleMultiplier: Decimal,
-        quotedPrice: Decimal?,
-        depositPaid: Decimal?
-    )? {
-        let title = TextInputFormatting.trimmed(draftTitle)
-        guard !title.isEmpty else {
-            errorMessage = "Order title is required."
+    private func validatedDraft() -> ValidatedOrderDraft? {
+        let input = OrderDraftValidationInput(
+            title: draftTitle,
+            customerName: draftCustomerName,
+            recipeScaleMultiplier: draftRecipeScaleMultiplier,
+            quotedPrice: draftQuotedPrice,
+            depositPaid: draftDepositPaid
+        )
+
+        switch OrderDraftValidation.validate(input) {
+        case .success(let draft):
+            return draft
+        case .failure(let error):
+            errorMessage = error.message
             return nil
         }
-
-        let customerName = TextInputFormatting.trimmed(draftCustomerName)
-        guard !customerName.isEmpty else {
-            errorMessage = "Customer name is required."
-            return nil
-        }
-
-        guard let quotedPrice = decimalAmount(from: draftQuotedPrice, fieldName: "Quoted price") else {
-            return nil
-        }
-        guard let depositPaid = decimalAmount(from: draftDepositPaid, fieldName: "Deposit paid") else {
-            return nil
-        }
-        guard let recipeScaleMultiplier = requiredPositiveDecimalAmount(
-            from: draftRecipeScaleMultiplier,
-            fieldName: "Recipe multiplier"
-        ) else {
-            return nil
-        }
-        if let quotedPrice, let depositPaid, depositPaid > quotedPrice {
-            errorMessage = "Deposit paid cannot be more than quoted price."
-            return nil
-        }
-
-        return (title, customerName, recipeScaleMultiplier, quotedPrice, depositPaid)
-    }
-
-    private func decimalAmount(from text: String, fieldName: String) -> Decimal?? {
-        let trimmed = TextInputFormatting.trimmed(text)
-        guard !trimmed.isEmpty else {
-            return .some(nil)
-        }
-
-        guard let amount = Decimal(string: trimmed), amount >= 0 else {
-            errorMessage = "\(fieldName) must be a positive number."
-            return nil
-        }
-
-        return .some(amount)
-    }
-
-    private func requiredPositiveDecimalAmount(from text: String, fieldName: String) -> Decimal? {
-        let trimmed = TextInputFormatting.trimmed(text)
-        guard let amount = Decimal(string: trimmed), amount > 0 else {
-            errorMessage = "\(fieldName) must be greater than zero."
-            return nil
-        }
-
-        return amount
     }
 
 }

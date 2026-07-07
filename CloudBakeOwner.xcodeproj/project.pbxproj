@@ -104,6 +104,8 @@
 		41000000000000000000005F /* PhotoPickerImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000067 /* PhotoPickerImageLoader.swift */; };
 		410000000000000000000060 /* CloudBakeOwnerRecipeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000068 /* CloudBakeOwnerRecipeUITests.swift */; };
 		410000000000000000000061 /* CloudBakeOwnerCustomerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000069 /* CloudBakeOwnerCustomerUITests.swift */; };
+		410000000000000000000062 /* OrderDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006A /* OrderDraftValidation.swift */; };
+		410000000000000000000063 /* OrderDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006B /* OrderDraftValidationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -223,6 +225,8 @@
 		420000000000000000000067 /* PhotoPickerImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPickerImageLoader.swift; sourceTree = "<group>"; };
 		420000000000000000000068 /* CloudBakeOwnerRecipeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerRecipeUITests.swift; sourceTree = "<group>"; };
 		420000000000000000000069 /* CloudBakeOwnerCustomerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerCustomerUITests.swift; sourceTree = "<group>"; };
+		42000000000000000000006A /* OrderDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDraftValidation.swift; sourceTree = "<group>"; };
+		42000000000000000000006B /* OrderDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDraftValidationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -377,6 +381,7 @@
 				420000000000000000000033 /* OrderListView.swift */,
 				420000000000000000000034 /* OrderListViewModel.swift */,
 				420000000000000000000054 /* OrderListPresentation.swift */,
+				42000000000000000000006A /* OrderDraftValidation.swift */,
 				42000000000000000000003B /* OrderPhotoFileStore.swift */,
 				42000000000000000000004E /* OrderPhotoPreviewView.swift */,
 				420000000000000000000055 /* OrderPaymentUpdate.swift */,
@@ -513,6 +518,7 @@
 		45000000000000000000001F /* Orders */ = {
 			isa = PBXGroup;
 			children = (
+				42000000000000000000006B /* OrderDraftValidationTests.swift */,
 				420000000000000000000035 /* OrderListViewModelTests.swift */,
 			);
 			path = Orders;
@@ -730,6 +736,7 @@
 				41000000000000000000002F /* OrderConsumerPreview.swift in Sources */,
 				41000000000000000000002E /* OrderDisplay.swift in Sources */,
 				41000000000000000000004C /* OrderListPresentation.swift in Sources */,
+				410000000000000000000062 /* OrderDraftValidation.swift in Sources */,
 				41000000000000000000004D /* OrderPaymentUpdate.swift in Sources */,
 				410000000000000000000047 /* CameraImagePickerView.swift in Sources */,
 				41000000000000000000005F /* PhotoPickerImageLoader.swift in Sources */,
@@ -767,6 +774,7 @@
 				410000000000000000000032 /* OrderReminderSchedulerTests.swift in Sources */,
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
 				41000000000000000000005E /* InventoryListViewModelTestSupport.swift in Sources */,
+				410000000000000000000063 /* OrderDraftValidationTests.swift in Sources */,
 				41000000000000000000002D /* OrderListViewModelTests.swift in Sources */,
 				410000000000000000000016 /* DashboardViewModelTests.swift in Sources */,
 				41000000000000000000001B /* PurchaseBillDraftParserTests.swift in Sources */,
