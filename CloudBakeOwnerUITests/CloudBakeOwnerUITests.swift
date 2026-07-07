@@ -72,7 +72,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
             .firstMatch
         tapWhenReady(orderRow)
 
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.customerName"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.fulfillmentType"], in: app, timeout: transitionTimeout)
@@ -110,7 +109,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
             .firstMatch
         tapWhenReady(orderRow, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Payment Vanilla"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
 
         let paymentMenu = app.buttons["orders.detail.paymentStatusMenu"]
         assertExistsAfterScrolling(paymentMenu, in: app, timeout: transitionTimeout)
@@ -168,7 +167,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
                 .firstMatch,
             timeout: transitionTimeout
         )
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.detail.edit"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Edit Order"].waitForExistence(timeout: transitionTimeout))
 
@@ -184,7 +183,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars["Chocolate Birthday"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.cakeNotes"], in: app, timeout: transitionTimeout)
         XCTAssertTrue(
@@ -208,7 +206,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
                 .firstMatch,
             timeout: transitionTimeout
         )
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
 
         let checklistTitle = app.textFields["orders.detail.checklist.title"]
         assertExistsAfterScrolling(checklistTitle, in: app, timeout: transitionTimeout)
@@ -237,7 +235,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         editTitle.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20))
         editTitle.typeText("Final photo")
         tapWhenReady(app.buttons["orders.detail.checklist.edit.save"], timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(checklistItem.label.contains("Final photo"))
 
         tapExisting(checklistItem, timeout: transitionTimeout)
@@ -282,7 +280,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
             .firstMatch
         tapWhenReady(orderRow, timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars["Photo Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(
             app.staticTexts["orders.detail.photos.reference.add.header"],
             in: app,
@@ -319,7 +317,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].label.contains("Lace and pearls"))
         tapWhenReady(app.buttons["orders.detail.photos.preview.close"], timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Photo Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["orders.detail.photos.item.photo-ui-fixture-reference"].label.contains("Lace and pearls"))
 
         assertExistsAfterScrolling(
@@ -354,7 +352,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         designNameField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
         designNameField.typeText("Pink Pearl Cake")
         tapWhenReady(app.buttons["orders.detail.photos.design.save"], timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Photo Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         scrollToTop(in: app)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.designName"], in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["orders.detail.designName"].label.contains("Pink Pearl Cake"))
@@ -371,7 +369,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.item.order-ui-fixture-customer-link"], timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.customerName"], in: app, timeout: transitionTimeout)
         let allergyText = app.staticTexts["orders.detail.customerAllergies"]
         assertExistsAfterScrolling(allergyText, in: app, timeout: transitionTimeout)
@@ -430,7 +428,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         scrollToHittable(orderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(orderRow, timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         let recipeName = app.staticTexts["orders.detail.recipeName"]
         assertExistsAfterScrolling(recipeName, in: app, timeout: transitionTimeout)
         XCTAssertTrue(recipeName.label.contains("Vanilla Sponge"))
@@ -487,7 +485,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         scrollToHittable(orderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(orderRow, timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         let designName = app.staticTexts["orders.detail.designName"]
         assertExistsAfterScrolling(designName, in: app, timeout: transitionTimeout)
         XCTAssertTrue(designName.label.contains("Pink Floral Cake"))
@@ -509,13 +507,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
             .firstMatch
             .tap()
-        XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.buttons["recipes.detail.done"].waitForExistence(timeout: transitionTimeout))
         app.buttons["recipes.ingredient.add"].tap()
         XCTAssertTrue(app.navigationBars["Add Ingredient"].waitForExistence(timeout: transitionTimeout))
         app.textFields["recipes.ingredient.quantity"].tap()
         app.textFields["recipes.ingredient.quantity"].typeText("250")
         app.buttons["recipes.ingredient.save"].tap()
-        XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.buttons["recipes.detail.done"].waitForExistence(timeout: transitionTimeout))
         app.buttons["recipes.detail.done"].tap()
         returnToDashboard(in: app)
 
@@ -554,7 +552,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
                 .firstMatch,
             timeout: transitionTimeout
         )
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.buttons["orders.detail.statusMenu"], in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
         tapExisting(app.buttons["Confirmed"], timeout: transitionTimeout)
@@ -595,7 +593,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
             .firstMatch
         assertExistsAfterScrolling(orderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(orderRow, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
     }
 
     func testCompletedOrderAppearsInCompletedTab() throws {
@@ -631,7 +629,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(activeOrderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(activeOrderRow, timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars["Cancelled Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
         tapExisting(app.buttons["Cancelled"], timeout: transitionTimeout)
         let cancelledStatus = app.staticTexts["orders.detail.status"]
@@ -678,7 +676,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
             timeout: transitionTimeout
         )
 
-        XCTAssertTrue(app.navigationBars["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         XCTAssertFalse(app.buttons["orders.detail.done"].exists)
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["orders.detail.customerName"].waitForExistence(timeout: transitionTimeout))

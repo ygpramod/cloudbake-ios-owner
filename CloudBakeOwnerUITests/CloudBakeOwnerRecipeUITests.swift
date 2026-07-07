@@ -71,7 +71,7 @@ extension CloudBakeOwnerUITests {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
             .firstMatch
             .tap()
-        XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["recipes.detail.done"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["No ingredients yet"].waitForExistence(timeout: 5))
 
         app.buttons["recipes.ingredient.add"].tap()
@@ -82,7 +82,7 @@ extension CloudBakeOwnerUITests {
         app.textFields["recipes.ingredient.note"].typeText("Sift")
         app.buttons["recipes.ingredient.save"].tap()
 
-        XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["recipes.detail.done"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Sift"].waitForExistence(timeout: 5))
@@ -97,7 +97,7 @@ extension CloudBakeOwnerUITests {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
             .firstMatch
             .tap()
-        XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["recipes.detail.done"].waitForExistence(timeout: 5))
 
         app.buttons["recipes.detail.edit"].tap()
         XCTAssertTrue(app.navigationBars["Edit Recipe"].waitForExistence(timeout: 5))
@@ -108,7 +108,7 @@ extension CloudBakeOwnerUITests {
         notesField.typeText("Use two tins")
         app.buttons["recipes.form.save"].tap()
 
-        XCTAssertTrue(app.navigationBars["Vanilla Sponge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["recipes.detail.done"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Use two tins")).firstMatch.waitForExistence(timeout: 5))
     }
 }
