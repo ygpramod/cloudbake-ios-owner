@@ -114,6 +114,7 @@
 		410000000000000000000069 /* RecipeDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000071 /* RecipeDraftValidationTests.swift */; };
 		41000000000000000000006A /* RecipeImportDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000072 /* RecipeImportDraftValidation.swift */; };
 		41000000000000000000006B /* RecipeImportDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000073 /* RecipeImportDraftValidationTests.swift */; };
+		41000000000000000000006C /* InventoryStockOperationViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000074 /* InventoryStockOperationViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -243,6 +244,7 @@
 		420000000000000000000071 /* RecipeDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDraftValidationTests.swift; sourceTree = "<group>"; };
 		420000000000000000000072 /* RecipeImportDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportDraftValidation.swift; sourceTree = "<group>"; };
 		420000000000000000000073 /* RecipeImportDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportDraftValidationTests.swift; sourceTree = "<group>"; };
+		420000000000000000000074 /* InventoryStockOperationViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockOperationViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -513,6 +515,7 @@
 				42000000000000000000001C /* InventoryListViewModelTests.swift */,
 				420000000000000000000066 /* InventoryListViewModelTestSupport.swift */,
 				42000000000000000000006F /* InventoryPurchaseBillViewModelTests.swift */,
+				420000000000000000000074 /* InventoryStockOperationViewModelTests.swift */,
 			);
 			path = Inventory;
 			sourceTree = "<group>";
@@ -801,6 +804,7 @@
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
 				41000000000000000000005E /* InventoryListViewModelTestSupport.swift in Sources */,
 				410000000000000000000067 /* InventoryPurchaseBillViewModelTests.swift in Sources */,
+				41000000000000000000006C /* InventoryStockOperationViewModelTests.swift in Sources */,
 				410000000000000000000063 /* OrderDraftValidationTests.swift in Sources */,
 				41000000000000000000002D /* OrderListViewModelTests.swift in Sources */,
 				410000000000000000000065 /* OrderPaymentViewModelTests.swift in Sources */,
