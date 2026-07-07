@@ -543,9 +543,9 @@ final class InventoryListViewModel: ObservableObject {
         }
 
         purchaseBillDrafts = drafts.map { draft in
-            let matchedItem = matchingInventoryItem(
-                for: draft.name,
-                nameKey: duplicateKey(for: draft.name),
+            let matchedItem = InventoryDuplicateMatcher.matchingItem(
+                named: draft.name,
+                in: items,
                 excludingItemId: nil
             )
             return PurchaseBillInventoryDraft(
@@ -615,9 +615,9 @@ final class InventoryListViewModel: ObservableObject {
                 return false
             }
 
-            if let existingItem = matchingInventoryItem(
-                for: name,
-                nameKey: duplicateKey(for: name),
+            if let existingItem = InventoryDuplicateMatcher.matchingItem(
+                named: name,
+                in: items,
                 excludingItemId: nil
             ) {
                 let itemToUpdate = plannedExistingItems[existingItem.id] ?? existingItem
@@ -707,9 +707,9 @@ final class InventoryListViewModel: ObservableObject {
             return
         }
 
-        let matchedItem = matchingInventoryItem(
-            for: purchaseBillDrafts[draftIndex].name,
-            nameKey: duplicateKey(for: purchaseBillDrafts[draftIndex].name),
+        let matchedItem = InventoryDuplicateMatcher.matchingItem(
+            named: purchaseBillDrafts[draftIndex].name,
+            in: items,
             excludingItemId: nil
         )
         purchaseBillDrafts[draftIndex].matchedInventoryItemId = matchedItem?.id
@@ -756,9 +756,13 @@ final class InventoryListViewModel: ObservableObject {
         excludingItemId: String?,
         warningMessage: (InventoryItem) -> String
     ) -> Bool {
-        let nameKey = duplicateKey(for: name)
+        let nameKey = InventoryDuplicateMatcher.duplicateKey(for: name)
         if acknowledgedDuplicateNameKey != nameKey,
-           let matchingItem = matchingInventoryItem(for: name, nameKey: nameKey, excludingItemId: excludingItemId) {
+           let matchingItem = InventoryDuplicateMatcher.matchingItem(
+            named: name,
+            in: items,
+            excludingItemId: excludingItemId
+           ) {
             duplicateWarningMessage = warningMessage(matchingItem)
             errorMessage = nil
             acknowledgedDuplicateNameKey = nameKey
@@ -816,20 +820,7 @@ final class InventoryListViewModel: ObservableObject {
     }
 
     private func parsedQuantity(from text: String) -> Double? {
-        guard !text.isEmpty else {
-            return nil
-        }
-
-        if let quantity = Double(text) {
-            return quantity
-        }
-
-        let groupingSeparator = Locale.current.groupingSeparator ?? ","
-        let normalizedText = text
-            .replacingOccurrences(of: groupingSeparator, with: "")
-            .replacingOccurrences(of: ",", with: "")
-
-        return Double(normalizedText)
+        InventoryDraftValidation.quantity(from: text)
     }
 
     private func resetDraft() {
@@ -872,31 +863,6 @@ final class InventoryListViewModel: ObservableObject {
         purchaseBillRecognizedText = ""
         purchaseBillDrafts = []
         errorMessage = nil
-    }
-
-    private func matchingInventoryItem(for name: String, nameKey: String, excludingItemId: String?) -> InventoryItem? {
-        items.first { item in
-            if item.id == excludingItemId {
-                return false
-            }
-
-            let existingKey = duplicateKey(for: item.name)
-            return existingKey == nameKey || existingKey.contains(nameKey) || nameKey.contains(existingKey)
-        }
-    }
-
-    private func duplicateKey(for name: String) -> String {
-        name
-            .lowercased()
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
-            .map { token in
-                if token.count > 3, token.hasSuffix("s") {
-                    return String(token.dropLast())
-                }
-                return token
-            }
-            .joined(separator: " ")
     }
 
     private func defaultExpiryDate() -> Date {
