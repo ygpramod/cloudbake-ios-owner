@@ -78,23 +78,13 @@ final class CustomerListViewModel: ObservableObject {
     }
 
     func addCustomer() -> Bool {
-        let name = TextInputFormatting.trimmed(draftName)
-        guard !name.isEmpty else {
-            errorMessage = "Customer name is required."
-            duplicateWarningMessage = nil
-            return false
-        }
-
-        let phone = TextInputFormatting.trimmed(draftPhone)
-        guard !phone.isEmpty else {
-            errorMessage = "Customer phone is required."
-            duplicateWarningMessage = nil
+        guard let draft = validatedDraft() else {
             return false
         }
 
         if shouldWarnAboutDuplicate(
-            name: name,
-            phone: phone,
+            name: draft.name,
+            phone: draft.phone,
             excludingCustomerId: nil,
             confirmationInstruction: "Tap Save again to add a separate customer."
         ) {
@@ -105,8 +95,8 @@ final class CustomerListViewModel: ObservableObject {
         let now = dateProvider()
         let customer = Customer(
             id: idGenerator(),
-            name: name,
-            phone: phone,
+            name: draft.name,
+            phone: draft.phone,
             email: TextInputFormatting.optionalText(draftEmail),
             address: TextInputFormatting.optionalText(draftAddress),
             likes: TextInputFormatting.optionalText(draftLikes),
@@ -177,23 +167,13 @@ final class CustomerListViewModel: ObservableObject {
             return false
         }
 
-        let name = TextInputFormatting.trimmed(draftName)
-        guard !name.isEmpty else {
-            errorMessage = "Customer name is required."
-            duplicateWarningMessage = nil
-            return false
-        }
-
-        let phone = TextInputFormatting.trimmed(draftPhone)
-        guard !phone.isEmpty else {
-            errorMessage = "Customer phone is required."
-            duplicateWarningMessage = nil
+        guard let draft = validatedDraft() else {
             return false
         }
 
         if shouldWarnAboutDuplicate(
-            name: name,
-            phone: phone,
+            name: draft.name,
+            phone: draft.phone,
             excludingCustomerId: editingCustomer.id,
             confirmationInstruction: "Tap Save again to keep this customer separate."
         ) {
@@ -202,8 +182,8 @@ final class CustomerListViewModel: ObservableObject {
 
         let customer = Customer(
             id: editingCustomer.id,
-            name: name,
-            phone: phone,
+            name: draft.name,
+            phone: draft.phone,
             email: TextInputFormatting.optionalText(draftEmail),
             address: TextInputFormatting.optionalText(draftAddress),
             likes: TextInputFormatting.optionalText(draftLikes),
@@ -251,6 +231,22 @@ final class CustomerListViewModel: ObservableObject {
             selectedCustomerImportantDates = []
             selectedCustomerOrders = []
             errorMessage = "Customer details could not be loaded."
+        }
+    }
+
+    private func validatedDraft() -> ValidatedCustomerDraft? {
+        switch CustomerDraftValidation.validate(
+            CustomerDraftValidationInput(
+                name: draftName,
+                phone: draftPhone
+            )
+        ) {
+        case .success(let draft):
+            return draft
+        case .failure(let error):
+            errorMessage = error.message
+            duplicateWarningMessage = nil
+            return nil
         }
     }
 
