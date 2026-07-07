@@ -485,25 +485,12 @@ final class InventoryListViewModel: ObservableObject {
             return false
         }
 
-        purchaseBillDrafts = drafts.map { draft in
-            let matchedItem = InventoryDuplicateMatcher.matchingItem(
-                named: draft.name,
-                in: items,
-                excludingItemId: nil
-            )
-            return PurchaseBillInventoryDraft(
-                id: idGenerator(),
-                sourceLine: draft.sourceLine,
-                name: draft.name,
-                quantityText: draft.quantity?.formatted() ?? "",
-                unit: draft.unit ?? .gram,
-                minimumQuantityText: "0",
-                expiryDate: defaultExpiryDate(),
-                isSelected: true,
-                matchedInventoryItemId: matchedItem?.id,
-                matchedInventoryItemName: matchedItem?.name
-            )
-        }
+        purchaseBillDrafts = InventoryPurchaseBillDraftBuilder.drafts(
+            from: drafts,
+            inventoryItems: items,
+            defaultExpiryDate: defaultExpiryDate(),
+            idProvider: idGenerator
+        )
         errorMessage = nil
         return true
     }
@@ -650,10 +637,9 @@ final class InventoryListViewModel: ObservableObject {
             return
         }
 
-        let matchedItem = InventoryDuplicateMatcher.matchingItem(
-            named: purchaseBillDrafts[draftIndex].name,
-            in: items,
-            excludingItemId: nil
+        let matchedItem = InventoryPurchaseBillDraftBuilder.matchedInventoryItem(
+            for: purchaseBillDrafts[draftIndex],
+            inventoryItems: items
         )
         purchaseBillDrafts[draftIndex].matchedInventoryItemId = matchedItem?.id
         purchaseBillDrafts[draftIndex].matchedInventoryItemName = matchedItem?.name
@@ -832,17 +818,4 @@ final class InventoryListViewModel: ObservableObject {
             remainingQuantityToUse -= quantityFromBatch
         }
     }
-}
-
-struct PurchaseBillInventoryDraft: Identifiable, Equatable {
-    let id: String
-    let sourceLine: String
-    var name: String
-    var quantityText: String
-    var unit: InventoryUnit
-    var minimumQuantityText: String
-    var expiryDate: Date
-    var isSelected: Bool
-    var matchedInventoryItemId: String? = nil
-    var matchedInventoryItemName: String? = nil
 }
