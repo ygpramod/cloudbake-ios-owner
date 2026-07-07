@@ -380,63 +380,33 @@ final class InventoryListViewModel: ObservableObject {
     }
 
     func recordStockAdjustment() -> Bool {
-        guard let adjustingItem else {
-            errorMessage = "Inventory item could not be found."
-            return false
-        }
-
-        let quantityText = draftAdjustmentQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
-        let quantity = Double(quantityText) ?? 0
-        guard quantity > 0 else {
-            errorMessage = "Adjustment quantity must be greater than zero."
-            return false
-        }
-        guard let itemQuantity = draftAdjustmentUnit.convertedQuantity(quantity, to: adjustingItem.unit) else {
-            errorMessage = "Adjustment unit must be compatible with the inventory item unit."
-            return false
-        }
-
-        let note = draftAdjustmentNote.trimmingCharacters(in: .whitespacesAndNewlines)
         let now = dateProvider()
-        let updatedItem = InventoryItem(
-            id: adjustingItem.id,
-            name: adjustingItem.name,
-            unit: adjustingItem.unit,
-            currentQuantity: adjustingItem.currentQuantity + itemQuantity,
-            minimumQuantity: adjustingItem.minimumQuantity,
-            earliestExpiryAt: adjustingItem.earliestExpiryAt,
-            hasExpiredStock: adjustingItem.hasExpiredStock,
-            hasExpiringSoonStock: adjustingItem.hasExpiringSoonStock,
-            createdAt: adjustingItem.createdAt,
-            updatedAt: now
+        let planResult = InventoryStockOperation.adjustmentPlan(
+            item: adjustingItem,
+            quantityText: draftAdjustmentQuantity,
+            unit: draftAdjustmentUnit,
+            expiresAt: draftAdjustmentExpiryDate,
+            note: draftAdjustmentNote,
+            now: now,
+            itemIdProvider: idGenerator
         )
-        let transaction = InventoryTransaction(
-            id: idGenerator(),
-            inventoryItemId: adjustingItem.id,
-            kind: .adjustment,
-            quantity: itemQuantity,
-            occurredAt: now,
-            note: note.isEmpty ? nil : note,
-            createdAt: now,
-            updatedAt: now
-        )
+
+        let plan: InventoryStockAdjustmentPlan
+        switch planResult {
+        case .success(let adjustmentPlan):
+            plan = adjustmentPlan
+        case .failure(let error):
+            errorMessage = error.message
+            return false
+        }
 
         do {
-            try repository.save(updatedItem)
-            try repository.save(
-                InventoryStockBatch(
-                    id: idGenerator(),
-                    inventoryItemId: adjustingItem.id,
-                    remainingQuantity: itemQuantity,
-                    expiresAt: draftAdjustmentExpiryDate,
-                    createdAt: now,
-                    updatedAt: now
-                )
-            )
-            try repository.save(transaction)
+            try repository.save(plan.updatedItem)
+            try repository.save(plan.batch)
+            try repository.save(plan.transaction)
             resetAdjustmentDraft()
             load()
-            refreshSelectedItemIfNeeded(updatedItem)
+            refreshSelectedItemIfNeeded(plan.updatedItem)
             return true
         } catch {
             errorMessage = "Stock adjustment could not be saved."
@@ -457,68 +427,41 @@ final class InventoryListViewModel: ObservableObject {
     }
 
     func recordStockConsumption() -> Bool {
-        guard let consumingItem else {
-            errorMessage = "Inventory item could not be found."
-            return false
-        }
-
-        let quantityText = draftConsumptionQuantity.trimmingCharacters(in: .whitespacesAndNewlines)
-        let quantity = Double(quantityText) ?? 0
-        guard quantity > 0 else {
-            errorMessage = "Consumption quantity must be greater than zero."
-            return false
-        }
-        guard let itemQuantity = draftConsumptionUnit.convertedQuantity(quantity, to: consumingItem.unit) else {
-            errorMessage = "Consumption unit must be compatible with the inventory item unit."
-            return false
-        }
-
-        guard consumingItem.currentQuantity - itemQuantity >= 0 else {
-            errorMessage = "Consumption quantity cannot be greater than current stock."
-            return false
-        }
-
-        let note = draftConsumptionNote.trimmingCharacters(in: .whitespacesAndNewlines)
         let now = dateProvider()
-        let updatedItem = InventoryItem(
-            id: consumingItem.id,
-            name: consumingItem.name,
-            unit: consumingItem.unit,
-            currentQuantity: consumingItem.currentQuantity - itemQuantity,
-            minimumQuantity: consumingItem.minimumQuantity,
-            earliestExpiryAt: consumingItem.earliestExpiryAt,
-            hasExpiredStock: consumingItem.hasExpiredStock,
-            hasExpiringSoonStock: consumingItem.hasExpiringSoonStock,
-            createdAt: consumingItem.createdAt,
-            updatedAt: now
+        let planResult = InventoryStockOperation.consumptionPlan(
+            item: consumingItem,
+            quantityText: draftConsumptionQuantity,
+            unit: draftConsumptionUnit,
+            note: draftConsumptionNote,
+            now: now,
+            itemIdProvider: idGenerator
         )
-        let transaction = InventoryTransaction(
-            id: idGenerator(),
-            inventoryItemId: consumingItem.id,
-            kind: .consumption,
-            quantity: itemQuantity,
-            occurredAt: now,
-            note: note.isEmpty ? nil : note,
-            createdAt: now,
-            updatedAt: now
-        )
+
+        let plan: InventoryStockConsumptionPlan
+        switch planResult {
+        case .success(let consumptionPlan):
+            plan = consumptionPlan
+        case .failure(let error):
+            errorMessage = error.message
+            return false
+        }
 
         do {
-            let batches = try repository.fetchInventoryStockBatches(inventoryItemId: consumingItem.id)
+            let batches = try repository.fetchInventoryStockBatches(inventoryItemId: plan.updatedItem.id)
             if !batches.isEmpty {
                 let availableBatchQuantity = batches.reduce(0) { $0 + $1.remainingQuantity }
-                guard availableBatchQuantity - itemQuantity >= 0 else {
+                guard availableBatchQuantity - plan.quantity >= 0 else {
                     errorMessage = "Consumption quantity cannot be greater than current stock."
                     return false
                 }
 
-                try consume(quantity: itemQuantity, from: batches, updatedAt: now)
+                try consume(quantity: plan.quantity, from: batches, updatedAt: now)
             }
-            try repository.save(updatedItem)
-            try repository.save(transaction)
+            try repository.save(plan.updatedItem)
+            try repository.save(plan.transaction)
             resetConsumptionDraft()
             load()
-            refreshSelectedItemIfNeeded(updatedItem)
+            refreshSelectedItemIfNeeded(plan.updatedItem)
             return true
         } catch {
             errorMessage = "Stock consumption could not be saved."
