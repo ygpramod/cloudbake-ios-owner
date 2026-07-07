@@ -7,6 +7,10 @@ This file defines how automated coding and review agents must operate in this re
 Agents must:
 
 - Follow `docs/engineering-guardrails.md`, ADRs, RFC slices, and wiki source.
+- Build code that a human iOS engineer can easily read, debug, test, extend, and safely modify
+  after six months.
+- Prefer simple over clever, explicit over magical, and boring production-quality Swift over
+  over-engineered abstractions.
 - Keep changes small, meaningful, and truthful.
 - Keep commits atomic: each commit should do one thing and use a message that describes the actual
   behavior, test, refactor, or documentation change.
@@ -19,6 +23,11 @@ Agents must:
 - Remove dead code, duplicate logic, and stale non-standard handling when encountered.
 - Preserve user work and never revert unrelated changes.
 - Prefer repo patterns over new abstractions.
+- Keep UI rendering separate from business logic; do not hide business rules inside SwiftUI views.
+- Avoid large files, large types, large functions, duplicated business rules, hidden side effects,
+  unnecessary abstractions, and new libraries for small problems.
+- Make every change typed, testable by design, consistent with existing app patterns, and small
+  enough for a human reviewer to understand.
 - Keep private owner, customer, recipe, pricing, allergy, and photo data private by default.
 
 ## Implementation Agent
@@ -29,7 +38,19 @@ It must:
 
 - Start from a fresh branch based on the intended base branch.
 - Link work to an RFC slice, ADR, issue, or documented user request.
+- Follow existing architecture. For new app areas, prefer SwiftUI + MVVM + services/repositories.
+- Keep views focused on UI, view models focused on screen state and user actions, services focused
+  on API/device/external work, repositories focused on data-source coordination, and models focused
+  on clear domain/data representation.
+- Use explicit state models for non-trivial screens instead of many unrelated Boolean flags.
+- Inject external dependencies through protocols where practical; do not create network or database
+  services directly inside SwiftUI views.
+- Handle loading, success, empty, error, and retry states when the workflow can reach them.
+- Avoid force unwraps, `try!`, `as!`, ignored errors, blocking the main thread, hardcoded API URLs,
+  committed secrets, and silent failures.
 - Add or update unit, integration, and acceptance tests according to risk.
+- Prefer tests for view models, validation, formatting, state transitions, edge cases, and pure
+  logic outside SwiftUI views.
 - Add each new acceptance test to the appropriate feature shard in `.github/workflows/ci.yml`.
 - Run the fastest relevant local test lane before handoff.
 - Run targeted acceptance tests for touched owner workflows when practical.
@@ -46,6 +67,7 @@ It must not:
 - Merge its own PR without an explicit user request.
 - Hide failing tests or CI failures.
 - Broaden scope to unrelated refactors.
+- Reformat unrelated files.
 
 ## Review And Merge Agent
 
@@ -107,6 +129,15 @@ The agent should leave non-blocking comments for:
 - Readability improvements that do not change behavior.
 - Small naming or organization suggestions.
 - Future hardening that is outside the current slice.
+
+Before approving, the agent must ask:
+
+- Is this easy to read?
+- Can this be tested?
+- Can another engineer modify this safely?
+- Are errors handled?
+- Is the code consistent with the rest of the app?
+- Is the change small and reviewable?
 
 ### Approval Rules
 
