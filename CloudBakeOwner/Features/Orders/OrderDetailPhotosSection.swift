@@ -13,7 +13,8 @@ struct OrderDetailPhotosSection: View {
     let onTakePhoto: (OrderPhotoKind) -> Void
 
     var body: some View {
-        Section("Photos") {
+        CloudBakeSection("Photos") {
+            CloudBakeDetailCard {
             photoGroup(
                 title: "Customer References",
                 emptyText: "No reference photos",
@@ -25,6 +26,8 @@ struct OrderDetailPhotosSection: View {
                 photoKind: .customerReference
             )
 
+            CloudBakeDetailDivider()
+
             photoGroup(
                 title: "Final Cake Photos",
                 emptyText: "No final cake photos",
@@ -35,6 +38,7 @@ struct OrderDetailPhotosSection: View {
                 selection: $selectedFinalCakePhotoItem,
                 photoKind: .finalCake
             )
+            }
         }
     }
 
@@ -52,13 +56,16 @@ struct OrderDetailPhotosSection: View {
         HStack(spacing: 12) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
                 .accessibilityIdentifier("\(pickerIdentifier).header")
 
             Spacer()
 
             PhotosPicker(selection: selection, matching: .images, photoLibrary: .shared()) {
                 Image(systemName: "plus")
-                    .frame(width: 32, height: 32)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.cloudBakePink)
+                    .frame(width: 34, height: 34)
             }
             .buttonStyle(.borderless)
             .accessibilityLabel(pickerTitle)
@@ -68,29 +75,46 @@ struct OrderDetailPhotosSection: View {
                 onTakePhoto(photoKind)
             } label: {
                 Image(systemName: "camera")
-                    .frame(width: 32, height: 32)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.cloudBakePink)
+                    .frame(width: 34, height: 34)
             }
             .buttonStyle(.borderless)
             .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
             .accessibilityLabel("Take \(photoKind.displayName)")
             .accessibilityIdentifier(cameraIdentifier)
         }
+        .padding(.vertical, 12)
 
         if photos.isEmpty {
             Text(emptyText)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .padding(.bottom, 12)
                 .accessibilityIdentifier("\(pickerIdentifier).empty")
         } else {
             ForEach(photos, id: \.id) { photo in
-                orderPhotoRow(photo)
-                    .swipeActions(edge: .trailing) {
+                VStack(spacing: 0) {
+                    HStack(spacing: 12) {
+                        orderPhotoRow(photo)
+
                         Button(role: .destructive) {
                             onDeletePhoto(photo)
                         } label: {
-                            Label("Delete", systemImage: "trash")
+                            Image(systemName: "trash")
+                                .frame(width: 34, height: 34)
                         }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.red)
+                        .accessibilityLabel("Delete photo")
                         .accessibilityIdentifier("orders.detail.photos.delete.\(photo.id)")
                     }
+                    .padding(.vertical, 10)
+
+                    if photo.id != photos.last?.id {
+                        CloudBakeDetailDivider()
+                    }
+                }
             }
         }
     }

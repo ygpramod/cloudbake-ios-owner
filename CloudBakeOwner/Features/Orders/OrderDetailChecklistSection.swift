@@ -10,16 +10,32 @@ struct OrderDetailChecklistSection: View {
     let onDelete: (OrderChecklistItem) -> Void
 
     var body: some View {
-        Section("Checklist") {
+        CloudBakeSection("Checklist") {
+            CloudBakeDetailCard {
             if items.isEmpty {
-                Text("No checklist items")
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("orders.detail.checklist.empty")
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.cloudBakePink)
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color.cloudBakePink.opacity(0.10)))
+                    Text("No checklist items")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .accessibilityIdentifier("orders.detail.checklist.empty")
+                    Spacer()
+                }
+                .padding(.vertical, 10)
             } else {
                 ForEach(items, id: \.id) { item in
                     checklistRow(for: item)
+                    if item.id != items.last?.id {
+                        CloudBakeDetailDivider()
+                    }
                 }
             }
+
+            CloudBakeDetailDivider()
 
             HStack {
                 TextField("Add checklist item", text: $draftTitle)
@@ -37,6 +53,8 @@ struct OrderDetailChecklistSection: View {
                 }
                 .accessibilityIdentifier("orders.detail.checklist.add")
             }
+            .padding(.vertical, 12)
+            }
         }
     }
 
@@ -48,7 +66,29 @@ struct OrderDetailChecklistSection: View {
                 .strikethrough(item.isCompleted)
                 .foregroundStyle(item.isCompleted ? .secondary : .primary)
             Spacer()
+            Button {
+                onEdit(item)
+            } label: {
+                Image(systemName: "pencil")
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.cloudBakePink)
+            .accessibilityLabel("Edit \(item.title)")
+            .accessibilityIdentifier("orders.detail.checklist.edit.\(item.id)")
+
+            Button(role: .destructive) {
+                onDelete(item)
+            } label: {
+                Image(systemName: "trash")
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.red)
+            .accessibilityLabel("Delete \(item.title)")
+            .accessibilityIdentifier("orders.detail.checklist.delete.\(item.id)")
         }
+        .padding(.vertical, 12)
         .contentShape(Rectangle())
         .onTapGesture {
             onToggle(item)
@@ -60,22 +100,6 @@ struct OrderDetailChecklistSection: View {
         .accessibilityValue(item.isCompleted ? "Complete" : "Incomplete")
         .accessibilityAction {
             onToggle(item)
-        }
-        .swipeActions(edge: .trailing) {
-            Button {
-                onEdit(item)
-            } label: {
-                Label("Edit", systemImage: "pencil")
-            }
-            .tint(.blue)
-            .accessibilityIdentifier("orders.detail.checklist.edit.\(item.id)")
-
-            Button(role: .destructive) {
-                onDelete(item)
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            .accessibilityIdentifier("orders.detail.checklist.delete.\(item.id)")
         }
     }
 }

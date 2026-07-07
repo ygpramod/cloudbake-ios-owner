@@ -5,15 +5,22 @@ struct ArchivedInventoryView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        List {
+        CloudBakeDetailScaffold(
+            title: "Archived",
+            backAccessibilityIdentifier: "inventory.archived.done",
+            onBack: {
+                dismiss()
+            }
+        ) {
             if viewModel.archivedItems.isEmpty {
-                ContentUnavailableView(
-                    "No archived inventory",
+                CloudBakeEmptyState(
+                    title: "No archived inventory",
                     systemImage: "archivebox",
-                    description: Text("Archived ingredients and supplies will appear here.")
+                    message: "Archived ingredients and supplies will appear here."
                 )
             } else {
-                Section("Archived Items") {
+                CloudBakeSection("Archived Items") {
+                    VStack(spacing: 16) {
                     ForEach(viewModel.archivedItems, id: \.id) { item in
                         VStack(alignment: .leading, spacing: 4) {
                             InventoryItemRow(item: item)
@@ -23,28 +30,26 @@ struct ArchivedInventoryView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
-                        }
-                        .swipeActions(edge: .trailing) {
+
                             Button {
                                 viewModel.restoreItem(item)
                             } label: {
                                 Label("Restore", systemImage: "arrow.uturn.backward")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.green)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 7)
+                                    .background(Color.green.opacity(0.10), in: Capsule())
                             }
-                            .tint(.green)
+                            .buttonStyle(.plain)
                             .accessibilityIdentifier("inventory.archived.restore.\(item.id)")
                         }
+                        .padding(20)
+                        .cloudBakeCardStyle()
                         .accessibilityIdentifier("inventory.archived.item.\(item.id)")
                     }
+                    }
                 }
-            }
-        }
-        .navigationTitle("Archived")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    dismiss()
-                }
-                .accessibilityIdentifier("inventory.archived.done")
             }
         }
         .onAppear {

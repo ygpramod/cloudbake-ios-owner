@@ -10,120 +10,171 @@ struct InventoryItemDetailView: View {
     @State private var isShowingHistory = false
 
     var body: some View {
-        List {
+        CloudBakeDetailScaffold(
+            title: viewModel.selectedItem?.name ?? "Inventory Item",
+            backAccessibilityIdentifier: "inventory.detail.done",
+            primaryAction: CloudBakeDetailAction(
+                title: "Edit",
+                systemImage: "pencil",
+                accessibilityIdentifier: "inventory.detail.edit",
+                action: {
+                    if let item = viewModel.selectedItem {
+                        viewModel.beginEditing(item)
+                        isEditingItem = true
+                    }
+                }
+            ),
+            onBack: {
+                viewModel.closeSelectedItem()
+                isPresented = false
+            }
+        ) {
             if let item = viewModel.selectedItem {
-                Section("Item") {
-                    LabeledContent("Name", value: item.name)
-                    LabeledContent("Unit", value: item.unit.displayName)
-                    LabeledContent("Current Quantity", value: "\(item.currentQuantity.formatted()) \(item.unit.displayName)")
-                    LabeledContent("Minimum Quantity", value: "\(item.minimumQuantity.formatted()) \(item.unit.displayName)")
+                CloudBakeHeroCard(systemImage: "shippingbox", tint: .cloudBakeOrange) {
+                    Text("Inventory Item")
+                        .font(.caption.weight(.bold))
+                        .textCase(.uppercase)
+                        .foregroundStyle(Color.cloudBakeOrange)
+
+                    Text(item.name)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.primary)
+
+                    Text("\(item.currentQuantity.formatted()) \(item.unit.displayName) in stock")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
 
-                Section("Expiry") {
-                    if viewModel.selectedItemBatches.filter({ $0.remainingQuantity > 0 }).isEmpty {
-                        ContentUnavailableView(
-                            "No stock batches",
-                            systemImage: "calendar.badge.exclamationmark",
-                            description: Text("Stock added with expiry dates will appear here.")
-                        )
-                    } else {
-                        HStack {
-                            Text("Quantity")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text("Expiry")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                HStack(spacing: 8) {
+                    CloudBakeInlineActionButton(
+                        title: "Adjust",
+                        systemImage: "plusminus",
+                        tint: .cloudBakePurple,
+                        accessibilityIdentifier: "inventory.detail.adjust"
+                    ) {
+                        viewModel.beginAdjusting(item)
+                        isAdjustingStock = true
+                    }
 
-                        ForEach(viewModel.selectedItemBatches.filter { $0.remainingQuantity > 0 }, id: \.id) { batch in
-                            Button {
-                                viewModel.beginEditingBatch(batch)
-                                isEditingBatch = true
-                            } label: {
-                                HStack {
-                                    Text("\(batch.remainingQuantity.formatted()) \(item.unit.displayName)")
-                                        .foregroundStyle(.primary)
-                                    Spacer()
-                                    Text(batch.expiryDisplayText)
-                                        .foregroundStyle(batch.expiryColor)
-                                    Image(systemName: "calendar")
+                    CloudBakeInlineActionButton(
+                        title: "Use",
+                        systemImage: "minus",
+                        tint: .cloudBakeOrange,
+                        accessibilityIdentifier: "inventory.detail.consume"
+                    ) {
+                        viewModel.beginConsuming(item)
+                        isConsumingStock = true
+                    }
+
+                    CloudBakeInlineActionButton(
+                        title: "History",
+                        systemImage: "clock",
+                        tint: .cloudBakeTeal,
+                        accessibilityIdentifier: "inventory.detail.history"
+                    ) {
+                        viewModel.beginViewingHistory(item)
+                        isShowingHistory = true
+                    }
+                }
+                .accessibilityIdentifier("inventory.detail.more")
+
+                CloudBakeSection("Item") {
+                    CloudBakeDetailCard {
+                        CloudBakeDetailRow("Name") {
+                            Text(item.name)
+                        }
+                        CloudBakeDetailDivider()
+                        CloudBakeDetailRow("Unit") {
+                            Text(item.unit.displayName)
+                        }
+                        CloudBakeDetailDivider()
+                        CloudBakeDetailRow("Current Quantity") {
+                            Text("\(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                        }
+                        CloudBakeDetailDivider()
+                        CloudBakeDetailRow("Minimum Quantity") {
+                            Text("\(item.minimumQuantity.formatted()) \(item.unit.displayName)")
+                        }
+                    }
+                }
+
+                CloudBakeSection("Expiry") {
+                    CloudBakeDetailCard {
+                        let activeBatches = viewModel.selectedItemBatches.filter { $0.remainingQuantity > 0 }
+                        if activeBatches.isEmpty {
+                            HStack(spacing: 12) {
+                                Image(systemName: "calendar.badge.exclamationmark")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(Color.cloudBakePink)
+                                    .frame(width: 48, height: 48)
+                                    .background(Circle().fill(Color.cloudBakePink.opacity(0.10)))
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("No stock batches")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("Stock added with expiry dates will appear here.")
+                                        .font(.footnote)
                                         .foregroundStyle(.secondary)
                                 }
-                                .contentShape(Rectangle())
+
+                                Spacer()
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("inventory.detail.batch.edit.\(batch.id)")
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    viewModel.deleteBatch(batch)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+                            .padding(.vertical, 14)
+                        } else {
+                            HStack {
+                                Text("Quantity")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text("Expiry")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 12)
+
+                            ForEach(activeBatches, id: \.id) { batch in
+                                CloudBakeDetailDivider()
+                                HStack(spacing: 12) {
+                                    Button {
+                                        viewModel.beginEditingBatch(batch)
+                                        isEditingBatch = true
+                                    } label: {
+                                        HStack {
+                                            Text("\(batch.remainingQuantity.formatted()) \(item.unit.displayName)")
+                                                .foregroundStyle(.primary)
+                                            Spacer()
+                                            Text(batch.expiryDisplayText)
+                                                .foregroundStyle(batch.expiryColor)
+                                            Image(systemName: "calendar")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityIdentifier("inventory.detail.batch.edit.\(batch.id)")
+
+                                    Button(role: .destructive) {
+                                        viewModel.deleteBatch(batch)
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .frame(width: 34, height: 34)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(.red)
+                                    .accessibilityLabel("Delete batch")
+                                    .accessibilityIdentifier("inventory.detail.batch.delete.\(batch.id)")
                                 }
-                                .accessibilityIdentifier("inventory.detail.batch.delete.\(batch.id)")
+                                .padding(.vertical, 12)
                             }
                         }
                     }
                 }
 
                 if let errorMessage = viewModel.errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .accessibilityIdentifier("inventory.detail.error")
-                    }
-                }
-            }
-        }
-        .navigationTitle("Inventory Item")
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Done") {
-                    viewModel.closeSelectedItem()
-                    isPresented = false
-                }
-                .accessibilityIdentifier("inventory.detail.done")
-            }
-
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                if let item = viewModel.selectedItem {
-                    Button {
-                        viewModel.beginEditing(item)
-                        isEditingItem = true
-                    } label: {
-                        Label("Edit", systemImage: "pencil")
-                    }
-                    .accessibilityIdentifier("inventory.detail.edit")
-
-                    Menu {
-                        Button {
-                            viewModel.beginAdjusting(item)
-                            isAdjustingStock = true
-                        } label: {
-                            Label("Adjust Stock", systemImage: "plusminus")
-                        }
-                        .accessibilityIdentifier("inventory.detail.adjust")
-
-                        Button {
-                            viewModel.beginConsuming(item)
-                            isConsumingStock = true
-                        } label: {
-                            Label("Use Stock", systemImage: "minus")
-                        }
-                        .accessibilityIdentifier("inventory.detail.consume")
-
-                        Button {
-                            viewModel.beginViewingHistory(item)
-                            isShowingHistory = true
-                        } label: {
-                            Label("View History", systemImage: "clock")
-                        }
-                        .accessibilityIdentifier("inventory.detail.history")
-                    } label: {
-                        Label("More", systemImage: "ellipsis.circle")
-                    }
-                    .accessibilityIdentifier("inventory.detail.more")
+                    CloudBakeErrorBanner(
+                        message: errorMessage,
+                        accessibilityIdentifier: "inventory.detail.error"
+                    )
                 }
             }
         }
