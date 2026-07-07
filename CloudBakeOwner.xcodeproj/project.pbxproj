@@ -88,6 +88,9 @@
 		41000000000000000000004F /* InventoryDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000057 /* InventoryDraftValidation.swift */; };
 		410000000000000000000050 /* InventoryStockOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000058 /* InventoryStockOperation.swift */; };
 		410000000000000000000051 /* InventoryPurchaseBillDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000059 /* InventoryPurchaseBillDraft.swift */; };
+		410000000000000000000052 /* CustomerContactPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005A /* CustomerContactPicker.swift */; };
+		410000000000000000000053 /* CustomerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005B /* CustomerDetailView.swift */; };
+		410000000000000000000054 /* CustomerForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005C /* CustomerForm.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -191,6 +194,9 @@
 		420000000000000000000057 /* InventoryDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryDraftValidation.swift; sourceTree = "<group>"; };
 		420000000000000000000058 /* InventoryStockOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockOperation.swift; sourceTree = "<group>"; };
 		420000000000000000000059 /* InventoryPurchaseBillDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryPurchaseBillDraft.swift; sourceTree = "<group>"; };
+		42000000000000000000005A /* CustomerContactPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerContactPicker.swift; sourceTree = "<group>"; };
+		42000000000000000000005B /* CustomerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDetailView.swift; sourceTree = "<group>"; };
+		42000000000000000000005C /* CustomerForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerForm.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -319,9 +325,12 @@
 		45000000000000000000001C /* Customers */ = {
 			isa = PBXGroup;
 			children = (
+				420000000000000000000031 /* CustomerContactImport.swift */,
+				42000000000000000000005A /* CustomerContactPicker.swift */,
+				42000000000000000000005B /* CustomerDetailView.swift */,
+				42000000000000000000005C /* CustomerForm.swift */,
 				42000000000000000000002E /* CustomerListView.swift */,
 				42000000000000000000002F /* CustomerListViewModel.swift */,
-				420000000000000000000031 /* CustomerContactImport.swift */,
 			);
 			path = Customers;
 			sourceTree = "<group>";
@@ -643,9 +652,12 @@
 				41000000000000000000000E /* CoreDataRepositories.swift in Sources */,
 				41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */,
 				410000000000000000000034 /* CustomerConsumerProfile.swift in Sources */,
+				410000000000000000000029 /* CustomerContactImport.swift in Sources */,
+				410000000000000000000052 /* CustomerContactPicker.swift in Sources */,
+				410000000000000000000053 /* CustomerDetailView.swift in Sources */,
+				410000000000000000000054 /* CustomerForm.swift in Sources */,
 				410000000000000000000026 /* CustomerListView.swift in Sources */,
 				410000000000000000000027 /* CustomerListViewModel.swift in Sources */,
-				410000000000000000000029 /* CustomerContactImport.swift in Sources */,
 				41000000000000000000000A /* HealthCheckRepository.swift in Sources */,
 				41000000000000000000003D /* ArchivedInventoryView.swift in Sources */,
 				41000000000000000000003C /* InventoryHistoryView.swift in Sources */,
