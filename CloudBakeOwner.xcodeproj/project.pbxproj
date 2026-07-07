@@ -98,6 +98,7 @@
 		410000000000000000000059 /* GRDBCustomerRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000061 /* GRDBCustomerRepository.swift */; };
 		41000000000000000000005A /* GRDBPricingRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000062 /* GRDBPricingRepository.swift */; };
 		41000000000000000000005B /* GRDBOrderRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000063 /* GRDBOrderRepository.swift */; };
+		41000000000000000000005C /* CloudBakeOwnerUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -211,6 +212,7 @@
 		420000000000000000000061 /* GRDBCustomerRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBCustomerRepository.swift; sourceTree = "<group>"; };
 		420000000000000000000062 /* GRDBPricingRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBPricingRepository.swift; sourceTree = "<group>"; };
 		420000000000000000000063 /* GRDBOrderRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBOrderRepository.swift; sourceTree = "<group>"; };
+		420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerUITestSupport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -508,6 +510,7 @@
 			isa = PBXGroup;
 			children = (
 				420000000000000000000007 /* CloudBakeOwnerUITests.swift */,
+				420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */,
 			);
 			path = CloudBakeOwnerUITests;
 			sourceTree = "<group>";
@@ -760,6 +763,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				410000000000000000000007 /* CloudBakeOwnerUITests.swift in Sources */,
+				41000000000000000000005C /* CloudBakeOwnerUITestSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
