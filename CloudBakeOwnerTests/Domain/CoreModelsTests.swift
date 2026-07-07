@@ -189,6 +189,66 @@ final class CoreModelsTests: XCTestCase {
         XCTAssertEqual(customer.phone, "5550101")
     }
 
+    func testConsumerCustomerProfileProjectsCustomerSafeContactFields() {
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let customer = Customer(
+            id: "customer-amy",
+            name: "Amy",
+            phone: "5550101",
+            email: "amy@example.com",
+            address: "10 Cake Street",
+            likes: "Chocolate",
+            dislikes: "Fondant",
+            allergies: "Nuts",
+            dietaryRestrictions: "Eggless",
+            notes: "Owner-only handling note",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        let profile = ConsumerCustomerProfile(customer: customer)
+
+        XCTAssertEqual(
+            profile,
+            ConsumerCustomerProfile(
+                customerId: "customer-amy",
+                displayName: "Amy",
+                contactPhone: "5550101",
+                contactEmail: "amy@example.com"
+            )
+        )
+    }
+
+    func testConsumerCustomerProfileDoesNotExposeOwnerOnlyFields() {
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let customer = Customer(
+            id: "customer-amy",
+            name: "Amy",
+            phone: "5550101",
+            email: "amy@example.com",
+            address: "10 Cake Street",
+            likes: "Chocolate",
+            dislikes: "Fondant",
+            allergies: "Nuts",
+            dietaryRestrictions: "Eggless",
+            notes: "Owner-only handling note",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        let profile = ConsumerCustomerProfile(customer: customer)
+        let exposedFieldNames = Set(Mirror(reflecting: profile).children.compactMap(\.label))
+
+        XCTAssertFalse(exposedFieldNames.contains("address"))
+        XCTAssertFalse(exposedFieldNames.contains("likes"))
+        XCTAssertFalse(exposedFieldNames.contains("dislikes"))
+        XCTAssertFalse(exposedFieldNames.contains("allergies"))
+        XCTAssertFalse(exposedFieldNames.contains("dietaryRestrictions"))
+        XCTAssertFalse(exposedFieldNames.contains("notes"))
+        XCTAssertFalse(exposedFieldNames.contains("createdAt"))
+        XCTAssertFalse(exposedFieldNames.contains("updatedAt"))
+    }
+
     func testInventoryItemIsLowStockWhenCurrentQuantityIsBelowMinimumQuantity() {
         let item = InventoryItem(
             id: "inventory-flour",

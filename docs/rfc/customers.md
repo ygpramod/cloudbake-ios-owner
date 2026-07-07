@@ -161,6 +161,8 @@ Searchable customer record selection from the order form is implemented in
 `docs/rfc/slices/0042-order-customer-search-selection.md`.
 Regular-width iPad customer list/detail layout is implemented in
 `docs/rfc/slices/0043-ipad-customer-layout.md`.
+A customer-safe profile projection for future consumer-facing surfaces is implemented through
+`docs/rfc/slices/0067-future-consumer-customer-profile-model.md`.
 
 ## Owner Experience
 
@@ -220,6 +222,9 @@ The first implementation slice should create the minimum useful customer foundat
 Contacts import is implemented as an editable draft flow. Customer selection for orders should be
 done through the searchable selection flow. Customer detail now shows linked order history once
 orders reference a customer record. iPad customer navigation now uses a regular-width split layout.
+The customer domain now includes a conservative consumer profile projection that exposes only safe
+profile contact fields and excludes owner-only preferences, allergies, dietary notes, internal
+notes, address, timestamps, and order history.
 
 ## Open Questions
 

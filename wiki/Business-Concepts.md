@@ -192,6 +192,15 @@ It can show cake name, customer-facing status, due date/time, fulfillment type, 
 display data. It must not expose owner-only recipe links, cake notes, private customer data,
 delivery address, checklist items, inventory usage, reminders, supplier details, or pricing internals.
 
+## Consumer Customer Profile
+
+A consumer customer profile is a customer-safe summary of an owner customer record for future
+authenticated customer-facing surfaces.
+
+It can show customer id, display name, primary phone, and primary email. It must not expose
+owner-only address details, likes, dislikes, allergies, dietary restrictions, internal notes,
+timestamps, order history, supplier details, or pricing information.
+
 ## Owner Price
 
 The app may help suggest pricing from ingredients, time, size, and complexity, but the owner decides

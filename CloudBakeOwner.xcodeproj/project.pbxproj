@@ -58,6 +58,7 @@
 		410000000000000000000031 /* OrderStateRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000039 /* OrderStateRules.swift */; };
 		410000000000000000000032 /* OrderReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003A /* OrderReminderSchedulerTests.swift */; };
 		410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003B /* OrderPhotoFileStore.swift */; };
+		410000000000000000000034 /* CustomerConsumerProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003C /* CustomerConsumerProfile.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -131,6 +132,7 @@
 		420000000000000000000039 /* OrderStateRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderStateRules.swift; sourceTree = "<group>"; };
 		42000000000000000000003A /* OrderReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/OrderReminderSchedulerTests.swift; sourceTree = "<group>"; };
 		42000000000000000000003B /* OrderPhotoFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoFileStore.swift; sourceTree = "<group>"; };
+		42000000000000000000003C /* CustomerConsumerProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerConsumerProfile.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -280,6 +282,7 @@
 			children = (
 				42000000000000000000001F /* BakingCatalog.swift */,
 				420000000000000000000015 /* CoreModels.swift */,
+				42000000000000000000003C /* CustomerConsumerProfile.swift */,
 				42000000000000000000002D /* InventoryUnitDisplay.swift */,
 				420000000000000000000037 /* OrderConsumerPreview.swift */,
 				420000000000000000000036 /* OrderDisplay.swift */,
@@ -552,6 +555,7 @@
 				41000000000000000000000D /* CoreModels.swift in Sources */,
 				41000000000000000000000E /* CoreDataRepositories.swift in Sources */,
 				41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */,
+				410000000000000000000034 /* CustomerConsumerProfile.swift in Sources */,
 				410000000000000000000026 /* CustomerListView.swift in Sources */,
 				410000000000000000000027 /* CustomerListViewModel.swift in Sources */,
 				410000000000000000000029 /* CustomerContactImport.swift in Sources */,

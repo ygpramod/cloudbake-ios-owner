@@ -61,3 +61,7 @@ into any customer-facing experience.
 The app now has a domain-only consumer order preview model that defines the first safe projection
 boundary for future customer-facing order status and cake preview surfaces. It is not a public UI or
 sync feature yet.
+
+The app also has a domain-only consumer customer profile model that defines the first safe
+projection boundary for future authenticated customer profile surfaces. It is not a customer account,
+public UI, or sync feature yet.
