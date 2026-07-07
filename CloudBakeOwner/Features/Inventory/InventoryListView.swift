@@ -699,85 +699,6 @@ private struct InventoryBatchForm: View {
     }
 }
 
-private struct InventoryHistoryView: View {
-    @ObservedObject var viewModel: InventoryListViewModel
-    @Binding var isPresented: Bool
-
-    var body: some View {
-        List {
-            if let item = viewModel.historyItem {
-                Section("Item") {
-                    LabeledContent("Name", value: item.name)
-                    LabeledContent("Current", value: "\(item.currentQuantity.formatted()) \(item.unit.displayName)")
-                }
-
-                if viewModel.historyTransactions.isEmpty {
-                    ContentUnavailableView(
-                        "No stock history",
-                        systemImage: "clock",
-                        description: Text("Adjustments and stock usage will appear here.")
-                    )
-                } else {
-                    Section("Stock Changes") {
-                        ForEach(viewModel.historyTransactions, id: \.id) { transaction in
-                            InventoryTransactionRow(transaction: transaction, unit: item.unit)
-                        }
-                    }
-                }
-            }
-
-            if let errorMessage = viewModel.errorMessage {
-                Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .accessibilityIdentifier("inventory.history.error")
-                }
-            }
-        }
-        .navigationTitle("Stock History")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    viewModel.closeHistory()
-                    isPresented = false
-                }
-                .accessibilityIdentifier("inventory.history.done")
-            }
-        }
-        .accessibilityIdentifier("inventory.history.screen")
-    }
-}
-
-private struct InventoryTransactionRow: View {
-    let transaction: InventoryTransaction
-    let unit: InventoryUnit
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Label(transaction.displayTitle, systemImage: transaction.systemImageName)
-                    .font(.headline)
-
-                Spacer()
-
-                Text(transaction.signedQuantityText(unit: unit))
-                    .font(.headline)
-                    .foregroundStyle(transaction.quantityColor)
-            }
-
-            Text(transaction.occurredAt.formatted(date: .abbreviated, time: .shortened))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if let note = transaction.note {
-                Text(note)
-                    .font(.subheadline)
-            }
-        }
-        .accessibilityIdentifier("inventory.history.transaction.\(transaction.id)")
-    }
-}
-
 private struct InventoryStockConsumptionForm: View {
     @ObservedObject var viewModel: InventoryListViewModel
     @Binding var isPresented: Bool
@@ -901,95 +822,6 @@ private struct InventoryStockAdjustmentForm: View {
     }
 }
 
-private struct ArchivedInventoryView: View {
-    @ObservedObject var viewModel: InventoryListViewModel
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        List {
-            if viewModel.archivedItems.isEmpty {
-                ContentUnavailableView(
-                    "No archived inventory",
-                    systemImage: "archivebox",
-                    description: Text("Archived ingredients and supplies will appear here.")
-                )
-            } else {
-                Section("Archived Items") {
-                    ForEach(viewModel.archivedItems, id: \.id) { item in
-                        VStack(alignment: .leading, spacing: 4) {
-                            InventoryItemRow(item: item)
-
-                            if let archivedAt = item.archivedAt {
-                                Text("Archived \(archivedAt.formatted(date: .abbreviated, time: .omitted))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .swipeActions(edge: .trailing) {
-                            Button {
-                                viewModel.restoreItem(item)
-                            } label: {
-                                Label("Restore", systemImage: "arrow.uturn.backward")
-                            }
-                            .tint(.green)
-                            .accessibilityIdentifier("inventory.archived.restore.\(item.id)")
-                        }
-                        .accessibilityIdentifier("inventory.archived.item.\(item.id)")
-                    }
-                }
-            }
-        }
-        .navigationTitle("Archived")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    dismiss()
-                }
-                .accessibilityIdentifier("inventory.archived.done")
-            }
-        }
-        .onAppear {
-            viewModel.loadArchivedItems()
-        }
-        .accessibilityIdentifier("inventory.archived.screen")
-    }
-}
-
-private struct InventoryItemRow: View {
-    let item: InventoryItem
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.name)
-                    .font(.headline)
-                Text("Current Quantity: \(item.currentQuantity.formatted()) \(item.unit.displayName)")
-                    .font(.subheadline)
-                Text("Minimum Quantity: \(item.minimumQuantity.formatted()) \(item.unit.displayName)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                if let earliestExpiryAt = item.earliestExpiryAt {
-                    Text("Expires: \(earliestExpiryAt.formatted(date: .abbreviated, time: .omitted))")
-                        .font(.caption)
-                        .foregroundStyle(item.expiryColor)
-                }
-            }
-
-            Spacer()
-
-            if item.isLowStock {
-                Label(item.lowStockLabel, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(item.alertColor)
-                    .labelStyle(.iconOnly)
-                    .accessibilityIdentifier("inventory.item.lowStock.\(item.id)")
-            }
-        }
-        .accessibilityIdentifier("inventory.item.\(item.id)")
-    }
-}
-
 private struct InventoryItemForm: View {
     let title: String
     @ObservedObject var viewModel: InventoryListViewModel
@@ -1088,42 +920,6 @@ private struct InventoryItemForm: View {
     }
 }
 
-private extension InventoryTransaction {
-    var displayTitle: String {
-        switch kind {
-        case .adjustment: "Adjustment"
-        case .purchase: "Purchase"
-        case .consumption: "Used"
-        }
-    }
-
-    var systemImageName: String {
-        switch kind {
-        case .adjustment, .purchase: "plus.circle"
-        case .consumption: "minus.circle"
-        }
-    }
-
-    var quantityColor: Color {
-        switch kind {
-        case .adjustment, .purchase: .green
-        case .consumption: .orange
-        }
-    }
-
-    func signedQuantityText(unit: InventoryUnit) -> String {
-        let sign: String
-        switch kind {
-        case .adjustment, .purchase:
-            sign = "+"
-        case .consumption:
-            sign = "-"
-        }
-
-        return "\(sign)\(quantity.formatted()) \(unit.displayName)"
-    }
-}
-
 private extension InventoryStockBatch {
     var expiryDisplayText: String {
         guard let expiresAt else {
@@ -1161,36 +957,6 @@ private extension InventoryStockBatch {
         }
 
         return .primary
-    }
-}
-
-private extension InventoryItem {
-    var lowStockLabel: String {
-        if hasExpiredStock {
-            return "Expired stock"
-        }
-
-        if hasExpiringSoonStock {
-            return "Expiring soon"
-        }
-
-        return "Low stock"
-    }
-
-    var alertColor: Color {
-        hasExpiringSoonStock && !hasExpiredStock ? .orange : .red
-    }
-
-    var expiryColor: Color {
-        if hasExpiredStock {
-            return .red
-        }
-
-        if hasExpiringSoonStock {
-            return .orange
-        }
-
-        return .secondary
     }
 }
 
