@@ -1008,6 +1008,7 @@
 				INFOPLIST_KEY_NSContactsUsageDescription = "CloudBake lets you choose a contact to prefill editable customer details.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "CloudBake lets you choose purchase bill, recipe, and order photos from the photo library.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1034,6 +1035,7 @@
 				INFOPLIST_KEY_NSContactsUsageDescription = "CloudBake lets you choose a contact to prefill editable customer details.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "CloudBake lets you choose purchase bill, recipe, and order photos from the photo library.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

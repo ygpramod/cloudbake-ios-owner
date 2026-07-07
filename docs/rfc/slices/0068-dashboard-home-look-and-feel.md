@@ -38,6 +38,8 @@ This slice does not include:
 - The visible top navigation title must not duplicate the custom home header.
 - The bottom quick navigation must not include a center add button.
 - Main app areas must remain reachable from the dashboard.
+- The owner app must force light appearance for now because the refreshed home design is not yet
+  usable in dark mode.
 - Acceptance tests must avoid brittle visible-text navigation when the home design intentionally
   repeats destination labels.
 
