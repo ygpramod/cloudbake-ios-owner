@@ -67,18 +67,15 @@ final class RecipeListViewModel: ObservableObject {
     }
 
     func addRecipe() -> Bool {
-        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else {
-            errorMessage = "Recipe name is required."
+        guard let draft = validatedRecipeDraft() else {
             return false
         }
 
-        let notes = draftNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         let now = dateProvider()
         let recipe = Recipe(
             id: idGenerator(),
-            name: name,
-            notes: notes.isEmpty ? nil : notes,
+            name: draft.name,
+            notes: draft.notes,
             createdAt: now,
             updatedAt: now
         )
@@ -100,17 +97,14 @@ final class RecipeListViewModel: ObservableObject {
             return false
         }
 
-        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else {
-            errorMessage = "Recipe name is required."
+        guard let draft = validatedRecipeDraft() else {
             return false
         }
 
-        let notes = draftNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         let recipe = Recipe(
             id: selectedRecipe.id,
-            name: name,
-            notes: notes.isEmpty ? nil : notes,
+            name: draft.name,
+            notes: draft.notes,
             createdAt: selectedRecipe.createdAt,
             updatedAt: dateProvider()
         )
@@ -336,6 +330,21 @@ final class RecipeListViewModel: ObservableObject {
     private func resetDraft() {
         draftName = ""
         draftNotes = ""
+    }
+
+    private func validatedRecipeDraft() -> ValidatedRecipeDraft? {
+        switch RecipeDraftValidation.validate(
+            RecipeDraftValidationInput(
+                name: draftName,
+                notes: draftNotes
+            )
+        ) {
+        case .success(let draft):
+            return draft
+        case .failure(let error):
+            errorMessage = error.message
+            return nil
+        }
     }
 
     private func loadRecipeDetail() {

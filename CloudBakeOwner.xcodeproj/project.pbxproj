@@ -110,6 +110,8 @@
 		410000000000000000000065 /* OrderPaymentViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006D /* OrderPaymentViewModelTests.swift */; };
 		410000000000000000000066 /* OrderStatusEditingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006E /* OrderStatusEditingViewModelTests.swift */; };
 		410000000000000000000067 /* InventoryPurchaseBillViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006F /* InventoryPurchaseBillViewModelTests.swift */; };
+		410000000000000000000068 /* RecipeDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000070 /* RecipeDraftValidation.swift */; };
+		410000000000000000000069 /* RecipeDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000071 /* RecipeDraftValidationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -235,6 +237,8 @@
 		42000000000000000000006D /* OrderPaymentViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPaymentViewModelTests.swift; sourceTree = "<group>"; };
 		42000000000000000000006E /* OrderStatusEditingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderStatusEditingViewModelTests.swift; sourceTree = "<group>"; };
 		42000000000000000000006F /* InventoryPurchaseBillViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryPurchaseBillViewModelTests.swift; sourceTree = "<group>"; };
+		420000000000000000000070 /* RecipeDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDraftValidation.swift; sourceTree = "<group>"; };
+		420000000000000000000071 /* RecipeDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDraftValidationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -356,6 +360,7 @@
 				42000000000000000000004D /* RecipeForm.swift */,
 				42000000000000000000004B /* RecipeIngredientForm.swift */,
 				42000000000000000000004C /* RecipeImportView.swift */,
+				420000000000000000000070 /* RecipeDraftValidation.swift */,
 				420000000000000000000028 /* RecipeListView.swift */,
 				420000000000000000000029 /* RecipeListViewModel.swift */,
 			);
@@ -510,6 +515,7 @@
 		45000000000000000000001B /* Recipes */ = {
 			isa = PBXGroup;
 			children = (
+				420000000000000000000071 /* RecipeDraftValidationTests.swift */,
 				42000000000000000000002A /* RecipeListViewModelTests.swift */,
 			);
 			path = Recipes;
@@ -765,6 +771,7 @@
 				410000000000000000000045 /* RecipeForm.swift in Sources */,
 				410000000000000000000043 /* RecipeIngredientForm.swift in Sources */,
 				410000000000000000000044 /* RecipeImportView.swift in Sources */,
+				410000000000000000000068 /* RecipeDraftValidation.swift in Sources */,
 				410000000000000000000020 /* RecipeListView.swift in Sources */,
 				410000000000000000000021 /* RecipeListViewModel.swift in Sources */,
 			);
@@ -795,6 +802,7 @@
 				410000000000000000000016 /* DashboardViewModelTests.swift in Sources */,
 				41000000000000000000001B /* PurchaseBillDraftParserTests.swift in Sources */,
 				410000000000000000000024 /* RecipeDraftParserTests.swift in Sources */,
+				410000000000000000000069 /* RecipeDraftValidationTests.swift in Sources */,
 				410000000000000000000022 /* RecipeListViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
