@@ -115,6 +115,7 @@
 		41000000000000000000006A /* RecipeImportDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000072 /* RecipeImportDraftValidation.swift */; };
 		41000000000000000000006B /* RecipeImportDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000073 /* RecipeImportDraftValidationTests.swift */; };
 		41000000000000000000006C /* InventoryStockOperationViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000074 /* InventoryStockOperationViewModelTests.swift */; };
+		41000000000000000000006D /* OrderChecklistViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000075 /* OrderChecklistViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -245,6 +246,7 @@
 		420000000000000000000072 /* RecipeImportDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportDraftValidation.swift; sourceTree = "<group>"; };
 		420000000000000000000073 /* RecipeImportDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImportDraftValidationTests.swift; sourceTree = "<group>"; };
 		420000000000000000000074 /* InventoryStockOperationViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockOperationViewModelTests.swift; sourceTree = "<group>"; };
+		420000000000000000000075 /* OrderChecklistViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderChecklistViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -547,6 +549,7 @@
 				42000000000000000000006D /* OrderPaymentViewModelTests.swift */,
 				42000000000000000000006C /* OrderPhotoViewModelTests.swift */,
 				42000000000000000000006E /* OrderStatusEditingViewModelTests.swift */,
+				420000000000000000000075 /* OrderChecklistViewModelTests.swift */,
 			);
 			path = Orders;
 			sourceTree = "<group>";
@@ -810,6 +813,7 @@
 				410000000000000000000065 /* OrderPaymentViewModelTests.swift in Sources */,
 				410000000000000000000064 /* OrderPhotoViewModelTests.swift in Sources */,
 				410000000000000000000066 /* OrderStatusEditingViewModelTests.swift in Sources */,
+				41000000000000000000006D /* OrderChecklistViewModelTests.swift in Sources */,
 				410000000000000000000016 /* DashboardViewModelTests.swift in Sources */,
 				41000000000000000000001B /* PurchaseBillDraftParserTests.swift in Sources */,
 				410000000000000000000024 /* RecipeDraftParserTests.swift in Sources */,
