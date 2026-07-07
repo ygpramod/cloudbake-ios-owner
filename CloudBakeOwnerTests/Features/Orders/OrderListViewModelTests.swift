@@ -129,15 +129,15 @@ final class OrderListViewModelTests: XCTestCase {
             [
                 OrderReminderPlanItem(
                     offsetDays: 3,
-                    remindAt: calendar.date(byAdding: .day, value: -3, to: dueAt)!
+                    remindAt: date(byAddingDays: -3, to: dueAt, calendar: calendar)
                 ),
                 OrderReminderPlanItem(
                     offsetDays: 2,
-                    remindAt: calendar.date(byAdding: .day, value: -2, to: dueAt)!
+                    remindAt: date(byAddingDays: -2, to: dueAt, calendar: calendar)
                 ),
                 OrderReminderPlanItem(
                     offsetDays: 1,
-                    remindAt: calendar.date(byAdding: .day, value: -1, to: dueAt)!
+                    remindAt: date(byAddingDays: -1, to: dueAt, calendar: calendar)
                 )
             ]
         )
@@ -147,11 +147,11 @@ final class OrderListViewModelTests: XCTestCase {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()
         let now = Date(timeIntervalSince1970: 1_800_057_600)
-        let dueInTwoDays = calendar.date(byAdding: .day, value: 2, to: now)!
-        let dueInFourDays = calendar.date(byAdding: .day, value: 4, to: now)!
-        let dueTomorrow = calendar.date(byAdding: .day, value: 1, to: now)!
-        let dueCancelled = calendar.date(byAdding: .day, value: 1, to: now)!
-        let dueCompleted = calendar.date(byAdding: .day, value: 1, to: now)!
+        let dueInTwoDays = date(byAddingDays: 2, to: now, calendar: calendar)
+        let dueInFourDays = date(byAddingDays: 4, to: now, calendar: calendar)
+        let dueTomorrow = date(byAddingDays: 1, to: now, calendar: calendar)
+        let dueCancelled = date(byAddingDays: 1, to: now, calendar: calendar)
+        let dueCompleted = date(byAddingDays: 1, to: now, calendar: calendar)
         let activeOrder = makeOrder(id: "order-active", title: "Active Cake", dueAt: dueInTwoDays)
         let futureOrder = makeOrder(id: "order-future", title: "Future Cake", dueAt: dueInFourDays)
         let tomorrowOrder = makeOrder(id: "order-tomorrow", title: "Tomorrow Cake", dueAt: dueTomorrow)
@@ -195,7 +195,7 @@ final class OrderListViewModelTests: XCTestCase {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()
         let now = Date(timeIntervalSince1970: 1_800_057_600)
-        let dueInTwoDays = calendar.date(byAdding: .day, value: 2, to: now)!
+        let dueInTwoDays = date(byAddingDays: 2, to: now, calendar: calendar)
         let order = makeOrder(id: "order-active", title: "Active Cake", dueAt: dueInTwoDays)
         let viewModel = OrderListViewModel(
             repository: repository,
@@ -239,7 +239,7 @@ final class OrderListViewModelTests: XCTestCase {
                     customerId: nil,
                     cakeDesignId: "design-floral",
                     recipeId: "recipe-vanilla",
-                    recipeScaleMultiplier: Decimal(string: "1.5")!,
+                    recipeScaleMultiplier: decimal("1.5"),
                     title: "Vanilla Birthday",
                     customerName: "Amy",
                     status: .confirmed,
@@ -498,8 +498,26 @@ final class OrderListViewModelTests: XCTestCase {
 
     func utcCalendar() -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
         return calendar
+    }
+
+    func date(byAddingDays days: Int, to date: Date, calendar: Calendar) -> Date {
+        guard let date = calendar.date(byAdding: .day, value: days, to: date) else {
+            XCTFail("Expected test date fixture to be valid.")
+            return .distantPast
+        }
+
+        return date
+    }
+
+    func decimal(_ text: String) -> Decimal {
+        guard let amount = Decimal(string: text) else {
+            XCTFail("Expected decimal test fixture to be valid.")
+            return 0
+        }
+
+        return amount
     }
 
     func makeCustomer(
