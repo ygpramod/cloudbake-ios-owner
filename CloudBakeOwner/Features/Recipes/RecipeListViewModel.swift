@@ -175,50 +175,24 @@ final class RecipeListViewModel: ObservableObject {
     }
 
     func saveRecipeImportDraft() -> Bool {
-        let linkedDrafts = importIngredientDrafts.filter { !$0.inventoryItemId.isEmpty }
-        guard importIngredientDrafts.count == linkedDrafts.count else {
-            errorMessage = "Link each ingredient to an inventory item before saving."
+        guard let draft = validatedRecipeImportDraft() else {
             return false
         }
 
-        let availableInventoryItemIds = Set(availableInventoryItems.map(\.id))
-        guard linkedDrafts.allSatisfy({ availableInventoryItemIds.contains($0.inventoryItemId) }) else {
-            errorMessage = "Link each ingredient to an inventory item before saving."
-            return false
-        }
-
-        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else {
-            errorMessage = "Recipe name is required."
-            return false
-        }
-
-        let parsedDrafts = linkedDrafts.compactMap { draft -> (draft: RecipeImportIngredientDraftRow, quantity: Double)? in
-            guard let quantity = parsedIngredientQuantity(from: draft.quantity), quantity > 0 else {
-                return nil
-            }
-            return (draft, quantity)
-        }
-        guard parsedDrafts.count == linkedDrafts.count else {
-            errorMessage = "Ingredient quantities must be greater than zero."
-            return false
-        }
-
-        let notes = draftNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         let now = dateProvider()
         let recipe = Recipe(
             id: idGenerator(),
-            name: name,
-            notes: notes.isEmpty ? nil : notes,
+            name: draft.recipe.name,
+            notes: draft.recipe.notes,
             createdAt: now,
             updatedAt: now
         )
 
         do {
             try repository.save(recipe)
-            if !parsedDrafts.isEmpty {
+            if !draft.ingredients.isEmpty {
                 let component = try defaultComponent(for: recipe)
-                for parsedDraft in parsedDrafts {
+                for parsedDraft in draft.ingredients {
                     let note = parsedDraft.draft.note.trimmingCharacters(in: .whitespacesAndNewlines)
                     try repository.save(
                         RecipeIngredient(
@@ -283,7 +257,8 @@ final class RecipeListViewModel: ObservableObject {
             return false
         }
 
-        guard let quantity = parsedIngredientQuantity(from: draftIngredientQuantity), quantity > 0 else {
+        guard let quantity = RecipeImportDraftValidation.parsedIngredientQuantity(from: draftIngredientQuantity),
+              quantity > 0 else {
             errorMessage = "Ingredient quantity must be greater than zero."
             return false
         }
@@ -337,6 +312,23 @@ final class RecipeListViewModel: ObservableObject {
             RecipeDraftValidationInput(
                 name: draftName,
                 notes: draftNotes
+            )
+        ) {
+        case .success(let draft):
+            return draft
+        case .failure(let error):
+            errorMessage = error.message
+            return nil
+        }
+    }
+
+    private func validatedRecipeImportDraft() -> ValidatedRecipeImportDraft? {
+        switch RecipeImportDraftValidation.validate(
+            RecipeImportDraftValidationInput(
+                recipeName: draftName,
+                recipeNotes: draftNotes,
+                ingredientDrafts: importIngredientDrafts,
+                availableInventoryItemIds: Set(availableInventoryItems.map(\.id))
             )
         ) {
         case .success(let draft):
@@ -413,24 +405,6 @@ final class RecipeListViewModel: ObservableObject {
 
         draftIngredientInventoryItemId = firstItem.id
         draftIngredientUnit = firstItem.unit
-    }
-
-    private func parsedIngredientQuantity(from text: String) -> Double? {
-        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedText.isEmpty else {
-            return nil
-        }
-
-        if let quantity = Double(trimmedText) {
-            return quantity
-        }
-
-        let groupingSeparator = Locale.current.groupingSeparator ?? ","
-        let normalizedText = trimmedText
-            .replacingOccurrences(of: groupingSeparator, with: "")
-            .replacingOccurrences(of: ",", with: "")
-
-        return Double(normalizedText)
     }
 
     private func resetIngredientDraft() {
