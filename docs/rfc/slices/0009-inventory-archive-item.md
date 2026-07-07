@@ -67,7 +67,9 @@ Migration `0004_add_inventory_archive_timestamp` adds nullable `archived_at_unix
 
 ### UI
 
-Inventory rows expose a trailing swipe action labeled `Archive`.
+Active inventory rows expose an `Archive` action. RFC-0069 moved the active inventory list to
+card-based styling, so this action is now a visible row action chip instead of a list-row swipe
+action.
 
 ## Test Plan
 

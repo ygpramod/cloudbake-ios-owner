@@ -200,6 +200,10 @@ The home screen shows compact Today cards, Soon rows for reminders and recent de
 section for all owner workflows, and bottom quick navigation for Home, Orders, Inventory, Recipes,
 and Designs.
 
+Second-level owner screens use the same CloudBake visual language: warm light background, large
+screen title, circular top actions, compact logo treatment, card-based lists, and bottom quick
+navigation for Home, Orders, Inventory, Recipes, and Designs.
+
 CloudBake currently uses light appearance only while the owner app design is hardened for dark mode.
 
 ## Order Workflow
@@ -231,7 +235,7 @@ Today, the owner can:
     ingredients from inventory with unit conversion,
 18. add, complete, and delete simple preparation checklist items from order detail,
 19. review completed and cancelled orders in a separate Completed tab,
-20. use row swipe actions to change status or record payment,
+20. use visible row actions to change status or record payment,
 21. mark payment Paid or add a partial payment from order detail,
 22. review the next relevant reminder in order detail,
 23. add customer reference photos and final cake photos from the camera or photo library,
@@ -295,8 +299,8 @@ balance due. From order detail, the owner can mark the order Paid or add a parti
 opening full edit. Marking Paid sets the paid amount to the quoted price and makes balance due zero.
 Adding a partial payment asks for the newly received amount and adds it to the existing paid amount.
 
-Order rows also expose swipe actions for quick status changes and payment recording. These quick
-actions use centered popups and ask for confirmation before saving. Pricing suggestions,
+Order rows also expose visible action chips for quick status changes and payment recording. These
+quick actions use centered popups and ask for confirmation before saving. Pricing suggestions,
 recipe-cost calculation, discounts, refunds, and online payment processing remain future work.
 
 Future order slices should add reminder snooze, configurable reminders, partial recipe usage,

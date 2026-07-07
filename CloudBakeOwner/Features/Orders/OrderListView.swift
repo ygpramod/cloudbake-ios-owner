@@ -21,10 +21,6 @@ struct OrderListView: View {
             if horizontalSizeClass == .regular {
                 NavigationSplitView {
                     orderList
-                        .navigationTitle("Orders")
-                        .toolbar {
-                            addOrderToolbarItem
-                        }
                 } detail: {
                     if viewModel.selectedOrder == nil {
                         ContentUnavailableView(
@@ -43,10 +39,6 @@ struct OrderListView: View {
                 }
             } else {
                 orderList
-                    .navigationTitle("Orders")
-                    .toolbar {
-                        addOrderToolbarItem
-                    }
             }
         }
         .sheet(isPresented: $isAddingOrder, onDismiss: viewModel.cancelAddOrder) {
@@ -74,59 +66,86 @@ struct OrderListView: View {
     }
 
     private var orderList: some View {
-        List {
-            Section {
+        CloudBakeScreenScaffold(
+            title: "Orders",
+            selectedDestination: .orders,
+            primaryAction: CloudBakeScreenAction(
+                title: "Add Order",
+                systemImage: "plus",
+                accessibilityIdentifier: "orders.add",
+                action: {
+                    viewModel.beginAddingOrder()
+                    isAddingOrder = true
+                }
+            )
+        ) {
+            CloudBakeSection {
                 Picker("Order Status", selection: $orderScope) {
                     ForEach(OrderScope.allCases, id: \.self) { scope in
                         Text(scope.title).tag(scope)
                     }
                 }
                 .pickerStyle(.segmented)
+                .padding(6)
+                .background(.white.opacity(0.90), in: Capsule())
+                .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
                 .accessibilityIdentifier("orders.scope")
             }
 
             if viewModel.orders.isEmpty {
-                ContentUnavailableView(
-                    "No orders yet",
+                CloudBakeEmptyState(
+                    title: "No orders yet",
                     systemImage: "calendar",
-                    description: Text("Add accepted or draft cake orders to track due dates and customer requests.")
+                    message: "Add accepted or draft cake orders to track due dates and customer requests."
                 )
             } else if orderScope == .completed {
                 if viewModel.completedOrders.isEmpty {
-                    ContentUnavailableView(
-                        "No completed orders",
+                    CloudBakeEmptyState(
+                        title: "No completed orders",
                         systemImage: "checkmark.circle",
-                        description: Text("Orders marked completed will appear here.")
+                        message: "Orders marked completed will appear here."
                     )
                 } else {
-                    Section("Completed") {
+                    CloudBakeSection("Completed") {
+                        VStack(spacing: 16) {
                         ForEach(viewModel.completedOrders, id: \.id) { order in
                             orderRow(order)
+                                .cloudBakeCardStyle()
+                        }
                         }
                     }
                 }
             } else if viewModel.activeOrders.isEmpty {
-                ContentUnavailableView(
-                    "No active orders",
+                CloudBakeEmptyState(
+                    title: "No active orders",
                     systemImage: "calendar",
-                    description: Text("Draft, confirmed, in-progress, and ready orders will appear by delivery day.")
+                    message: "Draft, confirmed, in-progress, and ready orders will appear by delivery day."
                 )
             } else {
-                ForEach(viewModel.calendarDays, id: \.day) { calendarDay in
-                    Section(calendarDay.day.formatted(date: .complete, time: .omitted)) {
+                VStack(alignment: .leading, spacing: 24) {
+                    ForEach(viewModel.calendarDays, id: \.day) { calendarDay in
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label(calendarDay.day.formatted(date: .complete, time: .omitted), systemImage: "calendar")
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .symbolRenderingMode(.hierarchical)
+
+                            VStack(spacing: 16) {
                         ForEach(calendarDay.orders, id: \.id) { order in
                             orderRow(order, showsDate: false)
+                                        .cloudBakeCardStyle()
+                                }
+                            }
                         }
                     }
                 }
             }
 
             if let errorMessage = viewModel.errorMessage {
-                Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .accessibilityIdentifier("orders.error")
-                }
+                CloudBakeErrorBanner(
+                    message: errorMessage,
+                    accessibilityIdentifier: "orders.error"
+                )
             }
         }
         .centeredOrderPopup(
@@ -197,18 +216,6 @@ struct OrderListView: View {
                 }
             }
             .accessibilityIdentifier("orders.row.payment.partial.save")
-        }
-    }
-
-    private var addOrderToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                viewModel.beginAddingOrder()
-                isAddingOrder = true
-            } label: {
-                Label("Add Order", systemImage: "plus")
-            }
-            .accessibilityIdentifier("orders.add")
         }
     }
 

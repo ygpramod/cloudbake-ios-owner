@@ -25,14 +25,14 @@ the top toolbar.
   - history,
   - use stock,
   - adjust stock.
-- Keep existing list swipe actions unchanged.
+- Keep existing list stock actions available.
 - Add focused acceptance coverage.
 - Update README and wiki source.
 
 ## Out Of Scope
 
 - Changing inventory list row layout.
-- Removing swipe actions.
+- Removing list stock actions.
 - Redesigning stock adjustment, stock usage, or history screens.
 
 ## Requirements
@@ -43,7 +43,7 @@ the top toolbar.
 - History must open stock history for the selected item.
 - Use must open stock consumption for the selected item.
 - Adjust must open stock adjustment for the selected item.
-- Existing inventory list swipe actions must continue to work.
+- Existing inventory list stock actions must continue to work.
 
 ## Design
 
@@ -57,6 +57,9 @@ a more menu:
 Inside the menu, the owner can choose Adjust Stock, Use Stock, or View History. This keeps the
 inventory list dense and stable, keeps the detail toolbar calm, and still makes item-specific
 actions discoverable after the owner taps into the item.
+
+RFC-0069 later moved active inventory rows to card-based styling. The same list stock actions are
+now visible row action chips rather than list-row swipe actions.
 
 ## Tests
 

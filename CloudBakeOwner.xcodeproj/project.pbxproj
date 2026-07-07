@@ -123,6 +123,7 @@
 		410000000000000000000072 /* CustomerDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007A /* CustomerDraftValidation.swift */; };
 		410000000000000000000073 /* CustomerDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007B /* CustomerDraftValidationTests.swift */; };
 		410000000000000000000074 /* OrderListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007C /* OrderListViewModelTestSupport.swift */; };
+		410000000000000000000075 /* CloudBakeScreenStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007D /* CloudBakeScreenStyle.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -261,6 +262,7 @@
 		42000000000000000000007A /* CustomerDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDraftValidation.swift; sourceTree = "<group>"; };
 		42000000000000000000007B /* CustomerDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDraftValidationTests.swift; sourceTree = "<group>"; };
 		42000000000000000000007C /* OrderListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListViewModelTestSupport.swift; sourceTree = "<group>"; };
+		42000000000000000000007D /* CloudBakeScreenStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeScreenStyle.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -307,6 +309,7 @@
 				450000000000000000000004 /* Features */,
 				450000000000000000000011 /* Persistence */,
 				450000000000000000000019 /* Resources */,
+				450000000000000000000020 /* SharedUI */,
 			);
 			path = CloudBakeOwner;
 			sourceTree = "<group>";
@@ -354,6 +357,14 @@
 				420000000000000000000005 /* PlaceholderScreen.swift */,
 			);
 			path = Placeholder;
+			sourceTree = "<group>";
+		};
+		450000000000000000000020 /* SharedUI */ = {
+			isa = PBXGroup;
+			children = (
+				42000000000000000000007D /* CloudBakeScreenStyle.swift */,
+			);
+			path = SharedUI;
 			sourceTree = "<group>";
 		};
 		450000000000000000000015 /* Inventory */ = {
@@ -741,6 +752,7 @@
 				41000000000000000000001E /* ExpiryReminderScheduler.swift in Sources */,
 				410000000000000000000030 /* OrderReminderScheduler.swift in Sources */,
 				410000000000000000000005 /* PlaceholderScreen.swift in Sources */,
+				410000000000000000000075 /* CloudBakeScreenStyle.swift in Sources */,
 				410000000000000000000008 /* AppDatabase.swift in Sources */,
 				410000000000000000000009 /* AppDatabaseMigrations.swift in Sources */,
 				410000000000000000000017 /* BakingCatalog.swift in Sources */,

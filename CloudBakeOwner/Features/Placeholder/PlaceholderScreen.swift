@@ -4,12 +4,16 @@ struct PlaceholderScreen: View {
     let destination: AppDestination
 
     var body: some View {
-        ContentUnavailableView(
-            destination.title,
-            systemImage: destination.systemImage,
-            description: Text("This area will be implemented in a future RFC slice.")
-        )
-        .navigationTitle(destination.title)
+        CloudBakeScreenScaffold(
+            title: destination.title,
+            selectedDestination: destination
+        ) {
+            CloudBakeEmptyState(
+                title: destination.title,
+                systemImage: destination.systemImage,
+                message: "This area will be implemented in a future RFC slice."
+            )
+        }
         .accessibilityIdentifier(destination.screenAccessibilityIdentifier)
     }
 }

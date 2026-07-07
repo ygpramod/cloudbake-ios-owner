@@ -16,89 +16,98 @@ struct InventoryListView: View {
     }
 
     var body: some View {
-        List {
+        CloudBakeScreenScaffold(
+            title: "Inventory",
+            selectedDestination: .inventory,
+            primaryAction: CloudBakeScreenAction(
+                title: "Add inventory item",
+                systemImage: "plus",
+                accessibilityIdentifier: "inventory.add",
+                action: { isAddingItem = true }
+            ),
+            secondaryActions: [
+                CloudBakeScreenAction(
+                    title: "Import purchase bill",
+                    systemImage: "doc.text.viewfinder",
+                    accessibilityIdentifier: "inventory.purchaseBill.import",
+                    action: { isImportingPurchaseBill = true }
+                ),
+                CloudBakeScreenAction(
+                    title: "Archived inventory",
+                    systemImage: "archivebox",
+                    accessibilityIdentifier: "inventory.archived",
+                    action: { isShowingArchivedItems = true }
+                )
+            ]
+        ) {
             if viewModel.items.isEmpty {
-                ContentUnavailableView(
-                    "No inventory yet",
+                CloudBakeEmptyState(
+                    title: "No inventory yet",
                     systemImage: "shippingbox",
-                    description: Text("Add ingredients and supplies as you stock the kitchen.")
+                    message: "Add ingredients and supplies as you stock the kitchen."
                 )
             } else {
-                Section("Items") {
+                CloudBakeSection("Items") {
+                    VStack(spacing: 16) {
                     ForEach(viewModel.items, id: \.id) { item in
-                        Button {
-                            viewModel.beginViewingItem(item)
-                            isViewingItem = true
-                        } label: {
-                            InventoryItemRow(item: item)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("inventory.item.view.\(item.id)")
-                        .swipeActions(edge: .leading) {
+                        VStack(alignment: .leading, spacing: 14) {
                             Button {
-                                viewModel.beginViewingHistory(item)
-                                isShowingHistory = true
+                                viewModel.beginViewingItem(item)
+                                isViewingItem = true
                             } label: {
-                                Label("History", systemImage: "clock")
+                                InventoryItemRow(item: item)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
                             }
-                            .tint(.purple)
-                            .accessibilityIdentifier("inventory.item.history.\(item.id)")
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("inventory.item.view.\(item.id)")
 
-                            Button {
-                                viewModel.beginConsuming(item)
-                                isConsumingStock = true
-                            } label: {
-                                Label("Use", systemImage: "minus")
-                            }
-                            .tint(.orange)
-                            .accessibilityIdentifier("inventory.item.consume.\(item.id)")
+                            HStack(spacing: 8) {
+                                CloudBakeInlineActionButton(
+                                    title: "Adjust",
+                                    systemImage: "plusminus",
+                                    tint: .cloudBakePurple,
+                                    accessibilityIdentifier: "inventory.item.adjust.\(item.id)"
+                                ) {
+                                    viewModel.beginAdjusting(item)
+                                    isAdjustingStock = true
+                                }
 
-                            Button {
-                                viewModel.beginAdjusting(item)
-                                isAdjustingStock = true
-                            } label: {
-                                Label("Adjust", systemImage: "plusminus")
+                                CloudBakeInlineActionButton(
+                                    title: "Use",
+                                    systemImage: "minus",
+                                    tint: .cloudBakeOrange,
+                                    accessibilityIdentifier: "inventory.item.consume.\(item.id)"
+                                ) {
+                                    viewModel.beginConsuming(item)
+                                    isConsumingStock = true
+                                }
+
+                                CloudBakeInlineActionButton(
+                                    title: "History",
+                                    systemImage: "clock",
+                                    tint: .cloudBakeTeal,
+                                    accessibilityIdentifier: "inventory.item.history.\(item.id)"
+                                ) {
+                                    viewModel.beginViewingHistory(item)
+                                    isShowingHistory = true
+                                }
+
+                                CloudBakeInlineActionButton(
+                                    title: "Archive",
+                                    systemImage: "archivebox",
+                                    tint: .red,
+                                    accessibilityIdentifier: "inventory.item.archive.\(item.id)"
+                                ) {
+                                    viewModel.archiveItem(item)
+                                }
                             }
-                            .tint(.blue)
-                            .accessibilityIdentifier("inventory.item.adjust.\(item.id)")
                         }
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                viewModel.archiveItem(item)
-                            } label: {
-                                Label("Archive", systemImage: "archivebox")
-                            }
-                            .accessibilityIdentifier("inventory.item.archive.\(item.id)")
-                        }
+                        .padding(20)
+                        .cloudBakeCardStyle()
+                    }
                     }
                 }
-            }
-        }
-        .navigationTitle("Inventory")
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    isImportingPurchaseBill = true
-                } label: {
-                    Label("Import purchase bill", systemImage: "doc.text.viewfinder")
-                }
-                .accessibilityIdentifier("inventory.purchaseBill.import")
-
-                Button {
-                    isShowingArchivedItems = true
-                } label: {
-                    Label("Archived inventory", systemImage: "archivebox")
-                }
-                .accessibilityIdentifier("inventory.archived")
-
-                Button {
-                    isAddingItem = true
-                } label: {
-                    Label("Add inventory item", systemImage: "plus")
-                }
-                .accessibilityIdentifier("inventory.add")
             }
         }
         .sheet(isPresented: $isAddingItem) {

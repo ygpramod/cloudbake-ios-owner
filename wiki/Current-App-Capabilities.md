@@ -87,7 +87,7 @@ The app currently supports:
     cancelled rows visibly marked,
 75. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
     notes,
-76. order row swipe actions for quick status changes and payment recording,
+76. visible order row actions for quick status changes and payment recording,
 77. order detail payment status actions for marking Paid or adding a partial payment,
 78. scheduled local owner notifications for Confirmed, In Progress, and Ready order reminders,
 79. local order photo metadata and app-owned local photo file storage,
@@ -98,7 +98,9 @@ The app currently supports:
 84. caption editing for saved order photos,
 85. promotion of final cake photos into linked saved cake designs,
 86. saved order photo deletion from order detail,
-87. unit, integration, and feature-sharded acceptance test lanes.
+87. shared CloudBake visual styling for second-level Orders, Inventory, Recipes, Customers, Designs,
+    and Settings screens,
+88. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 

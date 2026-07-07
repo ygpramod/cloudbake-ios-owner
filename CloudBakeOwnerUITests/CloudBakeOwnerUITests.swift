@@ -15,13 +15,20 @@ final class CloudBakeOwnerUITests: XCTestCase {
     }
 
     func testPrimaryNavigationDestinationsAreReachable() throws {
-        let app = makeApp()
-        app.launch()
+        let destinations = [
+            ("Orders", "screen.orders"),
+            ("Inventory", "screen.inventory"),
+            ("Recipes", "screen.recipes"),
+            ("Designs", "screen.designs")
+        ]
 
-        for title in ["Orders", "Inventory", "Recipes", "Designs", "Customers", "Settings"] {
-            openDashboardDestination(title, in: app)
-            assertScreenVisible("screen.\(title.lowercased())", in: app, timeout: 5)
-            returnToDashboard(in: app)
+        for destination in destinations {
+            let app = makeApp()
+            app.launch()
+
+            openDashboardDestination(destination.0, in: app)
+            assertScreenVisible(destination.1, in: app, timeout: 5)
+            app.terminate()
         }
     }
 

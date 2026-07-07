@@ -66,7 +66,8 @@ Allow the owner to manually record stock usage for an active inventory item befo
 
 ### UI
 
-Inventory rows expose a leading swipe action labeled `Use`.
+Inventory rows expose a `Use` action. RFC-0069 moved the active inventory list to card-based
+styling, so this action is now a visible row action chip instead of a list-row swipe action.
 
 The Use Stock sheet shows the selected item name and current quantity, accepts a quantity used, and accepts an optional note.
 

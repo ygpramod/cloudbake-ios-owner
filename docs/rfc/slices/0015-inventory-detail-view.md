@@ -93,7 +93,7 @@ current quantity, minimum quantity, and expiry date.
   - Detail view shows expiry table data.
   - Edit from detail allows minimum quantity change.
   - Edit from detail does not expose current quantity or unit fields.
-  - Existing row swipe workflows still work.
+  - Existing row stock-action workflows still work.
 
 ## Acceptance Criteria
 

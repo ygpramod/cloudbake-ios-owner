@@ -179,7 +179,7 @@ The Orders screen now exposes only Active and Completed tabs. Active orders are 
 and ordered by delivery/pickup time ascending; completed and cancelled orders are shown in a simple
 list ordered by delivery/pickup date-time descending, with cancelled rows visibly marked, through
 `docs/rfc/slices/0054-order-active-completed-tabs.md`.
-Order rows now expose quick status and payment swipe actions, and order detail can record Paid or
+Order rows now expose visible quick status and payment actions, and order detail can record Paid or
 Part Paid changes without opening full edit, through
 `docs/rfc/slices/0055-order-status-payment-quick-actions.md`.
 Confirmed, In Progress, and Ready orders now schedule local iOS notifications for future three-day,
@@ -336,7 +336,7 @@ pricing, and recipe links.
   list ordered by delivery/pickup date-time descending, with cancelled rows visibly marked. The
   standalone Orders screen Reminders Due section is removed; order detail continues to show the next
   relevant reminder.
-- Orders now expose row swipe actions for quick status changes and payment recording. Order detail
+- Orders now expose visible row actions for quick status changes and payment recording. Order detail
   can also mark an order Paid or add a partial payment without opening full edit.
 - Orders now schedule local owner notifications for future three-day, two-day, and one-day
   reminders when the order is Confirmed, In Progress, or Ready.
