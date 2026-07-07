@@ -59,6 +59,8 @@
 		410000000000000000000032 /* OrderReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003A /* OrderReminderSchedulerTests.swift */; };
 		410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003B /* OrderPhotoFileStore.swift */; };
 		410000000000000000000034 /* CustomerConsumerProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003C /* CustomerConsumerProfile.swift */; };
+		410000000000000000000035 /* OrderCenteredPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003D /* OrderCenteredPopup.swift */; };
+		410000000000000000000036 /* OrderRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003E /* OrderRow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -133,6 +135,8 @@
 		42000000000000000000003A /* OrderReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/OrderReminderSchedulerTests.swift; sourceTree = "<group>"; };
 		42000000000000000000003B /* OrderPhotoFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoFileStore.swift; sourceTree = "<group>"; };
 		42000000000000000000003C /* CustomerConsumerProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerConsumerProfile.swift; sourceTree = "<group>"; };
+		42000000000000000000003D /* OrderCenteredPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCenteredPopup.swift; sourceTree = "<group>"; };
+		42000000000000000000003E /* OrderRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderRow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -257,9 +261,11 @@
 		45000000000000000000001E /* Orders */ = {
 			isa = PBXGroup;
 			children = (
+				42000000000000000000003D /* OrderCenteredPopup.swift */,
 				420000000000000000000033 /* OrderListView.swift */,
 				420000000000000000000034 /* OrderListViewModel.swift */,
 				42000000000000000000003B /* OrderPhotoFileStore.swift */,
+				42000000000000000000003E /* OrderRow.swift */,
 			);
 			path = Orders;
 			sourceTree = "<group>";
@@ -565,8 +571,10 @@
 				41000000000000000000002B /* OrderListView.swift in Sources */,
 				41000000000000000000002C /* OrderListViewModel.swift in Sources */,
 				410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */,
+				410000000000000000000035 /* OrderCenteredPopup.swift in Sources */,
 				41000000000000000000002F /* OrderConsumerPreview.swift in Sources */,
 				41000000000000000000002E /* OrderDisplay.swift in Sources */,
+				410000000000000000000036 /* OrderRow.swift in Sources */,
 				410000000000000000000031 /* OrderStateRules.swift in Sources */,
 				410000000000000000000025 /* InventoryUnitDisplay.swift in Sources */,
 				41000000000000000000001A /* PurchaseBillDraftParser.swift in Sources */,
