@@ -384,7 +384,10 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
         typeText("Pink flowers", into: app.textFields["orders.form.cakeNotes"], timeout: transitionTimeout)
-        tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
+        dismissKeyboard(in: app)
+        let saveButton = app.buttons["orders.form.save"]
+        scrollToHittable(saveButton, in: app, timeout: transitionTimeout)
+        tapWhenReady(saveButton, timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(
@@ -415,9 +418,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
         typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
+        dismissKeyboard(in: app)
         let customerNameField = app.textFields["orders.form.customerName"]
         scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
         typeText("Amy", into: customerNameField, timeout: transitionTimeout)
+        dismissKeyboard(in: app)
 
         let recipeField = app.buttons["orders.form.recipe"]
         scrollToHittable(recipeField, in: app, timeout: transitionTimeout)
@@ -469,10 +474,12 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
         typeText("Pink flowers", into: app.textFields["orders.form.cakeNotes"], timeout: transitionTimeout)
+        dismissKeyboard(in: app)
 
         let customerNameField = app.textFields["orders.form.customerName"]
         scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
         typeText("Amy", into: customerNameField, timeout: transitionTimeout)
+        dismissKeyboard(in: app)
 
         let designField = app.buttons["orders.form.design"]
         scrollToHittable(designField, in: app, timeout: transitionTimeout)
