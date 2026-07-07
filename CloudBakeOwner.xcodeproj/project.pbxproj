@@ -70,6 +70,7 @@
 		41000000000000000000003D /* ArchivedInventoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000045 /* ArchivedInventoryView.swift */; };
 		41000000000000000000003E /* InventoryItemForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000046 /* InventoryItemForm.swift */; };
 		41000000000000000000003F /* InventoryStockForms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000047 /* InventoryStockForms.swift */; };
+		410000000000000000000040 /* PurchaseBillImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000048 /* PurchaseBillImportView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -155,6 +156,7 @@
 		420000000000000000000045 /* ArchivedInventoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivedInventoryView.swift; sourceTree = "<group>"; };
 		420000000000000000000046 /* InventoryItemForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryItemForm.swift; sourceTree = "<group>"; };
 		420000000000000000000047 /* InventoryStockForms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockForms.swift; sourceTree = "<group>"; };
+		420000000000000000000048 /* PurchaseBillImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseBillImportView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -258,6 +260,7 @@
 				42000000000000000000001B /* InventoryListViewModel.swift */,
 				420000000000000000000043 /* InventoryItemRow.swift */,
 				420000000000000000000047 /* InventoryStockForms.swift */,
+				420000000000000000000048 /* PurchaseBillImportView.swift */,
 			);
 			path = Inventory;
 			sourceTree = "<group>";
@@ -600,6 +603,7 @@
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
 				41000000000000000000003B /* InventoryItemRow.swift in Sources */,
 				41000000000000000000003F /* InventoryStockForms.swift in Sources */,
+				410000000000000000000040 /* PurchaseBillImportView.swift in Sources */,
 				41000000000000000000002B /* OrderListView.swift in Sources */,
 				41000000000000000000002C /* OrderListViewModel.swift in Sources */,
 				410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */,
