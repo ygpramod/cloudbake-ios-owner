@@ -116,7 +116,7 @@ struct RecipeImportView: View {
             }
         }
         .fullScreenCover(isPresented: $isShowingCamera) {
-            RecipeCameraView { image in
+            CameraImagePickerView { image in
                 selectedRecipeImage = image
                 recognize(image)
             }
@@ -128,8 +128,7 @@ struct RecipeImportView: View {
             }
 
             Task {
-                guard let data = try? await item.loadTransferable(type: Data.self),
-                      let image = UIImage(data: data) else {
+                guard let image = try? await PhotoPickerImageLoader.image(from: item) else {
                     viewModel.errorMessage = "Recipe image could not be opened."
                     selectedPhotoItem = nil
                     return
@@ -194,55 +193,5 @@ private struct RecipeImportIngredientDraftRowView: View {
                 .accessibilityIdentifier("recipes.import.ingredient.note.\(draft.id)")
         }
         .padding(.vertical, 4)
-    }
-}
-
-private struct RecipeCameraView: UIViewControllerRepresentable {
-    let onImageSelected: (UIImage) -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let controller = UIImagePickerController()
-        controller.sourceType = .camera
-        controller.cameraCaptureMode = .photo
-        controller.delegate = context.coordinator
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(
-            onImageSelected: onImageSelected,
-            dismiss: dismiss
-        )
-    }
-
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        private let onImageSelected: (UIImage) -> Void
-        private let dismiss: DismissAction
-
-        init(
-            onImageSelected: @escaping (UIImage) -> Void,
-            dismiss: DismissAction
-        ) {
-            self.onImageSelected = onImageSelected
-            self.dismiss = dismiss
-        }
-
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-        ) {
-            if let image = info[.originalImage] as? UIImage {
-                onImageSelected(image)
-            }
-
-            dismiss()
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            dismiss()
-        }
     }
 }
