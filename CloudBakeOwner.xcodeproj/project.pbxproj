@@ -82,6 +82,7 @@
 		410000000000000000000049 /* OrderSelectionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000051 /* OrderSelectionViews.swift */; };
 		41000000000000000000004A /* OrderDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000052 /* OrderDetailView.swift */; };
 		41000000000000000000004B /* OrderDetailChecklistSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000053 /* OrderDetailChecklistSection.swift */; };
+		41000000000000000000004C /* OrderListPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000054 /* OrderListPresentation.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -179,6 +180,7 @@
 		420000000000000000000051 /* OrderSelectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderSelectionViews.swift; sourceTree = "<group>"; };
 		420000000000000000000052 /* OrderDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailView.swift; sourceTree = "<group>"; };
 		420000000000000000000053 /* OrderDetailChecklistSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailChecklistSection.swift; sourceTree = "<group>"; };
+		420000000000000000000054 /* OrderListPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListPresentation.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -324,6 +326,7 @@
 				420000000000000000000050 /* OrderForm.swift */,
 				420000000000000000000033 /* OrderListView.swift */,
 				420000000000000000000034 /* OrderListViewModel.swift */,
+				420000000000000000000054 /* OrderListPresentation.swift */,
 				42000000000000000000004F /* OrderPhotoCameraView.swift */,
 				42000000000000000000003B /* OrderPhotoFileStore.swift */,
 				42000000000000000000004E /* OrderPhotoPreviewView.swift */,
@@ -651,6 +654,7 @@
 				410000000000000000000048 /* OrderForm.swift in Sources */,
 				41000000000000000000002F /* OrderConsumerPreview.swift in Sources */,
 				41000000000000000000002E /* OrderDisplay.swift in Sources */,
+				41000000000000000000004C /* OrderListPresentation.swift in Sources */,
 				410000000000000000000047 /* OrderPhotoCameraView.swift in Sources */,
 				410000000000000000000046 /* OrderPhotoPreviewView.swift in Sources */,
 				410000000000000000000036 /* OrderRow.swift in Sources */,

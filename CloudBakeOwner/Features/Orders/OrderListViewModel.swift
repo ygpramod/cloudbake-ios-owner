@@ -1,28 +1,5 @@
 import Foundation
 
-struct OrderCalendarDay: Equatable {
-    let day: Date
-    let orders: [Order]
-}
-
-struct OrderReminderPlanItem: Equatable {
-    let offsetDays: Int
-    let remindAt: Date
-
-    var title: String {
-        "\(offsetDays) \(offsetDays == 1 ? "Day" : "Days") Before"
-    }
-}
-
-struct OrderReminderDueGroup: Equatable {
-    let order: Order
-    let reminders: [OrderReminderPlanItem]
-
-    var earliestRemindAt: Date? {
-        reminders.map(\.remindAt).min()
-    }
-}
-
 @MainActor
 final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
@@ -59,6 +36,7 @@ final class OrderListViewModel: ObservableObject {
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let calendar: Calendar
+    private let presentation: OrderListPresentation
 
     init(
         repository: any OrderRepository & CustomerRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository & OrderPhotoRepository,
@@ -72,86 +50,42 @@ final class OrderListViewModel: ObservableObject {
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
         self.calendar = calendar
+        self.presentation = OrderListPresentation(
+            dateProvider: dateProvider,
+            calendar: calendar
+        )
     }
 
     var calendarDays: [OrderCalendarDay] {
-        let groupedOrders = Dictionary(grouping: activeOrders) { order in
-            calendar.startOfDay(for: order.dueAt)
-        }
-
-        return groupedOrders.keys.sorted().map { day in
-            OrderCalendarDay(
-                day: day,
-                orders: groupedOrders[day, default: []].sorted(by: orderIsDueBefore)
-            )
-        }
+        presentation.calendarDays(for: orders)
     }
 
     var activeOrders: [Order] {
-        orders
-            .filter(\.hasActiveReminderState)
-            .sorted(by: orderIsDueBefore)
+        presentation.activeOrders(from: orders)
     }
 
     var completedOrders: [Order] {
-        orders
-            .filter(\.hasCompletedHistoryState)
-            .sorted(by: orderWasDueAfter)
+        presentation.completedOrders(from: orders)
     }
 
     var selectedCustomerReferencePhotos: [OrderPhoto] {
-        selectedOrderPhotos.filter { $0.kind == .customerReference }
+        presentation.customerReferencePhotos(from: selectedOrderPhotos)
     }
 
     var selectedFinalCakePhotos: [OrderPhoto] {
-        selectedOrderPhotos.filter { $0.kind == .finalCake }
+        presentation.finalCakePhotos(from: selectedOrderPhotos)
     }
 
     var dueReminderGroups: [OrderReminderDueGroup] {
-        let now = dateProvider()
-        return orders
-            .filter(\.hasActiveReminderState)
-            .compactMap { order in
-                let dueReminders = reminderPlan(for: order)
-                    .filter { $0.remindAt <= now }
-
-                guard !dueReminders.isEmpty else {
-                    return nil
-                }
-
-                guard let nextDueReminder = dueReminders.max(by: { $0.remindAt < $1.remindAt }) else {
-                    return nil
-                }
-
-                return OrderReminderDueGroup(order: order, reminders: [nextDueReminder])
-            }
-            .sorted { lhs, rhs in
-                if lhs.earliestRemindAt == rhs.earliestRemindAt {
-                    if lhs.order.dueAt == rhs.order.dueAt {
-                        return lhs.order.title < rhs.order.title
-                    }
-
-                    return lhs.order.dueAt < rhs.order.dueAt
-                }
-
-                return (lhs.earliestRemindAt ?? lhs.order.dueAt) < (rhs.earliestRemindAt ?? rhs.order.dueAt)
-            }
+        presentation.dueReminderGroups(for: orders)
     }
 
     func reminderPlan(for order: Order) -> [OrderReminderPlanItem] {
-        [3, 2, 1].compactMap { offsetDays in
-            guard let remindAt = calendar.date(byAdding: .day, value: -offsetDays, to: order.dueAt) else {
-                return nil
-            }
-
-            return OrderReminderPlanItem(offsetDays: offsetDays, remindAt: remindAt)
-        }
+        presentation.reminderPlan(for: order)
     }
 
     func nextReminder(for order: Order) -> OrderReminderPlanItem? {
-        let now = dateProvider()
-        let reminders = reminderPlan(for: order)
-        return reminders.first { $0.remindAt > now } ?? reminders.last
+        presentation.nextReminder(for: order)
     }
 
     func load() {
@@ -931,7 +865,7 @@ final class OrderListViewModel: ObservableObject {
     private func loadSelectedOrderChecklistItems(for order: Order) {
         do {
             selectedOrderChecklistItems = try repository.fetchOrderChecklistItems(orderId: order.id)
-                .sorted(by: checklistItemWasEnteredBefore)
+                .sorted(by: OrderListPresentation.checklistItemWasEnteredBefore)
         } catch {
             selectedOrderChecklistItems = []
             errorMessage = "Checklist could not be loaded."
@@ -947,48 +881,8 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
-    private func orderWasEnteredBefore(_ lhs: Order, _ rhs: Order) -> Bool {
-        if lhs.createdAt == rhs.createdAt {
-            return lhs.id < rhs.id
-        }
-
-        return lhs.createdAt < rhs.createdAt
-    }
-
-    private func orderIsDueBefore(_ lhs: Order, _ rhs: Order) -> Bool {
-        if lhs.dueAt == rhs.dueAt {
-            return orderWasEnteredBefore(lhs, rhs)
-        }
-
-        return lhs.dueAt < rhs.dueAt
-    }
-
-    private func orderWasDueAfter(_ lhs: Order, _ rhs: Order) -> Bool {
-        if lhs.dueAt == rhs.dueAt {
-            if lhs.createdAt == rhs.createdAt {
-                return lhs.id < rhs.id
-            }
-
-            return lhs.createdAt > rhs.createdAt
-        }
-
-        return lhs.dueAt > rhs.dueAt
-    }
-
     private func shouldRecordRecipeUsage(from currentStatus: OrderStatus, to newStatus: OrderStatus) -> Bool {
         currentStatus == .confirmed && (newStatus == .ready || newStatus == .completed)
-    }
-
-    private func checklistItemWasEnteredBefore(_ lhs: OrderChecklistItem, _ rhs: OrderChecklistItem) -> Bool {
-        if lhs.sortOrder == rhs.sortOrder {
-            if lhs.createdAt == rhs.createdAt {
-                return lhs.id < rhs.id
-            }
-
-            return lhs.createdAt < rhs.createdAt
-        }
-
-        return lhs.sortOrder < rhs.sortOrder
     }
 
     private func recipeUsageErrorMessage(for error: OrderRecipeUsageError) -> String {
