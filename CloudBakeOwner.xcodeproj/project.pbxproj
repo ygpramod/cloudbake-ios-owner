@@ -63,6 +63,7 @@
 		410000000000000000000036 /* OrderRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003E /* OrderRow.swift */; };
 		410000000000000000000037 /* OrderDetailPhotosSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003F /* OrderDetailPhotosSection.swift */; };
 		410000000000000000000038 /* OrderDetailPaymentSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000040 /* OrderDetailPaymentSection.swift */; };
+		410000000000000000000039 /* OrderDetailCustomerSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000041 /* OrderDetailCustomerSections.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -141,6 +142,7 @@
 		42000000000000000000003E /* OrderRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderRow.swift; sourceTree = "<group>"; };
 		42000000000000000000003F /* OrderDetailPhotosSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailPhotosSection.swift; sourceTree = "<group>"; };
 		420000000000000000000040 /* OrderDetailPaymentSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailPaymentSection.swift; sourceTree = "<group>"; };
+		420000000000000000000041 /* OrderDetailCustomerSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailCustomerSections.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -266,6 +268,7 @@
 			isa = PBXGroup;
 			children = (
 				42000000000000000000003D /* OrderCenteredPopup.swift */,
+				420000000000000000000041 /* OrderDetailCustomerSections.swift */,
 				420000000000000000000040 /* OrderDetailPaymentSection.swift */,
 				42000000000000000000003F /* OrderDetailPhotosSection.swift */,
 				420000000000000000000033 /* OrderListView.swift */,
@@ -578,6 +581,7 @@
 				41000000000000000000002C /* OrderListViewModel.swift in Sources */,
 				410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */,
 				410000000000000000000035 /* OrderCenteredPopup.swift in Sources */,
+				410000000000000000000039 /* OrderDetailCustomerSections.swift in Sources */,
 				410000000000000000000038 /* OrderDetailPaymentSection.swift in Sources */,
 				410000000000000000000037 /* OrderDetailPhotosSection.swift in Sources */,
 				41000000000000000000002F /* OrderConsumerPreview.swift in Sources */,
