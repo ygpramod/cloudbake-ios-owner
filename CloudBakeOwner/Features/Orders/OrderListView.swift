@@ -2,10 +2,6 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
-private func decimalText(_ value: Decimal) -> String {
-    NSDecimalNumber(decimal: value).stringValue
-}
-
 struct OrderListView: View {
     @StateObject private var viewModel: OrderListViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -336,51 +332,16 @@ private struct OrderDetailView: View {
 
                 OrderDetailCustomerSection(order: order)
 
-                if order.recipeId != nil {
-                    Section("Recipe") {
-                        LabeledContent("Linked Recipe") {
-                            Text(viewModel.selectedOrderRecipe?.name ?? "Recipe unavailable")
-                                .accessibilityIdentifier("orders.detail.recipeName")
-                        }
-                        LabeledContent("Recipe Multiplier") {
-                            Text(decimalText(order.recipeScaleMultiplier))
-                                .accessibilityIdentifier("orders.detail.recipeScaleMultiplier")
-                        }
-                        LabeledContent("Usage") {
-                            if let usage = viewModel.selectedOrderRecipeUsage {
-                                Text("\(usage.usedAt.formatted(date: .abbreviated, time: .shortened)) at \(decimalText(usage.recipeScaleMultiplier))x")
-                                    .accessibilityIdentifier("orders.detail.recipeUsage")
-                            } else {
-                                Text("When Ready")
-                                    .accessibilityIdentifier("orders.detail.recipeUsage")
-                            }
-                        }
-                    }
-                }
+                OrderDetailRecipeSection(
+                    order: order,
+                    recipe: viewModel.selectedOrderRecipe,
+                    recipeUsage: viewModel.selectedOrderRecipeUsage
+                )
 
-                if order.cakeDesignId != nil {
-                    Section("Design") {
-                        LabeledContent("Reference") {
-                            Text(viewModel.selectedOrderCakeDesign?.name ?? "Design unavailable")
-                                .accessibilityIdentifier("orders.detail.designName")
-                        }
-
-                        if let notes = viewModel.selectedOrderCakeDesign?.notes {
-                            LabeledContent("Notes") {
-                                Text(notes)
-                                    .accessibilityIdentifier("orders.detail.designNotes")
-                            }
-                        }
-
-                        if let photoReference = viewModel.selectedOrderCakeDesign?.photoReference {
-                            LabeledContent("Photo") {
-                                Text(photoReference)
-                                    .lineLimit(2)
-                                    .accessibilityIdentifier("orders.detail.designPhotoReference")
-                            }
-                        }
-                    }
-                }
+                OrderDetailDesignSection(
+                    order: order,
+                    cakeDesign: viewModel.selectedOrderCakeDesign
+                )
 
                 OrderDetailPhotosSection(
                     customerReferencePhotos: viewModel.selectedCustomerReferencePhotos,
@@ -403,22 +364,9 @@ private struct OrderDetailView: View {
                     OrderDetailCustomerContextSection(customer: customer)
                 }
 
-                Section("Fulfillment") {
-                    LabeledContent("Type") {
-                        Text(order.fulfillmentType.displayName)
-                            .accessibilityIdentifier("orders.detail.fulfillmentType")
-                    }
-                    if let deliveryAddress = order.deliveryAddress {
-                        LabeledContent("Address", value: deliveryAddress)
-                    }
-                }
+                OrderDetailFulfillmentSection(order: order)
 
-                if let cakeNotes = order.cakeNotes {
-                    Section("Cake Notes") {
-                        Text(cakeNotes)
-                            .accessibilityIdentifier("orders.detail.cakeNotes")
-                    }
-                }
+                OrderDetailCakeNotesSection(order: order)
 
                 OrderDetailPaymentSection(order: order) {
                     isSelectingPaymentStatus = true
