@@ -71,6 +71,7 @@
 		41000000000000000000003E /* InventoryItemForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000046 /* InventoryItemForm.swift */; };
 		41000000000000000000003F /* InventoryStockForms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000047 /* InventoryStockForms.swift */; };
 		410000000000000000000040 /* PurchaseBillImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000048 /* PurchaseBillImportView.swift */; };
+		410000000000000000000041 /* InventoryItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000049 /* InventoryItemDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -157,6 +158,7 @@
 		420000000000000000000046 /* InventoryItemForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryItemForm.swift; sourceTree = "<group>"; };
 		420000000000000000000047 /* InventoryStockForms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockForms.swift; sourceTree = "<group>"; };
 		420000000000000000000048 /* PurchaseBillImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseBillImportView.swift; sourceTree = "<group>"; };
+		420000000000000000000049 /* InventoryItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryItemDetailView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -255,6 +257,7 @@
 			children = (
 				420000000000000000000045 /* ArchivedInventoryView.swift */,
 				420000000000000000000044 /* InventoryHistoryView.swift */,
+				420000000000000000000049 /* InventoryItemDetailView.swift */,
 				420000000000000000000046 /* InventoryItemForm.swift */,
 				42000000000000000000001A /* InventoryListView.swift */,
 				42000000000000000000001B /* InventoryListViewModel.swift */,
@@ -598,6 +601,7 @@
 				41000000000000000000000A /* HealthCheckRepository.swift in Sources */,
 				41000000000000000000003D /* ArchivedInventoryView.swift in Sources */,
 				41000000000000000000003C /* InventoryHistoryView.swift in Sources */,
+				410000000000000000000041 /* InventoryItemDetailView.swift in Sources */,
 				41000000000000000000003E /* InventoryItemForm.swift in Sources */,
 				410000000000000000000012 /* InventoryListView.swift in Sources */,
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
