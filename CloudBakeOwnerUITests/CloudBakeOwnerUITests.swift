@@ -84,6 +84,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(orderRow)
 
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.overview.message"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.customerName"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.cakeNotes"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.message"], in: app, timeout: transitionTimeout)
