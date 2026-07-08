@@ -49,6 +49,7 @@ struct RecipeIngredientForm: View {
                 }
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle(viewModel.editingIngredient == nil ? "Add Ingredient" : "Edit Ingredient")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

@@ -101,8 +101,9 @@ The app currently supports:
 87. shared CloudBake visual styling for second-level Orders, Inventory, Recipes, Customers, Designs,
     and Settings screens,
 88. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,
-89. centered CloudBake confirmation popups for order status and payment actions,
-90. unit, integration, and feature-sharded acceptance test lanes.
+89. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
+90. centered CloudBake confirmation popups for order status and payment actions,
+91. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 

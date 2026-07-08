@@ -96,6 +96,7 @@ struct RecipeImportView: View {
                 }
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle("Import Recipe")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

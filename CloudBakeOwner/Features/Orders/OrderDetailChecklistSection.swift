@@ -116,6 +116,7 @@ struct OrderChecklistEditForm: View {
                     .accessibilityIdentifier("orders.detail.checklist.edit.title")
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle("Edit Checklist Item")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

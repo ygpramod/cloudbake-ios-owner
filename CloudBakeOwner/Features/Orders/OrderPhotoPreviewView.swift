@@ -134,6 +134,7 @@ struct OrderPhotoPreviewView: View {
                             .accessibilityIdentifier("orders.detail.photos.design.notes")
                     }
                 }
+                .cloudBakeFormScreenStyle()
                 .navigationTitle("Save Design")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -163,6 +164,7 @@ struct OrderPhotoPreviewView: View {
                             .accessibilityIdentifier("orders.detail.photos.caption.text")
                     }
                 }
+                .cloudBakeFormScreenStyle()
                 .navigationTitle("Photo Caption")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {

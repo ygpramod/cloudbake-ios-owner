@@ -100,6 +100,7 @@ struct CustomerForm: View {
                 }
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

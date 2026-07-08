@@ -77,6 +77,7 @@ struct InventoryItemForm: View {
                 }
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
