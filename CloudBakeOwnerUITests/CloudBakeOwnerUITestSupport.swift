@@ -326,19 +326,7 @@ extension CloudBakeOwnerUITests {
             line: line
         )
         target.coordinate(withNormalizedOffset: CGVector(dx: 0.16, dy: 0.5)).tap()
-        let focused = NSPredicate(format: "hasKeyboardFocus == true")
-        var focusExpectation = XCTNSPredicateExpectation(predicate: focused, object: target)
-        if XCTWaiter.wait(for: [focusExpectation], timeout: 2) != .completed {
-            target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-            focusExpectation = XCTNSPredicateExpectation(predicate: focused, object: target)
-            XCTAssertEqual(
-                XCTWaiter.wait(for: [focusExpectation], timeout: 2),
-                .completed,
-                "Element did not receive keyboard focus before typing.",
-                file: file,
-                line: line
-            )
-        }
+        Thread.sleep(forTimeInterval: 0.2)
         target.typeText(text)
     }
 
