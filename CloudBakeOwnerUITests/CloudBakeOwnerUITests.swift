@@ -38,12 +38,12 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["No orders yet"].waitForExistence(timeout: transitionTimeout))
 
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: transitionTimeout))
     }
@@ -54,7 +54,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
 
         addOrder(
             named: "Vanilla Birthday",
@@ -66,7 +66,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
             in: app
         )
 
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
         let orderRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
             .firstMatch
@@ -89,7 +89,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         addOrder(
             named: "Payment Vanilla",
             notes: "Paid on pickup",
@@ -135,7 +135,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
 
         XCTAssertFalse(app.staticTexts["orders.remindersDue.header"].exists)
         let orderRow = app.buttons.matching(
@@ -159,7 +159,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
         tapWhenReady(
@@ -198,7 +198,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
         tapWhenReady(
@@ -268,7 +268,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
 
         let orderRow = app.buttons.matching(
             NSPredicate(
@@ -366,7 +366,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.item.order-ui-fixture-customer-link"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
@@ -386,7 +386,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         returnToDashboard(in: app, timeout: transitionTimeout)
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
@@ -416,7 +416,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         let orderRow = app.buttons.matching(
             NSPredicate(
                 format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
@@ -441,7 +441,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
@@ -473,7 +473,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         let orderRow = app.buttons.matching(
             NSPredicate(
                 format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
@@ -518,7 +518,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         returnToDashboard(in: app)
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
         typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
@@ -546,7 +546,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         scrollToHittable(saveButton, in: app, timeout: transitionTimeout)
         tapWhenReady(saveButton, timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         tapWhenReady(
             app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
                 .firstMatch,
@@ -578,7 +578,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
         XCTAssertTrue(app.staticTexts["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
@@ -603,7 +603,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["Completed"], timeout: transitionTimeout)
         let completedOrderRow = app.buttons["orders.item.order-ui-fixture-completed"]
         assertExistsAfterScrolling(completedOrderRow, in: app, timeout: transitionTimeout)
@@ -615,7 +615,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         addOrder(named: "Cancelled Birthday", notes: "Customer changed date", customerName: "Amy", in: app)
 
         let activeOrderRow = app.buttons.matching(
@@ -637,7 +637,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(cancelledStatus.label.contains("Cancelled"))
         app.buttons["orders.detail.done"].tap()
 
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["Completed"], timeout: transitionTimeout)
         let cancelledOrderRow = app.buttons.matching(
             NSPredicate(
@@ -666,7 +666,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         }
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["Select an order"].waitForExistence(timeout: transitionTimeout))
 
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)

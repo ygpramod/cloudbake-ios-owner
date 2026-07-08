@@ -26,7 +26,6 @@ This slice includes:
 This slice does not include:
 
 - a new order creation shortcut,
-- new dashboard order counts,
 - live reminders or recent-design data,
 - customer-facing navigation,
 - backend or iCloud changes.
@@ -50,8 +49,8 @@ This slice does not include:
 `DashboardView` changes from a plain `List` to a custom SwiftUI scroll view with reusable private
 subviews for sections, metric cards, action rows, area rows, and bottom navigation.
 
-The dashboard keeps UI-only styling in the view and leaves low-inventory loading and alert counting
-inside `DashboardViewModel`.
+The dashboard keeps UI-only styling in the view and leaves low-inventory loading, low-inventory
+alert counting, and active upcoming-order counting inside `DashboardViewModel`.
 
 ## Testing
 

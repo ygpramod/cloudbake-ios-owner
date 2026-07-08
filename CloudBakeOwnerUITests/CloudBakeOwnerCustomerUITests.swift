@@ -6,12 +6,12 @@ extension CloudBakeOwnerUITests {
         app.launch()
 
         openDashboardDestination("Customers", in: app)
-        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.customers", in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["No customers yet"].waitForExistence(timeout: 5))
 
         addCustomer(named: "Amy", phone: "5550101", in: app)
 
-        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.customers", in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["5550101"].waitForExistence(timeout: 5))
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "customers.item."))
@@ -36,7 +36,7 @@ extension CloudBakeOwnerUITests {
         }
 
         openDashboardDestination("Customers", in: app)
-        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.customers", in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["Select a customer"].waitForExistence(timeout: 5))
 
         XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: 5))
@@ -58,7 +58,7 @@ extension CloudBakeOwnerUITests {
         app.launch()
 
         openDashboardDestination("Customers", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: transitionTimeout))
+        assertScreenVisible("screen.customers", in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["customers.add"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.buttons["Import From Contacts"].waitForExistence(timeout: transitionTimeout))

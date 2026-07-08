@@ -7,8 +7,6 @@ struct CloudBakeScreenScaffold<Content: View>: View {
     let secondaryActions: [CloudBakeScreenAction]
     @ViewBuilder let content: Content
 
-    @Environment(\.navigateToAppDestination) private var navigate
-
     init(
         title: String,
         selectedDestination: AppDestination,
@@ -32,8 +30,7 @@ struct CloudBakeScreenScaffold<Content: View>: View {
                     CloudBakeScreenHeader(
                         title: title,
                         primaryAction: primaryAction,
-                        secondaryActions: secondaryActions,
-                        onBack: { navigate(.dashboard) }
+                        secondaryActions: secondaryActions
                     )
 
                     content
@@ -45,7 +42,7 @@ struct CloudBakeScreenScaffold<Content: View>: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 
@@ -328,22 +325,10 @@ private struct CloudBakeScreenHeader: View {
     let title: String
     let primaryAction: CloudBakeScreenAction?
     let secondaryActions: [CloudBakeScreenAction]
-    let onBack: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 34) {
             HStack {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .frame(width: 58, height: 58)
-                        .background(.white.opacity(0.90), in: Circle())
-                        .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
-                }
-                .accessibilityLabel("Back")
-                .accessibilityIdentifier("cloudBake.back")
-
                 Spacer()
 
                 ForEach(secondaryActions) { action in
