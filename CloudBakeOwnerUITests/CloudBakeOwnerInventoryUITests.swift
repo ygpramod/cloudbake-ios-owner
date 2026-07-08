@@ -92,6 +92,7 @@ extension CloudBakeOwnerUITests {
         let archiveButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.archive.")).firstMatch
         scrollToHittable(archiveButton, in: app, timeout: transitionTimeout)
         tapWhenReady(archiveButton, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["inventory.archive.confirm"], timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["No inventory yet"].waitForExistence(timeout: transitionTimeout))
 
         tapWhenReady(app.buttons["inventory.archived"], timeout: transitionTimeout)

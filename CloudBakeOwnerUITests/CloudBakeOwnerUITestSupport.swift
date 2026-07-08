@@ -15,19 +15,26 @@ extension CloudBakeOwnerUITests {
         line: UInt = #line
     ) {
         let identifier: String
+        let screenIdentifier: String
         switch title {
         case "Orders":
-            identifier = "dashboard.tab.orders"
+            identifier = "bottom.navigation.orders"
+            screenIdentifier = "screen.orders"
         case "Inventory":
-            identifier = "dashboard.tab.inventory"
+            identifier = "bottom.navigation.inventory"
+            screenIdentifier = "screen.inventory"
         case "Recipes":
-            identifier = "dashboard.tab.recipes"
+            identifier = "navigation.recipes"
+            screenIdentifier = "screen.recipes"
         case "Designs":
-            identifier = "dashboard.soon.designs"
+            identifier = "bottom.navigation.designs"
+            screenIdentifier = "screen.designs"
         case "Customers":
             identifier = "navigation.customers"
+            screenIdentifier = "screen.customers"
         case "Settings":
             identifier = "navigation.settings"
+            screenIdentifier = "screen.settings"
         default:
             XCTFail("Unsupported dashboard destination: \(title)", file: file, line: line)
             return
@@ -40,8 +47,6 @@ extension CloudBakeOwnerUITests {
                 dashboard.swipeUp()
             }
             destinationButton = app.buttons[identifier]
-        } else if identifier.hasPrefix("dashboard.tab.") {
-            destinationButton = app.buttons.matching(NSPredicate(format: "label == %@", title)).firstMatch
         } else {
             destinationButton = app.buttons[identifier]
         }
@@ -53,6 +58,7 @@ extension CloudBakeOwnerUITests {
         )
         scrollToHittable(destinationButton, in: app, timeout: timeout, file: file, line: line)
         tapWhenReady(destinationButton, timeout: timeout, file: file, line: line)
+        assertScreenVisible(screenIdentifier, in: app, timeout: timeout, file: file, line: line)
     }
 
     func assertDashboardVisible(
@@ -86,7 +92,7 @@ extension CloudBakeOwnerUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        let homeTab = app.buttons["navigation.dashboard"]
+        let homeTab = app.buttons["bottom.navigation.dashboard"]
         if homeTab.waitForExistence(timeout: 1) {
             tapWhenReady(homeTab, timeout: timeout, file: file, line: line)
             assertDashboardVisible(in: app, timeout: timeout, file: file, line: line)

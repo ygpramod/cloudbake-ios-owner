@@ -20,7 +20,7 @@ This slice includes:
 - compact Today cards for upcoming orders and low inventory,
 - Soon rows for reminders and recent designs,
 - an Areas card for all owner work areas,
-- bottom quick navigation for Home, Orders, Inventory, Recipes, and Designs,
+- bottom quick navigation for Home, Orders, Inventory, and Designs,
 - acceptance-test navigation updates for repeated home labels.
 
 This slice does not include:
@@ -37,6 +37,8 @@ This slice does not include:
 - The dashboard must continue loading low inventory through `DashboardViewModel`.
 - The visible top navigation title must not duplicate the custom home header.
 - The bottom quick navigation must not include a center add button.
+- The Upcoming Orders card navigates to Orders and counts orders that are not yet fulfilled.
+- The Low Inventory card navigates to Inventory only when at least one low-inventory item exists.
 - Main app areas must remain reachable from the dashboard.
 - The owner app must force light appearance for now because the refreshed home design is not yet
   usable in dark mode.
