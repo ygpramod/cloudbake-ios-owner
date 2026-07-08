@@ -98,6 +98,14 @@ struct OrderDetailView: View {
                                 .accessibilityIdentifier("orders.detail.overview.balanceDue")
                         }
 
+                        if let cakeMessage = order.cakeMessage {
+                            CloudBakeDetailDivider()
+                            orderDetailBlockRow("Message") {
+                                Text(cakeMessage)
+                                    .accessibilityIdentifier("orders.detail.overview.message")
+                            }
+                        }
+
                         if order.fulfillmentType == .delivery,
                            let deliveryAddress = order.deliveryAddress {
                             CloudBakeDetailDivider()
