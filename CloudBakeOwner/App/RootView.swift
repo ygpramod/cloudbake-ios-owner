@@ -17,6 +17,7 @@ struct RootView: View {
                     destinationView(for: destination)
                 }
         }
+        .background(NativeBackSwipeEnabler().frame(width: 0, height: 0))
         .safeAreaInset(edge: .bottom, spacing: 0) {
             CloudBakeBottomNavigation(
                 selectedDestination: selectedDestination,
