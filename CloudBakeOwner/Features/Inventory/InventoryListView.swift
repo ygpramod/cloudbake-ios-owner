@@ -11,6 +11,7 @@ struct InventoryListView: View {
     @State private var isShowingHistory = false
     @State private var isImportingPurchaseBill = false
     @State private var pendingArchiveItem: InventoryItem?
+    @FocusState private var isSearchFocused: Bool
 
     init(viewModel: InventoryListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -52,78 +53,17 @@ struct InventoryListView: View {
                 CloudBakeSearchField(
                     text: $viewModel.searchText,
                     prompt: "Search inventory",
-                    accessibilityIdentifier: "inventory.search"
+                    accessibilityIdentifier: "inventory.search",
+                    isFocused: $isSearchFocused
                 )
 
-                if viewModel.visibleItems.isEmpty {
-                    CloudBakeEmptyState(
-                        title: "No matching inventory",
-                        systemImage: "magnifyingglass",
-                        message: "Try another ingredient or unit name."
-                    )
-                } else {
-                CloudBakeSection("Items") {
-                    VStack(spacing: 16) {
-                    ForEach(viewModel.visibleItems, id: \.id) { item in
-                        VStack(alignment: .leading, spacing: 14) {
-                            Button {
-                                viewModel.beginViewingItem(item)
-                                isViewingItem = true
-                            } label: {
-                                InventoryItemRow(item: item)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("inventory.item.view.\(item.id)")
-
-                            HStack(spacing: 8) {
-                                CloudBakeInlineActionButton(
-                                    title: "Adjust",
-                                    systemImage: "plusminus",
-                                    tint: .cloudBakePurple,
-                                    accessibilityIdentifier: "inventory.item.adjust.\(item.id)"
-                                ) {
-                                    viewModel.beginAdjusting(item)
-                                    isAdjustingStock = true
-                                }
-
-                                CloudBakeInlineActionButton(
-                                    title: "Use",
-                                    systemImage: "minus",
-                                    tint: .cloudBakeOrange,
-                                    accessibilityIdentifier: "inventory.item.consume.\(item.id)"
-                                ) {
-                                    viewModel.beginConsuming(item)
-                                    isConsumingStock = true
-                                }
-
-                                CloudBakeInlineActionButton(
-                                    title: "History",
-                                    systemImage: "clock",
-                                    tint: .cloudBakeTeal,
-                                    accessibilityIdentifier: "inventory.item.history.\(item.id)"
-                                ) {
-                                    viewModel.beginViewingHistory(item)
-                                    isShowingHistory = true
-                                }
-
-                                CloudBakeInlineActionButton(
-                                    title: "Archive",
-                                    systemImage: "archivebox",
-                                    tint: .red,
-                                    accessibilityIdentifier: "inventory.item.archive.\(item.id)"
-                                ) {
-                                    pendingArchiveItem = item
-                                }
-                            }
+                inventoryResults
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            isSearchFocused = false
                         }
-                        .padding(20)
-                        .cloudBakeCardStyle()
-                    }
-                    }
-                }
-                }
+                    )
             }
         }
         .accessibilityIdentifier(AppDestination.inventory.screenAccessibilityIdentifier)
@@ -208,6 +148,83 @@ struct InventoryListView: View {
         .onAppear {
             viewModel.load()
         }
+    }
+
+    @ViewBuilder
+    private var inventoryResults: some View {
+        if viewModel.visibleItems.isEmpty {
+            CloudBakeEmptyState(
+                title: "No matching inventory",
+                systemImage: "magnifyingglass",
+                message: "Try another ingredient or unit name."
+            )
+        } else {
+            CloudBakeSection("Items") {
+                VStack(spacing: 16) {
+                    ForEach(viewModel.visibleItems, id: \.id) { item in
+                        inventoryItemCard(item)
+                    }
+                }
+            }
+        }
+    }
+
+    private func inventoryItemCard(_ item: InventoryItem) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Button {
+                viewModel.beginViewingItem(item)
+                isViewingItem = true
+            } label: {
+                InventoryItemRow(item: item)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("inventory.item.view.\(item.id)")
+
+            HStack(spacing: 8) {
+                CloudBakeInlineActionButton(
+                    title: "Adjust",
+                    systemImage: "plusminus",
+                    tint: .cloudBakePurple,
+                    accessibilityIdentifier: "inventory.item.adjust.\(item.id)"
+                ) {
+                    viewModel.beginAdjusting(item)
+                    isAdjustingStock = true
+                }
+
+                CloudBakeInlineActionButton(
+                    title: "Use",
+                    systemImage: "minus",
+                    tint: .cloudBakeOrange,
+                    accessibilityIdentifier: "inventory.item.consume.\(item.id)"
+                ) {
+                    viewModel.beginConsuming(item)
+                    isConsumingStock = true
+                }
+
+                CloudBakeInlineActionButton(
+                    title: "History",
+                    systemImage: "clock",
+                    tint: .cloudBakeTeal,
+                    accessibilityIdentifier: "inventory.item.history.\(item.id)"
+                ) {
+                    viewModel.beginViewingHistory(item)
+                    isShowingHistory = true
+                }
+
+                CloudBakeInlineActionButton(
+                    title: "Archive",
+                    systemImage: "archivebox",
+                    tint: .red,
+                    accessibilityIdentifier: "inventory.item.archive.\(item.id)"
+                ) {
+                    pendingArchiveItem = item
+                }
+            }
+        }
+        .padding(20)
+        .cloudBakeCardStyle()
     }
 }
 

@@ -43,6 +43,7 @@ struct CloudBakeScreenScaffold<Content: View>: View {
                 .padding(.top, 18)
                 .padding(.bottom, 104)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -240,6 +241,19 @@ struct CloudBakeSearchField: View {
     @Binding var text: String
     let prompt: String
     let accessibilityIdentifier: String
+    let isFocused: FocusState<Bool>.Binding?
+
+    init(
+        text: Binding<String>,
+        prompt: String,
+        accessibilityIdentifier: String,
+        isFocused: FocusState<Bool>.Binding? = nil
+    ) {
+        _text = text
+        self.prompt = prompt
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.isFocused = isFocused
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -254,10 +268,12 @@ struct CloudBakeSearchField: View {
                 .font(.body)
                 .submitLabel(.search)
                 .accessibilityIdentifier(accessibilityIdentifier)
+                .modifier(CloudBakeSearchFocusModifier(isFocused: isFocused))
 
             if !text.isEmpty {
                 Button {
                     text = ""
+                    isFocused?.wrappedValue = false
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.subheadline.weight(.semibold))
@@ -276,6 +292,19 @@ struct CloudBakeSearchField: View {
                 .stroke(.white.opacity(0.72), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
+    }
+}
+
+private struct CloudBakeSearchFocusModifier: ViewModifier {
+    let isFocused: FocusState<Bool>.Binding?
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let isFocused {
+            content.focused(isFocused)
+        } else {
+            content
+        }
     }
 }
 
