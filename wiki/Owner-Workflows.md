@@ -74,6 +74,9 @@ When starting quantity is entered, the owner also captures an expiry date for th
 
 Tap an inventory row to view the item.
 
+The active inventory list prioritizes items that need attention. Items with expired stock appear
+first, then items below minimum quantity, then items expiring soon, followed by normal stock.
+
 The view mode shows name, unit, current quantity, minimum quantity, and an expiry table. The expiry
 table lists each remaining stock batch by quantity and expiry date.
 
