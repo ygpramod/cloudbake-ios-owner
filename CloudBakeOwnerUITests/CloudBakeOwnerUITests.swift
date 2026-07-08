@@ -209,9 +209,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
 
         let checklistTitle = app.textFields["orders.detail.checklist.title"]
-        assertExistsAfterScrolling(checklistTitle, in: app, timeout: transitionTimeout)
+        scrollToHittable(checklistTitle, in: app, timeout: transitionTimeout)
         typeText("Crumb coat", into: checklistTitle, timeout: transitionTimeout)
-        tapExisting(app.buttons["orders.detail.checklist.add"], timeout: transitionTimeout)
+        let addChecklistButton = app.buttons["orders.detail.checklist.add"]
+        scrollToHittable(addChecklistButton, in: app, timeout: transitionTimeout)
+        tapExisting(addChecklistButton, timeout: transitionTimeout)
 
         let checklistItem = app.descendants(matching: .any).matching(
             NSPredicate(
@@ -223,7 +225,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(checklistItem.waitForExistence(timeout: transitionTimeout))
         XCTAssertEqual(checklistItem.value as? String, "Incomplete")
 
-        checklistItem.swipeLeft()
         let editButton = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "orders.detail.checklist.edit.")
         )
@@ -252,7 +253,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
             .completed
         )
 
-        checklistItem.swipeLeft()
         let deleteButton = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "orders.detail.checklist.delete.")
         )
