@@ -7,7 +7,8 @@ This page lists what the app currently supports. It should stay factual and prod
 The app currently supports:
 
 1. native iPhone and iPad app shell,
-2. visual dashboard home screen with Today cards, Soon rows, Areas navigation, and bottom quick navigation,
+2. visual dashboard home screen with Today cards, Soon rows, Areas navigation, clickable upcoming
+   order and low-inventory cards, and bottom quick navigation,
 3. inventory navigation,
 4. local SQLite persistence,
 5. inventory item creation,
@@ -16,7 +17,7 @@ The app currently supports:
 8. duplicate inventory warning,
 9. inventory item detail view,
 10. inventory item editing for name and minimum quantity,
-11. inventory archiving,
+11. inventory archive confirmation,
 12. archived inventory restore,
 13. stock adjustment,
 14. stock consumption,
@@ -102,7 +103,7 @@ The app currently supports:
     and Settings screens,
 88. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,
 89. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
-90. centered CloudBake confirmation popups for order status and payment actions,
+90. centered CloudBake confirmation popups for order, customer, and inventory actions,
 91. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared

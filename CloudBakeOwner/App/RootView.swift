@@ -14,10 +14,12 @@ struct RootView: View {
                 .simultaneousGesture(edgeBackGesture)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            CloudBakeBottomNavigation(selectedDestination: selectedDestination)
+            CloudBakeBottomNavigation(
+                selectedDestination: selectedDestination,
+                onSelect: navigate
+            )
         }
         .environment(\.navigateToAppDestination, navigate)
-        .accessibilityIdentifier("app.shell")
         .task {
             await refreshLocalReminders()
         }

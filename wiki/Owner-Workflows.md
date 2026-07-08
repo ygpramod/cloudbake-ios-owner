@@ -186,7 +186,7 @@ Examples:
 2. a supplier item changed,
 3. an old packaging size is no longer used.
 
-Archived items can be restored.
+CloudBake asks for confirmation before archiving. Archived items can be restored.
 
 ## Dashboard Workflow
 
@@ -197,12 +197,12 @@ Dashboard low inventory includes items below minimum quantity, items with expire
 and items with remaining stock expiring within one month.
 
 The home screen shows compact Today cards, Soon rows for reminders and recent designs, an Areas
-section for all owner workflows, and bottom quick navigation for Home, Orders, Inventory, Recipes,
-and Designs.
+section for all owner workflows, and bottom quick navigation for Home, Orders, Inventory, and
+Designs.
 
 Second-level owner screens use the same CloudBake visual language: warm light background, large
 screen title, circular top actions, compact logo treatment, card-based lists, and bottom quick
-navigation for Home, Orders, Inventory, Recipes, and Designs.
+navigation for Home, Orders, Inventory, and Designs.
 
 Detail screens use a focused version of the same visual language: custom compact header, hero
 summary card, titled card sections, visible row actions, and centered confirmation popups for

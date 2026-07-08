@@ -37,7 +37,10 @@ This slice does not include:
   available.
 - Existing accessibility identifiers used by critical workflows must remain stable or be updated in
   tests with a clear reason.
-- The bottom navigation must preserve the Home, Orders, Inventory, Recipes, and Designs quick links.
+- The bottom navigation must preserve the Home, Orders, Inventory, and Designs quick links.
+- Second-level screens must share the root bottom navigation so switching tabs does not animate the
+  entire screen stack.
+- A left-edge swipe from a second-level screen returns the owner to Home.
 - The implementation must avoid duplicating styling rules across feature screens.
 
 ## Design

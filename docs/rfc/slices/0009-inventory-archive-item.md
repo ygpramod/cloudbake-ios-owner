@@ -69,7 +69,7 @@ Migration `0004_add_inventory_archive_timestamp` adds nullable `archived_at_unix
 
 Active inventory rows expose an `Archive` action. RFC-0069 moved the active inventory list to
 card-based styling, so this action is now a visible row action chip instead of a list-row swipe
-action.
+action. Archiving requires owner confirmation before the item leaves the active inventory list.
 
 ## Test Plan
 
@@ -84,13 +84,14 @@ action.
   - Repository direct id fetch still returns archived rows.
 
 - Acceptance tests:
-  - Owner can archive an inventory item from the list.
+  - Owner can confirm archive for an inventory item from the list.
   - Archived item no longer appears in Inventory.
   - Archived low-stock item no longer appears on Dashboard.
 
 ## Acceptance Criteria
 
 - Active inventory remains visible.
+- Archive asks for confirmation before changing the item state.
 - Archived inventory is hidden from active owner workflows.
 - Archiving is non-destructive.
 - Tests pass locally and in CI.

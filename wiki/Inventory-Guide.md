@@ -193,6 +193,8 @@ Consumption displays as stock used.
 
 Archive inventory when it should not appear in the active list.
 
+CloudBake asks for confirmation before moving an item out of the active inventory list.
+
 Restore archived inventory when the owner needs to use it again.
 
 Archive is preferred over delete because inventory history can matter later.

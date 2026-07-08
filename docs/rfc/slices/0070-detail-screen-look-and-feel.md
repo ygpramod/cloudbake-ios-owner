@@ -27,12 +27,12 @@ Out of scope:
 Detail screens should feel consistent with the CloudBake home and second-level screens:
 
 1. warm light background,
-2. custom compact detail header with a circular back control and edit chip where appropriate,
+2. compact detail controls without repeating the detail title in a header,
 3. hero summary cards,
 4. titled detail sections,
 5. white rounded cards for key-value information,
 6. visible row actions instead of hidden swipe-only actions inside custom scroll views,
-7. centered confirmation popups for order status and payment actions.
+7. centered confirmation popups for owner actions.
 
 ## Implementation Notes
 
@@ -59,8 +59,9 @@ action.
 
 Customer detail now uses card-based contact, important date, preference, and linked order sections.
 
-Order centered popups now use the CloudBake modal treatment with dimmed backdrop, icon, title,
-subtitle, option card, and pink cancel button.
+Centered popups now use the CloudBake modal treatment with dimmed backdrop, icon, title, subtitle,
+option card, and pink cancel button. Order status and payment actions, customer add-mode choice,
+and inventory archive confirmation use the shared treatment.
 
 ## Test Strategy
 

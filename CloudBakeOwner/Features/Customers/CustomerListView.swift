@@ -37,15 +37,27 @@ struct CustomerListView: View {
                 customerList
             }
         }
-        .confirmationDialog("Add Customer", isPresented: $isChoosingAddMode) {
-            Button("Import From Contacts") {
+        .accessibilityIdentifier(AppDestination.customers.screenAccessibilityIdentifier)
+        .cloudBakeCenteredPopup(
+            isPresented: isChoosingAddMode,
+            title: "Add Customer",
+            subtitle: "Choose how to start this customer record",
+            systemImage: "person.badge.plus",
+            cancelAccessibilityIdentifier: "customers.add.cancel",
+            onCancel: { isChoosingAddMode = false }
+        ) {
+            centeredPopupButton("Import From Contacts") {
+                isChoosingAddMode = false
                 isImportingContact = true
             }
-            Button("Enter Manually") {
+            .accessibilityIdentifier("customers.add.importContacts")
+
+            centeredPopupButton("Enter Manually") {
+                isChoosingAddMode = false
                 viewModel.beginAddingCustomer()
                 isAddingCustomer = true
             }
-            Button("Cancel", role: .cancel) {}
+            .accessibilityIdentifier("customers.add.manual")
         }
         .sheet(isPresented: $isImportingContact) {
             CustomerContactPicker { contact in
@@ -78,7 +90,6 @@ struct CustomerListView: View {
         .onAppear {
             viewModel.load()
         }
-        .accessibilityIdentifier(AppDestination.customers.screenAccessibilityIdentifier)
     }
 
     private var customerList: some View {

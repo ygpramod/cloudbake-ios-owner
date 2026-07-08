@@ -1,16 +1,22 @@
 import SwiftUI
 
 extension View {
-    func centeredOrderPopup<PopupContent: View>(
+    func cloudBakeCenteredPopup<PopupContent: View>(
         isPresented: Bool,
         title: String,
+        subtitle: String,
+        systemImage: String,
+        cancelAccessibilityIdentifier: String = "cloudBake.popup.cancel",
         onCancel: @escaping () -> Void,
         @ViewBuilder content: @escaping () -> PopupContent
     ) -> some View {
         overlay(alignment: .center) {
             if isPresented {
-                CenteredOrderPopup(
+                CloudBakeCenteredPopup(
                     title: title,
+                    subtitle: subtitle,
+                    systemImage: systemImage,
+                    cancelAccessibilityIdentifier: cancelAccessibilityIdentifier,
                     onCancel: onCancel,
                     content: content
                 )
@@ -18,10 +24,30 @@ extension View {
         }
         .animation(.easeInOut(duration: 0.18), value: isPresented)
     }
+
+    func centeredOrderPopup<PopupContent: View>(
+        isPresented: Bool,
+        title: String,
+        onCancel: @escaping () -> Void,
+        @ViewBuilder content: @escaping () -> PopupContent
+    ) -> some View {
+        cloudBakeCenteredPopup(
+            isPresented: isPresented,
+            title: title,
+            subtitle: orderPopupSubtitle(for: title),
+            systemImage: orderPopupIconName(for: title),
+            cancelAccessibilityIdentifier: "orders.popup.cancel",
+            onCancel: onCancel,
+            content: content
+        )
+    }
 }
 
-struct CenteredOrderPopup<Content: View>: View {
+private struct CloudBakeCenteredPopup<Content: View>: View {
     let title: String
+    let subtitle: String
+    let systemImage: String
+    let cancelAccessibilityIdentifier: String
     let onCancel: () -> Void
     @ViewBuilder let content: () -> Content
 
@@ -34,7 +60,7 @@ struct CenteredOrderPopup<Content: View>: View {
 
                 VStack(spacing: 22) {
                     VStack(spacing: 12) {
-                        Image(systemName: iconName)
+                        Image(systemName: systemImage)
                             .font(.title2.weight(.semibold))
                             .foregroundStyle(Color.cloudBakePink)
                             .frame(width: 76, height: 76)
@@ -71,7 +97,7 @@ struct CenteredOrderPopup<Content: View>: View {
                         .foregroundStyle(Color.cloudBakePink)
                         .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Color.cloudBakePink.opacity(0.11), in: Capsule())
-                        .accessibilityIdentifier("orders.popup.cancel")
+                        .accessibilityIdentifier(cancelAccessibilityIdentifier)
                 }
                 .padding(28)
                 .frame(maxWidth: 360)
@@ -86,38 +112,38 @@ struct CenteredOrderPopup<Content: View>: View {
         .transition(.opacity.combined(with: .scale(scale: 0.98)))
         .zIndex(10)
     }
+}
 
-    private var iconName: String {
-        if title.localizedCaseInsensitiveContains("payment") {
-            return "banknote"
-        }
-
-        if title.localizedCaseInsensitiveContains("inventory") {
-            return "shippingbox"
-        }
-
-        if title.localizedCaseInsensitiveContains("partial") {
-            return "plus.circle"
-        }
-
-        return "arrow.triangle.2.circlepath"
+private func orderPopupIconName(for title: String) -> String {
+    if title.localizedCaseInsensitiveContains("payment") {
+        return "banknote"
     }
 
-    private var subtitle: String {
-        if title.localizedCaseInsensitiveContains("payment") {
-            return "Update the order payment"
-        }
-
-        if title.localizedCaseInsensitiveContains("inventory") {
-            return "Confirm stock deduction"
-        }
-
-        if title.localizedCaseInsensitiveContains("partial") {
-            return "Add the amount received"
-        }
-
-        return "Update the order status"
+    if title.localizedCaseInsensitiveContains("inventory") {
+        return "shippingbox"
     }
+
+    if title.localizedCaseInsensitiveContains("partial") {
+        return "plus.circle"
+    }
+
+    return "arrow.triangle.2.circlepath"
+}
+
+private func orderPopupSubtitle(for title: String) -> String {
+    if title.localizedCaseInsensitiveContains("payment") {
+        return "Update the order payment"
+    }
+
+    if title.localizedCaseInsensitiveContains("inventory") {
+        return "Confirm stock deduction"
+    }
+
+    if title.localizedCaseInsensitiveContains("partial") {
+        return "Add the amount received"
+    }
+
+    return "Update the order status"
 }
 
 func centeredPopupButton(

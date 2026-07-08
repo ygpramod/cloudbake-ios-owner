@@ -10,6 +10,7 @@ struct InventoryListView: View {
     @State private var isConsumingStock = false
     @State private var isShowingHistory = false
     @State private var isImportingPurchaseBill = false
+    @State private var pendingArchiveItem: InventoryItem?
 
     init(viewModel: InventoryListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -99,7 +100,7 @@ struct InventoryListView: View {
                                     tint: .red,
                                     accessibilityIdentifier: "inventory.item.archive.\(item.id)"
                                 ) {
-                                    viewModel.archiveItem(item)
+                                    pendingArchiveItem = item
                                 }
                             }
                         }
@@ -110,6 +111,7 @@ struct InventoryListView: View {
                 }
             }
         }
+        .accessibilityIdentifier(AppDestination.inventory.screenAccessibilityIdentifier)
         .sheet(isPresented: $isAddingItem) {
             NavigationStack {
                 InventoryItemForm(
@@ -172,10 +174,25 @@ struct InventoryListView: View {
                 )
             }
         }
+        .cloudBakeCenteredPopup(
+            isPresented: pendingArchiveItem != nil,
+            title: "Archive Inventory?",
+            subtitle: "Archive this item from active inventory. You can restore it later.",
+            systemImage: "archivebox",
+            cancelAccessibilityIdentifier: "inventory.archive.cancel",
+            onCancel: { pendingArchiveItem = nil }
+        ) {
+            if let pendingArchiveItem {
+                centeredPopupButton("Archive \(pendingArchiveItem.name)", role: .destructive) {
+                    viewModel.archiveItem(pendingArchiveItem)
+                    self.pendingArchiveItem = nil
+                }
+                .accessibilityIdentifier("inventory.archive.confirm")
+            }
+        }
         .onAppear {
             viewModel.load()
         }
-        .accessibilityIdentifier(AppDestination.inventory.screenAccessibilityIdentifier)
     }
 }
 

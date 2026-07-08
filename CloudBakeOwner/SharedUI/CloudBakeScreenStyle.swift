@@ -465,6 +465,7 @@ private struct CloudBakeHeaderActionButton: View {
 
 struct CloudBakeBottomNavigation: View {
     let selectedDestination: AppDestination
+    let onSelect: (AppDestination) -> Void
 
     private let destinations: [AppDestination] = [
         .dashboard,
@@ -478,7 +479,8 @@ struct CloudBakeBottomNavigation: View {
             ForEach(destinations) { destination in
                 CloudBakeBottomNavigationItem(
                     destination: destination,
-                    isSelected: destination == selectedDestination
+                    isSelected: destination == selectedDestination,
+                    onSelect: onSelect
                 )
             }
         }
@@ -500,30 +502,28 @@ struct CloudBakeBottomNavigation: View {
 private struct CloudBakeBottomNavigationItem: View {
     let destination: AppDestination
     let isSelected: Bool
-    @Environment(\.navigateToAppDestination) private var navigate
+    let onSelect: (AppDestination) -> Void
 
     var body: some View {
-        Group {
-            if isSelected {
-                itemContent
-                    .foregroundStyle(Color.cloudBakePink)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(destination.bottomNavigationTitle)
-                    .accessibilityIdentifier(destination.accessibilityIdentifier)
-            } else {
-                Button {
-                    navigate(destination)
-                } label: {
-                    itemContent
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
+        if isSelected {
+            itemContent
+                .foregroundStyle(Color.cloudBakePink)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(destination.bottomNavigationTitle)
-                .accessibilityIdentifier(destination.accessibilityIdentifier)
+                .accessibilityIdentifier(destination.bottomNavigationAccessibilityIdentifier)
+                .frame(maxWidth: .infinity)
+        } else {
+            Button {
+                onSelect(destination)
+            } label: {
+                itemContent
+                    .foregroundStyle(.secondary)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(destination.bottomNavigationTitle)
+            .accessibilityIdentifier(destination.bottomNavigationAccessibilityIdentifier)
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
     }
 
     private var itemContent: some View {
@@ -606,5 +606,9 @@ private extension AppDestination {
         default:
             return systemImage
         }
+    }
+
+    var bottomNavigationAccessibilityIdentifier: String {
+        "bottom.navigation.\(rawValue)"
     }
 }
