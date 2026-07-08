@@ -202,7 +202,9 @@ Designs.
 
 Second-level owner screens use the same CloudBake visual language: warm light background, large
 screen title, circular top actions, compact logo treatment, card-based lists, and bottom quick
-navigation for Home, Orders, Inventory, and Designs.
+navigation for Home, Orders, Inventory, and Designs. Opening a second-level screen from Home uses
+the native iOS push animation, and the left-edge back gesture returns to Home without a visible
+custom back button.
 
 Detail screens use a focused version of the same visual language: custom compact header, hero
 summary card, titled card sections, visible row actions, and centered confirmation popups for

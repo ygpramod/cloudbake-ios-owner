@@ -3,15 +3,18 @@ import SwiftUI
 struct RootView: View {
     let database: AppDatabase
     @Environment(\.scenePhase) private var scenePhase
-    @State private var selectedDestination: AppDestination = .dashboard
-    @GestureState private var horizontalDragOffset: CGFloat = 0
+    @State private var navigationPath: [AppDestination] = []
+
+    private var selectedDestination: AppDestination {
+        navigationPath.last ?? .dashboard
+    }
 
     var body: some View {
-        ZStack {
-            currentDestinationView
-                .offset(x: selectedDestination == .dashboard ? 0 : max(horizontalDragOffset, 0))
-                .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.88), value: selectedDestination)
-                .simultaneousGesture(edgeBackGesture)
+        NavigationStack(path: $navigationPath) {
+            destinationView(for: .dashboard)
+                .navigationDestination(for: AppDestination.self) { destination in
+                    destinationView(for: destination)
+                }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             CloudBakeBottomNavigation(
@@ -34,42 +37,17 @@ struct RootView: View {
         }
     }
 
-    @ViewBuilder
-    private var currentDestinationView: some View {
-        NavigationStack {
-            destinationView(for: selectedDestination)
-        }
-        .id(selectedDestination)
-    }
-
-    private var edgeBackGesture: some Gesture {
-        DragGesture(minimumDistance: 24, coordinateSpace: .local)
-            .updating($horizontalDragOffset) { value, state, _ in
-                guard selectedDestination != .dashboard,
-                      value.startLocation.x <= 24,
-                      value.translation.width > 0,
-                      abs(value.translation.height) < 80
-                else {
-                    return
-                }
-
-                state = min(value.translation.width, 140)
-            }
-            .onEnded { value in
-                guard selectedDestination != .dashboard,
-                      value.startLocation.x <= 24,
-                      value.translation.width > 88,
-                      abs(value.translation.height) < 80
-                else {
-                    return
-                }
-
-                navigate(.dashboard)
-            }
-    }
-
     private func navigate(_ destination: AppDestination) {
-        selectedDestination = destination
+        if destination == .dashboard {
+            navigationPath.removeAll()
+            return
+        }
+
+        guard selectedDestination != destination else {
+            return
+        }
+
+        navigationPath = [destination]
     }
 
     @ViewBuilder

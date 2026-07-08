@@ -38,9 +38,11 @@ This slice does not include:
 - Existing accessibility identifiers used by critical workflows must remain stable or be updated in
   tests with a clear reason.
 - The bottom navigation must preserve the Home, Orders, Inventory, and Designs quick links.
-- Second-level screens must share the root bottom navigation so switching tabs does not animate the
-  entire screen stack.
-- A left-edge swipe from a second-level screen returns the owner to Home.
+- Second-level screens must be pushed from Home with the platform right-to-left navigation
+  animation.
+- Second-level screens must not show a custom back button.
+- The iOS left-edge back gesture must use the platform interactive behavior and return the owner to
+  Home.
 - The implementation must avoid duplicating styling rules across feature screens.
 
 ## Design

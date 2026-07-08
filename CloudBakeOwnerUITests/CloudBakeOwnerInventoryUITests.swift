@@ -35,7 +35,7 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
 
         app.buttons["inventory.detail.done"].tap()
-        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.inventory", in: app, timeout: 5)
 
         adjustFirstInventoryItem(by: "100", in: app)
         XCTAssertTrue(app.staticTexts["Current Quantity: 350 g"].waitForExistence(timeout: 5))

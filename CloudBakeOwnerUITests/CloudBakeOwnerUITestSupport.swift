@@ -132,7 +132,7 @@ extension CloudBakeOwnerUITests {
         let saveButton = app.buttons["inventory.form.save"]
         scrollToHittable(saveButton, in: app, timeout: timeout)
         tapWhenReady(saveButton, timeout: timeout)
-        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: timeout))
+        assertScreenVisible("screen.inventory", in: app, timeout: timeout)
     }
 
     func addOrder(
@@ -163,7 +163,7 @@ extension CloudBakeOwnerUITests {
             typeText(paymentNotes, into: app.textFields["orders.form.paymentNotes"])
         }
         tapWhenReady(app.buttons["orders.form.save"])
-        XCTAssertTrue(app.navigationBars["Orders"].waitForExistence(timeout: timeout))
+        assertScreenVisible("screen.orders", in: app, timeout: timeout)
     }
 
     func addRecipe(named name: String, notes: String, in app: XCUIApplication) {
@@ -174,11 +174,11 @@ extension CloudBakeOwnerUITests {
         app.textFields["recipes.form.notes"].tap()
         app.textFields["recipes.form.notes"].typeText(notes)
         app.buttons["recipes.form.save"].tap()
-        XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.recipes", in: app, timeout: 5)
     }
 
     func addCustomer(named name: String, phone: String, in app: XCUIApplication) {
-        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 10))
+        assertScreenVisible("screen.customers", in: app, timeout: 10)
         tapWhenReady(app.buttons["customers.add"])
         XCTAssertTrue(app.buttons["Enter Manually"].waitForExistence(timeout: 5))
         tapWhenReady(app.buttons["Enter Manually"])
@@ -194,7 +194,7 @@ extension CloudBakeOwnerUITests {
         scrollToHittable(allergiesField, in: app)
         typeText("Nuts", into: allergiesField)
         tapWhenReady(app.buttons["customers.form.save"])
-        XCTAssertTrue(app.navigationBars["Customers"].waitForExistence(timeout: 10))
+        assertScreenVisible("screen.customers", in: app, timeout: 10)
     }
 
     func adjustFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
@@ -205,7 +205,7 @@ extension CloudBakeOwnerUITests {
         app.textFields["inventory.adjust.quantity"].tap()
         app.textFields["inventory.adjust.quantity"].typeText(quantity)
         app.buttons["inventory.adjust.save"].tap()
-        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.inventory", in: app, timeout: 5)
     }
 
     func consumeFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
@@ -216,7 +216,7 @@ extension CloudBakeOwnerUITests {
         app.textFields["inventory.consume.quantity"].tap()
         app.textFields["inventory.consume.quantity"].typeText(quantity)
         app.buttons["inventory.consume.save"].tap()
-        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.inventory", in: app, timeout: 5)
     }
 
     func firstEditableInventoryRow(in app: XCUIApplication) -> XCUIElement {

@@ -101,10 +101,11 @@ The app currently supports:
 86. saved order photo deletion from order detail,
 87. shared CloudBake visual styling for second-level Orders, Inventory, Recipes, Customers, Designs,
     and Settings screens,
-88. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,
-89. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
-90. centered CloudBake confirmation popups for order, customer, and inventory actions,
-91. unit, integration, and feature-sharded acceptance test lanes.
+88. native iOS push navigation from Home to second-level screens with left-edge swipe back to Home,
+89. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,
+90. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
+91. centered CloudBake confirmation popups for order, customer, and inventory actions,
+92. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 

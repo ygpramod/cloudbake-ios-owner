@@ -6,7 +6,7 @@ extension CloudBakeOwnerUITests {
         app.launch()
 
         openDashboardDestination("Recipes", in: app)
-        XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.recipes", in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["No recipes yet"].waitForExistence(timeout: 5))
 
         app.buttons["recipes.add"].tap()
@@ -17,7 +17,7 @@ extension CloudBakeOwnerUITests {
         app.textFields["recipes.form.notes"].typeText("Book page 12")
         app.buttons["recipes.form.save"].tap()
 
-        XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.recipes", in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["Vanilla Sponge"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Book page 12"].waitForExistence(timeout: 5))
     }
@@ -31,7 +31,7 @@ extension CloudBakeOwnerUITests {
         returnToDashboard(in: app)
 
         openDashboardDestination("Recipes", in: app)
-        XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.recipes", in: app, timeout: 5)
         app.buttons["recipes.import"].tap()
         XCTAssertTrue(app.navigationBars["Import Recipe"].waitForExistence(timeout: 5))
 
@@ -48,7 +48,7 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.import.ingredient.quantity.")).firstMatch.waitForExistence(timeout: 5))
         app.buttons["recipes.import.save"].tap()
 
-        XCTAssertTrue(app.navigationBars["Recipes"].waitForExistence(timeout: 5))
+        assertScreenVisible("screen.recipes", in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["Chocolate Fudge"].waitForExistence(timeout: 5))
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
             .firstMatch
