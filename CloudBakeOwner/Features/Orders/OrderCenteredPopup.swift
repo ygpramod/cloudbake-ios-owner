@@ -14,9 +14,6 @@ extension View {
         overlay(alignment: .center) {
             if isPresented {
                 CloudBakeCenteredPopup(
-                    title: title,
-                    subtitle: subtitle,
-                    systemImage: systemImage,
                     showsCancelButton: showsCancelButton,
                     cancelAccessibilityIdentifier: cancelAccessibilityIdentifier,
                     onCancel: onCancel,
@@ -48,9 +45,6 @@ extension View {
 }
 
 private struct CloudBakeCenteredPopup<Content: View>: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
     let showsCancelButton: Bool
     let cancelAccessibilityIdentifier: String
     let onCancel: () -> Void
@@ -64,28 +58,6 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
                     .onTapGesture(perform: onCancel)
 
                 VStack(spacing: 22) {
-                    VStack(spacing: 12) {
-                        Image(systemName: systemImage)
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(Color.cloudBakePink)
-                            .frame(width: 76, height: 76)
-                            .background(Circle().fill(Color.cloudBakePink.opacity(0.12)))
-                            .accessibilityHidden(true)
-
-                        VStack(spacing: 6) {
-                            Text(title)
-                                .font(.title3.weight(.bold))
-                                .multilineTextAlignment(.center)
-                                .foregroundStyle(.primary)
-                                .frame(maxWidth: .infinity)
-
-                            Text(subtitle)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-
                     VStack(spacing: 10) {
                         content()
                     }
