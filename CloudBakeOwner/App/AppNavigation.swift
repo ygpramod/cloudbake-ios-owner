@@ -19,7 +19,9 @@ struct NativeBackSwipeEnabler: UIViewControllerRepresentable {
 
     func updateUIViewController(_ viewController: UIViewController, context: Context) {
         DispatchQueue.main.async {
-            guard let navigationController = viewController.nearestNavigationController else {
+            guard let navigationController = viewController.nearestNavigationController()
+                ?? viewController.view.window?.rootViewController?.firstNavigationController()
+            else {
                 return
             }
 
@@ -30,11 +32,30 @@ struct NativeBackSwipeEnabler: UIViewControllerRepresentable {
 }
 
 private extension UIViewController {
-    var nearestNavigationController: UINavigationController? {
+    func nearestNavigationController() -> UINavigationController? {
         if let navigationController {
             return navigationController
         }
 
-        return parent?.nearestNavigationController
+        return parent?.nearestNavigationController()
+    }
+
+    func firstNavigationController() -> UINavigationController? {
+        if let navigationController = self as? UINavigationController {
+            return navigationController
+        }
+
+        for child in children {
+            if let navigationController = child.firstNavigationController() {
+                return navigationController
+            }
+        }
+
+        if let presentedViewController,
+           let navigationController = presentedViewController.firstNavigationController() {
+            return navigationController
+        }
+
+        return nil
     }
 }
