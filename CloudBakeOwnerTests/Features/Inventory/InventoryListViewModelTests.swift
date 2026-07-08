@@ -78,6 +78,48 @@ final class InventoryListViewModelTests: XCTestCase {
         ])
     }
 
+    func testVisibleItemsFilterBySearchTextAndKeepAttentionOrder() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_020_000)
+        let normalFlour = InventoryItem(
+            id: "inventory-normal-flour",
+            name: "Bread flour",
+            unit: .gram,
+            currentQuantity: 750,
+            minimumQuantity: 250,
+            createdAt: now,
+            updatedAt: now
+        )
+        let lowFlour = InventoryItem(
+            id: "inventory-low-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 100,
+            minimumQuantity: 500,
+            createdAt: now,
+            updatedAt: now
+        )
+        let sugar = InventoryItem(
+            id: "inventory-sugar",
+            name: "Caster sugar",
+            unit: .gram,
+            currentQuantity: 750,
+            minimumQuantity: 250,
+            createdAt: now,
+            updatedAt: now
+        )
+        repository.items = [normalFlour, sugar, lowFlour]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.load()
+
+        viewModel.searchText = " flour "
+
+        XCTAssertEqual(viewModel.visibleItems.map(\.id), [
+            "inventory-low-flour",
+            "inventory-normal-flour"
+        ])
+    }
+
     func testAddItemPersistsAndReloadsInventory() {
         let repository = FakeInventoryItemRepository()
         let now = Date(timeIntervalSince1970: 1_800_030_000)

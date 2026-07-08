@@ -236,6 +236,49 @@ struct CloudBakeListCard<Content: View>: View {
     }
 }
 
+struct CloudBakeSearchField: View {
+    @Binding var text: String
+    let prompt: String
+    let accessibilityIdentifier: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+
+            TextField(prompt, text: $text)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.body)
+                .submitLabel(.search)
+                .accessibilityIdentifier(accessibilityIdentifier)
+
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+                .accessibilityIdentifier("\(accessibilityIdentifier).clear")
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
+        .background(.white.opacity(0.88), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.white.opacity(0.72), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
+    }
+}
+
 struct CloudBakeEmptyState: View {
     let title: String
     let systemImage: String

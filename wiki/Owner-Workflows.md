@@ -77,6 +77,9 @@ Tap an inventory row to view the item.
 The active inventory list prioritizes items that need attention. Items with expired stock appear
 first, then items below minimum quantity, then items expiring soon, followed by normal stock.
 
+Use inventory search when the list grows. Search matches inventory item names and stored units while
+preserving the same attention-first ordering inside the search results.
+
 The view mode shows name, unit, current quantity, minimum quantity, and an expiry table. The expiry
 table lists each remaining stock batch by quantity and expiry date.
 
