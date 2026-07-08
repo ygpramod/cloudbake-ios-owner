@@ -297,6 +297,7 @@ struct OrderDetailView: View {
         .centeredOrderPopup(
             isPresented: isAddingPartialPayment,
             title: "Add Partial Payment",
+            showsCancelButton: false,
             onCancel: {
                 isAddingPartialPayment = false
                 partialPaymentAmount = ""
@@ -306,13 +307,22 @@ struct OrderDetailView: View {
                 .keyboardType(.decimalPad)
                 .textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("orders.detail.payment.partial.amount")
-            centeredPopupButton("Save") {
-                if viewModel.addPaymentToSelectedOrder(amountText: partialPaymentAmount) {
+
+            HStack(spacing: 16) {
+                centeredPopupPillButton("Cancel") {
                     isAddingPartialPayment = false
                     partialPaymentAmount = ""
                 }
+                .accessibilityIdentifier("orders.detail.payment.partial.cancel")
+
+                centeredPopupPillButton("Save") {
+                    if viewModel.addPaymentToSelectedOrder(amountText: partialPaymentAmount) {
+                        isAddingPartialPayment = false
+                        partialPaymentAmount = ""
+                    }
+                }
+                .accessibilityIdentifier("orders.detail.payment.partial.save")
             }
-            .accessibilityIdentifier("orders.detail.payment.partial.save")
         }
         .sheet(isPresented: $isEditingOrder, onDismiss: viewModel.cancelEditingOrder) {
             NavigationStack {

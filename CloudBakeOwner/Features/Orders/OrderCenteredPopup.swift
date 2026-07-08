@@ -6,6 +6,7 @@ extension View {
         title: String,
         subtitle: String,
         systemImage: String,
+        showsCancelButton: Bool = true,
         cancelAccessibilityIdentifier: String = "cloudBake.popup.cancel",
         onCancel: @escaping () -> Void,
         @ViewBuilder content: @escaping () -> PopupContent
@@ -16,6 +17,7 @@ extension View {
                     title: title,
                     subtitle: subtitle,
                     systemImage: systemImage,
+                    showsCancelButton: showsCancelButton,
                     cancelAccessibilityIdentifier: cancelAccessibilityIdentifier,
                     onCancel: onCancel,
                     content: content
@@ -28,6 +30,7 @@ extension View {
     func centeredOrderPopup<PopupContent: View>(
         isPresented: Bool,
         title: String,
+        showsCancelButton: Bool = true,
         onCancel: @escaping () -> Void,
         @ViewBuilder content: @escaping () -> PopupContent
     ) -> some View {
@@ -36,6 +39,7 @@ extension View {
             title: title,
             subtitle: orderPopupSubtitle(for: title),
             systemImage: orderPopupIconName(for: title),
+            showsCancelButton: showsCancelButton,
             cancelAccessibilityIdentifier: "orders.popup.cancel",
             onCancel: onCancel,
             content: content
@@ -47,6 +51,7 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
     let title: String
     let subtitle: String
     let systemImage: String
+    let showsCancelButton: Bool
     let cancelAccessibilityIdentifier: String
     let onCancel: () -> Void
     @ViewBuilder let content: () -> Content
@@ -86,22 +91,29 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
                     }
                     .padding(.horizontal, 18)
                     .padding(.vertical, 14)
-                    .background(.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 24, style: .continuous)
                             .stroke(.black.opacity(0.06), lineWidth: 1)
                     }
 
-                    Button("Cancel", role: .cancel, action: onCancel)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.cloudBakePink)
-                        .frame(maxWidth: .infinity, minHeight: 52)
+                    if showsCancelButton {
+                        Button(role: .cancel, action: onCancel) {
+                            Text("Cancel")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(Color.cloudBakePink)
+                                .frame(maxWidth: .infinity, minHeight: 52)
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
                         .background(Color.cloudBakePink.opacity(0.11), in: Capsule())
-                        .accessibilityIdentifier(cancelAccessibilityIdentifier)
+                        .contentShape(Capsule())
+                            .accessibilityIdentifier(cancelAccessibilityIdentifier)
+                    }
                 }
                 .padding(28)
                 .frame(maxWidth: 360)
-                .background(.white.opacity(0.96), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .padding(.horizontal, 24)
                 .shadow(color: .black.opacity(0.20), radius: 24, y: 14)
                 .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
@@ -159,4 +171,20 @@ func centeredPopupButton(
     }
     .buttonStyle(.plain)
     .foregroundStyle(role == .destructive ? Color.red : Color.primary)
+}
+
+func centeredPopupPillButton(
+    _ title: String,
+    action: @escaping () -> Void
+) -> some View {
+    Button(action: action) {
+        Text(title)
+            .font(.body.weight(.semibold))
+            .foregroundStyle(Color.cloudBakePink)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .contentShape(Capsule())
+    }
+    .buttonStyle(.plain)
+    .background(Color.cloudBakePink.opacity(0.11), in: Capsule())
+    .contentShape(Capsule())
 }

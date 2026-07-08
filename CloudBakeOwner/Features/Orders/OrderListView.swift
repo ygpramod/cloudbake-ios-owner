@@ -199,6 +199,7 @@ struct OrderListView: View {
         .centeredOrderPopup(
             isPresented: orderAddingPartialPayment != nil,
             title: "Add Partial Payment",
+            showsCancelButton: false,
             onCancel: {
                 orderAddingPartialPayment = nil
                 partialPaymentAmount = ""
@@ -208,14 +209,23 @@ struct OrderListView: View {
                 .keyboardType(.decimalPad)
                 .textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("orders.row.payment.partial.amount")
-            centeredPopupButton("Save") {
-                if let order = orderAddingPartialPayment,
-                   viewModel.addPayment(to: order, amountText: partialPaymentAmount) {
+
+            HStack(spacing: 16) {
+                centeredPopupPillButton("Cancel") {
                     orderAddingPartialPayment = nil
                     partialPaymentAmount = ""
                 }
+                .accessibilityIdentifier("orders.row.payment.partial.cancel")
+
+                centeredPopupPillButton("Save") {
+                    if let order = orderAddingPartialPayment,
+                       viewModel.addPayment(to: order, amountText: partialPaymentAmount) {
+                        orderAddingPartialPayment = nil
+                        partialPaymentAmount = ""
+                    }
+                }
+                .accessibilityIdentifier("orders.row.payment.partial.save")
             }
-            .accessibilityIdentifier("orders.row.payment.partial.save")
         }
     }
 
