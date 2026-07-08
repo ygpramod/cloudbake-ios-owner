@@ -46,6 +46,16 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: transitionTimeout))
+
+        let statusButton = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "orders.item.status.")
+        )
+            .firstMatch
+        assertExistsAfterScrolling(statusButton, in: app, timeout: transitionTimeout)
+        tapWhenReady(statusButton, timeout: transitionTimeout)
+        let draftStatusOption = app.buttons["Draft"]
+        XCTAssertTrue(draftStatusOption.waitForExistence(timeout: transitionTimeout))
+        XCTAssertEqual(draftStatusOption.value as? String, "Selected")
     }
 
     func testOrderCanBeOpenedFromListAndViewed() throws {

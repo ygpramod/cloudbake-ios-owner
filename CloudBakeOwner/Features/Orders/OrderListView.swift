@@ -155,7 +155,10 @@ struct OrderListView: View {
         ) {
             if let order = orderSelectingStatus {
                 ForEach(OrderStatus.allCases, id: \.self) { status in
-                    centeredPopupButton(status.displayName) {
+                    centeredPopupSelectionButton(
+                        status.displayName,
+                        isSelected: status == order.status
+                    ) {
                         pendingStatusChange = OrderStatusChangeRequest(order: order, status: status)
                         orderSelectingStatus = nil
                     }

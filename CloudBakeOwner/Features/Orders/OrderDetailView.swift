@@ -255,7 +255,10 @@ struct OrderDetailView: View {
         ) {
             if let order = viewModel.selectedOrder {
                 ForEach(OrderStatus.allCases, id: \.self) { status in
-                    centeredPopupButton(status.displayName) {
+                    centeredPopupSelectionButton(
+                        status.displayName,
+                        isSelected: status == order.status
+                    ) {
                         changeStatus(status, for: order)
                         isSelectingStatus = false
                     }
