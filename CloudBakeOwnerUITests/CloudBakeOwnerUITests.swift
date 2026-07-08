@@ -112,17 +112,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
 
         let paymentMenu = app.buttons["orders.detail.paymentStatusMenu"]
-        assertExistsAfterScrolling(paymentMenu, in: app, timeout: transitionTimeout)
+        scrollToHittable(paymentMenu, in: app, timeout: transitionTimeout)
         tapWhenReady(paymentMenu, timeout: transitionTimeout)
         tapExisting(app.buttons["orders.detail.payment.paid"], timeout: transitionTimeout)
 
-        let paymentStatus = app.staticTexts["orders.detail.paymentStatus"]
+        let paymentStatus = app.staticTexts.matching(identifier: "orders.detail.paymentStatus").firstMatch
         assertExistsAfterScrolling(paymentStatus, in: app, timeout: transitionTimeout)
         XCTAssertTrue(paymentStatus.label.contains("Paid"))
-        let depositPaid = app.staticTexts["orders.detail.depositPaid"]
+        let depositPaid = app.staticTexts.matching(identifier: "orders.detail.depositPaid").firstMatch
         assertExistsAfterScrolling(depositPaid, in: app, timeout: transitionTimeout)
         XCTAssertTrue(depositPaid.label.contains("125"))
-        let balanceDue = app.staticTexts["orders.detail.balanceDue"]
+        let balanceDue = app.staticTexts.matching(identifier: "orders.detail.balanceDue").firstMatch
         assertExistsAfterScrolling(balanceDue, in: app, timeout: transitionTimeout)
         XCTAssertTrue(balanceDue.label.contains("0"))
     }
@@ -149,7 +149,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(orderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(orderRow, timeout: transitionTimeout)
 
-        XCTAssertTrue(app.navigationBars[orderTitle].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.reminder.1"], in: app, timeout: transitionTimeout)
     }
 

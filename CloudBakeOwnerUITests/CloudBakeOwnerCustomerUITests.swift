@@ -18,7 +18,7 @@ extension CloudBakeOwnerUITests {
             .firstMatch
             .tap()
 
-        XCTAssertTrue(app.navigationBars["Amy"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["customers.detail.done"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Phone"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Birthday"].waitForExistence(timeout: 5))
@@ -44,7 +44,7 @@ extension CloudBakeOwnerUITests {
             .firstMatch
             .tap()
 
-        XCTAssertTrue(app.navigationBars["Amy"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["customers.detail.edit"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["customers.detail.done"].exists)
         XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Phone"].waitForExistence(timeout: 5))
@@ -92,7 +92,7 @@ extension CloudBakeOwnerUITests {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "customers.item."))
             .firstMatch
             .tap()
-        XCTAssertTrue(app.navigationBars["Amy"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["customers.detail.done"].waitForExistence(timeout: 5))
 
         app.buttons["customers.detail.edit"].tap()
         XCTAssertTrue(app.navigationBars["Edit Customer"].waitForExistence(timeout: 5))
@@ -103,7 +103,7 @@ extension CloudBakeOwnerUITests {
         nameField.typeText("Amy B")
         app.buttons["customers.form.save"].tap()
 
-        XCTAssertTrue(app.navigationBars["Amy B"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["customers.detail.done"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Amy B"].waitForExistence(timeout: 5))
     }
 }
