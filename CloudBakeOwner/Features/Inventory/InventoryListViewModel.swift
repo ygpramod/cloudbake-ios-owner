@@ -52,7 +52,7 @@ final class InventoryListViewModel: ObservableObject {
 
     func load() {
         do {
-            items = try repository.fetchInventoryItems()
+            items = sortedInventoryItems(try repository.fetchInventoryItems())
             errorMessage = nil
         } catch {
             errorMessage = "Inventory could not be loaded."
@@ -61,7 +61,7 @@ final class InventoryListViewModel: ObservableObject {
 
     func loadArchivedItems() {
         do {
-            archivedItems = try repository.fetchArchivedInventoryItems()
+            archivedItems = sortedInventoryItems(try repository.fetchArchivedInventoryItems())
             errorMessage = nil
         } catch {
             errorMessage = "Archived inventory could not be loaded."
@@ -796,6 +796,34 @@ final class InventoryListViewModel: ObservableObject {
 
     private func defaultExpiryDate() -> Date {
         Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+    }
+
+    private func sortedInventoryItems(_ items: [InventoryItem]) -> [InventoryItem] {
+        items.sorted { left, right in
+            let leftPriority = inventoryAttentionPriority(left)
+            let rightPriority = inventoryAttentionPriority(right)
+            if leftPriority != rightPriority {
+                return leftPriority < rightPriority
+            }
+
+            return left.name.localizedCaseInsensitiveCompare(right.name) == .orderedAscending
+        }
+    }
+
+    private func inventoryAttentionPriority(_ item: InventoryItem) -> Int {
+        if item.hasExpiredStock {
+            return 0
+        }
+
+        if item.currentQuantity < item.minimumQuantity {
+            return 1
+        }
+
+        if item.hasExpiringSoonStock {
+            return 2
+        }
+
+        return 3
     }
 
     private func consume(

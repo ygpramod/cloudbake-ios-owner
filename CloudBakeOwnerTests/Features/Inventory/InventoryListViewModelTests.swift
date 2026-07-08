@@ -22,6 +22,62 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.items, [item])
     }
 
+    func testLoadMovesLowAndExpiredInventoryToTop() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_020_000)
+        let normal = InventoryItem(
+            id: "inventory-normal",
+            name: "Vanilla extract",
+            unit: .milliliter,
+            currentQuantity: 750,
+            minimumQuantity: 250,
+            createdAt: now,
+            updatedAt: now
+        )
+        let expiringSoon = InventoryItem(
+            id: "inventory-expiring",
+            name: "Butter",
+            unit: .gram,
+            currentQuantity: 750,
+            minimumQuantity: 250,
+            earliestExpiryAt: now.addingTimeInterval(86_400),
+            hasExpiringSoonStock: true,
+            createdAt: now,
+            updatedAt: now
+        )
+        let lowStock = InventoryItem(
+            id: "inventory-low",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 100,
+            minimumQuantity: 500,
+            createdAt: now,
+            updatedAt: now
+        )
+        let expired = InventoryItem(
+            id: "inventory-expired",
+            name: "Cream",
+            unit: .milliliter,
+            currentQuantity: 500,
+            minimumQuantity: 250,
+            earliestExpiryAt: now.addingTimeInterval(-86_400),
+            hasExpiredStock: true,
+            createdAt: now,
+            updatedAt: now
+        )
+        repository.items = [normal, expiringSoon, lowStock, expired]
+        let viewModel = InventoryListViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.items.map(\.id), [
+            "inventory-expired",
+            "inventory-low",
+            "inventory-expiring",
+            "inventory-normal"
+        ])
+    }
+
     func testAddItemPersistsAndReloadsInventory() {
         let repository = FakeInventoryItemRepository()
         let now = Date(timeIntervalSince1970: 1_800_030_000)
