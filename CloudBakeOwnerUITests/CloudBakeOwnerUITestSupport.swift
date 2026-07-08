@@ -114,7 +114,7 @@ extension CloudBakeOwnerUITests {
         in app: XCUIApplication,
         timeout: TimeInterval = 10
     ) {
-        tapWhenReady(app.buttons["inventory.add"], timeout: timeout)
+        tapInventoryHeaderAction("inventory.add", in: app, timeout: timeout)
         XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: timeout))
 
         let nameField = app.textFields["inventory.form.name"]
@@ -133,6 +133,24 @@ extension CloudBakeOwnerUITests {
         scrollToHittable(saveButton, in: app, timeout: timeout)
         tapWhenReady(saveButton, timeout: timeout)
         assertScreenVisible("screen.inventory", in: app, timeout: timeout)
+    }
+
+    func tapInventoryHeaderAction(
+        _ identifier: String,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let directAction = app.buttons[identifier]
+        if directAction.waitForExistence(timeout: 1), directAction.isHittable {
+            tapWhenReady(directAction, timeout: timeout, file: file, line: line)
+            return
+        }
+
+        let moreActionsButton = app.buttons["screen.actions.more"]
+        tapWhenReady(moreActionsButton, timeout: timeout, file: file, line: line)
+        tapWhenReady(app.buttons[identifier], timeout: timeout, file: file, line: line)
     }
 
     func addOrder(

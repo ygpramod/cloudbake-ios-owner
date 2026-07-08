@@ -16,7 +16,7 @@ owner app's second-level destination screens.
 This slice includes:
 
 - a shared second-level screen scaffold,
-- warm CloudBake background, large title, circular back/action buttons, logo treatment, and bottom
+- warm CloudBake background, compact title, circular top action buttons, and bottom
   navigation,
 - styled list/card rows for Orders, Inventory, Recipes, and Customers,
 - styled empty states for Designs and Settings placeholders,
@@ -35,6 +35,9 @@ This slice does not include:
   opened from the dashboard.
 - Existing add, import, archive, row tap, status, payment, and detail workflows must remain
   available.
+- Second-level screens must not repeat the CloudBake logo in the header; that space is reserved for
+  screen actions.
+- Screens with several top actions may collapse them behind a compact `...` action menu.
 - Existing accessibility identifiers used by critical workflows must remain stable or be updated in
   tests with a clear reason.
 - The bottom navigation must preserve the Home, Orders, Inventory, and Designs quick links.
@@ -64,7 +67,7 @@ The slice introduces shared SwiftUI components in `CloudBakeScreenStyle.swift`:
 - shared CloudBake colors and card styling.
 
 Feature list screens keep their existing view models and domain behavior. The shared scaffold owns
-visual chrome only: background, title/header actions, logo, and bottom navigation.
+visual chrome only: background, title/header actions, optional action menu, and bottom navigation.
 
 ## Testing
 

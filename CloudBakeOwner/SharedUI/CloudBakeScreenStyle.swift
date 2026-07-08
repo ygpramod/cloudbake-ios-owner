@@ -5,6 +5,7 @@ struct CloudBakeScreenScaffold<Content: View>: View {
     let selectedDestination: AppDestination
     let primaryAction: CloudBakeScreenAction?
     let secondaryActions: [CloudBakeScreenAction]
+    let collapsesActionsIntoMenu: Bool
     @ViewBuilder let content: Content
 
     init(
@@ -12,12 +13,14 @@ struct CloudBakeScreenScaffold<Content: View>: View {
         selectedDestination: AppDestination,
         primaryAction: CloudBakeScreenAction? = nil,
         secondaryActions: [CloudBakeScreenAction] = [],
+        collapsesActionsIntoMenu: Bool = false,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.selectedDestination = selectedDestination
         self.primaryAction = primaryAction
         self.secondaryActions = secondaryActions
+        self.collapsesActionsIntoMenu = collapsesActionsIntoMenu
         self.content = content()
     }
 
@@ -30,7 +33,8 @@ struct CloudBakeScreenScaffold<Content: View>: View {
                     CloudBakeScreenHeader(
                         title: title,
                         primaryAction: primaryAction,
-                        secondaryActions: secondaryActions
+                        secondaryActions: secondaryActions,
+                        collapsesActionsIntoMenu: collapsesActionsIntoMenu
                     )
 
                     content
@@ -325,12 +329,21 @@ private struct CloudBakeScreenHeader: View {
     let title: String
     let primaryAction: CloudBakeScreenAction?
     let secondaryActions: [CloudBakeScreenAction]
+    let collapsesActionsIntoMenu: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 34) {
-            HStack {
-                Spacer()
+        HStack(alignment: .center, spacing: 16) {
+            Text(title)
+                .font(.system(size: 28, weight: .heavy, design: .rounded))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
 
+            Spacer(minLength: 16)
+
+            if collapsesActionsIntoMenu, !menuActions.isEmpty {
+                CloudBakeHeaderActionMenu(actions: menuActions)
+            } else {
                 ForEach(secondaryActions) { action in
                     CloudBakeHeaderActionButton(action: action)
                 }
@@ -339,26 +352,11 @@ private struct CloudBakeScreenHeader: View {
                     CloudBakeHeaderActionButton(action: primaryAction)
                 }
             }
-
-            HStack(alignment: .center) {
-                Text(title)
-                    .font(.system(size: 38, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-
-                Spacer(minLength: 18)
-
-                Image("CloudBakeLogo")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 64, height: 64)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 2))
-                    .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
-                    .accessibilityHidden(true)
-            }
         }
+    }
+
+    private var menuActions: [CloudBakeScreenAction] {
+        [primaryAction].compactMap { $0 } + secondaryActions
     }
 }
 
@@ -445,6 +443,30 @@ private struct CloudBakeHeaderActionButton: View {
         }
         .accessibilityLabel(action.title)
         .accessibilityIdentifier(action.accessibilityIdentifier)
+    }
+}
+
+private struct CloudBakeHeaderActionMenu: View {
+    let actions: [CloudBakeScreenAction]
+
+    var body: some View {
+        Menu {
+            ForEach(actions) { action in
+                Button(action: action.action) {
+                    Label(action.title, systemImage: action.systemImage)
+                }
+                .accessibilityIdentifier(action.accessibilityIdentifier)
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Color.cloudBakePink)
+                .frame(width: 58, height: 58)
+                .background(.white.opacity(0.90), in: Circle())
+                .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
+        }
+        .accessibilityLabel("More actions")
+        .accessibilityIdentifier("screen.actions.more")
     }
 }
 
