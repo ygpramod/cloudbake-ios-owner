@@ -105,15 +105,28 @@ extension CloudBakeOwnerUITests {
         named name: String,
         currentQuantity: String,
         minimumQuantity: String,
-        in app: XCUIApplication
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10
     ) {
-        tapWhenReady(app.buttons["inventory.add"])
-        XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
-        typeText(name, into: app.textFields["inventory.form.name"])
-        typeText(currentQuantity, into: app.textFields["inventory.form.currentQuantity"])
-        typeText(minimumQuantity, into: app.textFields["inventory.form.minimumQuantity"])
-        tapWhenReady(app.buttons["inventory.form.save"])
-        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: 10))
+        tapWhenReady(app.buttons["inventory.add"], timeout: timeout)
+        XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: timeout))
+
+        let nameField = app.textFields["inventory.form.name"]
+        scrollToHittable(nameField, in: app, timeout: timeout)
+        typeText(name, into: nameField, timeout: timeout)
+
+        let currentQuantityField = app.textFields["inventory.form.currentQuantity"]
+        scrollToHittable(currentQuantityField, in: app, timeout: timeout)
+        typeText(currentQuantity, into: currentQuantityField, timeout: timeout)
+
+        let minimumQuantityField = app.textFields["inventory.form.minimumQuantity"]
+        scrollToHittable(minimumQuantityField, in: app, timeout: timeout)
+        typeText(minimumQuantity, into: minimumQuantityField, timeout: timeout)
+
+        let saveButton = app.buttons["inventory.form.save"]
+        scrollToHittable(saveButton, in: app, timeout: timeout)
+        tapWhenReady(saveButton, timeout: timeout)
+        XCTAssertTrue(app.navigationBars["Inventory"].waitForExistence(timeout: timeout))
     }
 
     func addOrder(
@@ -263,8 +276,9 @@ extension CloudBakeOwnerUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        tapWhenReady(element, timeout: timeout, file: file, line: line)
-        element.typeText(text)
+        let target = element.firstMatch
+        tapWhenReady(target, timeout: timeout, file: file, line: line)
+        target.typeText(text)
     }
 
     func dismissKeyboard(in app: XCUIApplication) {
