@@ -14,6 +14,7 @@ extension View {
         overlay(alignment: .center) {
             if isPresented {
                 CloudBakeCenteredPopup(
+                    title: title,
                     showsCancelButton: showsCancelButton,
                     cancelAccessibilityIdentifier: cancelAccessibilityIdentifier,
                     onCancel: onCancel,
@@ -45,6 +46,7 @@ extension View {
 }
 
 private struct CloudBakeCenteredPopup<Content: View>: View {
+    let title: String
     let showsCancelButton: Bool
     let cancelAccessibilityIdentifier: String
     let onCancel: () -> Void
@@ -57,35 +59,46 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
                     .ignoresSafeArea()
                     .onTapGesture(perform: onCancel)
 
-                VStack(spacing: 22) {
-                    VStack(spacing: 10) {
+                VStack(spacing: 0) {
+                    Text(title)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 28)
+                        .padding(.bottom, 24)
+
+                    Rectangle()
+                        .fill(Color.cloudBakePink.opacity(0.24))
+                        .frame(height: 1)
+                        .padding(.horizontal, 30)
+
+                    VStack(spacing: 0) {
                         content()
                     }
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 14)
-                    .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .stroke(.black.opacity(0.06), lineWidth: 1)
-                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
+                    .padding(.bottom, showsCancelButton ? 16 : 24)
 
                     if showsCancelButton {
+                        Rectangle()
+                            .fill(.black.opacity(0.10))
+                            .frame(height: 1)
+                            .padding(.horizontal, 30)
+
                         Button(role: .cancel, action: onCancel) {
                             Text("Cancel")
                                 .font(.body.weight(.semibold))
                                 .foregroundStyle(Color.cloudBakePink)
-                                .frame(maxWidth: .infinity, minHeight: 52)
-                                .contentShape(Capsule())
+                                .frame(maxWidth: .infinity, minHeight: 58)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .background(Color.cloudBakePink.opacity(0.11), in: Capsule())
-                        .contentShape(Capsule())
-                            .accessibilityIdentifier(cancelAccessibilityIdentifier)
+                        .contentShape(Rectangle())
+                        .accessibilityIdentifier(cancelAccessibilityIdentifier)
                     }
                 }
-                .padding(28)
                 .frame(maxWidth: 360)
-                .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .background(.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .padding(.horizontal, 24)
                 .shadow(color: .black.opacity(0.20), radius: 24, y: 14)
                 .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
@@ -136,10 +149,13 @@ func centeredPopupButton(
     action: @escaping () -> Void
 ) -> some View {
     Button(role: role, action: action) {
-        Text(title)
-            .font(.body.weight(.medium))
-            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-            .contentShape(Rectangle())
+        popupRow(
+            title: title,
+            systemImage: popupIconName(for: title, role: role),
+            iconTint: role == .destructive ? .red : Color.cloudBakePink,
+            isSelected: false,
+            showsRadio: false
+        )
     }
     .buttonStyle(.plain)
     .foregroundStyle(role == .destructive ? Color.red : Color.primary)
@@ -151,28 +167,16 @@ func centeredPopupSelectionButton(
     action: @escaping () -> Void
 ) -> some View {
     Button(action: action) {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(.body.weight(isSelected ? .semibold : .medium))
-
-            Spacer(minLength: 12)
-
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.body.weight(.semibold))
-                    .accessibilityHidden(true)
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-        .padding(.horizontal, 14)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        popupRow(
+            title: title,
+            systemImage: popupIconName(for: title),
+            iconTint: popupIconTint(for: title),
+            isSelected: isSelected,
+            showsRadio: true
+        )
     }
     .buttonStyle(.plain)
     .foregroundStyle(isSelected ? Color.cloudBakePink : Color.primary)
-    .background(
-        Color.cloudBakePink.opacity(isSelected ? 0.12 : 0),
-        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-    )
     .accessibilityValue(isSelected ? "Selected" : "")
     .accessibilityAddTraits(isSelected ? .isSelected : [])
 }
@@ -191,4 +195,96 @@ func centeredPopupPillButton(
     .buttonStyle(.plain)
     .background(Color.cloudBakePink.opacity(0.11), in: Capsule())
     .contentShape(Capsule())
+}
+
+private func popupRow(
+    title: String,
+    systemImage: String,
+    iconTint: Color,
+    isSelected: Bool,
+    showsRadio: Bool
+) -> some View {
+    HStack(spacing: 14) {
+        Image(systemName: systemImage)
+            .font(.body.weight(.semibold))
+            .foregroundStyle(iconTint)
+            .frame(width: 38, height: 38)
+            .background(iconTint.opacity(0.12), in: Circle())
+            .accessibilityHidden(true)
+
+        Text(title)
+            .font(.body.weight(isSelected ? .semibold : .medium))
+            .foregroundStyle(isSelected ? Color.cloudBakePink : .primary)
+            .lineLimit(2)
+            .minimumScaleFactor(0.85)
+
+        Spacer(minLength: 12)
+
+        if showsRadio {
+            Image(systemName: isSelected ? "smallcircle.filled.circle.fill" : "circle")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(isSelected ? Color.cloudBakePink : Color.secondary.opacity(0.55))
+                .accessibilityHidden(true)
+        }
+    }
+    .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+    .padding(.horizontal, 14)
+    .background(isSelected ? Color.cloudBakePink.opacity(0.10) : Color.clear)
+    .overlay(alignment: .bottom) {
+        Rectangle()
+            .fill(.black.opacity(0.08))
+            .frame(height: 1)
+            .padding(.leading, 66)
+    }
+    .contentShape(Rectangle())
+}
+
+private func popupIconName(for title: String, role: ButtonRole? = nil) -> String {
+    if role == .destructive {
+        return "exclamationmark.triangle"
+    }
+
+    switch title {
+    case "Draft":
+        return "doc.text"
+    case "Confirmed":
+        return "checkmark.circle"
+    case "In Progress":
+        return "clock"
+    case "Ready":
+        return "takeoutbag.and.cup.and.straw"
+    case "Completed":
+        return "party.popper"
+    case "Cancelled":
+        return "xmark"
+    case "Mark Paid":
+        return "checkmark.seal"
+    case "Add Partial Payment":
+        return "plus.circle"
+    case "Import From Contacts":
+        return "person.crop.circle.badge.plus"
+    case "Enter Manually":
+        return "square.and.pencil"
+    default:
+        return "arrow.right.circle"
+    }
+}
+
+private func popupIconTint(for title: String) -> Color {
+    switch title {
+    case "Draft":
+        return .secondary
+    case "Confirmed":
+        return .green
+    case "In Progress":
+        return .blue
+    case "Ready":
+        return Color.cloudBakePink
+    case "Completed":
+        return .purple
+    case "Cancelled":
+        return .red
+    default:
+        return Color.cloudBakePink
+    }
 }
