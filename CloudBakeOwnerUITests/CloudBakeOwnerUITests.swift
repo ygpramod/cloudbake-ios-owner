@@ -633,14 +633,14 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         let ordersScreen = app.scrollViews["screen.orders"]
         XCTAssertTrue(ordersScreen.waitForExistence(timeout: transitionTimeout))
-        ordersScreen.swipeLeft()
+        swipeOrderScopeLeftThroughEmptySpace(in: ordersScreen)
         let completedOrderRow = app.buttons["orders.item.order-ui-fixture-completed"]
         assertExistsAfterScrolling(completedOrderRow, in: app, timeout: transitionTimeout)
         let completedDueAt = Date(timeIntervalSince1970: 1_800_140_000)
         XCTAssertTrue(completedOrderRow.label.contains(completedDueAt.formatted(date: .abbreviated, time: .omitted)))
         XCTAssertFalse(completedOrderRow.label.contains(completedDueAt.formatted(date: .abbreviated, time: .shortened)))
 
-        ordersScreen.swipeRight()
+        swipeOrderScopeRightThroughEmptySpace(in: ordersScreen)
         XCTAssertTrue(app.staticTexts["No active orders"].waitForExistence(timeout: transitionTimeout))
     }
 
@@ -715,6 +715,20 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertFalse(app.buttons["orders.detail.done"].exists)
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["orders.detail.customerName"].waitForExistence(timeout: transitionTimeout))
+    }
+
+    private func swipeOrderScopeLeftThroughEmptySpace(in ordersScreen: XCUIElement) {
+        swipeOrderScopeThroughEmptySpace(in: ordersScreen, fromX: 0.88, toX: 0.12)
+    }
+
+    private func swipeOrderScopeRightThroughEmptySpace(in ordersScreen: XCUIElement) {
+        swipeOrderScopeThroughEmptySpace(in: ordersScreen, fromX: 0.12, toX: 0.88)
+    }
+
+    private func swipeOrderScopeThroughEmptySpace(in ordersScreen: XCUIElement, fromX: CGFloat, toX: CGFloat) {
+        let start = ordersScreen.coordinate(withNormalizedOffset: CGVector(dx: fromX, dy: 0.82))
+        let end = ordersScreen.coordinate(withNormalizedOffset: CGVector(dx: toX, dy: 0.82))
+        start.press(forDuration: 0.05, thenDragTo: end)
     }
 
 }

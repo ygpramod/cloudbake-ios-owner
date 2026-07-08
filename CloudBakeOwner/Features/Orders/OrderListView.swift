@@ -81,6 +81,8 @@ struct OrderListView: View {
         ) {
             orderScopeContent
         }
+        .contentShape(Rectangle())
+        .simultaneousGesture(orderScopeSwipeGesture)
         .centeredOrderPopup(
             isPresented: orderSelectingStatus != nil,
             title: "Change Status",
@@ -236,8 +238,6 @@ struct OrderListView: View {
                 )
             }
         }
-        .contentShape(Rectangle())
-        .simultaneousGesture(orderScopeSwipeGesture)
     }
 
     private func orderRow(
