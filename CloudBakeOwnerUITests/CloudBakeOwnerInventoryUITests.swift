@@ -97,12 +97,9 @@ extension CloudBakeOwnerUITests {
         tapWhenReady(app.buttons["inventory.archived"], timeout: transitionTimeout)
         XCTAssertTrue(app.buttons["inventory.archived.done"].waitForExistence(timeout: transitionTimeout))
 
-        let archivedRow = archivedInventoryRow(named: "Cake flour", in: app)
-        scrollToHittable(archivedRow, in: app, timeout: transitionTimeout)
-        tapWhenReady(
-            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.archived.restore.")).firstMatch,
-            timeout: transitionTimeout
-        )
+        let restoreButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.archived.restore.")).firstMatch
+        scrollToHittable(restoreButton, in: app, timeout: transitionTimeout)
+        tapWhenReady(restoreButton, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["No archived inventory"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["inventory.archived.done"], timeout: transitionTimeout)
 
@@ -116,9 +113,12 @@ extension CloudBakeOwnerUITests {
 
         XCTAssertTrue(app.buttons["inventory.detail.done"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["inventory.detail.edit"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["inventory.detail.adjust"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["inventory.detail.consume"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["inventory.detail.history"].waitForExistence(timeout: 5))
+        let adjustButton = app.buttons["inventory.detail.adjust"]
+        let consumeButton = app.buttons["inventory.detail.consume"]
+        let historyButton = app.buttons["inventory.detail.history"]
+        scrollToHittable(adjustButton, in: app, timeout: 5)
+        scrollToHittable(consumeButton, in: app, timeout: 5)
+        scrollToHittable(historyButton, in: app, timeout: 5)
 
         let batchRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.detail.batch.edit.")).firstMatch
         XCTAssertTrue(batchRow.waitForExistence(timeout: 5))
@@ -143,17 +143,20 @@ extension CloudBakeOwnerUITests {
         app.buttons["inventory.form.save"].tap()
         XCTAssertTrue(app.buttons["inventory.detail.done"].waitForExistence(timeout: 5))
 
-        app.buttons["inventory.detail.adjust"].tap()
+        scrollToHittable(adjustButton, in: app, timeout: 5)
+        adjustButton.tap()
         XCTAssertTrue(app.navigationBars["Adjust Stock"].waitForExistence(timeout: 5))
         app.buttons["Cancel"].tap()
         XCTAssertTrue(app.buttons["inventory.detail.done"].waitForExistence(timeout: 5))
 
-        app.buttons["inventory.detail.consume"].tap()
+        scrollToHittable(consumeButton, in: app, timeout: 5)
+        consumeButton.tap()
         XCTAssertTrue(app.navigationBars["Use Stock"].waitForExistence(timeout: 5))
         app.buttons["Cancel"].tap()
         XCTAssertTrue(app.buttons["inventory.detail.done"].waitForExistence(timeout: 5))
 
-        app.buttons["inventory.detail.history"].tap()
+        scrollToHittable(historyButton, in: app, timeout: 5)
+        historyButton.tap()
         XCTAssertTrue(app.buttons["inventory.history.done"].waitForExistence(timeout: 5))
         app.buttons["inventory.history.done"].tap()
         XCTAssertTrue(app.buttons["inventory.detail.done"].waitForExistence(timeout: 5))

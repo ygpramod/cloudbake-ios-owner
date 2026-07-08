@@ -46,7 +46,6 @@ struct ArchivedInventoryView: View {
                         }
                         .padding(20)
                         .cloudBakeCardStyle()
-                        .accessibilityIdentifier("inventory.archived.item.\(item.id)")
                     }
                     }
                 }

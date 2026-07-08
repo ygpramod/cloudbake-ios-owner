@@ -76,7 +76,6 @@ struct InventoryItemDetailView: View {
                         isShowingHistory = true
                     }
                 }
-                .accessibilityIdentifier("inventory.detail.more")
 
                 CloudBakeSection("Item") {
                     CloudBakeDetailCard {
