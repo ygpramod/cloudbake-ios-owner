@@ -4,7 +4,6 @@ struct RootView: View {
     let database: AppDatabase
     @Environment(\.scenePhase) private var scenePhase
     @State private var navigationPath: [AppDestination] = []
-    @State private var navigationGeneration = 0
 
     private var selectedDestination: AppDestination {
         navigationPath.last ?? .dashboard
@@ -40,8 +39,6 @@ struct RootView: View {
     }
 
     private func navigate(_ destination: AppDestination) {
-        navigationGeneration += 1
-
         if destination == .dashboard {
             navigationPath.removeAll()
             return
@@ -51,27 +48,7 @@ struct RootView: View {
             return
         }
 
-        if navigationPath.isEmpty {
-            navigationPath = [destination]
-            return
-        }
-
-        let generation = navigationGeneration
         navigationPath.append(destination)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-            guard generation == navigationGeneration,
-                  navigationPath.last == destination
-            else {
-                return
-            }
-
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                navigationPath = [destination]
-            }
-        }
     }
 
     @ViewBuilder
