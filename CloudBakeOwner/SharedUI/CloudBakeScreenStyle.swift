@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct CloudBakeScreenScaffold<Content: View>: View {
     let title: String
@@ -126,9 +127,23 @@ extension View {
     func cloudBakeFormScreenStyle() -> some View {
         self
             .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .background(CloudBakeScreenBackground())
             .tint(Color.cloudBakePink)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder),
+                            to: nil,
+                            from: nil,
+                            for: nil
+                        )
+                    }
+                }
+            }
     }
 }
 

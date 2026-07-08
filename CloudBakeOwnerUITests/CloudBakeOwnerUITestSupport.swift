@@ -168,21 +168,29 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: timeout))
         typeText(name, into: app.textFields["orders.form.title"])
         typeText(notes, into: app.textFields["orders.form.cakeNotes"])
-        if let cakeMessage {
-            typeText(cakeMessage, into: app.textFields["orders.form.cakeMessage"], timeout: timeout)
-        }
+        dismissKeyboard(in: app)
         typeText(customerName, into: app.textFields["orders.form.customerName"])
+        dismissKeyboard(in: app)
+        if let cakeMessage {
+            scrollToHittable(app.textFields["orders.form.cakeMessage"], in: app, timeout: timeout)
+            typeText(cakeMessage, into: app.textFields["orders.form.cakeMessage"], timeout: timeout)
+            dismissKeyboard(in: app)
+            swipeUpInPrimaryScrollableArea(in: app)
+        }
         if let quotedPrice {
             scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: timeout)
             typeText(quotedPrice, into: app.textFields["orders.form.quotedPrice"])
+            dismissKeyboard(in: app)
         }
         if let depositPaid {
             scrollToHittable(app.textFields["orders.form.depositPaid"], in: app, timeout: timeout)
             typeText(depositPaid, into: app.textFields["orders.form.depositPaid"])
+            dismissKeyboard(in: app)
         }
         if let paymentNotes {
             scrollToHittable(app.textFields["orders.form.paymentNotes"], in: app, timeout: timeout)
             typeText(paymentNotes, into: app.textFields["orders.form.paymentNotes"])
+            dismissKeyboard(in: app)
         }
         tapWhenReady(app.buttons["orders.form.save"])
         assertScreenVisible("screen.orders", in: app, timeout: timeout)
@@ -209,9 +217,11 @@ extension CloudBakeOwnerUITests {
         typeText(phone, into: app.textFields["customers.form.phone"])
         typeText("amy@example.com", into: app.textFields["customers.form.email"])
         typeText("10 Cake Street", into: app.textFields["customers.form.address"])
+        dismissKeyboard(in: app)
         let importantDateField = app.textFields["customers.form.importantDate.label"]
         scrollToHittable(importantDateField, in: app)
         typeText("Birthday", into: importantDateField)
+        dismissKeyboard(in: app)
         let allergiesField = app.textFields["customers.form.allergies"]
         scrollToHittable(allergiesField, in: app)
         typeText("Nuts", into: allergiesField)
@@ -305,16 +315,42 @@ extension CloudBakeOwnerUITests {
         line: UInt = #line
     ) {
         let target = element.firstMatch
-        tapWhenReady(target, timeout: timeout, file: file, line: line)
+        XCTAssertTrue(target.waitForExistence(timeout: timeout), "Element did not exist before typing.", file: file, line: line)
+        let hittable = NSPredicate(format: "isHittable == true")
+        let hittableExpectation = XCTNSPredicateExpectation(predicate: hittable, object: target)
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [hittableExpectation], timeout: timeout),
+            .completed,
+            "Element was not hittable before typing.",
+            file: file,
+            line: line
+        )
+        target.coordinate(withNormalizedOffset: CGVector(dx: 0.16, dy: 0.5)).tap()
+        let focused = NSPredicate(format: "hasKeyboardFocus == true")
+        var focusExpectation = XCTNSPredicateExpectation(predicate: focused, object: target)
+        if XCTWaiter.wait(for: [focusExpectation], timeout: 2) != .completed {
+            target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            focusExpectation = XCTNSPredicateExpectation(predicate: focused, object: target)
+            XCTAssertEqual(
+                XCTWaiter.wait(for: [focusExpectation], timeout: 2),
+                .completed,
+                "Element did not receive keyboard focus before typing.",
+                file: file,
+                line: line
+            )
+        }
         target.typeText(text)
     }
 
     func dismissKeyboard(in app: XCUIApplication) {
         guard app.keyboards.firstMatch.exists else { return }
-        if app.keyboards.buttons["Return"].exists {
-            app.keyboards.buttons["Return"].tap()
+        let doneButton = app.buttons["Done"]
+        if doneButton.exists, doneButton.isHittable {
+            doneButton.tap()
         } else if app.keyboards.buttons["Done"].exists {
             app.keyboards.buttons["Done"].tap()
+        } else if app.keyboards.buttons["Return"].exists {
+            app.keyboards.buttons["Return"].tap()
         } else {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
         }
@@ -385,9 +421,9 @@ extension CloudBakeOwnerUITests {
 
         let appFrame = app.windows.firstMatch.exists ? app.windows.firstMatch.frame : app.frame
         if element.frame.midY < appFrame.midY {
-            swipeDownInPrimaryScrollableArea(in: app)
+            dragPrimaryScrollableArea(in: app, fromY: 0.34, toY: 0.58)
         } else {
-            swipeUpInPrimaryScrollableArea(in: app)
+            dragPrimaryScrollableArea(in: app, fromY: 0.72, toY: 0.48)
         }
     }
 
@@ -405,5 +441,18 @@ extension CloudBakeOwnerUITests {
         }
 
         app.swipeDown()
+    }
+
+    private func dragPrimaryScrollableArea(in app: XCUIApplication, fromY: CGFloat, toY: CGFloat) {
+        let scrollable = app.collectionViews.firstMatch.exists ? app.collectionViews.firstMatch : app.scrollViews.firstMatch
+        guard scrollable.exists else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: fromY))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: toY)))
+            return
+        }
+
+        let start = scrollable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: fromY))
+        let end = scrollable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: toY))
+        start.press(forDuration: 0.05, thenDragTo: end)
     }
 }
