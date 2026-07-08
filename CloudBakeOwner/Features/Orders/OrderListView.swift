@@ -79,74 +79,7 @@ struct OrderListView: View {
                 }
             )
         ) {
-            CloudBakeSection {
-                Picker("Order Status", selection: $orderScope) {
-                    ForEach(OrderScope.allCases, id: \.self) { scope in
-                        Text(scope.title).tag(scope)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(6)
-                .background(.white.opacity(0.90), in: Capsule())
-                .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
-                .accessibilityIdentifier("orders.scope")
-            }
-
-            if viewModel.orders.isEmpty {
-                CloudBakeEmptyState(
-                    title: "No orders yet",
-                    systemImage: "calendar",
-                    message: "Add accepted or draft cake orders to track due dates and customer requests."
-                )
-            } else if orderScope == .completed {
-                if viewModel.completedOrders.isEmpty {
-                    CloudBakeEmptyState(
-                        title: "No completed orders",
-                        systemImage: "checkmark.circle",
-                        message: "Orders marked completed will appear here."
-                    )
-                } else {
-                    CloudBakeSection("Completed") {
-                        VStack(spacing: 16) {
-                        ForEach(viewModel.completedOrders, id: \.id) { order in
-                            orderRow(order, dueDateDisplay: .dateOnly)
-                                .cloudBakeCardStyle()
-                        }
-                        }
-                    }
-                }
-            } else if viewModel.activeOrders.isEmpty {
-                CloudBakeEmptyState(
-                    title: "No active orders",
-                    systemImage: "calendar",
-                    message: "Draft, confirmed, in-progress, and ready orders will appear by delivery day."
-                )
-            } else {
-                VStack(alignment: .leading, spacing: 24) {
-                    ForEach(viewModel.calendarDays, id: \.day) { calendarDay in
-                        VStack(alignment: .leading, spacing: 12) {
-                            Label(calendarDay.day.formatted(date: .complete, time: .omitted), systemImage: "calendar")
-                                .font(.headline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .symbolRenderingMode(.hierarchical)
-
-                            VStack(spacing: 16) {
-                        ForEach(calendarDay.orders, id: \.id) { order in
-                            orderRow(order, dueDateDisplay: .timeOnly)
-                                        .cloudBakeCardStyle()
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if let errorMessage = viewModel.errorMessage {
-                CloudBakeErrorBanner(
-                    message: errorMessage,
-                    accessibilityIdentifier: "orders.error"
-                )
-            }
+            orderScopeContent
         }
         .centeredOrderPopup(
             isPresented: orderSelectingStatus != nil,
@@ -232,6 +165,81 @@ struct OrderListView: View {
         }
     }
 
+    private var orderScopeContent: some View {
+        VStack(alignment: .leading, spacing: 26) {
+            CloudBakeSection {
+                Picker("Order Status", selection: $orderScope) {
+                    ForEach(OrderScope.allCases, id: \.self) { scope in
+                        Text(scope.title).tag(scope)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(6)
+                .background(.white.opacity(0.90), in: Capsule())
+                .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
+                .accessibilityIdentifier("orders.scope")
+            }
+
+            if viewModel.orders.isEmpty {
+                CloudBakeEmptyState(
+                    title: "No orders yet",
+                    systemImage: "calendar",
+                    message: "Add accepted or draft cake orders to track due dates and customer requests."
+                )
+            } else if orderScope == .completed {
+                if viewModel.completedOrders.isEmpty {
+                    CloudBakeEmptyState(
+                        title: "No completed orders",
+                        systemImage: "checkmark.circle",
+                        message: "Orders marked completed will appear here."
+                    )
+                } else {
+                    CloudBakeSection("Completed") {
+                        VStack(spacing: 16) {
+                            ForEach(viewModel.completedOrders, id: \.id) { order in
+                                orderRow(order, dueDateDisplay: .dateOnly)
+                                    .cloudBakeCardStyle()
+                            }
+                        }
+                    }
+                }
+            } else if viewModel.activeOrders.isEmpty {
+                CloudBakeEmptyState(
+                    title: "No active orders",
+                    systemImage: "calendar",
+                    message: "Draft, confirmed, in-progress, and ready orders will appear by delivery day."
+                )
+            } else {
+                VStack(alignment: .leading, spacing: 24) {
+                    ForEach(viewModel.calendarDays, id: \.day) { calendarDay in
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label(calendarDay.day.formatted(date: .complete, time: .omitted), systemImage: "calendar")
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .symbolRenderingMode(.hierarchical)
+
+                            VStack(spacing: 16) {
+                                ForEach(calendarDay.orders, id: \.id) { order in
+                                    orderRow(order, dueDateDisplay: .timeOnly)
+                                        .cloudBakeCardStyle()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                CloudBakeErrorBanner(
+                    message: errorMessage,
+                    accessibilityIdentifier: "orders.error"
+                )
+            }
+        }
+        .contentShape(Rectangle())
+        .simultaneousGesture(orderScopeSwipeGesture)
+    }
+
     private func orderRow(
         _ order: Order,
         dueDateDisplay: OrderRow.DueDateDisplay = .dateAndTime
@@ -255,6 +263,32 @@ struct OrderListView: View {
         viewModel.beginViewingOrder(order)
         if horizontalSizeClass != .regular {
             isViewingOrder = true
+        }
+    }
+
+    private var orderScopeSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 36, coordinateSpace: .local)
+            .onEnded(handleOrderScopeSwipe)
+    }
+
+    private func handleOrderScopeSwipe(_ value: DragGesture.Value) {
+        guard value.startLocation.x > 32 else {
+            return
+        }
+
+        let horizontalDistance = value.translation.width
+        let verticalDistance = value.translation.height
+        guard abs(horizontalDistance) >= 72,
+              abs(horizontalDistance) > abs(verticalDistance) * 1.4 else {
+            return
+        }
+
+        withAnimation(.easeInOut(duration: 0.18)) {
+            if horizontalDistance < 0, orderScope == .active {
+                orderScope = .completed
+            } else if horizontalDistance > 0, orderScope == .completed {
+                orderScope = .active
+            }
         }
     }
 
