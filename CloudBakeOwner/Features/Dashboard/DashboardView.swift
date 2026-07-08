@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @StateObject private var viewModel: DashboardViewModel
+    @Environment(\.navigateToAppDestination) private var navigate
 
     init(viewModel: DashboardViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -19,14 +20,19 @@ struct DashboardView: View {
                         HStack(spacing: 16) {
                             DashboardMetricCard(
                                 title: "Upcoming orders",
-                                count: "0",
-                                detail: "No orders yet",
+                                count: "\(viewModel.upcomingOrderCount)",
+                                detail: upcomingOrdersDetail,
                                 systemImage: "calendar",
                                 tint: .cloudBakePurple,
-                                artworkSystemImage: "birthday.cake"
+                                artworkSystemImage: "birthday.cake",
+                                action: {
+                                    navigate(.orders)
+                                }
                             )
 
-                            LowInventoryMetricCard(viewModel: viewModel)
+                            LowInventoryMetricCard(viewModel: viewModel) {
+                                navigate(.inventory)
+                            }
                         }
                     }
 
@@ -76,15 +82,20 @@ struct DashboardView: View {
                 .padding(.bottom, 96)
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            DashboardBottomNavigation()
-        }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.dashboard.screenAccessibilityIdentifier)
+    }
+
+    private var upcomingOrdersDetail: String {
+        if let nextOrder = viewModel.nextUpcomingOrder {
+            return nextOrder.title
+        }
+
+        return "No orders yet"
     }
 }
 
@@ -137,6 +148,7 @@ private struct DashboardSection<Content: View>: View {
 
 private struct LowInventoryMetricCard: View {
     @ObservedObject var viewModel: DashboardViewModel
+    let onTap: () -> Void
 
     var body: some View {
         if let errorMessage = viewModel.errorMessage {
@@ -157,7 +169,8 @@ private struct LowInventoryMetricCard: View {
                 secondaryDetail: lowInventorySecondaryDetail,
                 systemImage: "shippingbox",
                 tint: .cloudBakeOrange,
-                artworkSystemImage: "shippingbox"
+                artworkSystemImage: "shippingbox",
+                action: viewModel.lowInventoryItems.isEmpty ? nil : onTap
             )
             .accessibilityIdentifier(viewModel.lowInventoryItems.isEmpty ? "dashboard.lowInventory.empty" : "dashboard.lowInventory.alerts")
         }
@@ -199,6 +212,7 @@ private struct DashboardMetricCard: View {
     let systemImage: String
     let tint: Color
     let artworkSystemImage: String
+    let action: (() -> Void)?
 
     init(
         title: String,
@@ -207,7 +221,8 @@ private struct DashboardMetricCard: View {
         secondaryDetail: String? = nil,
         systemImage: String,
         tint: Color,
-        artworkSystemImage: String
+        artworkSystemImage: String,
+        action: (() -> Void)? = nil
     ) {
         self.title = title
         self.count = count
@@ -216,9 +231,20 @@ private struct DashboardMetricCard: View {
         self.systemImage = systemImage
         self.tint = tint
         self.artworkSystemImage = artworkSystemImage
+        self.action = action
     }
 
     var body: some View {
+        Button {
+            action?()
+        } label: {
+            cardContent
+        }
+        .buttonStyle(.plain)
+        .disabled(action == nil)
+    }
+
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             Image(systemName: systemImage)
                 .font(.headline.weight(.semibold))
@@ -288,9 +314,12 @@ private struct DashboardActionRow: View {
     let detail: String
     let systemImage: String
     let tint: Color
+    @Environment(\.navigateToAppDestination) private var navigate
 
     var body: some View {
-        NavigationLink(value: destination) {
+        Button {
+            navigate(destination)
+        } label: {
             HStack(spacing: 18) {
                 DashboardIcon(systemImage: systemImage, tint: tint)
 
@@ -323,9 +352,12 @@ private struct DashboardActionRow: View {
 private struct DashboardAreaRow: View {
     let destination: AppDestination
     let tint: Color
+    @Environment(\.navigateToAppDestination) private var navigate
 
     var body: some View {
-        NavigationLink(value: destination) {
+        Button {
+            navigate(destination)
+        } label: {
             HStack(spacing: 18) {
                 DashboardIcon(systemImage: destination.systemImage, tint: tint)
 
@@ -346,109 +378,6 @@ private struct DashboardAreaRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(destination.accessibilityIdentifier)
-    }
-}
-
-private struct DashboardBottomNavigation: View {
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 0) {
-            DashboardBottomItem(
-                destination: .dashboard,
-                title: "Home",
-                systemImage: "house.fill",
-                isSelected: true
-            )
-
-            DashboardBottomItem(
-                destination: .orders,
-                title: "Orders",
-                systemImage: "calendar",
-                isSelected: false
-            )
-
-            DashboardBottomItem(
-                destination: .inventory,
-                title: "Inventory",
-                systemImage: "shippingbox",
-                isSelected: false
-            )
-
-            DashboardBottomItem(
-                destination: .recipes,
-                title: "Recipes",
-                systemImage: "book",
-                isSelected: false
-            )
-
-            DashboardBottomItem(
-                destination: .designs,
-                title: "Designs",
-                systemImage: "photo.on.rectangle",
-                isSelected: false
-            )
-        }
-        .padding(.horizontal, 18)
-        .padding(.top, 10)
-        .padding(.bottom, 6)
-        .background(
-            UnevenRoundedRectangle(topLeadingRadius: 26, topTrailingRadius: 26)
-                .fill(.ultraThinMaterial)
-                .overlay(alignment: .top) {
-                    Color.cloudBakePink.opacity(0.16)
-                        .frame(height: 1)
-                }
-        )
-    }
-}
-
-private struct DashboardBottomItem: View {
-    let destination: AppDestination
-    let title: String
-    let systemImage: String
-    let isSelected: Bool
-
-    var body: some View {
-        Group {
-            if isSelected {
-                VStack(spacing: 6) {
-                    Image(systemName: systemImage)
-                        .font(.headline.weight(.semibold))
-                        .accessibilityHidden(true)
-
-                    Text(title)
-                        .font(.caption2)
-                        .accessibilityHidden(true)
-
-                    Circle()
-                        .frame(width: 6, height: 6)
-                        .accessibilityHidden(true)
-                }
-                .foregroundStyle(Color.cloudBakePink)
-                .frame(maxWidth: .infinity)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(title)
-                .accessibilityIdentifier(destination.accessibilityIdentifier)
-            } else {
-                NavigationLink(value: destination) {
-                    VStack(spacing: 6) {
-                        Image(systemName: systemImage)
-                            .font(.headline.weight(.medium))
-                            .accessibilityHidden(true)
-
-                        Text(title)
-                            .font(.caption2)
-                            .accessibilityHidden(true)
-                    }
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(title)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier(destination.accessibilityIdentifier)
-            }
-        }
-        .frame(height: 66)
     }
 }
 
@@ -497,7 +426,7 @@ private extension InventoryItem {
     )
 }
 
-private final class PreviewDashboardInventoryItemRepository: InventoryItemRepository {
+private final class PreviewDashboardInventoryItemRepository: InventoryItemRepository, OrderRepository {
     func save(_ item: InventoryItem) throws {}
 
     func fetchInventoryItem(id: String) throws -> InventoryItem? {
@@ -519,6 +448,16 @@ private final class PreviewDashboardInventoryItemRepository: InventoryItemReposi
     }
 
     func fetchArchivedInventoryItems() throws -> [InventoryItem] {
+        []
+    }
+
+    func fetchOrder(id: String) throws -> Order? {
+        nil
+    }
+
+    func save(_ order: Order) throws {}
+
+    func fetchOrders() throws -> [Order] {
         []
     }
 }

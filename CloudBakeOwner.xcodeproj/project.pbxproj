@@ -10,6 +10,7 @@
 		410000000000000000000001 /* CloudBakeOwnerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000001 /* CloudBakeOwnerApp.swift */; };
 		410000000000000000000002 /* AppDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000002 /* AppDestination.swift */; };
 		410000000000000000000003 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000003 /* RootView.swift */; };
+		410000000000000000000080 /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000080 /* AppNavigation.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -143,6 +144,7 @@
 /* Begin PBXFileReference section */
 		420000000000000000000001 /* CloudBakeOwnerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerApp.swift; sourceTree = "<group>"; };
 		420000000000000000000002 /* AppDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestination.swift; sourceTree = "<group>"; };
+		420000000000000000000080 /* AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigation.swift; sourceTree = "<group>"; };
 		420000000000000000000003 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		420000000000000000000004 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		420000000000000000000005 /* PlaceholderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderScreen.swift; sourceTree = "<group>"; };
@@ -312,6 +314,7 @@
 			isa = PBXGroup;
 			children = (
 				420000000000000000000002 /* AppDestination.swift */,
+				420000000000000000000080 /* AppNavigation.swift */,
 				42000000000000000000004F /* CameraImagePickerView.swift */,
 				420000000000000000000001 /* CloudBakeOwnerApp.swift */,
 				420000000000000000000026 /* ExpiryReminderScheduler.swift */,
@@ -737,6 +740,7 @@
 			files = (
 				410000000000000000000001 /* CloudBakeOwnerApp.swift in Sources */,
 				410000000000000000000002 /* AppDestination.swift in Sources */,
+				410000000000000000000080 /* AppNavigation.swift in Sources */,
 				410000000000000000000003 /* RootView.swift in Sources */,
 				410000000000000000000004 /* DashboardView.swift in Sources */,
 				410000000000000000000015 /* DashboardViewModel.swift in Sources */,
