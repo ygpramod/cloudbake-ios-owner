@@ -2,20 +2,20 @@ import SwiftUI
 
 struct OrderRow: View {
     let order: Order
-    let showsDate: Bool
+    let dueDateDisplay: DueDateDisplay
     let onChangeStatus: () -> Void
     let onReceivePayment: () -> Void
     let action: () -> Void
 
     init(
         order: Order,
-        showsDate: Bool = true,
+        dueDateDisplay: DueDateDisplay = .dateAndTime,
         onChangeStatus: @escaping () -> Void,
         onReceivePayment: @escaping () -> Void,
         action: @escaping () -> Void
     ) {
         self.order = order
-        self.showsDate = showsDate
+        self.dueDateDisplay = dueDateDisplay
         self.onChangeStatus = onChangeStatus
         self.onReceivePayment = onReceivePayment
         self.action = action
@@ -98,11 +98,14 @@ struct OrderRow: View {
     }
 
     private var orderDateText: String {
-        if showsDate {
+        switch dueDateDisplay {
+        case .dateAndTime:
             return order.dueAt.formatted(date: .abbreviated, time: .shortened)
+        case .dateOnly:
+            return order.dueAt.formatted(date: .abbreviated, time: .omitted)
+        case .timeOnly:
+            return order.dueAt.formatted(date: .omitted, time: .shortened)
         }
-
-        return order.dueAt.formatted(date: .omitted, time: .shortened)
     }
 
     private var orderIconName: String {
@@ -112,5 +115,13 @@ struct OrderRow: View {
         case .delivery:
             return "car"
         }
+    }
+}
+
+extension OrderRow {
+    enum DueDateDisplay {
+        case dateAndTime
+        case dateOnly
+        case timeOnly
     }
 }

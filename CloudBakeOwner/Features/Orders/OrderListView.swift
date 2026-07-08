@@ -109,7 +109,7 @@ struct OrderListView: View {
                     CloudBakeSection("Completed") {
                         VStack(spacing: 16) {
                         ForEach(viewModel.completedOrders, id: \.id) { order in
-                            orderRow(order)
+                            orderRow(order, dueDateDisplay: .dateOnly)
                                 .cloudBakeCardStyle()
                         }
                         }
@@ -132,7 +132,7 @@ struct OrderListView: View {
 
                             VStack(spacing: 16) {
                         ForEach(calendarDay.orders, id: \.id) { order in
-                            orderRow(order, showsDate: false)
+                            orderRow(order, dueDateDisplay: .timeOnly)
                                         .cloudBakeCardStyle()
                                 }
                             }
@@ -229,10 +229,13 @@ struct OrderListView: View {
         }
     }
 
-    private func orderRow(_ order: Order, showsDate: Bool = true) -> some View {
+    private func orderRow(
+        _ order: Order,
+        dueDateDisplay: OrderRow.DueDateDisplay = .dateAndTime
+    ) -> some View {
         OrderRow(
             order: order,
-            showsDate: showsDate,
+            dueDateDisplay: dueDateDisplay,
             onChangeStatus: {
                 orderSelectingStatus = order
             },
