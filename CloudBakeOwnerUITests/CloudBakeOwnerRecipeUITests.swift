@@ -53,7 +53,7 @@ extension CloudBakeOwnerUITests {
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
             .firstMatch
             .tap()
-        XCTAssertTrue(app.navigationBars["Chocolate Fudge"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["recipes.detail.done"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
     }
