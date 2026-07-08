@@ -160,6 +160,7 @@ func makeIncrementingIdGenerator(prefix: String) -> () -> String {
 
 final class FakeOrderRepository: OrderRepository,
     CustomerRepository,
+    CustomerImportantDateRepository,
     RecipeRepository,
     CakeDesignRepository,
     OrderRecipeUsageRepository,
@@ -168,6 +169,7 @@ final class FakeOrderRepository: OrderRepository,
     OrderPhotoRepository {
     var orders: [Order] = []
     var customers: [Customer] = []
+    var customerImportantDates: [CustomerImportantDate] = []
     var recipes: [Recipe] = []
     var cakeDesigns: [CakeDesign] = []
     var usages: [OrderRecipeUsage] = []
@@ -203,6 +205,15 @@ final class FakeOrderRepository: OrderRepository,
 
     func fetchCustomers() throws -> [Customer] {
         customers
+    }
+
+    func save(_ importantDate: CustomerImportantDate) throws {
+        customerImportantDates.removeAll { $0.id == importantDate.id }
+        customerImportantDates.append(importantDate)
+    }
+
+    func fetchCustomerImportantDates(customerId: String) throws -> [CustomerImportantDate] {
+        customerImportantDates.filter { $0.customerId == customerId }
     }
 
     func save(_ recipe: Recipe) throws {

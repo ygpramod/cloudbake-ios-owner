@@ -386,6 +386,30 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftDeliveryAddress, "10 Cake Street")
     }
 
+    func testCustomerCreationViewModelCanAddAndSelectCustomerFromOrderDraft() throws {
+        let repository = FakeOrderRepository()
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "generated"),
+            dateProvider: { Date(timeIntervalSince1970: 1_800_060_000) }
+        )
+
+        viewModel.beginAddingOrder()
+        let customerViewModel = viewModel.makeCustomerListViewModel()
+        customerViewModel.beginAddingCustomer()
+        customerViewModel.draftName = "Maya"
+        customerViewModel.draftPhone = "5550303"
+
+        XCTAssertTrue(customerViewModel.addCustomer())
+        let customer = try XCTUnwrap(customerViewModel.lastSavedCustomer)
+        viewModel.reloadCustomers()
+        viewModel.selectDraftCustomer(id: customer.id)
+
+        XCTAssertEqual(viewModel.customers, [customer])
+        XCTAssertEqual(viewModel.draftCustomerId, customer.id)
+        XCTAssertEqual(viewModel.draftCustomerName, "Maya")
+    }
+
     func testClearDraftCustomerLinkKeepsEnteredCustomerName() {
         let repository = FakeOrderRepository()
         repository.customers = [makeCustomer(id: "customer-amy", name: "Amy")]

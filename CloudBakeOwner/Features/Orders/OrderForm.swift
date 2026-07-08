@@ -79,17 +79,15 @@ struct OrderForm: View {
             }
 
             Section("Customer") {
-                if !viewModel.customers.isEmpty {
-                    Button {
-                        isSelectingCustomer = true
-                    } label: {
-                        LabeledContent("Customer Record", value: viewModel.draftCustomerRecordName())
-                    }
-                    .accessibilityIdentifier("orders.form.customerRecord")
-                    .sheet(isPresented: $isSelectingCustomer) {
-                        NavigationStack {
-                            CustomerSelectionView(viewModel: viewModel, isPresented: $isSelectingCustomer)
-                        }
+                Button {
+                    isSelectingCustomer = true
+                } label: {
+                    LabeledContent("Customer Record", value: viewModel.draftCustomerRecordName())
+                }
+                .accessibilityIdentifier("orders.form.customerRecord")
+                .sheet(isPresented: $isSelectingCustomer) {
+                    NavigationStack {
+                        CustomerSelectionView(viewModel: viewModel, isPresented: $isSelectingCustomer)
                     }
                 }
 

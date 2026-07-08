@@ -402,6 +402,52 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(allergyText.label.contains("Nuts"))
     }
 
+    func testOrderCanCreateAndLinkNewCustomerFromSelection() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 25
+        app.launch()
+
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+
+        typeText("Chocolate Celebration", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
+        dismissKeyboard(in: app)
+
+        let customerRecordButton = app.buttons["orders.form.customerRecord"]
+        scrollToHittable(customerRecordButton, in: app, timeout: transitionTimeout)
+        tapWhenReady(customerRecordButton, timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Customer Record"].waitForExistence(timeout: transitionTimeout))
+
+        tapWhenReady(app.buttons["orders.customerSelection.newCustomer"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: transitionTimeout))
+        typeText("Maya", into: app.textFields["customers.form.name"], timeout: transitionTimeout)
+        dismissKeyboard(in: app)
+        typeText("5550303", into: app.textFields["customers.form.phone"], timeout: transitionTimeout)
+        dismissKeyboard(in: app)
+        tapWhenReady(app.buttons["customers.form.save"], timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertEqual(app.textFields["orders.form.customerName"].value as? String, "Maya")
+        tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
+
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Chocolate Celebration"
+            )
+        )
+            .firstMatch
+        scrollToHittable(orderRow, in: app, timeout: transitionTimeout)
+        tapWhenReady(orderRow, timeout: transitionTimeout)
+
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.customerName"], in: app, timeout: transitionTimeout)
+    }
+
     func testOrderCanLinkRecipeFromSearchableSelection() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 25

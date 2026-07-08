@@ -157,11 +157,27 @@ struct RecipeSelectionView: View {
 struct CustomerSelectionView: View {
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
+    @StateObject private var customerViewModel: CustomerListViewModel
     @State private var searchText = ""
+    @State private var isAddingCustomer = false
+
+    init(viewModel: OrderListViewModel, isPresented: Binding<Bool>) {
+        self.viewModel = viewModel
+        _isPresented = isPresented
+        _customerViewModel = StateObject(wrappedValue: viewModel.makeCustomerListViewModel())
+    }
 
     var body: some View {
         List {
             Section {
+                Button {
+                    customerViewModel.beginAddingCustomer()
+                    isAddingCustomer = true
+                } label: {
+                    Label("New Customer", systemImage: "person.badge.plus")
+                }
+                .accessibilityIdentifier("orders.customerSelection.newCustomer")
+
                 Button {
                     viewModel.clearDraftCustomerLink()
                     isPresented = false
@@ -219,6 +235,16 @@ struct CustomerSelectionView: View {
         }
         .navigationTitle("Customer Record")
         .searchable(text: $searchText, prompt: "Search Customers")
+        .sheet(isPresented: $isAddingCustomer) {
+            NavigationStack {
+                CustomerForm(
+                    viewModel: customerViewModel,
+                    isPresented: $isAddingCustomer,
+                    onCancel: customerViewModel.cancelAddCustomer,
+                    onSave: saveCustomerAndSelect
+                )
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
@@ -227,5 +253,17 @@ struct CustomerSelectionView: View {
                 .accessibilityIdentifier("orders.customerSelection.done")
             }
         }
+    }
+
+    private func saveCustomerAndSelect() -> Bool {
+        guard customerViewModel.addCustomer(),
+              let customer = customerViewModel.lastSavedCustomer else {
+            return false
+        }
+
+        viewModel.reloadCustomers()
+        viewModel.selectDraftCustomer(id: customer.id)
+        isPresented = false
+        return true
     }
 }
