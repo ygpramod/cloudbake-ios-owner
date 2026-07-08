@@ -7,7 +7,7 @@ struct CloudBakeScreenScaffold<Content: View>: View {
     let secondaryActions: [CloudBakeScreenAction]
     @ViewBuilder let content: Content
 
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.navigateToAppDestination) private var navigate
 
     init(
         title: String,
@@ -33,7 +33,7 @@ struct CloudBakeScreenScaffold<Content: View>: View {
                         title: title,
                         primaryAction: primaryAction,
                         secondaryActions: secondaryActions,
-                        onBack: { dismiss() }
+                        onBack: { navigate(.dashboard) }
                     )
 
                     content
@@ -42,9 +42,6 @@ struct CloudBakeScreenScaffold<Content: View>: View {
                 .padding(.top, 18)
                 .padding(.bottom, 104)
             }
-        }
-        .safeAreaInset(edge: .bottom) {
-            CloudBakeBottomNavigation(selectedDestination: selectedDestination)
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -471,14 +468,13 @@ private struct CloudBakeHeaderActionButton: View {
     }
 }
 
-private struct CloudBakeBottomNavigation: View {
+struct CloudBakeBottomNavigation: View {
     let selectedDestination: AppDestination
 
     private let destinations: [AppDestination] = [
         .dashboard,
         .orders,
         .inventory,
-        .recipes,
         .designs
     ]
 
@@ -493,7 +489,8 @@ private struct CloudBakeBottomNavigation: View {
         }
         .padding(.horizontal, 18)
         .padding(.top, 12)
-        .padding(.bottom, 7)
+        .padding(.bottom, 20)
+        .frame(maxWidth: .infinity)
         .background(
             UnevenRoundedRectangle(topLeadingRadius: 26, topTrailingRadius: 26)
                 .fill(.ultraThinMaterial)
@@ -508,6 +505,7 @@ private struct CloudBakeBottomNavigation: View {
 private struct CloudBakeBottomNavigationItem: View {
     let destination: AppDestination
     let isSelected: Bool
+    @Environment(\.navigateToAppDestination) private var navigate
 
     var body: some View {
         Group {
@@ -518,7 +516,9 @@ private struct CloudBakeBottomNavigationItem: View {
                     .accessibilityLabel(destination.bottomNavigationTitle)
                     .accessibilityIdentifier(destination.accessibilityIdentifier)
             } else {
-                NavigationLink(value: destination) {
+                Button {
+                    navigate(destination)
+                } label: {
                     itemContent
                         .foregroundStyle(.secondary)
                 }
