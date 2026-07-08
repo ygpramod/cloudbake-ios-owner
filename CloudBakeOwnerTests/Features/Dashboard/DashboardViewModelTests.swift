@@ -103,6 +103,23 @@ final class DashboardViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.lowInventoryItems, [expiringSoonItem])
     }
+
+    func testLoadCountsOnlyActiveUpcomingOrders() {
+        let repository = FakeDashboardInventoryItemRepository()
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        repository.orders = [
+            makeOrder(id: "order-confirmed", status: .confirmed, dueAt: dueAt),
+            makeOrder(id: "order-ready", status: .ready, dueAt: dueAt.addingTimeInterval(3_600)),
+            makeOrder(id: "order-completed", status: .completed, dueAt: dueAt.addingTimeInterval(7_200)),
+            makeOrder(id: "order-cancelled", status: .cancelled, dueAt: dueAt.addingTimeInterval(10_800))
+        ]
+        let viewModel = DashboardViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.upcomingOrderCount, 2)
+        XCTAssertEqual(viewModel.nextUpcomingOrder?.id, "order-confirmed")
+    }
 }
 
 private func makeInventoryItem(
@@ -129,8 +146,9 @@ private func makeInventoryItem(
     )
 }
 
-private final class FakeDashboardInventoryItemRepository: InventoryItemRepository {
+private final class FakeDashboardInventoryItemRepository: InventoryItemRepository, OrderRepository {
     var items: [InventoryItem] = []
+    var orders: [Order] = []
 
     func save(_ item: InventoryItem) throws {}
 
@@ -144,5 +162,15 @@ private final class FakeDashboardInventoryItemRepository: InventoryItemRepositor
 
     func fetchArchivedInventoryItems() throws -> [InventoryItem] {
         items.filter(\.isArchived)
+    }
+
+    func save(_ order: Order) throws {}
+
+    func fetchOrder(id: String) throws -> Order? {
+        orders.first { $0.id == id }
+    }
+
+    func fetchOrders() throws -> [Order] {
+        orders
     }
 }
