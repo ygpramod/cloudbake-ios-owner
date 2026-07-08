@@ -614,12 +614,19 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
-        tapWhenReady(app.buttons["Completed"], timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["No active orders"].waitForExistence(timeout: transitionTimeout))
+
+        let ordersScreen = app.scrollViews["screen.orders"]
+        XCTAssertTrue(ordersScreen.waitForExistence(timeout: transitionTimeout))
+        ordersScreen.swipeLeft()
         let completedOrderRow = app.buttons["orders.item.order-ui-fixture-completed"]
         assertExistsAfterScrolling(completedOrderRow, in: app, timeout: transitionTimeout)
         let completedDueAt = Date(timeIntervalSince1970: 1_800_140_000)
         XCTAssertTrue(completedOrderRow.label.contains(completedDueAt.formatted(date: .abbreviated, time: .omitted)))
         XCTAssertFalse(completedOrderRow.label.contains(completedDueAt.formatted(date: .abbreviated, time: .shortened)))
+
+        ordersScreen.swipeRight()
+        XCTAssertTrue(app.staticTexts["No active orders"].waitForExistence(timeout: transitionTimeout))
     }
 
     func testCancelledOrderAppearsInCompletedTabWithBadge() throws {

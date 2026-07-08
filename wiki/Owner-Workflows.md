@@ -154,6 +154,12 @@ Draft, Completed, Cancelled, past-due, and already-missed reminders are not sche
 Reminder snooze, configurable offsets, day-of reminders, and calendar integration remain future
 work.
 
+## Switch Order Tabs
+
+On the Orders screen, swipe right to left across the content area to move from Active to Completed,
+and swipe left to right to move from Completed back to Active. The left-edge iOS back swipe remains
+reserved for navigation.
+
 ## Correct Stock Batches
 
 Use stock batch correction when a remaining batch was entered incorrectly.
