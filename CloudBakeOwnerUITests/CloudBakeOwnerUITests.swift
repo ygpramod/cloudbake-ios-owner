@@ -607,6 +607,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.buttons["Completed"], timeout: transitionTimeout)
         let completedOrderRow = app.buttons["orders.item.order-ui-fixture-completed"]
         assertExistsAfterScrolling(completedOrderRow, in: app, timeout: transitionTimeout)
+        let completedDueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        XCTAssertTrue(completedOrderRow.label.contains(completedDueAt.formatted(date: .abbreviated, time: .omitted)))
+        XCTAssertFalse(completedOrderRow.label.contains(completedDueAt.formatted(date: .abbreviated, time: .shortened)))
     }
 
     func testCancelledOrderAppearsInCompletedTabWithBadge() throws {
