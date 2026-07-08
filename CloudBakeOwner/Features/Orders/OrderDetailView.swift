@@ -63,7 +63,7 @@ struct OrderDetailView: View {
 
                     HStack(spacing: 8) {
                         Label(order.dueAt.formatted(date: .abbreviated, time: .shortened), systemImage: "calendar")
-                            .accessibilityIdentifier("orders.detail.cake")
+                            .accessibilityIdentifier("orders.detail.hero.due")
                         Text("•")
                         Text(order.fulfillmentType.displayName)
                     }
@@ -86,7 +86,7 @@ struct OrderDetailView: View {
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(Color.green.opacity(0.12), in: Capsule())
-                            .accessibilityIdentifier("orders.detail.paymentStatus")
+                            .accessibilityIdentifier("orders.detail.hero.paymentStatus")
                     }
                 }
 
@@ -95,7 +95,7 @@ struct OrderDetailView: View {
                         if let quotedPrice = order.quotedPrice {
                             CloudBakeDetailRow("Quoted Price") {
                                 Text(formattedMoney(quotedPrice))
-                                    .accessibilityIdentifier("orders.detail.quotedPrice")
+                                    .accessibilityIdentifier("orders.detail.overview.quotedPrice")
                             }
                             CloudBakeDetailDivider()
                         }
@@ -103,7 +103,7 @@ struct OrderDetailView: View {
                         if let depositPaid = order.depositPaid {
                             CloudBakeDetailRow("Deposit Paid") {
                                 Text(formattedMoney(depositPaid))
-                                    .accessibilityIdentifier("orders.detail.depositPaid")
+                                    .accessibilityIdentifier("orders.detail.overview.depositPaid")
                             }
                             CloudBakeDetailDivider()
                         }
@@ -112,7 +112,7 @@ struct OrderDetailView: View {
                             CloudBakeDetailRow("Balance Due") {
                                 Text(formattedMoney(balanceDue))
                                     .foregroundStyle(balanceDue == 0 ? .green : .secondary)
-                                    .accessibilityIdentifier("orders.detail.balanceDue")
+                                    .accessibilityIdentifier("orders.detail.overview.balanceDue")
                             }
                         }
                     }

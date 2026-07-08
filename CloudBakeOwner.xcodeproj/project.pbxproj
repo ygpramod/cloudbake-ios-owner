@@ -62,9 +62,6 @@
 		410000000000000000000035 /* OrderCenteredPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003D /* OrderCenteredPopup.swift */; };
 		410000000000000000000036 /* OrderRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003E /* OrderRow.swift */; };
 		410000000000000000000037 /* OrderDetailPhotosSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003F /* OrderDetailPhotosSection.swift */; };
-		410000000000000000000038 /* OrderDetailPaymentSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000040 /* OrderDetailPaymentSection.swift */; };
-		410000000000000000000039 /* OrderDetailCustomerSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000041 /* OrderDetailCustomerSections.swift */; };
-		41000000000000000000003A /* OrderDetailReferenceSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000042 /* OrderDetailReferenceSections.swift */; };
 		41000000000000000000003B /* InventoryItemRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000043 /* InventoryItemRow.swift */; };
 		41000000000000000000003C /* InventoryHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000044 /* InventoryHistoryView.swift */; };
 		41000000000000000000003D /* ArchivedInventoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000045 /* ArchivedInventoryView.swift */; };
@@ -201,9 +198,6 @@
 		42000000000000000000003D /* OrderCenteredPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCenteredPopup.swift; sourceTree = "<group>"; };
 		42000000000000000000003E /* OrderRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderRow.swift; sourceTree = "<group>"; };
 		42000000000000000000003F /* OrderDetailPhotosSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailPhotosSection.swift; sourceTree = "<group>"; };
-		420000000000000000000040 /* OrderDetailPaymentSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailPaymentSection.swift; sourceTree = "<group>"; };
-		420000000000000000000041 /* OrderDetailCustomerSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailCustomerSections.swift; sourceTree = "<group>"; };
-		420000000000000000000042 /* OrderDetailReferenceSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailReferenceSections.swift; sourceTree = "<group>"; };
 		420000000000000000000043 /* InventoryItemRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryItemRow.swift; sourceTree = "<group>"; };
 		420000000000000000000044 /* InventoryHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryHistoryView.swift; sourceTree = "<group>"; };
 		420000000000000000000045 /* ArchivedInventoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivedInventoryView.swift; sourceTree = "<group>"; };
@@ -420,10 +414,7 @@
 			children = (
 				42000000000000000000003D /* OrderCenteredPopup.swift */,
 				420000000000000000000053 /* OrderDetailChecklistSection.swift */,
-				420000000000000000000041 /* OrderDetailCustomerSections.swift */,
-				420000000000000000000040 /* OrderDetailPaymentSection.swift */,
 				42000000000000000000003F /* OrderDetailPhotosSection.swift */,
-				420000000000000000000042 /* OrderDetailReferenceSections.swift */,
 				420000000000000000000052 /* OrderDetailView.swift */,
 				420000000000000000000050 /* OrderForm.swift */,
 				420000000000000000000033 /* OrderListView.swift */,
@@ -791,10 +782,7 @@
 				410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */,
 				410000000000000000000035 /* OrderCenteredPopup.swift in Sources */,
 				41000000000000000000004B /* OrderDetailChecklistSection.swift in Sources */,
-				410000000000000000000039 /* OrderDetailCustomerSections.swift in Sources */,
-				410000000000000000000038 /* OrderDetailPaymentSection.swift in Sources */,
 				410000000000000000000037 /* OrderDetailPhotosSection.swift in Sources */,
-				41000000000000000000003A /* OrderDetailReferenceSections.swift in Sources */,
 				41000000000000000000004A /* OrderDetailView.swift in Sources */,
 				410000000000000000000048 /* OrderForm.swift in Sources */,
 				41000000000000000000002F /* OrderConsumerPreview.swift in Sources */,

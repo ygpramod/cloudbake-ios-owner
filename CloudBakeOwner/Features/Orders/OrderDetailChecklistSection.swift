@@ -60,12 +60,23 @@ struct OrderDetailChecklistSection: View {
 
     private func checklistRow(for item: OrderChecklistItem) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(item.isCompleted ? .green : .secondary)
-            Text(item.title)
-                .strikethrough(item.isCompleted)
-                .foregroundStyle(item.isCompleted ? .secondary : .primary)
-            Spacer()
+            Button {
+                onToggle(item)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(item.isCompleted ? .green : .secondary)
+                    Text(item.title)
+                        .strikethrough(item.isCompleted)
+                        .foregroundStyle(item.isCompleted ? .secondary : .primary)
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("orders.detail.checklist.item.\(item.id)")
+            .accessibilityLabel(item.title)
+            .accessibilityValue(item.isCompleted ? "Complete" : "Incomplete")
             Button {
                 onEdit(item)
             } label: {
@@ -89,18 +100,6 @@ struct OrderDetailChecklistSection: View {
             .accessibilityIdentifier("orders.detail.checklist.delete.\(item.id)")
         }
         .padding(.vertical, 12)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onToggle(item)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("orders.detail.checklist.item.\(item.id)")
-        .accessibilityLabel(item.title)
-        .accessibilityValue(item.isCompleted ? "Complete" : "Incomplete")
-        .accessibilityAction {
-            onToggle(item)
-        }
     }
 }
 
