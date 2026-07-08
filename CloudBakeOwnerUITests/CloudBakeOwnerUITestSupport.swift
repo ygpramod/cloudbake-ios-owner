@@ -318,6 +318,10 @@ extension CloudBakeOwnerUITests {
         } else {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
         }
+
+        if app.keyboards.firstMatch.waitForExistence(timeout: 0.5) {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
+        }
     }
 
     func assertExistsAfterScrolling(
@@ -329,7 +333,7 @@ extension CloudBakeOwnerUITests {
     ) {
         let deadline = Date().addingTimeInterval(timeout)
         while !element.exists && Date() < deadline {
-            app.swipeUp()
+            swipeUpInPrimaryScrollableArea(in: app)
             _ = element.waitForExistence(timeout: 1)
         }
         XCTAssertTrue(element.exists, "Element did not exist after scrolling.", file: file, line: line)
@@ -344,7 +348,7 @@ extension CloudBakeOwnerUITests {
     ) {
         let deadline = Date().addingTimeInterval(timeout)
         while (!element.exists || !element.isHittable) && Date() < deadline {
-            app.swipeUp()
+            scrollTowardHittableElement(element, in: app)
             _ = element.waitForExistence(timeout: 1)
         }
         XCTAssertTrue(element.exists, "Element did not exist after scrolling.", file: file, line: line)
@@ -355,5 +359,51 @@ extension CloudBakeOwnerUITests {
         for _ in 0..<3 {
             app.swipeDown()
         }
+    }
+
+    private func swipeUpInPrimaryScrollableArea(in app: XCUIApplication) {
+        let collectionView = app.collectionViews.firstMatch
+        if collectionView.exists {
+            collectionView.swipeUp()
+            return
+        }
+
+        let scrollView = app.scrollViews.firstMatch
+        if scrollView.exists {
+            scrollView.swipeUp()
+            return
+        }
+
+        app.swipeUp()
+    }
+
+    private func scrollTowardHittableElement(_ element: XCUIElement, in app: XCUIApplication) {
+        guard element.exists else {
+            swipeUpInPrimaryScrollableArea(in: app)
+            return
+        }
+
+        let appFrame = app.windows.firstMatch.exists ? app.windows.firstMatch.frame : app.frame
+        if element.frame.midY < appFrame.midY {
+            swipeDownInPrimaryScrollableArea(in: app)
+        } else {
+            swipeUpInPrimaryScrollableArea(in: app)
+        }
+    }
+
+    private func swipeDownInPrimaryScrollableArea(in app: XCUIApplication) {
+        let collectionView = app.collectionViews.firstMatch
+        if collectionView.exists {
+            collectionView.swipeDown()
+            return
+        }
+
+        let scrollView = app.scrollViews.firstMatch
+        if scrollView.exists {
+            scrollView.swipeDown()
+            return
+        }
+
+        app.swipeDown()
     }
 }
