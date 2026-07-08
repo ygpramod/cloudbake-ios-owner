@@ -36,10 +36,10 @@ extension CloudBakeOwnerUITests {
         let destinationButton: XCUIElement
         if title == "Customers" || title == "Settings" {
             let dashboard = app.scrollViews["screen.dashboard"]
-            for _ in 0..<4 where !app.staticTexts[title].exists {
+            for _ in 0..<4 where !app.buttons[identifier].exists {
                 dashboard.swipeUp()
             }
-            destinationButton = app.staticTexts[title]
+            destinationButton = app.buttons[identifier]
         } else if identifier.hasPrefix("dashboard.tab.") {
             destinationButton = app.buttons.matching(NSPredicate(format: "label == %@", title)).firstMatch
         } else {
