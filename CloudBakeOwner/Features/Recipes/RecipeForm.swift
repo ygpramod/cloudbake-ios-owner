@@ -41,6 +41,7 @@ struct RecipeForm: View {
                 }
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

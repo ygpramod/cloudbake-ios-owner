@@ -39,6 +39,7 @@ struct InventoryBatchForm: View {
                 }
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle("Edit Batch")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -97,6 +98,7 @@ struct InventoryStockConsumptionForm: View {
                 }
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle("Use Stock")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -162,6 +164,7 @@ struct InventoryStockAdjustmentForm: View {
                 }
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle("Adjust Stock")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

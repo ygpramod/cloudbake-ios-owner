@@ -85,4 +85,4 @@ detail content or controls instead.
 ## Open Questions
 
 1. Whether selection screens should receive the same custom detail-style chrome in a later slice.
-2. Whether form screens should remain native `Form` or receive a separate CloudBake form style.
+2. Form screens now receive a separate native-form CloudBake style in Slice RFC-0071.

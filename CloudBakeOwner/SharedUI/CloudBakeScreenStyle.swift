@@ -123,6 +123,16 @@ struct CloudBakeDetailAction: Identifiable {
     let action: () -> Void
 }
 
+extension View {
+    func cloudBakeFormScreenStyle() -> some View {
+        self
+            .scrollContentBackground(.hidden)
+            .background(CloudBakeScreenBackground())
+            .tint(Color.cloudBakePink)
+            .toolbarBackground(.hidden, for: .navigationBar)
+    }
+}
+
 struct CloudBakeHeroCard<Content: View>: View {
     let systemImage: String
     let tint: Color

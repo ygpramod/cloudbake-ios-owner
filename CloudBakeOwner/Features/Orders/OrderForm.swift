@@ -148,6 +148,7 @@ struct OrderForm: View {
                 }
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

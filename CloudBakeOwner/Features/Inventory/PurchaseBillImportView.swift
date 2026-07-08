@@ -94,6 +94,7 @@ struct PurchaseBillImportView: View {
                 }
             }
         }
+        .cloudBakeFormScreenStyle()
         .navigationTitle("Import Bill")
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else {
