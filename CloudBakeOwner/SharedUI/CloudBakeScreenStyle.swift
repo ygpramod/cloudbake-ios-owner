@@ -416,11 +416,6 @@ private struct CloudBakeDetailHeader: View {
                 }
             }
 
-            Text(title)
-                .font(.headline.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-                .frame(maxWidth: 180)
         }
     }
 }
