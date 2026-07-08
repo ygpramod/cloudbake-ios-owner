@@ -44,7 +44,7 @@ This slice does not include:
   abrupt replacement.
 - Second-level screens must not show a custom back button.
 - The iOS left-edge back gesture must use the platform interactive behavior and return the owner to
-  Home.
+  Home, even though CloudBake hides the standard navigation bar chrome.
 - The implementation must avoid duplicating styling rules across feature screens.
 
 ## Design
