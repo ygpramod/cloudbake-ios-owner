@@ -100,7 +100,7 @@ The app currently supports:
 85. promotion of final cake photos into linked saved cake designs,
 86. saved order photo deletion from order detail,
 87. shared CloudBake visual styling for second-level Orders, Inventory, Recipes, Customers, Designs,
-    and Settings screens,
+    and Settings screens, with compact title headers and grouped Inventory header actions,
 88. native iOS push navigation with short recent-page history and left-edge swipe back to the
     previous screen,
 89. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,

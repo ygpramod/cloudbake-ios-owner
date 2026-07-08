@@ -200,13 +200,14 @@ The home screen shows compact Today cards, Soon rows for reminders and recent de
 section for all owner workflows, and bottom quick navigation for Home, Orders, Inventory, and
 Designs.
 
-Second-level owner screens use the same CloudBake visual language: warm light background, large
-screen title, circular top actions, compact logo treatment, card-based lists, and bottom quick
-navigation for Home, Orders, Inventory, and Designs. Opening a second-level screen from Home, or
-moving from one second-level screen to another, uses the native iOS push animation. The left-edge
-back gesture returns to the previous screen without a visible custom back button. CloudBake keeps a
-short recent section history, so tapping a recently visited section behaves like going back to that
-screen instead of opening a duplicate copy.
+Second-level owner screens use the same CloudBake visual language: warm light background, compact
+screen title, circular top actions in the header, card-based lists, and bottom quick navigation for
+Home, Orders, Inventory, and Designs. These screens do not repeat the CloudBake logo; screens with
+several actions, such as Inventory, can group those actions behind a compact `...` menu. Opening a
+second-level screen from Home, or moving from one second-level screen to another, uses the native
+iOS push animation. The left-edge back gesture returns to the previous screen without a visible
+custom back button. CloudBake keeps a short recent section history, so tapping a recently visited
+section behaves like going back to that screen instead of opening a duplicate copy.
 
 Detail screens use a focused version of the same visual language: custom compact header, hero
 summary card, titled card sections, visible row actions, and centered confirmation popups for

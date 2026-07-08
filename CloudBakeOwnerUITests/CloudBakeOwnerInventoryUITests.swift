@@ -7,7 +7,7 @@ extension CloudBakeOwnerUITests {
 
         openDashboardDestination("Inventory", in: app)
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
-        app.buttons["inventory.add"].tap()
+        tapInventoryHeaderAction("inventory.add", in: app)
         XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
 
         app.textFields["inventory.form.name"].tap()
@@ -95,7 +95,7 @@ extension CloudBakeOwnerUITests {
         tapWhenReady(app.buttons["inventory.archive.confirm"], timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["No inventory yet"].waitForExistence(timeout: transitionTimeout))
 
-        tapWhenReady(app.buttons["inventory.archived"], timeout: transitionTimeout)
+        tapInventoryHeaderAction("inventory.archived", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.buttons["inventory.archived.done"].waitForExistence(timeout: transitionTimeout))
 
         let restoreButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.archived.restore.")).firstMatch
@@ -168,7 +168,7 @@ extension CloudBakeOwnerUITests {
         app.launch()
 
         openDashboardDestination("Inventory", in: app)
-        app.buttons["inventory.purchaseBill.import"].tap()
+        tapInventoryHeaderAction("inventory.purchaseBill.import", in: app)
         XCTAssertTrue(app.navigationBars["Import Bill"].waitForExistence(timeout: 5))
 
         XCTAssertTrue(app.buttons["inventory.purchaseBill.camera"].waitForExistence(timeout: 5))

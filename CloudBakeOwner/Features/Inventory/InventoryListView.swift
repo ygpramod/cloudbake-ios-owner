@@ -28,18 +28,19 @@ struct InventoryListView: View {
             ),
             secondaryActions: [
                 CloudBakeScreenAction(
-                    title: "Import purchase bill",
-                    systemImage: "doc.text.viewfinder",
-                    accessibilityIdentifier: "inventory.purchaseBill.import",
-                    action: { isImportingPurchaseBill = true }
-                ),
-                CloudBakeScreenAction(
                     title: "Archived inventory",
                     systemImage: "archivebox",
                     accessibilityIdentifier: "inventory.archived",
                     action: { isShowingArchivedItems = true }
+                ),
+                CloudBakeScreenAction(
+                    title: "Import purchase bill",
+                    systemImage: "doc.text.viewfinder",
+                    accessibilityIdentifier: "inventory.purchaseBill.import",
+                    action: { isImportingPurchaseBill = true }
                 )
-            ]
+            ],
+            collapsesActionsIntoMenu: true
         ) {
             if viewModel.items.isEmpty {
                 CloudBakeEmptyState(
