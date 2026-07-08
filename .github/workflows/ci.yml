@@ -87,6 +87,7 @@ jobs:
           - feature: orders-links
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsLinkedCustomerContext
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanCreateAndLinkNewCustomerFromSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkRecipeFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkDesignFromSearchableSelection
           - feature: inventory

@@ -7,6 +7,7 @@ final class CustomerListViewModel: ObservableObject {
     @Published private(set) var selectedCustomerImportantDates: [CustomerImportantDate] = []
     @Published private(set) var selectedCustomerOrders: [Order] = []
     @Published private(set) var editingCustomer: Customer?
+    @Published private(set) var lastSavedCustomer: Customer?
     @Published var draftName = ""
     @Published var draftPhone = ""
     @Published var draftEmail = ""
@@ -62,6 +63,7 @@ final class CustomerListViewModel: ObservableObject {
         errorMessage = nil
         duplicateWarningMessage = nil
         acknowledgedDuplicateKey = nil
+        lastSavedCustomer = nil
 
         guard let importedDraft else {
             return
@@ -122,6 +124,7 @@ final class CustomerListViewModel: ObservableObject {
                     )
                 )
             }
+            lastSavedCustomer = customer
             resetDraft()
             load()
             return true
@@ -198,6 +201,7 @@ final class CustomerListViewModel: ObservableObject {
         do {
             try repository.save(customer)
             selectedCustomer = customer
+            lastSavedCustomer = customer
             resetDraft()
             load()
             loadSelectedCustomerDetails()

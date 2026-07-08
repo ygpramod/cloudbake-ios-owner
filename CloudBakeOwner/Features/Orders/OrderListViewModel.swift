@@ -32,14 +32,14 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftPaymentNotes = ""
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & CustomerRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let presentation: OrderListPresentation
 
     init(
-        repository: any OrderRepository & CustomerRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository & OrderPhotoRepository,
+        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository & OrderPhotoRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
@@ -96,6 +96,23 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = nil
         } catch {
             errorMessage = "Orders could not be loaded."
+        }
+    }
+
+    func makeCustomerListViewModel() -> CustomerListViewModel {
+        CustomerListViewModel(
+            repository: repository,
+            idGenerator: idGenerator,
+            dateProvider: dateProvider
+        )
+    }
+
+    func reloadCustomers() {
+        do {
+            customers = try repository.fetchCustomers()
+            errorMessage = nil
+        } catch {
+            errorMessage = "Customers could not be loaded."
         }
     }
 
