@@ -36,6 +36,10 @@ struct OrderForm: View {
                 TextField("Cake Notes", text: $viewModel.draftCakeNotes, axis: .vertical)
                     .lineLimit(2...5)
                     .accessibilityIdentifier("orders.form.cakeNotes")
+
+                TextField("Message", text: $viewModel.draftCakeMessage, axis: .vertical)
+                    .lineLimit(2...4)
+                    .accessibilityIdentifier("orders.form.cakeMessage")
             }
 
             if !viewModel.recipes.isEmpty {

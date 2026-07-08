@@ -50,6 +50,7 @@ extension GRDBCoreDataRepository {
             fulfillmentType: order.fulfillmentType,
             deliveryAddress: order.deliveryAddress,
             cakeNotes: order.cakeNotes,
+            cakeMessage: order.cakeMessage,
             quotedPrice: order.quotedPrice,
             depositPaid: order.depositPaid,
             paymentNotes: order.paymentNotes,
@@ -297,13 +298,14 @@ private extension GRDBCoreDataRepository {
                     fulfillment_type,
                     delivery_address,
                     cake_notes,
+                    cake_message,
                     quoted_price_decimal,
                     deposit_paid_decimal,
                     payment_notes,
                     created_at_unix_time,
                     updated_at_unix_time
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                 customer_id = excluded.customer_id,
                 cake_design_id = excluded.cake_design_id,
@@ -316,6 +318,7 @@ private extension GRDBCoreDataRepository {
                 fulfillment_type = excluded.fulfillment_type,
                 delivery_address = excluded.delivery_address,
                 cake_notes = excluded.cake_notes,
+                cake_message = excluded.cake_message,
                 quoted_price_decimal = excluded.quoted_price_decimal,
                 deposit_paid_decimal = excluded.deposit_paid_decimal,
                 payment_notes = excluded.payment_notes,
@@ -335,6 +338,7 @@ private extension GRDBCoreDataRepository {
                 order.fulfillmentType.rawValue,
                 order.deliveryAddress,
                 order.cakeNotes,
+                order.cakeMessage,
                 decimalString(order.quotedPrice),
                 decimalString(order.depositPaid),
                 order.paymentNotes,

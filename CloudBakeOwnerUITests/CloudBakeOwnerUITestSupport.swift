@@ -157,6 +157,7 @@ extension CloudBakeOwnerUITests {
         named name: String,
         notes: String,
         customerName: String,
+        cakeMessage: String? = nil,
         quotedPrice: String? = nil,
         depositPaid: String? = nil,
         paymentNotes: String? = nil,
@@ -167,6 +168,9 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: timeout))
         typeText(name, into: app.textFields["orders.form.title"])
         typeText(notes, into: app.textFields["orders.form.cakeNotes"])
+        if let cakeMessage {
+            typeText(cakeMessage, into: app.textFields["orders.form.cakeMessage"], timeout: timeout)
+        }
         typeText(customerName, into: app.textFields["orders.form.customerName"])
         if let quotedPrice {
             scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: timeout)
