@@ -257,6 +257,12 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0014_add_order_cake_message") { db in
+            try db.alter(table: "orders") { table in
+                table.add(column: "cake_message", .text)
+            }
+        }
+
         return migrator
     }
 }

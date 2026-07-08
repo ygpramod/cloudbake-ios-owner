@@ -135,6 +135,7 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
             fulfillmentType: .delivery,
             deliveryAddress: "10 Cake Street",
             cakeNotes: "Pink flowers",
+            cakeMessage: "Happy Birthday Amy",
             quotedPrice: Decimal(string: "200"),
             depositPaid: Decimal(string: "50"),
             paymentNotes: "Cash deposit",
@@ -156,6 +157,7 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftFulfillmentType, .delivery)
         XCTAssertEqual(viewModel.draftDeliveryAddress, "10 Cake Street")
         XCTAssertEqual(viewModel.draftCakeNotes, "Pink flowers")
+        XCTAssertEqual(viewModel.draftCakeMessage, "Happy Birthday Amy")
         XCTAssertEqual(viewModel.draftQuotedPrice, "200")
         XCTAssertEqual(viewModel.draftDepositPaid, "50")
         XCTAssertEqual(viewModel.draftPaymentNotes, "Cash deposit")
@@ -183,6 +185,7 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
         viewModel.draftFulfillmentType = .delivery
         viewModel.draftDeliveryAddress = "11 Cake Street"
         viewModel.draftCakeNotes = "Add gold leaf"
+        viewModel.draftCakeMessage = "Happy 7th Birthday"
         viewModel.draftQuotedPrice = "175"
         viewModel.draftDepositPaid = "75"
         viewModel.draftPaymentNotes = "Deposit paid by card"
@@ -201,6 +204,7 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
             fulfillmentType: .delivery,
             deliveryAddress: "11 Cake Street",
             cakeNotes: "Add gold leaf",
+            cakeMessage: "Happy 7th Birthday",
             quotedPrice: Decimal(175),
             depositPaid: Decimal(75),
             paymentNotes: "Deposit paid by card",

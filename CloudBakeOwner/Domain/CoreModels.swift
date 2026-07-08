@@ -234,6 +234,7 @@ struct Order: Equatable {
     let fulfillmentType: OrderFulfillmentType
     let deliveryAddress: String?
     let cakeNotes: String?
+    let cakeMessage: String?
     let quotedPrice: Decimal?
     let depositPaid: Decimal?
     let paymentNotes: String?
@@ -278,6 +279,7 @@ struct Order: Equatable {
         fulfillmentType: OrderFulfillmentType,
         deliveryAddress: String?,
         cakeNotes: String?,
+        cakeMessage: String? = nil,
         quotedPrice: Decimal? = nil,
         depositPaid: Decimal? = nil,
         paymentNotes: String? = nil,
@@ -296,6 +298,7 @@ struct Order: Equatable {
         self.fulfillmentType = fulfillmentType
         self.deliveryAddress = deliveryAddress
         self.cakeNotes = cakeNotes
+        self.cakeMessage = cakeMessage
         self.quotedPrice = quotedPrice
         self.depositPaid = depositPaid
         self.paymentNotes = paymentNotes

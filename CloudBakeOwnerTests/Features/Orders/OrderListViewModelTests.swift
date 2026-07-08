@@ -225,6 +225,7 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.draftFulfillmentType = .delivery
         viewModel.draftDeliveryAddress = " 10 Cake Street "
         viewModel.draftCakeNotes = " Less sweet "
+        viewModel.draftCakeMessage = " Happy Birthday Amy "
         viewModel.draftQuotedPrice = "125.50"
         viewModel.draftDepositPaid = "25.50"
         viewModel.draftPaymentNotes = " Bank transfer received "
@@ -247,6 +248,7 @@ final class OrderListViewModelTests: XCTestCase {
                     fulfillmentType: .delivery,
                     deliveryAddress: "10 Cake Street",
                     cakeNotes: "Less sweet",
+                    cakeMessage: "Happy Birthday Amy",
                     quotedPrice: Decimal(string: "125.50"),
                     depositPaid: Decimal(string: "25.50"),
                     paymentNotes: "Bank transfer received",

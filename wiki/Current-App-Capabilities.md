@@ -65,7 +65,7 @@ The app currently supports:
 56. order detail view,
 57. optional customer record link from orders,
 58. searchable customer record selection from order add/edit,
-59. order due date/time, status, fulfillment type, delivery address, and cake notes,
+59. order due date/time, status, fulfillment type, delivery address, cake notes, and cake message,
 60. order editing from detail,
 61. manual order status changes,
 62. orders Active tab grouped by due day with delivery or pickup time ordering,

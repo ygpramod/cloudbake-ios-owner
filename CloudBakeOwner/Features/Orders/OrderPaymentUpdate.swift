@@ -66,6 +66,7 @@ enum OrderPaymentUpdate {
             fulfillmentType: order.fulfillmentType,
             deliveryAddress: order.deliveryAddress,
             cakeNotes: order.cakeNotes,
+            cakeMessage: order.cakeMessage,
             quotedPrice: order.quotedPrice,
             depositPaid: depositPaid,
             paymentNotes: order.paymentNotes,

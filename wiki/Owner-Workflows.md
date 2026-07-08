@@ -225,6 +225,10 @@ Detail screens use a focused version of the same visual language: custom compact
 summary card, titled card sections, visible row actions, and centered confirmation popups for
 status/payment actions.
 
+Order detail overview focuses on balance due and delivery address when the order is a delivery.
+Notes and cake message content are shown as left-aligned block text below their labels so longer
+owner notes and cake inscriptions stay readable.
+
 Form screens keep native iOS data-entry controls while using the CloudBake background and pink
 action tint, so create, edit, import, and correction flows feel connected to the rest of the app
 without losing predictable keyboard, picker, and save/cancel behavior.

@@ -92,27 +92,18 @@ struct OrderDetailView: View {
 
                 CloudBakeSection("Order Overview") {
                     CloudBakeDetailCard {
-                        if let quotedPrice = order.quotedPrice {
-                            CloudBakeDetailRow("Quoted Price") {
-                                Text(formattedMoney(quotedPrice))
-                                    .accessibilityIdentifier("orders.detail.overview.quotedPrice")
-                            }
-                            CloudBakeDetailDivider()
+                        CloudBakeDetailRow("Balance Due") {
+                            Text(balanceDueText(for: order))
+                                .foregroundStyle(order.balanceDue == 0 ? .green : .secondary)
+                                .accessibilityIdentifier("orders.detail.overview.balanceDue")
                         }
 
-                        if let depositPaid = order.depositPaid {
-                            CloudBakeDetailRow("Deposit Paid") {
-                                Text(formattedMoney(depositPaid))
-                                    .accessibilityIdentifier("orders.detail.overview.depositPaid")
-                            }
+                        if order.fulfillmentType == .delivery,
+                           let deliveryAddress = order.deliveryAddress {
                             CloudBakeDetailDivider()
-                        }
-
-                        if let balanceDue = order.balanceDue {
-                            CloudBakeDetailRow("Balance Due") {
-                                Text(formattedMoney(balanceDue))
-                                    .foregroundStyle(balanceDue == 0 ? .green : .secondary)
-                                    .accessibilityIdentifier("orders.detail.overview.balanceDue")
+                            orderDetailBlockRow("Delivery Address") {
+                                Text(deliveryAddress)
+                                    .accessibilityIdentifier("orders.detail.overview.deliveryAddress")
                             }
                         }
                     }
@@ -148,7 +139,6 @@ struct OrderDetailView: View {
                 designSection(order: order)
                 photosSection
                 customerContextSection
-                fulfillmentSection(order: order)
                 notesSection(order: order)
                 paymentSection(order: order)
                 checklistSection
@@ -483,32 +473,46 @@ struct OrderDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private func fulfillmentSection(order: Order) -> some View {
-        CloudBakeSection("Fulfillment") {
-            CloudBakeDetailCard {
-                CloudBakeDetailRow("Type") {
-                    Text(order.fulfillmentType.displayName)
-                        .accessibilityIdentifier("orders.detail.fulfillmentType")
-                }
-                if let deliveryAddress = order.deliveryAddress {
-                    CloudBakeDetailDivider()
-                    CloudBakeDetailRow("Address") {
-                        Text(deliveryAddress)
-                    }
-                }
-            }
+    private func orderDetailBlockRow<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            content()
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 14)
     }
 
     @ViewBuilder
     private func notesSection(order: Order) -> some View {
-        if let cakeNotes = order.cakeNotes {
+        if order.cakeNotes != nil || order.cakeMessage != nil {
             CloudBakeSection("Notes") {
                 CloudBakeDetailCard {
-                    CloudBakeDetailRow("Cake Notes") {
-                        Text(cakeNotes)
-                            .accessibilityIdentifier("orders.detail.cakeNotes")
+                    if let cakeNotes = order.cakeNotes {
+                        orderDetailBlockRow("Notes") {
+                            Text(cakeNotes)
+                                .accessibilityIdentifier("orders.detail.cakeNotes")
+                        }
+                    }
+
+                    if let cakeMessage = order.cakeMessage {
+                        if order.cakeNotes != nil {
+                            CloudBakeDetailDivider()
+                        }
+
+                        orderDetailBlockRow("Message") {
+                            Text(cakeMessage)
+                                .accessibilityIdentifier("orders.detail.message")
+                        }
                     }
                 }
             }
@@ -558,14 +562,6 @@ struct OrderDetailView: View {
                         Text(formattedMoney(balanceDue))
                             .foregroundStyle(balanceDue == 0 ? .green : .secondary)
                             .accessibilityIdentifier("orders.detail.balanceDue")
-                    }
-                }
-
-                if let paymentNotes = order.paymentNotes {
-                    CloudBakeDetailDivider()
-                    CloudBakeDetailRow("Notes") {
-                        Text(paymentNotes)
-                            .accessibilityIdentifier("orders.detail.paymentNotes")
                     }
                 }
             }
@@ -676,6 +672,14 @@ struct OrderDetailView: View {
         } catch {
             viewModel.errorMessage = "Order photo could not be read."
         }
+    }
+
+    private func balanceDueText(for order: Order) -> String {
+        guard let balanceDue = order.balanceDue else {
+            return "Not Set"
+        }
+
+        return formattedMoney(balanceDue)
     }
 
     private func formattedMoney(_ amount: Decimal) -> String {

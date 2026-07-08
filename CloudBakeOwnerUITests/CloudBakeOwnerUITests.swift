@@ -70,6 +70,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
             named: "Vanilla Birthday",
             notes: "Pink flowers",
             customerName: "Amy",
+            cakeMessage: "Happy Birthday Amy",
             quotedPrice: "125.50",
             depositPaid: "25.50",
             paymentNotes: "Bank transfer",
@@ -84,13 +85,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.customerName"], in: app, timeout: transitionTimeout)
-        assertExistsAfterScrolling(app.staticTexts["orders.detail.fulfillmentType"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.cakeNotes"], in: app, timeout: transitionTimeout)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.message"], in: app, timeout: transitionTimeout)
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Happy Birthday Amy"))
+                .firstMatch
+                .waitForExistence(timeout: transitionTimeout)
+        )
         assertExistsAfterScrolling(app.staticTexts["orders.detail.paymentStatus"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.quotedPrice"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.depositPaid"], in: app, timeout: transitionTimeout)
         assertExistsAfterScrolling(app.staticTexts["orders.detail.balanceDue"], in: app, timeout: transitionTimeout)
-        assertExistsAfterScrolling(app.staticTexts["orders.detail.paymentNotes"], in: app, timeout: transitionTimeout)
     }
 
     func testOrderDetailCanMarkPaymentPaid() throws {
@@ -191,12 +196,22 @@ final class CloudBakeOwnerUITests: XCTestCase {
         notesField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
         notesField.typeText("Gold leaf")
 
+        let messageField = app.textFields["orders.form.cakeMessage"]
+        tapWhenReady(messageField, timeout: transitionTimeout)
+        messageField.typeText("Happy 7th")
+
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.cakeNotes"], in: app, timeout: transitionTimeout)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.message"], in: app, timeout: transitionTimeout)
         XCTAssertTrue(
             app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Gold leaf"))
+                .firstMatch
+                .waitForExistence(timeout: transitionTimeout)
+        )
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Happy 7th"))
                 .firstMatch
                 .waitForExistence(timeout: transitionTimeout)
         )
@@ -700,7 +715,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertFalse(app.buttons["orders.detail.done"].exists)
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["orders.detail.customerName"].waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(app.staticTexts["orders.detail.fulfillmentType"].waitForExistence(timeout: transitionTimeout))
     }
 
 }

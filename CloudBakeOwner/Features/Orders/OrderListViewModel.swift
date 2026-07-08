@@ -26,6 +26,7 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftFulfillmentType: OrderFulfillmentType = .pickup
     @Published var draftDeliveryAddress = ""
     @Published var draftCakeNotes = ""
+    @Published var draftCakeMessage = ""
     @Published var draftQuotedPrice = ""
     @Published var draftDepositPaid = ""
     @Published var draftPaymentNotes = ""
@@ -210,6 +211,7 @@ final class OrderListViewModel: ObservableObject {
             fulfillmentType: draftFulfillmentType,
             deliveryAddress: TextInputFormatting.optionalText(draftDeliveryAddress),
             cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
+            cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
             quotedPrice: draft.quotedPrice,
             depositPaid: draft.depositPaid,
             paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
@@ -251,6 +253,7 @@ final class OrderListViewModel: ObservableObject {
         draftFulfillmentType = selectedOrder.fulfillmentType
         draftDeliveryAddress = selectedOrder.deliveryAddress ?? ""
         draftCakeNotes = selectedOrder.cakeNotes ?? ""
+        draftCakeMessage = selectedOrder.cakeMessage ?? ""
         draftQuotedPrice = TextInputFormatting.decimalText(selectedOrder.quotedPrice)
         draftDepositPaid = TextInputFormatting.decimalText(selectedOrder.depositPaid)
         draftPaymentNotes = selectedOrder.paymentNotes ?? ""
@@ -296,6 +299,7 @@ final class OrderListViewModel: ObservableObject {
             fulfillmentType: draftFulfillmentType,
             deliveryAddress: TextInputFormatting.optionalText(draftDeliveryAddress),
             cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
+            cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
             quotedPrice: draft.quotedPrice,
             depositPaid: draft.depositPaid,
             paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
@@ -319,6 +323,7 @@ final class OrderListViewModel: ObservableObject {
                     fulfillmentType: order.fulfillmentType,
                     deliveryAddress: order.deliveryAddress,
                     cakeNotes: order.cakeNotes,
+                    cakeMessage: order.cakeMessage,
                     quotedPrice: order.quotedPrice,
                     depositPaid: order.depositPaid,
                     paymentNotes: order.paymentNotes,
@@ -479,6 +484,7 @@ final class OrderListViewModel: ObservableObject {
             fulfillmentType: order.fulfillmentType,
             deliveryAddress: order.deliveryAddress,
             cakeNotes: order.cakeNotes,
+            cakeMessage: order.cakeMessage,
             quotedPrice: order.quotedPrice,
             depositPaid: depositPaid ?? order.depositPaid,
             paymentNotes: order.paymentNotes,
@@ -841,6 +847,7 @@ final class OrderListViewModel: ObservableObject {
         draftFulfillmentType = .pickup
         draftDeliveryAddress = ""
         draftCakeNotes = ""
+        draftCakeMessage = ""
         draftQuotedPrice = ""
         draftDepositPaid = ""
         draftPaymentNotes = ""
