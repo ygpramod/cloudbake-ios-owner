@@ -56,9 +56,17 @@ extension CloudBakeOwnerUITests {
             file: file,
             line: line
         )
-        scrollToHittable(destinationButton, in: app, timeout: timeout, file: file, line: line)
-        tapWhenReady(destinationButton, timeout: timeout, file: file, line: line)
-        assertScreenVisible(screenIdentifier, in: app, timeout: timeout, file: file, line: line)
+        let navigationDeadline = Date().addingTimeInterval(timeout)
+        repeat {
+            scrollToHittable(destinationButton, in: app, timeout: timeout, file: file, line: line)
+            tapWhenReady(destinationButton, timeout: timeout, file: file, line: line)
+
+            if app.descendants(matching: .any)[screenIdentifier].waitForExistence(timeout: 3) {
+                return
+            }
+        } while Date() < navigationDeadline
+
+        assertScreenVisible(screenIdentifier, in: app, timeout: 1, file: file, line: line)
     }
 
     func assertDashboardVisible(
@@ -120,14 +128,17 @@ extension CloudBakeOwnerUITests {
         let nameField = app.textFields["inventory.form.name"]
         scrollToHittable(nameField, in: app, timeout: timeout)
         typeText(name, into: nameField, timeout: timeout)
+        dismissKeyboard(in: app)
 
         let currentQuantityField = app.textFields["inventory.form.currentQuantity"]
         scrollToHittable(currentQuantityField, in: app, timeout: timeout)
         typeText(currentQuantity, into: currentQuantityField, timeout: timeout)
+        dismissKeyboard(in: app)
 
         let minimumQuantityField = app.textFields["inventory.form.minimumQuantity"]
         scrollToHittable(minimumQuantityField, in: app, timeout: timeout)
         typeText(minimumQuantity, into: minimumQuantityField, timeout: timeout)
+        dismissKeyboard(in: app)
 
         let saveButton = app.buttons["inventory.form.save"]
         scrollToHittable(saveButton, in: app, timeout: timeout)
