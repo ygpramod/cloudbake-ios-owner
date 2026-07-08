@@ -45,6 +45,9 @@ This slice does not include:
 - Second-level screens must not show a custom back button.
 - The iOS left-edge back gesture must use the platform interactive behavior and return the owner to
   the previous screen, even though CloudBake hides the standard navigation bar chrome.
+- The app should keep only a short section history of roughly two to three previous pages. Tapping
+  a section that is already in that recent history should pop back to it instead of pushing a
+  duplicate screen.
 - The implementation must avoid duplicating styling rules across feature screens.
 
 ## Design

@@ -4,6 +4,7 @@ struct RootView: View {
     let database: AppDatabase
     @Environment(\.scenePhase) private var scenePhase
     @State private var navigationPath: [AppDestination] = []
+    private let maximumSectionHistoryCount = 4
 
     private var selectedDestination: AppDestination {
         navigationPath.last ?? .dashboard
@@ -48,7 +49,15 @@ struct RootView: View {
             return
         }
 
+        if let existingIndex = navigationPath.firstIndex(of: destination) {
+            navigationPath = Array(navigationPath.prefix(through: existingIndex))
+            return
+        }
+
         navigationPath.append(destination)
+        if navigationPath.count > maximumSectionHistoryCount {
+            navigationPath.removeFirst(navigationPath.count - maximumSectionHistoryCount)
+        }
     }
 
     @ViewBuilder
