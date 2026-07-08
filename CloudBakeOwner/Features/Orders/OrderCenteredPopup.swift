@@ -145,6 +145,38 @@ func centeredPopupButton(
     .foregroundStyle(role == .destructive ? Color.red : Color.primary)
 }
 
+func centeredPopupSelectionButton(
+    _ title: String,
+    isSelected: Bool,
+    action: @escaping () -> Void
+) -> some View {
+    Button(action: action) {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.body.weight(isSelected ? .semibold : .medium))
+
+            Spacer(minLength: 12)
+
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.body.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+        .padding(.horizontal, 14)
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+    .buttonStyle(.plain)
+    .foregroundStyle(isSelected ? Color.cloudBakePink : Color.primary)
+    .background(
+        Color.cloudBakePink.opacity(isSelected ? 0.12 : 0),
+        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+    )
+    .accessibilityValue(isSelected ? "Selected" : "")
+    .accessibilityAddTraits(isSelected ? .isSelected : [])
+}
+
 func centeredPopupPillButton(
     _ title: String,
     action: @escaping () -> Void
