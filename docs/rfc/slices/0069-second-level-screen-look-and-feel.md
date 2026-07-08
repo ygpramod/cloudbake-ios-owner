@@ -40,6 +40,8 @@ This slice does not include:
 - The bottom navigation must preserve the Home, Orders, Inventory, and Designs quick links.
 - Second-level screens must be pushed from Home with the platform right-to-left navigation
   animation.
+- Moving between second-level screens must use the same platform push animation instead of an
+  abrupt replacement.
 - Second-level screens must not show a custom back button.
 - The iOS left-edge back gesture must use the platform interactive behavior and return the owner to
   Home.
