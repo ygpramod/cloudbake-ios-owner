@@ -5,6 +5,7 @@ import Foundation
 final class InventoryListViewModel: ObservableObject {
     @Published private(set) var items: [InventoryItem] = []
     @Published private(set) var archivedItems: [InventoryItem] = []
+    @Published var searchText = ""
     @Published var draftName = ""
     @Published var draftUnit: InventoryUnit = .gram
     @Published var draftCurrentQuantity = ""
@@ -48,6 +49,22 @@ final class InventoryListViewModel: ObservableObject {
         self.dateProvider = dateProvider
         self.draftExpiryDate = defaultExpiryDate()
         self.draftAdjustmentExpiryDate = defaultExpiryDate()
+    }
+
+    var visibleItems: [InventoryItem] {
+        let query = TextInputFormatting.normalizedSearchKey(searchText)
+        guard !query.isEmpty else {
+            return items
+        }
+
+        return items.filter { item in
+            [
+                item.name,
+                item.unit.displayName
+            ]
+                .map(TextInputFormatting.normalizedSearchKey)
+                .contains { $0.contains(query) }
+        }
     }
 
     func load() {

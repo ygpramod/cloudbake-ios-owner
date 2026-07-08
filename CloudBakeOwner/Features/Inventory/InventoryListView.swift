@@ -49,9 +49,22 @@ struct InventoryListView: View {
                     message: "Add ingredients and supplies as you stock the kitchen."
                 )
             } else {
+                CloudBakeSearchField(
+                    text: $viewModel.searchText,
+                    prompt: "Search inventory",
+                    accessibilityIdentifier: "inventory.search"
+                )
+
+                if viewModel.visibleItems.isEmpty {
+                    CloudBakeEmptyState(
+                        title: "No matching inventory",
+                        systemImage: "magnifyingglass",
+                        message: "Try another ingredient or unit name."
+                    )
+                } else {
                 CloudBakeSection("Items") {
                     VStack(spacing: 16) {
-                    ForEach(viewModel.items, id: \.id) { item in
+                    ForEach(viewModel.visibleItems, id: \.id) { item in
                         VStack(alignment: .leading, spacing: 14) {
                             Button {
                                 viewModel.beginViewingItem(item)
@@ -109,6 +122,7 @@ struct InventoryListView: View {
                         .cloudBakeCardStyle()
                     }
                     }
+                }
                 }
             }
         }
