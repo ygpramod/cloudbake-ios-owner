@@ -38,6 +38,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         openDashboardDestination("Settings", in: app)
 
+        XCTAssertTrue(app.buttons["settings.currency"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["settings.inventory.import"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["settings.inventory.export"].waitForExistence(timeout: 5))
     }

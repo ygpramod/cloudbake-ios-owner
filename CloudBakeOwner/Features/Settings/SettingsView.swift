@@ -52,6 +52,7 @@ final class SettingsViewModel: ObservableObject {
 
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
+    @AppStorage(AppSettings.currencySymbolKey) private var selectedCurrencySymbol = AppCurrency.defaultCurrency.symbol
     @State private var isImportingInventory = false
     @State private var isExportingInventory = false
     @State private var exportDocument = InventoryCSVDocument()
@@ -65,6 +66,18 @@ struct SettingsView: View {
             title: "Settings",
             selectedDestination: .settings
         ) {
+            CloudBakeSection("Pricing") {
+                CloudBakeDetailCard {
+                    Picker("Currency", selection: $selectedCurrencySymbol) {
+                        ForEach(AppCurrency.allCases, id: \.rawValue) { currency in
+                            Text(currency.displayName).tag(currency.symbol)
+                        }
+                    }
+                    .accessibilityIdentifier("settings.currency")
+                    .padding(.vertical, 8)
+                }
+            }
+
             CloudBakeSection("Inventory Data") {
                 CloudBakeDetailCard {
                     settingsAction(

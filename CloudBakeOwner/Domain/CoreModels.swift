@@ -1,5 +1,46 @@
 import Foundation
 
+enum AppCurrency: String, CaseIterable, Equatable {
+    case usDollar = "$"
+    case indianRupee = "₹"
+    case britishPound = "£"
+    case malaysianRinggit = "RM"
+
+    static let defaultCurrency: AppCurrency = .usDollar
+
+    var symbol: String {
+        rawValue
+    }
+
+    var displayName: String {
+        switch self {
+        case .usDollar:
+            return "$ US Dollar"
+        case .indianRupee:
+            return "₹ Indian Rupee"
+        case .britishPound:
+            return "£ British Pound"
+        case .malaysianRinggit:
+            return "RM Malaysian Ringgit"
+        }
+    }
+}
+
+enum AppSettings {
+    static let currencySymbolKey = "cloudbake.currencySymbol"
+
+    static var currency: AppCurrency {
+        AppCurrency(rawValue: UserDefaults.standard.string(forKey: currencySymbolKey) ?? "")
+            ?? AppCurrency.defaultCurrency
+    }
+}
+
+enum MoneyDisplay {
+    static func formatted(_ amount: Decimal, currency: AppCurrency = AppSettings.currency) -> String {
+        "\(currency.symbol)\(NSDecimalNumber(decimal: amount).stringValue)"
+    }
+}
+
 enum InventoryUnit: String, Equatable {
     case kilogram
     case gram

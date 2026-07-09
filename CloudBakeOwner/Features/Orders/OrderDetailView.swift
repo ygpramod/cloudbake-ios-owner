@@ -691,7 +691,7 @@ struct OrderDetailView: View {
     }
 
     private func formattedMoney(_ amount: Decimal) -> String {
-        "$\(NSDecimalNumber(decimal: amount).stringValue)"
+        MoneyDisplay.formatted(amount)
     }
 }
 
