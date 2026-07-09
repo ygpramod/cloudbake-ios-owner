@@ -11,6 +11,9 @@
 		410000000000000000000002 /* AppDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000002 /* AppDestination.swift */; };
 		410000000000000000000003 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000003 /* RootView.swift */; };
 		410000000000000000000080 /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000080 /* AppNavigation.swift */; };
+		410000000000000000000081 /* InventoryCSVService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000081 /* InventoryCSVService.swift */; };
+		410000000000000000000082 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000082 /* SettingsView.swift */; };
+		410000000000000000000083 /* InventoryCSVServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000083 /* InventoryCSVServiceTests.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -145,6 +148,9 @@
 		420000000000000000000001 /* CloudBakeOwnerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerApp.swift; sourceTree = "<group>"; };
 		420000000000000000000002 /* AppDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestination.swift; sourceTree = "<group>"; };
 		420000000000000000000080 /* AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigation.swift; sourceTree = "<group>"; };
+		420000000000000000000081 /* InventoryCSVService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCSVService.swift; sourceTree = "<group>"; };
+		420000000000000000000082 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		420000000000000000000083 /* InventoryCSVServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCSVServiceTests.swift; sourceTree = "<group>"; };
 		420000000000000000000003 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		420000000000000000000004 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		420000000000000000000005 /* PlaceholderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderScreen.swift; sourceTree = "<group>"; };
@@ -335,6 +341,7 @@
 				45000000000000000000001E /* Orders */,
 				450000000000000000000006 /* Placeholder */,
 				45000000000000000000001A /* Recipes */,
+				450000000000000000000021 /* Settings */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -354,6 +361,15 @@
 				420000000000000000000005 /* PlaceholderScreen.swift */,
 			);
 			path = Placeholder;
+			sourceTree = "<group>";
+		};
+		450000000000000000000021 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000081 /* InventoryCSVService.swift */,
+				420000000000000000000082 /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		450000000000000000000020 /* SharedUI */ = {
@@ -519,6 +535,7 @@
 				450000000000000000000017 /* Inventory */,
 				45000000000000000000001F /* Orders */,
 				45000000000000000000001B /* Recipes */,
+				450000000000000000000022 /* Settings */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -553,6 +570,14 @@
 				420000000000000000000076 /* RecipeListViewModelTestSupport.swift */,
 			);
 			path = Recipes;
+			sourceTree = "<group>";
+		};
+		450000000000000000000022 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000083 /* InventoryCSVServiceTests.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		45000000000000000000001D /* Customers */ = {
@@ -813,6 +838,8 @@
 				41000000000000000000006A /* RecipeImportDraftValidation.swift in Sources */,
 				410000000000000000000020 /* RecipeListView.swift in Sources */,
 				410000000000000000000021 /* RecipeListViewModel.swift in Sources */,
+				410000000000000000000081 /* InventoryCSVService.swift in Sources */,
+				410000000000000000000082 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -852,6 +879,7 @@
 				41000000000000000000006F /* RecipeImportViewModelTests.swift in Sources */,
 				410000000000000000000022 /* RecipeListViewModelTests.swift in Sources */,
 				41000000000000000000006E /* RecipeListViewModelTestSupport.swift in Sources */,
+				410000000000000000000083 /* InventoryCSVServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

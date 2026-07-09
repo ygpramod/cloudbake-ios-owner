@@ -181,6 +181,13 @@ private final class FakeExpiryReminderRepository: InventoryItemRepository, Inven
 
     func deleteBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}
 
+    func replaceInventoryStock(item: InventoryItem, batches: [InventoryStockBatch]) throws {
+        items.removeAll { $0.id == item.id }
+        items.append(item)
+        self.batches.removeAll { $0.inventoryItemId == item.id }
+        self.batches.append(contentsOf: batches)
+    }
+
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
         batches.filter { $0.inventoryItemId == inventoryItemId }
     }

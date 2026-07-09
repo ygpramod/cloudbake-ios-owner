@@ -111,6 +111,12 @@ final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTrans
         batches.removeAll { $0.id == batch.id }
     }
 
+    func replaceInventoryStock(item: InventoryItem, batches: [InventoryStockBatch]) throws {
+        try save(item)
+        self.batches.removeAll { $0.inventoryItemId == item.id }
+        self.batches.append(contentsOf: batches)
+    }
+
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
         batches
             .filter { $0.inventoryItemId == inventoryItemId }

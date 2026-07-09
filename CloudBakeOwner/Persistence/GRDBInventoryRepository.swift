@@ -109,6 +109,19 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func replaceInventoryStock(item: InventoryItem, batches: [InventoryStockBatch]) throws {
+        try writer.write { db in
+            try save(item, in: db)
+            try db.execute(
+                sql: "DELETE FROM inventory_stock_batches WHERE inventory_item_id = ?",
+                arguments: [item.id]
+            )
+            for batch in batches {
+                try save(batch, in: db)
+            }
+        }
+    }
+
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
         try writer.read { db in
             try Row.fetchAll(
