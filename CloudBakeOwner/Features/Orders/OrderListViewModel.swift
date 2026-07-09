@@ -67,6 +67,18 @@ final class OrderListViewModel: ObservableObject {
         presentation.completedOrders(from: orders)
     }
 
+    var overdueAlert: OrderOverdueAlert? {
+        presentation.primaryOverdueAlert(from: orders)
+    }
+
+    func order(id: String) -> Order? {
+        orders.first { $0.id == id }
+    }
+
+    func isOverdue(_ order: Order) -> Bool {
+        presentation.isOverdue(order)
+    }
+
     var selectedCustomerReferencePhotos: [OrderPhoto] {
         presentation.customerReferencePhotos(from: selectedOrderPhotos)
     }

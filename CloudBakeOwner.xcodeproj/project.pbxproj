@@ -41,6 +41,7 @@
 		41000000000000000000001C /* PurchaseBillTextRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000024 /* PurchaseBillTextRecognizer.swift */; };
 		41000000000000000000001D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000025 /* Assets.xcassets */; };
 		41000000000000000000001E /* ExpiryReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000026 /* ExpiryReminderScheduler.swift */; };
+		4100000000000000000000AD /* OrderNotificationRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000AD /* OrderNotificationRouter.swift */; };
 		41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000027 /* ExpiryReminderSchedulerTests.swift */; };
 		410000000000000000000020 /* RecipeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000028 /* RecipeListView.swift */; };
 		410000000000000000000021 /* RecipeListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000029 /* RecipeListViewModel.swift */; };
@@ -199,6 +200,7 @@
 		420000000000000000000036 /* OrderDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDisplay.swift; sourceTree = "<group>"; };
 		420000000000000000000037 /* OrderConsumerPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderConsumerPreview.swift; sourceTree = "<group>"; };
 		420000000000000000000038 /* OrderReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderReminderScheduler.swift; sourceTree = "<group>"; };
+		4200000000000000000000AD /* OrderNotificationRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderNotificationRouter.swift; sourceTree = "<group>"; };
 		420000000000000000000039 /* OrderStateRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderStateRules.swift; sourceTree = "<group>"; };
 		42000000000000000000003A /* OrderReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/OrderReminderSchedulerTests.swift; sourceTree = "<group>"; };
 		42000000000000000000003B /* OrderPhotoFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoFileStore.swift; sourceTree = "<group>"; };
@@ -324,6 +326,7 @@
 				42000000000000000000004F /* CameraImagePickerView.swift */,
 				420000000000000000000001 /* CloudBakeOwnerApp.swift */,
 				420000000000000000000026 /* ExpiryReminderScheduler.swift */,
+				4200000000000000000000AD /* OrderNotificationRouter.swift */,
 				420000000000000000000038 /* OrderReminderScheduler.swift */,
 				420000000000000000000067 /* PhotoPickerImageLoader.swift */,
 				420000000000000000000024 /* PurchaseBillTextRecognizer.swift */,
@@ -770,6 +773,7 @@
 				410000000000000000000004 /* DashboardView.swift in Sources */,
 				410000000000000000000015 /* DashboardViewModel.swift in Sources */,
 				41000000000000000000001E /* ExpiryReminderScheduler.swift in Sources */,
+				4100000000000000000000AD /* OrderNotificationRouter.swift in Sources */,
 				410000000000000000000030 /* OrderReminderScheduler.swift in Sources */,
 				410000000000000000000005 /* PlaceholderScreen.swift in Sources */,
 				410000000000000000000075 /* CloudBakeScreenStyle.swift in Sources */,

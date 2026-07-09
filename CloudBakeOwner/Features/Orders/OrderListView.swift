@@ -3,6 +3,7 @@ import SwiftUI
 struct OrderListView: View {
     @StateObject private var viewModel: OrderListViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
     @State private var orderScope: OrderScope = .active
@@ -61,6 +62,10 @@ struct OrderListView: View {
         }
         .onAppear {
             viewModel.load()
+            openPendingNotificationOrder()
+        }
+        .onChange(of: orderNotificationRouter.pendingOrderId) { _, _ in
+            openPendingNotificationOrder()
         }
         .accessibilityIdentifier(AppDestination.orders.screenAccessibilityIdentifier)
     }
@@ -169,6 +174,10 @@ struct OrderListView: View {
 
     private var orderScopeContent: some View {
         VStack(alignment: .leading, spacing: 26) {
+            if let overdueAlert = viewModel.overdueAlert {
+                overdueBanner(overdueAlert)
+            }
+
             CloudBakeSection {
                 Picker("Order Status", selection: $orderScope) {
                     ForEach(OrderScope.allCases, id: \.self) { scope in
@@ -247,6 +256,7 @@ struct OrderListView: View {
         OrderRow(
             order: order,
             dueDateDisplay: dueDateDisplay,
+            isOverdue: viewModel.isOverdue(order),
             onChangeStatus: {
                 orderSelectingStatus = order
             },
@@ -259,11 +269,35 @@ struct OrderListView: View {
         )
     }
 
+    private func overdueBanner(_ alert: OrderOverdueAlert) -> some View {
+        Button {
+            openOrder(alert.order)
+        } label: {
+            Label(alert.message, systemImage: "clock.badge.exclamationmark")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.cloudBakePink)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(Color.cloudBakePink.opacity(0.10), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("orders.overdue.banner")
+    }
+
     private func openOrder(_ order: Order) {
         viewModel.beginViewingOrder(order)
         if horizontalSizeClass != .regular {
             isViewingOrder = true
         }
+    }
+
+    private func openPendingNotificationOrder() {
+        guard let orderId = orderNotificationRouter.consumePendingOrderId(),
+              let order = viewModel.order(id: orderId) else {
+            return
+        }
+
+        openOrder(order)
     }
 
     private var orderScopeSwipeGesture: some Gesture {

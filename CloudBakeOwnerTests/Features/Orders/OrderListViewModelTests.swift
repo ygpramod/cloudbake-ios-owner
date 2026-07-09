@@ -206,6 +206,48 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.nextReminder(for: order), viewModel.reminderPlan(for: order)[2])
     }
 
+    func testOverdueAlertUsesDueTimeForSameDayAndExcludesCompletedOrders() {
+        let repository = FakeOrderRepository()
+        let calendar = utcCalendar()
+        let now = calendar.date(from: DateComponents(year: 2027, month: 2, day: 10, hour: 19))!
+        let dueAt = calendar.date(from: DateComponents(year: 2027, month: 2, day: 10, hour: 18))!
+        let order = makeOrder(id: "order-overdue", title: "Birthday Cake", status: .confirmed, dueAt: dueAt)
+        repository.orders = [
+            makeOrder(id: "order-completed", title: "Done Cake", status: .completed, dueAt: dueAt),
+            order
+        ]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { now },
+            calendar: calendar
+        )
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.overdueAlert?.order.id, order.id)
+        XCTAssertEqual(viewModel.overdueAlert?.message, "Birthday Cake was due at \(dueAt.formatted(date: .omitted, time: .shortened)), update status?")
+        XCTAssertTrue(viewModel.isOverdue(order))
+    }
+
+    func testOverdueAlertUsesOverdueMessageAfterDueDayPasses() {
+        let repository = FakeOrderRepository()
+        let calendar = utcCalendar()
+        let now = calendar.date(from: DateComponents(year: 2027, month: 2, day: 11, hour: 8))!
+        let dueAt = calendar.date(from: DateComponents(year: 2027, month: 2, day: 10, hour: 18))!
+        repository.orders = [
+            makeOrder(id: "order-overdue", title: "Birthday Cake", status: .confirmed, dueAt: dueAt)
+        ]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { now },
+            calendar: calendar
+        )
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.overdueAlert?.message, "Birthday Cake is overdue. Update status?")
+    }
+
     func testAddOrderPersistsRequiredAndOptionalFields() {
         let repository = FakeOrderRepository()
         let now = Date(timeIntervalSince1970: 1_800_060_000)
