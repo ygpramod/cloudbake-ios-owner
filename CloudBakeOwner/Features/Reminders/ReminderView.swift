@@ -332,7 +332,7 @@ private struct PaymentDueReminderRow: View {
                     CloudBakeInlineActionButton(
                         title: "WhatsApp Reminder",
                         systemImage: "message",
-                        tint: .cloudBakeTeal,
+                        tint: .cloudBakePink,
                         accessibilityIdentifier: "reminders.paymentDue.whatsapp.\(item.id)",
                         prominence: .prominent,
                         action: onWhatsAppReminder
@@ -342,7 +342,7 @@ private struct PaymentDueReminderRow: View {
                 CloudBakeInlineActionButton(
                     title: "Mark as Paid",
                     systemImage: "checkmark.circle",
-                    tint: .cloudBakeMint,
+                    tint: .cloudBakePink,
                     accessibilityIdentifier: "reminders.paymentDue.markPaid.\(item.id)",
                     prominence: .prominent,
                     action: onMarkPaid
