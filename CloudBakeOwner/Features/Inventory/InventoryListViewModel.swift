@@ -11,6 +11,7 @@ final class InventoryListViewModel: ObservableObject {
     @Published var draftCurrentQuantity = ""
     @Published var draftMinimumQuantity = ""
     @Published var draftExpiryDate = Date()
+    @Published var draftUnitCost = ""
     @Published var errorMessage: String?
     @Published var duplicateWarningMessage: String?
     @Published private(set) var selectedItem: InventoryItem?
@@ -19,10 +20,12 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var editingBatch: InventoryStockBatch?
     @Published var draftBatchQuantity = ""
     @Published var draftBatchExpiryDate = Date()
+    @Published var draftBatchUnitCost = ""
     @Published private(set) var adjustingItem: InventoryItem?
     @Published var draftAdjustmentQuantity = ""
     @Published var draftAdjustmentUnit: InventoryUnit = .gram
     @Published var draftAdjustmentExpiryDate = Date()
+    @Published var draftAdjustmentUnitCost = ""
     @Published var draftAdjustmentNote = ""
     @Published private(set) var consumingItem: InventoryItem?
     @Published var draftConsumptionQuantity = ""
@@ -104,6 +107,9 @@ final class InventoryListViewModel: ObservableObject {
         guard let quantities = validatedDraftQuantities() else {
             return false
         }
+        guard let unitCost = validatedUnitCost(from: draftUnitCost) else {
+            return false
+        }
 
         let now = dateProvider()
         let item = InventoryItem(
@@ -125,6 +131,7 @@ final class InventoryListViewModel: ObservableObject {
                         inventoryItemId: item.id,
                         remainingQuantity: quantities.current,
                         expiresAt: draftExpiryDate,
+                        unitCost: unitCost,
                         createdAt: now,
                         updatedAt: now
                     )
@@ -146,6 +153,7 @@ final class InventoryListViewModel: ObservableObject {
         draftCurrentQuantity = item.currentQuantity.formatted()
         draftMinimumQuantity = item.minimumQuantity.formatted()
         draftExpiryDate = item.earliestExpiryAt ?? defaultExpiryDate()
+        draftUnitCost = ""
         errorMessage = nil
         duplicateWarningMessage = nil
         acknowledgedDuplicateNameKey = nil
@@ -242,6 +250,7 @@ final class InventoryListViewModel: ObservableObject {
         editingBatch = batch
         draftBatchQuantity = batch.remainingQuantity.formatted()
         draftBatchExpiryDate = batch.expiresAt ?? defaultExpiryDate()
+        draftBatchUnitCost = TextInputFormatting.decimalText(batch.unitCost)
         errorMessage = nil
     }
 
@@ -258,6 +267,9 @@ final class InventoryListViewModel: ObservableObject {
 
         guard let remainingQuantity = parsedQuantity(from: draftBatchQuantity), remainingQuantity >= 0 else {
             errorMessage = "Batch quantity must be zero or greater."
+            return false
+        }
+        guard let unitCost = validatedUnitCost(from: draftBatchUnitCost) else {
             return false
         }
 
@@ -285,6 +297,7 @@ final class InventoryListViewModel: ObservableObject {
             inventoryItemId: editingBatch.inventoryItemId,
             remainingQuantity: remainingQuantity,
             expiresAt: draftBatchExpiryDate,
+            unitCost: unitCost,
             createdAt: editingBatch.createdAt,
             updatedAt: now
         )
@@ -392,6 +405,7 @@ final class InventoryListViewModel: ObservableObject {
         draftAdjustmentQuantity = ""
         draftAdjustmentUnit = item.unit
         draftAdjustmentExpiryDate = defaultExpiryDate()
+        draftAdjustmentUnitCost = ""
         draftAdjustmentNote = ""
         errorMessage = nil
     }
@@ -403,6 +417,7 @@ final class InventoryListViewModel: ObservableObject {
             quantityText: draftAdjustmentQuantity,
             unit: draftAdjustmentUnit,
             expiresAt: draftAdjustmentExpiryDate,
+            unitCostText: draftAdjustmentUnitCost,
             note: draftAdjustmentNote,
             now: now,
             itemIdProvider: idGenerator
@@ -419,7 +434,7 @@ final class InventoryListViewModel: ObservableObject {
 
         do {
             try repository.save(plan.updatedItem)
-            try repository.save(plan.batch)
+            try saveOrCombineStockBatch(plan.batch, updatedAt: now)
             try repository.save(plan.transaction)
             resetAdjustmentDraft()
             load()
@@ -593,6 +608,7 @@ final class InventoryListViewModel: ObservableObject {
                             inventoryItemId: existingItem.id,
                             remainingQuantity: itemQuantity,
                             expiresAt: draft.expiryDate,
+                            unitCost: nil,
                             createdAt: now,
                             updatedAt: now
                         )
@@ -621,6 +637,7 @@ final class InventoryListViewModel: ObservableObject {
                         inventoryItemId: itemId,
                         remainingQuantity: currentQuantity,
                         expiresAt: draft.expiryDate,
+                        unitCost: nil,
                         createdAt: now,
                         updatedAt: now
                     )
@@ -634,7 +651,7 @@ final class InventoryListViewModel: ObservableObject {
                 try repository.save(item)
             }
             for batch in batchesToSave {
-                try repository.save(batch)
+                try saveOrCombineStockBatch(batch, updatedAt: now)
             }
             errorMessage = nil
             load()
@@ -775,6 +792,7 @@ final class InventoryListViewModel: ObservableObject {
         draftCurrentQuantity = ""
         draftMinimumQuantity = ""
         draftExpiryDate = defaultExpiryDate()
+        draftUnitCost = ""
         errorMessage = nil
         duplicateWarningMessage = nil
         acknowledgedDuplicateNameKey = nil
@@ -785,6 +803,7 @@ final class InventoryListViewModel: ObservableObject {
         editingBatch = nil
         draftBatchQuantity = ""
         draftBatchExpiryDate = defaultExpiryDate()
+        draftBatchUnitCost = ""
         errorMessage = nil
     }
 
@@ -793,6 +812,7 @@ final class InventoryListViewModel: ObservableObject {
         draftAdjustmentQuantity = ""
         draftAdjustmentUnit = .gram
         draftAdjustmentExpiryDate = defaultExpiryDate()
+        draftAdjustmentUnitCost = ""
         draftAdjustmentNote = ""
         errorMessage = nil
     }
@@ -856,11 +876,64 @@ final class InventoryListViewModel: ObservableObject {
                 inventoryItemId: batch.inventoryItemId,
                 remainingQuantity: batch.remainingQuantity - quantityFromBatch,
                 expiresAt: batch.expiresAt,
+                unitCost: batch.unitCost,
                 createdAt: batch.createdAt,
                 updatedAt: updatedAt
             )
             try repository.save(updatedBatch)
             remainingQuantityToUse -= quantityFromBatch
+        }
+    }
+
+    private func validatedUnitCost(from text: String) -> Decimal?? {
+        let trimmed = TextInputFormatting.trimmed(text)
+        guard !trimmed.isEmpty else {
+            return .some(nil)
+        }
+
+        guard let amount = Decimal(string: trimmed), amount >= 0 else {
+            errorMessage = "Unit cost must be zero or greater."
+            duplicateWarningMessage = nil
+            return nil
+        }
+
+        return .some(amount)
+    }
+
+    private func saveOrCombineStockBatch(_ batch: InventoryStockBatch, updatedAt: Date) throws {
+        let batches = try repository.fetchInventoryStockBatches(inventoryItemId: batch.inventoryItemId)
+        if let existingBatch = batches.first(where: { canCombineStockBatch($0, with: batch) }) {
+            try repository.save(
+                InventoryStockBatch(
+                    id: existingBatch.id,
+                    inventoryItemId: existingBatch.inventoryItemId,
+                    remainingQuantity: existingBatch.remainingQuantity + batch.remainingQuantity,
+                    expiresAt: existingBatch.expiresAt,
+                    unitCost: existingBatch.unitCost,
+                    createdAt: existingBatch.createdAt,
+                    updatedAt: updatedAt
+                )
+            )
+            return
+        }
+
+        try repository.save(batch)
+    }
+
+    private func canCombineStockBatch(_ left: InventoryStockBatch, with right: InventoryStockBatch) -> Bool {
+        left.inventoryItemId == right.inventoryItemId
+            && sameExpiryDate(left.expiresAt, right.expiresAt)
+            && left.unitCost == right.unitCost
+    }
+
+    private func sameExpiryDate(_ left: Date?, _ right: Date?) -> Bool {
+        switch (left, right) {
+        case (.none, .none):
+            return true
+        case (.some(let left), .some(let right)):
+            return Calendar.current.isDate(left, inSameDayAs: right)
+        case (.none, .some), (.some, .none):
+            return false
         }
     }
 }

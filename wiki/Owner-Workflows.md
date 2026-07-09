@@ -116,6 +116,10 @@ as kg for a flour item stored in grams or liters for a cream item stored in ml.
 Each adjustment also captures an expiry date and creates a separate stock batch. This keeps older
 and newer stock distinct when their expiry dates differ.
 
+Each adjustment can also capture an optional unit cost. If the added stock has the same expiry date
+and unit cost as an existing batch, CloudBake combines the quantities. If either differs, CloudBake
+keeps a separate stock batch.
+
 ## Use Stock
 
 Use stock consumption when stock decreases manually.
@@ -246,6 +250,14 @@ action tint, so create, edit, import, and correction flows feel connected to the
 without losing predictable keyboard, picker, and save/cancel behavior.
 
 CloudBake currently uses light appearance only while the owner app design is hardened for dark mode.
+
+## Settings Workflow
+
+Use Settings for app-wide owner preferences and data tools.
+
+The owner can choose the money display symbol from `$`, `₹`, `£`, and `RM`. This changes local
+display for order prices, payments, balances, and inventory unit cost. It does not convert stored
+amounts or apply exchange rates.
 
 ## Order Workflow
 

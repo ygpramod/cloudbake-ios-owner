@@ -15,6 +15,7 @@ struct InventoryStockConsumptionPlan {
 enum InventoryStockOperationError: Error, Equatable {
     case missingItem
     case invalidQuantity(String)
+    case invalidUnitCost
     case incompatibleUnit(String)
     case insufficientStock
 
@@ -24,6 +25,8 @@ enum InventoryStockOperationError: Error, Equatable {
             return "Inventory item could not be found."
         case .invalidQuantity(let label):
             return "\(label) quantity must be greater than zero."
+        case .invalidUnitCost:
+            return "Unit cost must be zero or greater."
         case .incompatibleUnit(let label):
             return "\(label) unit must be compatible with the inventory item unit."
         case .insufficientStock:
@@ -38,6 +41,7 @@ enum InventoryStockOperation {
         quantityText: String,
         unit: InventoryUnit,
         expiresAt: Date,
+        unitCostText: String,
         note: String,
         now: Date,
         itemIdProvider: () -> String
@@ -51,6 +55,9 @@ enum InventoryStockOperation {
         guard let itemQuantity = unit.convertedQuantity(quantity, to: item.unit) else {
             return .failure(.incompatibleUnit("Adjustment"))
         }
+        guard let unitCost = optionalMoneyAmount(from: unitCostText) else {
+            return .failure(.invalidUnitCost)
+        }
 
         let updatedItem = copy(item, currentQuantity: item.currentQuantity + itemQuantity, updatedAt: now)
         let batch = InventoryStockBatch(
@@ -58,6 +65,7 @@ enum InventoryStockOperation {
             inventoryItemId: item.id,
             remainingQuantity: itemQuantity,
             expiresAt: expiresAt,
+            unitCost: unitCost,
             createdAt: now,
             updatedAt: now
         )
@@ -124,6 +132,19 @@ enum InventoryStockOperation {
         }
 
         return quantity
+    }
+
+    static func optionalMoneyAmount(from text: String) -> Decimal?? {
+        let trimmed = TextInputFormatting.trimmed(text)
+        guard !trimmed.isEmpty else {
+            return .some(nil)
+        }
+
+        guard let amount = Decimal(string: trimmed), amount >= 0 else {
+            return nil
+        }
+
+        return .some(amount)
     }
 
     private static func copy(

@@ -46,13 +46,14 @@ Inventory CSV columns:
 3. `current_quantity`
 4. `minimum_quantity`
 5. `batch_quantity`
-6. `expiry_date`
+6. `unit_cost`
+7. `expiry_date`
 
 Export writes one row per stock batch. If an item has no stock batches, export writes one row with
 the item current quantity as the batch quantity and a blank expiry date.
 
-Import accepts supported CloudBake units by stored value or display value. Expiry dates use
-`yyyy-MM-dd`.
+Import accepts supported CloudBake units by stored value or display value. Unit cost is optional.
+Expiry dates use `yyyy-MM-dd`.
 
 ## Implementation Notes
 

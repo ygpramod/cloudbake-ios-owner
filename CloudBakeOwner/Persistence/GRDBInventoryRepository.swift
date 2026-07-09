@@ -188,12 +188,13 @@ extension GRDBCoreDataRepository {
         try db.execute(
             sql: """
                 INSERT INTO inventory_stock_batches
-                (id, inventory_item_id, remaining_quantity, expires_at_unix_time, created_at_unix_time, updated_at_unix_time)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (id, inventory_item_id, remaining_quantity, expires_at_unix_time, unit_cost_decimal, created_at_unix_time, updated_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                 inventory_item_id = excluded.inventory_item_id,
                 remaining_quantity = excluded.remaining_quantity,
                 expires_at_unix_time = excluded.expires_at_unix_time,
+                unit_cost_decimal = excluded.unit_cost_decimal,
                 created_at_unix_time = excluded.created_at_unix_time,
                 updated_at_unix_time = excluded.updated_at_unix_time
                 """,
@@ -202,6 +203,7 @@ extension GRDBCoreDataRepository {
                 batch.inventoryItemId,
                 batch.remainingQuantity,
                 batch.expiresAt?.timeIntervalSince1970,
+                decimalString(batch.unitCost),
                 batch.createdAt.timeIntervalSince1970,
                 batch.updatedAt.timeIntervalSince1970
             ])
@@ -244,6 +246,7 @@ extension GRDBCoreDataRepository {
                     inventoryItemId: batch.inventoryItemId,
                     remainingQuantity: batch.remainingQuantity - quantityFromBatch,
                     expiresAt: batch.expiresAt,
+                    unitCost: batch.unitCost,
                     createdAt: batch.createdAt,
                     updatedAt: updatedAt
                 ),

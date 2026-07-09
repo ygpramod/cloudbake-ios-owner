@@ -263,6 +263,12 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0015_add_inventory_batch_unit_cost") { db in
+            try db.alter(table: "inventory_stock_batches") { table in
+                table.add(column: "unit_cost_decimal", .text)
+            }
+        }
+
         return migrator
     }
 }
