@@ -30,12 +30,12 @@ struct InventoryBatchForm: View {
                     .accessibilityIdentifier("inventory.batch.expiryDate")
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Unit Cost")
+                        Text("Amount")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        TextField("Unit Cost", text: $viewModel.draftBatchUnitCost)
+                        TextField("Amount", text: $viewModel.draftBatchAmount)
                             .keyboardType(.decimalPad)
-                            .accessibilityIdentifier("inventory.batch.unitCost")
+                            .accessibilityIdentifier("inventory.batch.amount")
                     }
                 }
             }
@@ -161,9 +161,9 @@ struct InventoryStockAdjustmentForm: View {
                 )
                 .accessibilityIdentifier("inventory.adjust.expiryDate")
 
-                TextField("Unit Cost", text: $viewModel.draftAdjustmentUnitCost)
+                TextField("Amount", text: $viewModel.draftAdjustmentAmount)
                     .keyboardType(.decimalPad)
-                    .accessibilityIdentifier("inventory.adjust.unitCost")
+                    .accessibilityIdentifier("inventory.adjust.amount")
 
                 TextField("Note", text: $viewModel.draftAdjustmentNote)
                     .accessibilityIdentifier("inventory.adjust.note")

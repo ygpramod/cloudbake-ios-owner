@@ -11,7 +11,7 @@ final class InventoryListViewModel: ObservableObject {
     @Published var draftCurrentQuantity = ""
     @Published var draftMinimumQuantity = ""
     @Published var draftExpiryDate = Date()
-    @Published var draftUnitCost = ""
+    @Published var draftAmount = ""
     @Published var errorMessage: String?
     @Published var duplicateWarningMessage: String?
     @Published private(set) var selectedItem: InventoryItem?
@@ -20,12 +20,12 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var editingBatch: InventoryStockBatch?
     @Published var draftBatchQuantity = ""
     @Published var draftBatchExpiryDate = Date()
-    @Published var draftBatchUnitCost = ""
+    @Published var draftBatchAmount = ""
     @Published private(set) var adjustingItem: InventoryItem?
     @Published var draftAdjustmentQuantity = ""
     @Published var draftAdjustmentUnit: InventoryUnit = .gram
     @Published var draftAdjustmentExpiryDate = Date()
-    @Published var draftAdjustmentUnitCost = ""
+    @Published var draftAdjustmentAmount = ""
     @Published var draftAdjustmentNote = ""
     @Published private(set) var consumingItem: InventoryItem?
     @Published var draftConsumptionQuantity = ""
@@ -107,7 +107,7 @@ final class InventoryListViewModel: ObservableObject {
         guard let quantities = validatedDraftQuantities() else {
             return false
         }
-        guard let unitCost = validatedUnitCost(from: draftUnitCost) else {
+        guard let amount = validatedAmount(from: draftAmount) else {
             return false
         }
 
@@ -131,7 +131,7 @@ final class InventoryListViewModel: ObservableObject {
                         inventoryItemId: item.id,
                         remainingQuantity: quantities.current,
                         expiresAt: draftExpiryDate,
-                        unitCost: unitCost,
+                        amount: amount,
                         createdAt: now,
                         updatedAt: now
                     )
@@ -153,7 +153,7 @@ final class InventoryListViewModel: ObservableObject {
         draftCurrentQuantity = item.currentQuantity.formatted()
         draftMinimumQuantity = item.minimumQuantity.formatted()
         draftExpiryDate = item.earliestExpiryAt ?? defaultExpiryDate()
-        draftUnitCost = ""
+        draftAmount = ""
         errorMessage = nil
         duplicateWarningMessage = nil
         acknowledgedDuplicateNameKey = nil
@@ -250,7 +250,7 @@ final class InventoryListViewModel: ObservableObject {
         editingBatch = batch
         draftBatchQuantity = batch.remainingQuantity.formatted()
         draftBatchExpiryDate = batch.expiresAt ?? defaultExpiryDate()
-        draftBatchUnitCost = TextInputFormatting.decimalText(batch.unitCost)
+        draftBatchAmount = TextInputFormatting.decimalText(batch.amount)
         errorMessage = nil
     }
 
@@ -269,7 +269,7 @@ final class InventoryListViewModel: ObservableObject {
             errorMessage = "Batch quantity must be zero or greater."
             return false
         }
-        guard let unitCost = validatedUnitCost(from: draftBatchUnitCost) else {
+        guard let amount = validatedAmount(from: draftBatchAmount) else {
             return false
         }
 
@@ -297,7 +297,7 @@ final class InventoryListViewModel: ObservableObject {
             inventoryItemId: editingBatch.inventoryItemId,
             remainingQuantity: remainingQuantity,
             expiresAt: draftBatchExpiryDate,
-            unitCost: unitCost,
+            amount: amount,
             createdAt: editingBatch.createdAt,
             updatedAt: now
         )
@@ -405,7 +405,7 @@ final class InventoryListViewModel: ObservableObject {
         draftAdjustmentQuantity = ""
         draftAdjustmentUnit = item.unit
         draftAdjustmentExpiryDate = defaultExpiryDate()
-        draftAdjustmentUnitCost = ""
+        draftAdjustmentAmount = ""
         draftAdjustmentNote = ""
         errorMessage = nil
     }
@@ -417,7 +417,7 @@ final class InventoryListViewModel: ObservableObject {
             quantityText: draftAdjustmentQuantity,
             unit: draftAdjustmentUnit,
             expiresAt: draftAdjustmentExpiryDate,
-            unitCostText: draftAdjustmentUnitCost,
+            amountText: draftAdjustmentAmount,
             note: draftAdjustmentNote,
             now: now,
             itemIdProvider: idGenerator
@@ -608,7 +608,7 @@ final class InventoryListViewModel: ObservableObject {
                             inventoryItemId: existingItem.id,
                             remainingQuantity: itemQuantity,
                             expiresAt: draft.expiryDate,
-                            unitCost: nil,
+                            amount: nil,
                             createdAt: now,
                             updatedAt: now
                         )
@@ -637,7 +637,7 @@ final class InventoryListViewModel: ObservableObject {
                         inventoryItemId: itemId,
                         remainingQuantity: currentQuantity,
                         expiresAt: draft.expiryDate,
-                        unitCost: nil,
+                        amount: nil,
                         createdAt: now,
                         updatedAt: now
                     )
@@ -792,7 +792,7 @@ final class InventoryListViewModel: ObservableObject {
         draftCurrentQuantity = ""
         draftMinimumQuantity = ""
         draftExpiryDate = defaultExpiryDate()
-        draftUnitCost = ""
+        draftAmount = ""
         errorMessage = nil
         duplicateWarningMessage = nil
         acknowledgedDuplicateNameKey = nil
@@ -803,7 +803,7 @@ final class InventoryListViewModel: ObservableObject {
         editingBatch = nil
         draftBatchQuantity = ""
         draftBatchExpiryDate = defaultExpiryDate()
-        draftBatchUnitCost = ""
+        draftBatchAmount = ""
         errorMessage = nil
     }
 
@@ -812,7 +812,7 @@ final class InventoryListViewModel: ObservableObject {
         draftAdjustmentQuantity = ""
         draftAdjustmentUnit = .gram
         draftAdjustmentExpiryDate = defaultExpiryDate()
-        draftAdjustmentUnitCost = ""
+        draftAdjustmentAmount = ""
         draftAdjustmentNote = ""
         errorMessage = nil
     }
@@ -876,7 +876,7 @@ final class InventoryListViewModel: ObservableObject {
                 inventoryItemId: batch.inventoryItemId,
                 remainingQuantity: batch.remainingQuantity - quantityFromBatch,
                 expiresAt: batch.expiresAt,
-                unitCost: batch.unitCost,
+                amount: batch.amount,
                 createdAt: batch.createdAt,
                 updatedAt: updatedAt
             )
@@ -885,14 +885,14 @@ final class InventoryListViewModel: ObservableObject {
         }
     }
 
-    private func validatedUnitCost(from text: String) -> Decimal?? {
+    private func validatedAmount(from text: String) -> Decimal?? {
         let trimmed = TextInputFormatting.trimmed(text)
         guard !trimmed.isEmpty else {
             return .some(nil)
         }
 
         guard let amount = Decimal(string: trimmed), amount >= 0 else {
-            errorMessage = "Unit cost must be zero or greater."
+            errorMessage = "Amount must be zero or greater."
             duplicateWarningMessage = nil
             return nil
         }
@@ -909,7 +909,7 @@ final class InventoryListViewModel: ObservableObject {
                     inventoryItemId: existingBatch.inventoryItemId,
                     remainingQuantity: existingBatch.remainingQuantity + batch.remainingQuantity,
                     expiresAt: existingBatch.expiresAt,
-                    unitCost: existingBatch.unitCost,
+                    amount: existingBatch.amount,
                     createdAt: existingBatch.createdAt,
                     updatedAt: updatedAt
                 )
@@ -923,7 +923,7 @@ final class InventoryListViewModel: ObservableObject {
     private func canCombineStockBatch(_ left: InventoryStockBatch, with right: InventoryStockBatch) -> Bool {
         left.inventoryItemId == right.inventoryItemId
             && sameExpiryDate(left.expiresAt, right.expiresAt)
-            && left.unitCost == right.unitCost
+            && left.amount == right.amount
     }
 
     private func sameExpiryDate(_ left: Date?, _ right: Date?) -> Bool {

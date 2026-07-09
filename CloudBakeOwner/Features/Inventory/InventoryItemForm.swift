@@ -42,12 +42,12 @@ struct InventoryItemForm: View {
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Unit Cost")
+                        Text("Amount")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        TextField("Unit Cost", text: $viewModel.draftUnitCost)
+                        TextField("Amount", text: $viewModel.draftAmount)
                             .keyboardType(.decimalPad)
-                            .accessibilityIdentifier("inventory.form.unitCost")
+                            .accessibilityIdentifier("inventory.form.amount")
                     }
                 }
 

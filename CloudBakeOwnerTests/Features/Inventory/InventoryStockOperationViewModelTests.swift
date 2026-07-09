@@ -155,7 +155,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
                 inventoryItemId: item.id,
                 remainingQuantity: 250,
                 expiresAt: expiry,
-                unitCost: Decimal(string: "2.50"),
+                amount: Decimal(string: "2.50"),
                 createdAt: createdAt,
                 updatedAt: createdAt
             )
@@ -170,14 +170,14 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
         viewModel.beginAdjusting(item)
         viewModel.draftAdjustmentQuantity = "100"
         viewModel.draftAdjustmentExpiryDate = expiry
-        viewModel.draftAdjustmentUnitCost = "2.50"
+        viewModel.draftAdjustmentAmount = "2.50"
 
         XCTAssertTrue(viewModel.recordStockAdjustment())
 
         XCTAssertEqual(repository.batches.count, 1)
         XCTAssertEqual(repository.batches[0].id, "batch-flour-initial")
         XCTAssertEqual(repository.batches[0].remainingQuantity, 350)
-        XCTAssertEqual(repository.batches[0].unitCost, Decimal(string: "2.50"))
+        XCTAssertEqual(repository.batches[0].amount, Decimal(string: "2.50"))
     }
 
     func testRecordStockAdjustmentKeepsSeparateBatchWhenUnitCostDiffers() {
@@ -201,7 +201,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
                 inventoryItemId: item.id,
                 remainingQuantity: 250,
                 expiresAt: expiry,
-                unitCost: Decimal(string: "2.50"),
+                amount: Decimal(string: "2.50"),
                 createdAt: createdAt,
                 updatedAt: createdAt
             )
@@ -216,13 +216,13 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
         viewModel.beginAdjusting(item)
         viewModel.draftAdjustmentQuantity = "100"
         viewModel.draftAdjustmentExpiryDate = expiry
-        viewModel.draftAdjustmentUnitCost = "3.00"
+        viewModel.draftAdjustmentAmount = "3.00"
 
         XCTAssertTrue(viewModel.recordStockAdjustment())
 
         XCTAssertEqual(repository.batches.count, 2)
         XCTAssertEqual(repository.batches.map(\.remainingQuantity), [250, 100])
-        XCTAssertEqual(repository.batches.map(\.unitCost), [Decimal(string: "2.50"), Decimal(string: "3.00")])
+        XCTAssertEqual(repository.batches.map(\.amount), [Decimal(string: "2.50"), Decimal(string: "3.00")])
     }
 
     func testRecordStockAdjustmentRefreshesSelectedItemDetailState() {

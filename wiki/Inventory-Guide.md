@@ -11,7 +11,7 @@ Inventory tracks active items with:
 3. current quantity,
 4. minimum quantity,
 5. archived state,
-6. stock batches with expiry dates and optional unit cost,
+6. stock batches with expiry dates and optional amount,
 7. transaction records for stock changes.
 
 ## Units
@@ -63,10 +63,10 @@ Expiry example:
 
 ## Stock Batches And Expiry
 
-Each new stock quantity is tracked as a batch with its own expiry date and optional unit cost.
+Each new stock quantity is tracked as a batch with its own expiry date and optional amount.
 
 When newer stock is added for the same item, the app combines it into an existing batch only when
-the expiry date and unit cost are the same. If the expiry date or unit cost differs, the app keeps a
+the expiry date and amount are the same. If the expiry date or amount differs, the app keeps a
 separate batch.
 
 When stock is used, the app deducts from the oldest-expiring batch first. After that batch reaches
@@ -86,11 +86,11 @@ The detail view shows:
 2. unit,
 3. current quantity,
 4. minimum quantity,
-5. remaining stock batches with quantity, unit cost, and expiry date.
+5. remaining stock batches with quantity, amount, and expiry date.
 
 Use the expiry table to see how much stock expires on each date.
 
-Tap a stock batch row from the expiry table to correct that batch's quantity, unit cost, or expiry
+Tap a stock batch row from the expiry table to correct that batch's quantity, amount, or expiry
 date. Use the visible delete action to delete a mistaken batch.
 
 ## Duplicate Warning
@@ -153,7 +153,7 @@ Adjustment examples:
 The adjustment unit defaults to the item's unit, but the owner can choose another compatible unit.
 For example, a flour item stored in grams can be adjusted by entering kg.
 
-The owner can enter an optional unit cost for the added stock. If the unit cost and expiry date
+The owner can enter an optional amount for the added stock. If the amount and expiry date
 match an existing batch for the same item, CloudBake combines the quantities. If either value
 differs, CloudBake keeps a separate batch.
 
@@ -179,7 +179,7 @@ stock.
 ## Stock Batch Editing
 
 Open an inventory item to review its remaining stock batches. Selecting a batch allows the owner to
-edit remaining quantity, unit cost, and expiry date.
+edit remaining quantity, amount, and expiry date.
 
 Changing a batch quantity also updates the inventory item's current quantity by the same difference.
 For example, changing a flour batch from `250 g` to `300 g` increases current stock by `50 g`.
@@ -215,12 +215,12 @@ CSV export includes active inventory items and their stock batches. Each row inc
 3. current quantity,
 4. minimum quantity,
 5. batch quantity,
-6. unit cost,
+6. amount,
 7. expiry date.
 
 CSV import creates new active inventory items or updates matching active items by name and unit.
 When updating an existing item, CloudBake replaces that item's saved stock batches with the imported
-batches and recalculates current quantity from the imported batch quantities. The `unit_cost` column
+batches and recalculates current quantity from the imported batch quantities. The `amount` column
 is optional so older exported files can still be imported.
 
 Use stock adjustment for normal day-to-day stock changes. Use CSV import when moving inventory data

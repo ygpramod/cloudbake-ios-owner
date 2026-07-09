@@ -26,7 +26,7 @@ enum InventoryStockOperationError: Error, Equatable {
         case .invalidQuantity(let label):
             return "\(label) quantity must be greater than zero."
         case .invalidUnitCost:
-            return "Unit cost must be zero or greater."
+            return "Amount must be zero or greater."
         case .incompatibleUnit(let label):
             return "\(label) unit must be compatible with the inventory item unit."
         case .insufficientStock:
@@ -41,7 +41,7 @@ enum InventoryStockOperation {
         quantityText: String,
         unit: InventoryUnit,
         expiresAt: Date,
-        unitCostText: String,
+        amountText: String,
         note: String,
         now: Date,
         itemIdProvider: () -> String
@@ -55,7 +55,7 @@ enum InventoryStockOperation {
         guard let itemQuantity = unit.convertedQuantity(quantity, to: item.unit) else {
             return .failure(.incompatibleUnit("Adjustment"))
         }
-        guard let unitCost = optionalMoneyAmount(from: unitCostText) else {
+        guard let amount = optionalMoneyAmount(from: amountText) else {
             return .failure(.invalidUnitCost)
         }
 
@@ -65,7 +65,7 @@ enum InventoryStockOperation {
             inventoryItemId: item.id,
             remainingQuantity: itemQuantity,
             expiresAt: expiresAt,
-            unitCost: unitCost,
+            amount: amount,
             createdAt: now,
             updatedAt: now
         )

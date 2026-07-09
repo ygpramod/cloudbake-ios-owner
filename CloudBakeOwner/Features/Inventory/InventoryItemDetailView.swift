@@ -143,8 +143,8 @@ struct InventoryItemDetailView: View {
                                                 .foregroundStyle(.primary)
                                             Spacer()
                                             VStack(alignment: .trailing, spacing: 3) {
-                                                if let unitCost = batch.unitCost {
-                                                    Text("Unit Cost \(MoneyDisplay.formatted(unitCost))")
+                                                if let amount = batch.amount {
+                                                    Text("Amount \(MoneyDisplay.formatted(amount))")
                                                         .font(.caption)
                                                         .foregroundStyle(.secondary)
                                                 }

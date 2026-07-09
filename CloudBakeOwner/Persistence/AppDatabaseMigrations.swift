@@ -269,6 +269,21 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0016_add_inventory_batch_amount") { db in
+            try db.alter(table: "inventory_stock_batches") { table in
+                table.add(column: "amount_decimal", .text)
+            }
+
+            try db.execute(
+                sql: """
+                    UPDATE inventory_stock_batches
+                    SET amount_decimal = unit_cost_decimal
+                    WHERE amount_decimal IS NULL
+                    AND unit_cost_decimal IS NOT NULL
+                    """
+            )
+        }
+
         return migrator
     }
 }
