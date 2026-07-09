@@ -161,9 +161,12 @@ The screen shows:
 Tap an order reminder to open order detail. Tap a low-inventory reminder to open inventory item
 detail.
 
-For Payment Due, WhatsApp Reminder opens WhatsApp with a prefilled customer payment reminder using
-the linked customer phone number. Mark as Paid asks for confirmation, then sets the order paid and
-removes the payment reminder.
+For Payment Due, WhatsApp Reminder appears only when WhatsApp is installed. It opens WhatsApp with a
+prefilled customer payment reminder using the linked customer phone number. Mark as Paid asks for
+confirmation, then sets the order paid and removes the payment reminder.
+
+Reminder order and inventory rows open their detail screens in place so the owner stays in the
+Reminders workflow.
 
 Order detail shows the next relevant reminder from the three-day, two-day, and one-day reminder
 plan.
