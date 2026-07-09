@@ -5,6 +5,7 @@ enum AppCurrency: String, CaseIterable, Equatable {
     case indianRupee = "₹"
     case britishPound = "£"
     case malaysianRinggit = "RM"
+    case singaporeDollar = "S$"
 
     static let defaultCurrency: AppCurrency = .usDollar
 
@@ -22,6 +23,8 @@ enum AppCurrency: String, CaseIterable, Equatable {
             return "£ British Pound"
         case .malaysianRinggit:
             return "RM Malaysian Ringgit"
+        case .singaporeDollar:
+            return "S$ Singapore Dollar"
         }
     }
 }
