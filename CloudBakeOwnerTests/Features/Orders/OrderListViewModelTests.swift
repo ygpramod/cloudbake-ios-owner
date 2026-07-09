@@ -492,6 +492,49 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.customers(matching: " "), [amy, zoe])
     }
 
+    func testWhatsAppMessageURLUsesLinkedCustomerPhoneAndOrderContext() throws {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-chocolate",
+            title: "Chocolate Truffle Cake",
+            customerId: "customer-amy",
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        repository.orders = [order]
+        repository.customers = [
+            makeCustomer(id: "customer-amy", name: "Amy Rao", phone: "+65 9123 4567")
+        ]
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.load()
+
+        let url = try XCTUnwrap(viewModel.whatsappMessageURL(for: order))
+        let components = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+
+        XCTAssertEqual(components.scheme, "whatsapp")
+        XCTAssertEqual(components.host, "send")
+        XCTAssertEqual(components.queryItems?.first { $0.name == "phone" }?.value, "+6591234567")
+        let message = try XCTUnwrap(components.queryItems?.first { $0.name == "text" }?.value)
+        XCTAssertTrue(message.contains("Hi Amy, this is regarding your CloudBake order."))
+        XCTAssertTrue(message.contains("Order: Chocolate Truffle Cake"))
+        XCTAssertTrue(message.contains("Due:"))
+    }
+
+    func testWhatsAppMessageURLRequiresLinkedCustomerWithPhone() {
+        let repository = FakeOrderRepository()
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let unlinkedOrder = makeOrder(id: "order-unlinked", customerId: nil, dueAt: dueAt)
+        let noPhoneOrder = makeOrder(id: "order-no-phone", customerId: "customer-no-phone", dueAt: dueAt)
+        repository.orders = [unlinkedOrder, noPhoneOrder]
+        repository.customers = [
+            makeCustomer(id: "customer-no-phone", name: "Amy Rao", phone: " ")
+        ]
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.load()
+
+        XCTAssertNil(viewModel.whatsappMessageURL(for: unlinkedOrder))
+        XCTAssertNil(viewModel.whatsappMessageURL(for: noPhoneOrder))
+    }
+
     func testBeginViewingOrderSelectsOrderAndLinkedCustomer() {
         let repository = FakeOrderRepository()
         let order = makeOrder(

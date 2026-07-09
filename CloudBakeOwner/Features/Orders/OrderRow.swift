@@ -5,6 +5,7 @@ struct OrderRow: View {
     let dueDateDisplay: DueDateDisplay
     let onChangeStatus: () -> Void
     let onReceivePayment: () -> Void
+    let onSendMessage: (() -> Void)?
     let action: () -> Void
     let isOverdue: Bool
 
@@ -14,6 +15,7 @@ struct OrderRow: View {
         isOverdue: Bool = false,
         onChangeStatus: @escaping () -> Void,
         onReceivePayment: @escaping () -> Void,
+        onSendMessage: (() -> Void)? = nil,
         action: @escaping () -> Void
     ) {
         self.order = order
@@ -21,6 +23,7 @@ struct OrderRow: View {
         self.isOverdue = isOverdue
         self.onChangeStatus = onChangeStatus
         self.onReceivePayment = onReceivePayment
+        self.onSendMessage = onSendMessage
         self.action = action
     }
 
@@ -91,7 +94,7 @@ struct OrderRow: View {
 
             HStack(spacing: 10) {
                 CloudBakeInlineActionButton(
-                    title: "Status",
+                    title: "Update Status",
                     systemImage: "arrow.triangle.2.circlepath",
                     tint: .cloudBakePurple,
                     accessibilityIdentifier: "orders.item.status.\(order.id)",
@@ -105,6 +108,16 @@ struct OrderRow: View {
                     accessibilityIdentifier: "orders.item.payment.\(order.id)",
                     action: onReceivePayment
                 )
+
+                if let onSendMessage {
+                    CloudBakeInlineActionButton(
+                        title: "Message",
+                        systemImage: "message",
+                        tint: .cloudBakePink,
+                        accessibilityIdentifier: "orders.item.message.\(order.id)",
+                        action: onSendMessage
+                    )
+                }
             }
         }
         .padding(20)

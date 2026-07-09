@@ -3,6 +3,7 @@ import SwiftUI
 struct OrderListView: View {
     @StateObject private var viewModel: OrderListViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
@@ -263,10 +264,21 @@ struct OrderListView: View {
             onReceivePayment: {
                 orderReceivingPayment = order
             },
+            onSendMessage: messageAction(for: order),
             action: {
                 openOrder(order)
             }
         )
+    }
+
+    private func messageAction(for order: Order) -> (() -> Void)? {
+        guard let url = viewModel.whatsappMessageURL(for: order) else {
+            return nil
+        }
+
+        return {
+            openURL(url)
+        }
     }
 
     private func overdueBanner(_ alert: OrderOverdueAlert) -> some View {
