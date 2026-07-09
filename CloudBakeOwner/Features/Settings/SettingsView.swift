@@ -53,6 +53,7 @@ final class SettingsViewModel: ObservableObject {
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @AppStorage(AppSettings.currencySymbolKey) private var selectedCurrencySymbol = AppCurrency.defaultCurrency.symbol
+    @State private var isSelectingCurrency = false
     @State private var isImportingInventory = false
     @State private var isExportingInventory = false
     @State private var exportDocument = InventoryCSVDocument()
@@ -68,17 +69,13 @@ struct SettingsView: View {
         ) {
             CloudBakeSection("Pricing") {
                 CloudBakeDetailCard {
-                    Menu {
-                        ForEach(AppCurrency.allCases, id: \.rawValue) { currency in
-                            Button(currency.displayName) {
-                                selectedCurrencySymbol = currency.symbol
-                            }
-                        }
+                    Button {
+                        isSelectingCurrency = true
                     } label: {
                         CloudBakeDetailRow("Currency") {
                             HStack(spacing: 8) {
                                 Text(selectedCurrency.displayName)
-                                Image(systemName: "chevron.up.chevron.down")
+                                Image(systemName: "chevron.right")
                                     .imageScale(.small)
                                     .foregroundStyle(Color.cloudBakePink)
                             }
@@ -129,6 +126,25 @@ struct SettingsView: View {
             }
         }
         .accessibilityIdentifier(AppDestination.settings.screenAccessibilityIdentifier)
+        .cloudBakeCenteredPopup(
+            isPresented: isSelectingCurrency,
+            title: "Currency",
+            subtitle: "Choose money display",
+            systemImage: "banknote",
+            cancelAccessibilityIdentifier: "settings.currency.cancel",
+            onCancel: { isSelectingCurrency = false }
+        ) {
+            ForEach(AppCurrency.allCases, id: \.rawValue) { currency in
+                centeredPopupSelectionButton(
+                    currency.displayName,
+                    isSelected: selectedCurrency == currency
+                ) {
+                    selectedCurrencySymbol = currency.symbol
+                    isSelectingCurrency = false
+                }
+                .accessibilityIdentifier("settings.currency.option.\(currency.symbol)")
+            }
+        }
         .fileImporter(
             isPresented: $isImportingInventory,
             allowedContentTypes: [.commaSeparatedText, .plainText],
