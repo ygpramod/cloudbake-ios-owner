@@ -3,6 +3,10 @@ import UserNotifications
 
 struct OrderReminderScheduler {
     private static let notificationPrefix = "order-reminder-"
+    static let orderNotificationOrderIdKey = "cloudbake.orderId"
+    static let orderNotificationDestinationKey = "cloudbake.destination"
+    static let orderNotificationDestinationOrder = "order"
+
     private static let calendar = Calendar(identifier: .gregorian)
 
     private let repository: OrderRepository
@@ -57,7 +61,7 @@ struct OrderReminderScheduler {
     }
 
     private var reminderOffsets: [Int] {
-        [3, 2, 1]
+        [3, 2, 1, 0]
     }
 
     private func makeReminderRequest(
@@ -66,9 +70,13 @@ struct OrderReminderScheduler {
         remindAt: Date
     ) -> UNNotificationRequest {
         let content = UNMutableNotificationContent()
-        content.title = "Order reminder"
-        content.body = "\(order.title) for \(order.customerName) is due \(order.dueAt.formatted(date: .abbreviated, time: .shortened))."
+        content.title = offsetDays == 0 ? "Order due" : "Order reminder"
+        content.body = notificationBody(for: order, offsetDays: offsetDays)
         content.sound = .default
+        content.userInfo = [
+            Self.orderNotificationDestinationKey: Self.orderNotificationDestinationOrder,
+            Self.orderNotificationOrderIdKey: order.id
+        ]
 
         let components = Self.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: remindAt)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
@@ -78,5 +86,13 @@ struct OrderReminderScheduler {
             content: content,
             trigger: trigger
         )
+    }
+
+    private func notificationBody(for order: Order, offsetDays: Int) -> String {
+        if offsetDays == 0 {
+            return "\(order.title) was due at \(order.dueAt.formatted(date: .omitted, time: .shortened)), update status?"
+        }
+
+        return "\(order.title) for \(order.customerName) is due \(order.dueAt.formatted(date: .abbreviated, time: .shortened))."
     }
 }

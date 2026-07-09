@@ -66,7 +66,9 @@ struct ExpiryReminderScheduler {
                     continue
                 }
 
-                requests.append(makeReminderRequest(item: item, batch: batch, now: now, expiresAt: expiresAt))
+                if let request = makeReminderRequest(item: item, batch: batch, now: now, expiresAt: expiresAt) {
+                    requests.append(request)
+                }
             }
         }
 
@@ -78,13 +80,16 @@ struct ExpiryReminderScheduler {
         batch: InventoryStockBatch,
         now: Date,
         expiresAt: Date
-    ) -> UNNotificationRequest {
+    ) -> UNNotificationRequest? {
         let content = UNMutableNotificationContent()
         content.title = "Inventory expiring soon"
         content.body = "\(item.name) has \(batch.remainingQuantity.formatted()) \(item.unit.displayName) expiring on \(expiresAt.formatted(date: .abbreviated, time: .omitted))."
         content.sound = .default
 
-        let triggerDate = scheduledReminderDate(for: expiresAt, now: now)
+        guard let triggerDate = scheduledReminderDate(for: expiresAt, now: now) else {
+            return nil
+        }
+
         let components = Self.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: triggerDate)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
 
@@ -95,7 +100,7 @@ struct ExpiryReminderScheduler {
         )
     }
 
-    private func scheduledReminderDate(for expiresAt: Date, now: Date) -> Date {
+    private func scheduledReminderDate(for expiresAt: Date, now: Date) -> Date? {
         let preferredDate = Self.calendar.date(byAdding: .month, value: -1, to: expiresAt)
             ?? expiresAt.addingTimeInterval(-30 * 24 * 60 * 60)
         let reminderDay = max(preferredDate, now)
@@ -115,6 +120,11 @@ struct ExpiryReminderScheduler {
             return morning
         }
 
-        return now.addingTimeInterval(60)
+        guard let nextMorning = Self.calendar.date(byAdding: .day, value: 1, to: morning),
+              nextMorning <= expiresAt else {
+            return nil
+        }
+
+        return nextMorning
     }
 }
