@@ -432,6 +432,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Customer Record"].waitForExistence(timeout: transitionTimeout))
 
         tapWhenReady(app.buttons["orders.customerSelection.newCustomer"], timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.customerSelection.add.manual"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: transitionTimeout))
         typeText("Maya", into: app.textFields["customers.form.name"], timeout: transitionTimeout)
         dismissKeyboard(in: app)

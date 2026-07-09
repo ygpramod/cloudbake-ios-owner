@@ -23,7 +23,9 @@ Out of scope:
 ## Requirements Summary
 
 The owner must be able to create a missing customer without leaving the order form customer-linking
-flow. After saving, the new customer should be selected for the order draft.
+flow. The order customer selection add flow must offer the same choices as the main Customers add
+flow: import from Apple Contacts or enter manually. After saving, the new customer should be
+selected for the order draft.
 
 The owner must be able to delete a customer from customer detail only after confirming the action.
 Deleting a customer must not delete historical orders. Existing orders should keep their customer

@@ -154,7 +154,8 @@ Customer detail can show linked order history through
 `docs/rfc/slices/0041-customer-order-history.md`.
 Order add/edit can link customers through a searchable selection flow through
 `docs/rfc/slices/0042-order-customer-search-selection.md`.
-Order customer selection can also create and immediately link a new customer through
+Order customer selection can also create and immediately link a new customer, either manually or
+from Apple Contacts, through
 `docs/rfc/slices/0072-customer-order-link-delete-inventory-csv.md`.
 Owner-visible order reminder planning is implemented in
 `docs/rfc/slices/0044-order-reminders.md`.

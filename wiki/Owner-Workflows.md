@@ -410,7 +410,8 @@ and allergy details for owner review. Customer detail also shows linked orders i
 the owner can review a customer's cake history from the customer record. Order add/edit uses a
 searchable customer selection flow so saved customers remain usable as the list grows. If the
 customer is missing while creating an order, the owner can create a new customer from the selection
-screen and immediately link that saved customer to the order draft.
+screen by importing from Contacts or entering manually, then immediately link that saved customer to
+the order draft.
 
 On iPad, Customers uses a list/detail layout: the customer list stays visible while selected
 customer contact details, preferences, important dates, and linked order history appear in the
