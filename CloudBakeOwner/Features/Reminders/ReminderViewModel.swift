@@ -48,7 +48,7 @@ final class ReminderViewModel: ObservableObject {
             let orders = try repository.fetchOrders()
             let customers = try repository.fetchCustomers()
             let lowInventory = try repository.fetchInventoryItems().filter(\.isLowStock)
-            paymentDueItems = Self.paymentDueItems(from: orders, customers: customers)
+            paymentDueItems = paymentDueItems(from: orders, customers: customers)
             todayOrderItems = todayOrderItems(from: orders)
             lowInventoryItems = lowInventory.map(Self.lowInventoryItem)
             errorMessage = nil
@@ -82,7 +82,7 @@ final class ReminderViewModel: ObservableObject {
         }
     }
 
-    private static func paymentDueItems(from orders: [Order], customers: [Customer]) -> [PaymentDueReminderItem] {
+    private func paymentDueItems(from orders: [Order], customers: [Customer]) -> [PaymentDueReminderItem] {
         orders
             .filter { $0.status == .ready || $0.status == .completed }
             .compactMap { order in
@@ -95,7 +95,7 @@ final class ReminderViewModel: ObservableObject {
                     customers.first { $0.id == customerId }
                 }
                 let customerName = customer?.name ?? order.customerName
-                let firstName = firstName(from: customerName)
+                let firstName = Self.firstName(from: customerName)
                 let balanceDueText = MoneyDisplay.formatted(balanceDue)
                 let paymentMessage = "\(firstName) has \(balanceDueText) balance due for \(order.title)."
 
@@ -106,7 +106,7 @@ final class ReminderViewModel: ObservableObject {
                     firstName: firstName,
                     balanceDueText: balanceDueText,
                     paymentMessage: paymentMessage,
-                    whatsappURL: whatsappURL(
+                    whatsappURL: Self.whatsappURL(
                         phone: customer?.phone,
                         message: whatsappMessage(
                             firstName: firstName,
@@ -158,7 +158,7 @@ final class ReminderViewModel: ObservableObject {
             .map(String.init) ?? name
     }
 
-    private static func whatsappMessage(
+    private func whatsappMessage(
         firstName: String,
         balanceDueText: String,
         orderName: String,
@@ -201,9 +201,10 @@ final class ReminderViewModel: ObservableObject {
         return String(digits)
     }
 
-    private static func formattedDueDate(_ dueAt: Date) -> String {
+    private func formattedDueDate(_ dueAt: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_SG")
+        formatter.timeZone = calendar.timeZone
         formatter.dateFormat = "d MMM yyyy, h:mm a"
         return formatter.string(from: dueAt)
     }

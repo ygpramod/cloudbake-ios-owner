@@ -46,7 +46,7 @@ final class ReminderViewModelTests: XCTestCase {
                 depositPaid: decimal("75")
             )
         ]
-        let viewModel = ReminderViewModel(repository: repository)
+        let viewModel = ReminderViewModel(repository: repository, calendar: calendar)
 
         viewModel.load()
 
