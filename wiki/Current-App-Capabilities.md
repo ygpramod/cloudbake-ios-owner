@@ -105,16 +105,17 @@ The app currently supports:
 90. full-screen preview for saved order photos,
 91. caption editing for saved order photos,
 92. promotion of final cake photos into linked saved cake designs,
-91. saved order photo deletion from order detail,
-92. Settings inventory CSV import and export for active inventory and stock batches,
-93. shared CloudBake visual styling for second-level Orders, Inventory, Recipes, Customers, Designs,
+93. saved order photo deletion from order detail,
+94. Settings inventory CSV import and export for active inventory and stock batches,
+95. Reminders screen with payment due, today's orders, and low inventory sections,
+96. shared CloudBake visual styling for second-level Orders, Inventory, Recipes, Customers, Designs,
     and Settings screens, with compact title headers and grouped Inventory header actions,
-94. native iOS push navigation with short recent-page history and left-edge swipe back to the
+97. native iOS push navigation with short recent-page history and left-edge swipe back to the
     previous screen,
-95. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,
-96. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
-97. centered CloudBake confirmation popups for order, customer, and inventory actions,
-98. unit, integration, and feature-sharded acceptance test lanes.
+98. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,
+99. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
+100. centered CloudBake confirmation popups for order, customer, and inventory actions,
+101. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 

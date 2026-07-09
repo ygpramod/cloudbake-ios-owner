@@ -5,7 +5,7 @@ final class AppDestinationTests: XCTestCase {
     func testPrimaryNavigationDestinationsAreInExpectedOrder() {
         XCTAssertEqual(
             AppDestination.allCases.map(\.title),
-            ["Dashboard", "Orders", "Inventory", "Recipes", "Designs", "Customers", "Settings"]
+            ["Dashboard", "Orders", "Inventory", "Recipes", "Designs", "Reminders", "Customers", "Settings"]
         )
     }
 

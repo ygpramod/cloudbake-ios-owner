@@ -44,9 +44,9 @@ struct DashboardView: View {
                     DashboardSection(title: "Soon") {
                         VStack(spacing: 0) {
                             DashboardActionRow(
-                                destination: .orders,
+                                destination: .reminders,
                                 title: "Reminders",
-                                detail: "Delivery reminders will appear here",
+                                detail: "Payments, today's orders, and inventory alerts",
                                 systemImage: "bell",
                                 tint: .cloudBakeTeal
                             )
@@ -67,6 +67,8 @@ struct DashboardView: View {
 
                     DashboardSection(title: "Areas") {
                         VStack(spacing: 0) {
+                            DashboardAreaRow(destination: .reminders, tint: .cloudBakePink)
+                            DashboardDivider()
                             DashboardAreaRow(destination: .orders, tint: .cloudBakePurple)
                             DashboardDivider()
                             DashboardAreaRow(destination: .inventory, tint: .cloudBakeOrange)

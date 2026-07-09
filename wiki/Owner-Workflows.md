@@ -150,6 +150,13 @@ catch-up notifications when the app is opened after the 9 AM reminder time.
 
 ## Review Order Reminders
 
+Open Reminders from the dashboard to review the owner's operational reminder list in one place.
+The screen shows:
+
+1. payment due orders with order name, customer name, and balance due,
+2. orders due today with order name and customer name,
+3. low inventory with item name and current/minimum quantity.
+
 Order detail shows the next relevant reminder from the three-day, two-day, and one-day reminder
 plan.
 

@@ -6,6 +6,7 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
     case inventory
     case recipes
     case designs
+    case reminders
     case customers
     case settings
 
@@ -18,6 +19,7 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
         case .inventory: "Inventory"
         case .recipes: "Recipes"
         case .designs: "Designs"
+        case .reminders: "Reminders"
         case .customers: "Customers"
         case .settings: "Settings"
         }
@@ -30,6 +32,7 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
         case .inventory: "shippingbox"
         case .recipes: "book"
         case .designs: "photo.on.rectangle"
+        case .reminders: "bell"
         case .customers: "person.2"
         case .settings: "gearshape"
         }
