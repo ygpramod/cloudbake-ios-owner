@@ -50,6 +50,7 @@
 		4100000000000000000000AE /* ReminderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000AE /* ReminderView.swift */; };
 		4100000000000000000000AF /* ReminderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000AF /* ReminderViewModel.swift */; };
 		4100000000000000000000B0 /* ReminderViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000B0 /* ReminderViewModelTests.swift */; };
+		4100000000000000000000B3 /* NavigationRouterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000B3 /* NavigationRouterTests.swift */; };
 		410000000000000000000023 /* RecipeDraftParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002B /* RecipeDraftParser.swift */; };
 		410000000000000000000024 /* RecipeDraftParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002C /* RecipeDraftParserTests.swift */; };
 		410000000000000000000025 /* InventoryUnitDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002D /* InventoryUnitDisplay.swift */; };
@@ -230,6 +231,7 @@
 		4200000000000000000000AE /* ReminderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderView.swift; sourceTree = "<group>"; };
 		4200000000000000000000AF /* ReminderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderViewModel.swift; sourceTree = "<group>"; };
 		4200000000000000000000B0 /* ReminderViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderViewModelTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000B3 /* NavigationRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/NavigationRouterTests.swift; sourceTree = "<group>"; };
 		420000000000000000000050 /* OrderForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderForm.swift; sourceTree = "<group>"; };
 		420000000000000000000051 /* OrderSelectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderSelectionViews.swift; sourceTree = "<group>"; };
 		420000000000000000000052 /* OrderDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailView.swift; sourceTree = "<group>"; };
@@ -479,6 +481,7 @@
 			children = (
 				420000000000000000000006 /* AppDestinationTests.swift */,
 				420000000000000000000027 /* ExpiryReminderSchedulerTests.swift */,
+				4200000000000000000000B3 /* NavigationRouterTests.swift */,
 				42000000000000000000003A /* OrderReminderSchedulerTests.swift */,
 				450000000000000000000014 /* Domain */,
 				450000000000000000000016 /* Features */,
@@ -894,6 +897,7 @@
 				41000000000000000000002A /* CustomerContactImportTests.swift in Sources */,
 				410000000000000000000073 /* CustomerDraftValidationTests.swift in Sources */,
 				41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */,
+				4100000000000000000000B3 /* NavigationRouterTests.swift in Sources */,
 				410000000000000000000032 /* OrderReminderSchedulerTests.swift in Sources */,
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
 				410000000000000000000070 /* InventoryBatchEditingViewModelTests.swift in Sources */,
