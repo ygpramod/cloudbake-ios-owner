@@ -1,15 +1,24 @@
 import SwiftUI
+import UIKit
 
 struct ReminderView: View {
     @StateObject private var viewModel: ReminderViewModel
-    @Environment(\.navigateToAppDestination) private var navigate
     @Environment(\.openURL) private var openURL
-    @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
-    @EnvironmentObject private var inventoryNavigationRouter: InventoryNavigationRouter
     @State private var pendingPaidItem: PaymentDueReminderItem?
+    @State private var orderDetailRequest: ReminderOrderDetailRequest?
+    @State private var inventoryDetailRequest: ReminderInventoryDetailRequest?
+    @State private var canOpenWhatsApp = false
+    private let makeOrderViewModel: () -> OrderListViewModel
+    private let makeInventoryViewModel: () -> InventoryListViewModel
 
-    init(viewModel: ReminderViewModel) {
+    init(
+        viewModel: ReminderViewModel,
+        makeOrderViewModel: @escaping () -> OrderListViewModel,
+        makeInventoryViewModel: @escaping () -> InventoryListViewModel
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.makeOrderViewModel = makeOrderViewModel
+        self.makeInventoryViewModel = makeInventoryViewModel
     }
 
     var body: some View {
@@ -21,6 +30,24 @@ struct ReminderView: View {
         }
         .onAppear {
             viewModel.load()
+            canOpenWhatsApp = URL(string: "whatsapp://send")
+                .map { UIApplication.shared.canOpenURL($0) } ?? false
+        }
+        .sheet(item: $orderDetailRequest, onDismiss: closeOrderDetail) { request in
+            NavigationStack {
+                OrderDetailView(
+                    viewModel: request.viewModel,
+                    isPresented: orderDetailPresentedBinding
+                )
+            }
+        }
+        .sheet(item: $inventoryDetailRequest, onDismiss: closeInventoryDetail) { request in
+            NavigationStack {
+                InventoryItemDetailView(
+                    viewModel: request.viewModel,
+                    isPresented: inventoryDetailPresentedBinding
+                )
+            }
         }
         .cloudBakeCenteredPopup(
             isPresented: pendingPaidItem != nil,
@@ -53,6 +80,7 @@ struct ReminderView: View {
             ) { item in
                 PaymentDueReminderRow(
                     item: item,
+                    canOpenWhatsApp: canOpenWhatsApp,
                     onOpenOrder: { openOrder(id: item.id) },
                     onWhatsAppReminder: {
                         if let whatsappURL = item.whatsappURL {
@@ -156,14 +184,70 @@ struct ReminderView: View {
     }
 
     private func openOrder(id: String) {
-        orderNotificationRouter.openOrder(id: id)
-        navigate(.orders)
+        let detailViewModel = makeOrderViewModel()
+        detailViewModel.load()
+        guard let order = detailViewModel.order(id: id) else {
+            return
+        }
+
+        detailViewModel.beginViewingOrder(order)
+        orderDetailRequest = ReminderOrderDetailRequest(id: id, viewModel: detailViewModel)
     }
 
     private func openInventoryItem(id: String) {
-        inventoryNavigationRouter.openInventoryItem(id: id)
-        navigate(.inventory)
+        let detailViewModel = makeInventoryViewModel()
+        detailViewModel.load()
+        guard let item = detailViewModel.item(id: id) else {
+            return
+        }
+
+        detailViewModel.beginViewingItem(item)
+        inventoryDetailRequest = ReminderInventoryDetailRequest(id: id, viewModel: detailViewModel)
     }
+
+    private var orderDetailPresentedBinding: Binding<Bool> {
+        Binding(
+            get: { orderDetailRequest != nil },
+            set: { isPresented in
+                if !isPresented {
+                    closeOrderDetail()
+                }
+            }
+        )
+    }
+
+    private var inventoryDetailPresentedBinding: Binding<Bool> {
+        Binding(
+            get: { inventoryDetailRequest != nil },
+            set: { isPresented in
+                if !isPresented {
+                    closeInventoryDetail()
+                }
+            }
+        )
+    }
+
+    private func closeOrderDetail() {
+        orderDetailRequest?.viewModel.closeOrderDetail()
+        orderDetailRequest = nil
+        viewModel.load()
+    }
+
+    private func closeInventoryDetail() {
+        inventoryDetailRequest?.viewModel.closeSelectedItem()
+        inventoryDetailRequest = nil
+        viewModel.load()
+    }
+}
+
+private struct ReminderOrderDetailRequest: Identifiable {
+    let id: String
+    let viewModel: OrderListViewModel
+}
+
+private struct ReminderInventoryDetailRequest: Identifiable {
+    let id: String
+    let viewModel: InventoryListViewModel
 }
 
 private struct ReminderListRow: View {
@@ -225,6 +309,7 @@ private struct ReminderListRow: View {
 
 private struct PaymentDueReminderRow: View {
     let item: PaymentDueReminderItem
+    let canOpenWhatsApp: Bool
     let onOpenOrder: () -> Void
     let onWhatsAppReminder: () -> Void
     let onMarkPaid: () -> Void
@@ -243,15 +328,15 @@ private struct PaymentDueReminderRow: View {
             .accessibilityIdentifier("reminders.paymentDue.open.\(item.id)")
 
             HStack(spacing: 10) {
-                CloudBakeInlineActionButton(
-                    title: "WhatsApp Reminder",
-                    systemImage: "message",
-                    tint: .cloudBakeTeal,
-                    accessibilityIdentifier: "reminders.paymentDue.whatsapp.\(item.id)",
-                    action: onWhatsAppReminder
-                )
-                .disabled(item.whatsappURL == nil)
-                .opacity(item.whatsappURL == nil ? 0.45 : 1)
+                if item.whatsappURL != nil, canOpenWhatsApp {
+                    CloudBakeInlineActionButton(
+                        title: "WhatsApp Reminder",
+                        systemImage: "message",
+                        tint: .cloudBakeTeal,
+                        accessibilityIdentifier: "reminders.paymentDue.whatsapp.\(item.id)",
+                        action: onWhatsAppReminder
+                    )
+                }
 
                 CloudBakeInlineActionButton(
                     title: "Mark as Paid",
@@ -303,9 +388,13 @@ private struct CompactReminderEmptyState: View {
         ReminderView(
             viewModel: ReminderViewModel(
                 repository: database.makeCoreDataRepository()
-            )
+            ),
+            makeOrderViewModel: {
+                OrderListViewModel(repository: database.makeCoreDataRepository())
+            },
+            makeInventoryViewModel: {
+                InventoryListViewModel(repository: database.makeCoreDataRepository())
+            }
         )
-        .environmentObject(OrderNotificationRouter())
-        .environmentObject(InventoryNavigationRouter())
     }
 }

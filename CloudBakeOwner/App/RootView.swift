@@ -130,10 +130,17 @@ struct RootView: View {
                 )
             )
         case .reminders:
+            let repository = database.makeCoreDataRepository()
             ReminderView(
                 viewModel: ReminderViewModel(
-                    repository: database.makeCoreDataRepository()
-                )
+                    repository: repository
+                ),
+                makeOrderViewModel: {
+                    OrderListViewModel(repository: repository)
+                },
+                makeInventoryViewModel: {
+                    InventoryListViewModel(repository: repository)
+                }
             )
         case .settings:
             SettingsView(

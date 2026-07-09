@@ -47,7 +47,8 @@ Today.
 
 Payment Due rows must say `{First Name} has {balance} balance due for {Cake Name}.`
 
-The WhatsApp action must open WhatsApp using the linked customer phone number and prefill:
+The WhatsApp action must be visible only when WhatsApp is installed on the device. When visible, it
+must open WhatsApp using the linked customer phone number and prefill:
 
 ```text
 Hi {First Name}, this is a reminder for your CloudBake order.
@@ -63,8 +64,9 @@ You can make the payment when convenient. Thank you!
 
 Mark as Paid must reconfirm before setting the order paid and removing it from Payment Due.
 
-Tapping an Orders For Today row must open that order detail. Tapping a Low Inventory row must open
-that inventory item detail. Payment Due rows also open the matching order detail.
+Tapping an Orders For Today row must open that order detail without navigating away from Reminders.
+Tapping a Low Inventory row must open that inventory item detail without navigating away from
+Reminders. Payment Due rows also open the matching order detail in place.
 
 The screen must use the shared CloudBake second-level screen and card styling.
 
