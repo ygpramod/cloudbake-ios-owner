@@ -7,6 +7,7 @@ final class OrderNotificationRouter: NSObject, ObservableObject, UNUserNotificat
 
     override init() {
         super.init()
+        configureNotificationCenter()
     }
 
     func configureNotificationCenter(_ notificationCenter: UNUserNotificationCenter = .current()) {
@@ -17,12 +18,17 @@ final class OrderNotificationRouter: NSObject, ObservableObject, UNUserNotificat
         pendingOrderId = id
     }
 
-    func consumePendingOrderId() -> String? {
-        defer {
-            pendingOrderId = nil
+    func clearPendingOrderId() {
+        pendingOrderId = nil
+    }
+
+    func routeNotification(userInfo: [AnyHashable: Any]) {
+        guard userInfo[OrderReminderScheduler.orderNotificationDestinationKey] as? String == OrderReminderScheduler.orderNotificationDestinationOrder,
+              let orderId = userInfo[OrderReminderScheduler.orderNotificationOrderIdKey] as? String else {
+            return
         }
 
-        return pendingOrderId
+        openOrder(id: orderId)
     }
 
     nonisolated func userNotificationCenter(

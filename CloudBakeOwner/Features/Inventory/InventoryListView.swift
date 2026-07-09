@@ -233,13 +233,14 @@ struct InventoryListView: View {
     }
 
     private func openPendingInventoryItem() {
-        guard let itemId = inventoryNavigationRouter.consumePendingInventoryItemId(),
+        guard let itemId = inventoryNavigationRouter.pendingInventoryItemId,
               let item = viewModel.item(id: itemId) else {
             return
         }
 
         viewModel.beginViewingItem(item)
         isViewingItem = true
+        inventoryNavigationRouter.clearPendingInventoryItemId()
     }
 }
 

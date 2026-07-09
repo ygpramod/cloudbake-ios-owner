@@ -16,9 +16,6 @@ struct CloudBakeOwnerApp: App {
                     .environmentObject(orderNotificationRouter)
                     .environmentObject(inventoryNavigationRouter)
                     .preferredColorScheme(.light)
-                    .onAppear {
-                        orderNotificationRouter.configureNotificationCenter()
-                    }
             case .failure:
                 ContentUnavailableView(
                     "CloudBake cannot open",
