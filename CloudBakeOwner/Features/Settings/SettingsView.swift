@@ -68,13 +68,24 @@ struct SettingsView: View {
         ) {
             CloudBakeSection("Pricing") {
                 CloudBakeDetailCard {
-                    Picker("Currency", selection: $selectedCurrencySymbol) {
+                    Menu {
                         ForEach(AppCurrency.allCases, id: \.rawValue) { currency in
-                            Text(currency.displayName).tag(currency.symbol)
+                            Button(currency.displayName) {
+                                selectedCurrencySymbol = currency.symbol
+                            }
+                        }
+                    } label: {
+                        CloudBakeDetailRow("Currency") {
+                            HStack(spacing: 8) {
+                                Text(selectedCurrency.displayName)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .imageScale(.small)
+                                    .foregroundStyle(Color.cloudBakePink)
+                            }
                         }
                     }
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("settings.currency")
-                    .padding(.vertical, 8)
                 }
             }
 
@@ -180,5 +191,9 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
             .background(Color.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var selectedCurrency: AppCurrency {
+        AppCurrency(rawValue: selectedCurrencySymbol) ?? AppCurrency.defaultCurrency
     }
 }
