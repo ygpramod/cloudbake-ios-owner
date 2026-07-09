@@ -58,7 +58,7 @@ final class ReminderViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.paymentDueItems[0].balanceDueText, MoneyDisplay.formatted(decimal("100")))
         XCTAssertEqual(
             viewModel.paymentDueItems[0].paymentMessage,
-            "\"Amy\" has \(MoneyDisplay.formatted(decimal("100"))) balance due for Chocolate Truffle Cake."
+            "Amy has \(MoneyDisplay.formatted(decimal("100"))) balance due for Chocolate Truffle Cake."
         )
         XCTAssertEqual(viewModel.paymentDueItems[1].id, "order-completed")
         XCTAssertEqual(viewModel.paymentDueItems[1].whatsappURL, nil)
@@ -73,9 +73,7 @@ final class ReminderViewModelTests: XCTestCase {
             Hi Amy, this is a reminder for your CloudBake order.
 
             Balance due: \(MoneyDisplay.formatted(decimal("100")))
-
             Order: Chocolate Truffle Cake
-
             Due: 8 Jul 2026, 6:00 PM
 
             You can make the payment when convenient. Thank you!

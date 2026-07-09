@@ -97,7 +97,7 @@ final class ReminderViewModel: ObservableObject {
                 let customerName = customer?.name ?? order.customerName
                 let firstName = firstName(from: customerName)
                 let balanceDueText = MoneyDisplay.formatted(balanceDue)
-                let paymentMessage = "\"\(firstName)\" has \(balanceDueText) balance due for \(order.title)."
+                let paymentMessage = "\(firstName) has \(balanceDueText) balance due for \(order.title)."
 
                 return PaymentDueReminderItem(
                     id: order.id,
@@ -168,9 +168,7 @@ final class ReminderViewModel: ObservableObject {
         Hi \(firstName), this is a reminder for your CloudBake order.
 
         Balance due: \(balanceDueText)
-
         Order: \(orderName)
-
         Due: \(formattedDueDate(dueAt))
 
         You can make the payment when convenient. Thank you!
