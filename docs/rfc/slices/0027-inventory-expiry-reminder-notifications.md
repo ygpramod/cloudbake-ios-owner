@@ -68,7 +68,9 @@ Reminder timing:
 
 - preferred reminder date is one calendar month before expiry at 9 AM,
 - if that date has already passed because the owner entered stock less than one month before
-  expiry, the reminder is scheduled shortly after refresh,
+  expiry, the reminder is scheduled for the next available 9 AM before expiry,
+- if the owner opens the app after the current day's 9 AM reminder time, CloudBake schedules the
+  next reminder for 9 AM on the following day instead of sending repeated catch-up reminders,
 - expired, no-expiry, zero-quantity, and later-than-one-month batches are ignored.
 
 `RootView` refreshes reminders when the app appears and when the scene becomes active. It skips this

@@ -189,6 +189,8 @@ Part Paid changes without opening full edit, through
 Confirmed, In Progress, and Ready orders now schedule local iOS notifications for future three-day,
 two-day, and one-day reminder offsets through
 `docs/rfc/slices/0056-order-scheduled-reminder-notifications.md`.
+Due-time order notifications, overdue in-app banners, and overdue order row pills are implemented in
+`docs/rfc/slices/0074-reminder-currency-overdue-polish.md`.
 
 ## Reminder Model
 
@@ -196,20 +198,21 @@ Default order reminders:
 
 - three days before due date,
 - two days before due date,
-- one day before due date.
+- one day before due date,
+- due time.
 
-Future reminder behavior can include day-of reminders, snooze, preparation-start reminders, and
-calendar integration. Reminder slices must define whether reminders are local notifications,
-in-app alerts, or both.
+Future reminder behavior can include snooze, configurable offsets, preparation-start reminders, and
+calendar integration. Reminder slices must define whether reminders are local notifications, in-app
+alerts, or both.
 
 The first reminder slice provides in-app reminder planning. Order detail shows the next reminder
 from the three/two/one-day reminder plan. The Orders screen should avoid a standalone Reminders Due
 section because reminder context belongs in the main order presentation and order detail.
 
 Confirmed, In Progress, and Ready orders now schedule local iOS notifications for future
-three/two/one-day reminder offsets. Draft, Completed, Cancelled, past-due, and already-missed
-reminders do not schedule notifications. Snooze, configurable offsets, day-of reminders, and
-calendar integration remain future work.
+three/two/one-day reminder offsets and due time. Draft, Completed, Cancelled, past-due, and
+already-missed reminders do not schedule notifications. Due-time notifications route back to the
+matching order. Snooze, configurable offsets, and calendar integration remain future work.
 
 ## Pricing And Payment
 
@@ -343,8 +346,9 @@ pricing, and recipe links.
   relevant reminder.
 - Orders now expose visible row actions for quick status changes and payment recording. Order detail
   can also mark an order Paid or add a partial payment without opening full edit.
-- Orders now schedule local owner notifications for future three-day, two-day, and one-day
+- Orders now schedule local owner notifications for future three-day, two-day, one-day, and due-time
   reminders when the order is Confirmed, In Progress, or Ready.
+- Active overdue orders now show an Overdue pill and an in-app update-status banner.
 - Orders now have a customer-safe preview projection for future consumer surfaces. It maps owner
   statuses into consumer language and deliberately excludes private owner/customer operational
   fields.
@@ -353,7 +357,8 @@ pricing, and recipe links.
 
 The following Orders RFC items are intentionally deferred until after other MVP areas are stronger:
 
-- reminder snooze, configurable reminder offsets, day-of reminders, and calendar integration,
+- reminder snooze, configurable reminder offsets, preparation-start reminders, and calendar
+  integration,
 - checklist reordering, checklist templates, and checklist-driven status suggestions,
 - partial recipe usage, multi-recipe orders, inventory reservation, and serving/yield modeling,
 - pricing calculator and recipe-cost suggestions,

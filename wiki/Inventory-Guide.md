@@ -76,6 +76,10 @@ Expiry reminders are local to the device. The reminder message names the item, r
 quantity, unit, and expiry date. Expired batches, empty batches, no-expiry batches, and batches
 expiring later than one month are not scheduled for expiry reminder notifications.
 
+Expiry reminders are scheduled once per day at 9 AM. If CloudBake refreshes reminders after that
+day's 9 AM reminder time, it schedules the next reminder for 9 AM on the following day when the
+batch is still eligible.
+
 ## Inventory Detail
 
 Tap an inventory row to inspect the item before changing it.
