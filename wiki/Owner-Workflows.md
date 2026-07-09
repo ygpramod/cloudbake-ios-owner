@@ -153,12 +153,17 @@ catch-up notifications when the app is opened after the 9 AM reminder time.
 Open Reminders from the dashboard to review the owner's operational reminder list in one place.
 The screen shows:
 
-1. payment due Ready or Completed orders with order name, customer name, and balance due,
+1. payment due Ready or Completed orders with a reminder message, WhatsApp action, and Mark as Paid
+   action,
 2. orders due today with order name and customer name,
 3. low inventory with item name and current/minimum quantity.
 
 Tap an order reminder to open order detail. Tap a low-inventory reminder to open inventory item
 detail.
+
+For Payment Due, WhatsApp Reminder opens WhatsApp with a prefilled customer payment reminder using
+the linked customer phone number. Mark as Paid asks for confirmation, then sets the order paid and
+removes the payment reminder.
 
 Order detail shows the next relevant reminder from the three-day, two-day, and one-day reminder
 plan.

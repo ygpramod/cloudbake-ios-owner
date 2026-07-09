@@ -107,7 +107,8 @@ The app currently supports:
 92. promotion of final cake photos into linked saved cake designs,
 93. saved order photo deletion from order detail,
 94. Settings inventory CSV import and export for active inventory and stock batches,
-95. Reminders screen with payment due, today's orders, low inventory sections, and detail routing,
+95. Reminders screen with payment due WhatsApp/Mark as Paid actions, today's orders, low inventory
+    sections, and detail routing,
 96. shared CloudBake visual styling for second-level Orders, Inventory, Recipes, Customers, Designs,
     and Settings screens, with compact title headers and grouped Inventory header actions,
 97. native iOS push navigation with short recent-page history and left-edge swipe back to the
