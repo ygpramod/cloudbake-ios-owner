@@ -207,6 +207,37 @@ final class FakeOrderRepository: OrderRepository,
         customers
     }
 
+    func deleteCustomer(id: String) throws {
+        customers.removeAll { $0.id == id }
+        customerImportantDates.removeAll { $0.customerId == id }
+        orders = orders.map { order in
+            guard order.customerId == id else {
+                return order
+            }
+
+            return Order(
+                id: order.id,
+                customerId: nil,
+                cakeDesignId: order.cakeDesignId,
+                recipeId: order.recipeId,
+                recipeScaleMultiplier: order.recipeScaleMultiplier,
+                title: order.title,
+                customerName: order.customerName,
+                status: order.status,
+                dueAt: order.dueAt,
+                fulfillmentType: order.fulfillmentType,
+                deliveryAddress: order.deliveryAddress,
+                cakeNotes: order.cakeNotes,
+                cakeMessage: order.cakeMessage,
+                quotedPrice: order.quotedPrice,
+                depositPaid: order.depositPaid,
+                paymentNotes: order.paymentNotes,
+                createdAt: order.createdAt,
+                updatedAt: order.updatedAt
+            )
+        }
+    }
+
     func save(_ importantDate: CustomerImportantDate) throws {
         customerImportantDates.removeAll { $0.id == importantDate.id }
         customerImportantDates.append(importantDate)

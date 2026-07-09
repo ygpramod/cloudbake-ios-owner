@@ -106,4 +106,23 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.buttons["customers.detail.done"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Amy B"].waitForExistence(timeout: 5))
     }
+
+    func testCustomerCanBeDeletedFromDetail() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        openDashboardDestination("Customers", in: app, timeout: transitionTimeout)
+        addCustomer(named: "Amy", phone: "5550101", in: app)
+        let customerRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "customers.item.")).firstMatch
+        tapWhenReady(customerRow, timeout: transitionTimeout)
+        XCTAssertTrue(app.buttons["customers.detail.done"].waitForExistence(timeout: transitionTimeout))
+
+        tapWhenReady(app.buttons["customers.detail.delete"], timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["Delete Customer?"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["customers.delete.confirm"], timeout: transitionTimeout)
+
+        assertScreenVisible("screen.customers", in: app, timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["No customers yet"].waitForExistence(timeout: transitionTimeout))
+    }
 }

@@ -36,6 +36,7 @@ protocol CustomerRepository {
     func save(_ customer: Customer) throws
     func fetchCustomer(id: String) throws -> Customer?
     func fetchCustomers() throws -> [Customer]
+    func deleteCustomer(id: String) throws
 }
 
 protocol CustomerImportantDateRepository {

@@ -5,6 +5,7 @@ struct CustomerDetailView: View {
     @Binding var isPresented: Bool
     let showsDoneButton: Bool
     @State private var isEditingCustomer = false
+    @State private var isConfirmingDelete = false
 
     init(
         viewModel: CustomerListViewModel,
@@ -30,6 +31,16 @@ struct CustomerDetailView: View {
                     isEditingCustomer = true
                 }
             ),
+            secondaryActions: [
+                CloudBakeDetailAction(
+                    title: "Delete",
+                    systemImage: "trash",
+                    accessibilityIdentifier: "customers.detail.delete",
+                    action: {
+                        isConfirmingDelete = true
+                    }
+                )
+            ],
             onBack: {
                 isPresented = false
             }
@@ -149,6 +160,24 @@ struct CustomerDetailView: View {
                         accessibilityIdentifier: "customers.detail.error"
                     )
                 }
+            }
+        }
+        .cloudBakeCenteredPopup(
+            isPresented: isConfirmingDelete,
+            title: "Delete Customer?",
+            subtitle: "Delete this customer record. Existing orders keep their customer name snapshot.",
+            systemImage: "trash",
+            cancelAccessibilityIdentifier: "customers.delete.cancel",
+            onCancel: { isConfirmingDelete = false }
+        ) {
+            if let customer = viewModel.selectedCustomer {
+                centeredPopupButton("Delete \(customer.name)", role: .destructive) {
+                    if viewModel.deleteSelectedCustomer() {
+                        isConfirmingDelete = false
+                        isPresented = false
+                    }
+                }
+                .accessibilityIdentifier("customers.delete.confirm")
             }
         }
         .sheet(isPresented: $isEditingCustomer, onDismiss: viewModel.cancelEditingCustomer) {

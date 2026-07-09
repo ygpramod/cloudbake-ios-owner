@@ -216,6 +216,23 @@ final class CustomerListViewModel: ObservableObject {
         resetDraft()
     }
 
+    func deleteSelectedCustomer() -> Bool {
+        guard let selectedCustomer else {
+            errorMessage = "Customer could not be found."
+            return false
+        }
+
+        do {
+            try repository.deleteCustomer(id: selectedCustomer.id)
+            closeCustomerDetail()
+            load()
+            return true
+        } catch {
+            errorMessage = "Customer could not be deleted."
+            return false
+        }
+    }
+
     private func loadSelectedCustomerDetails() {
         guard let selectedCustomer else {
             selectedCustomerImportantDates = []

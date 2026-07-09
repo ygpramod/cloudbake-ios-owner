@@ -331,6 +331,55 @@ final class CustomerListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.customers, [amy, zoe])
     }
 
+    func testDeleteSelectedCustomerRemovesCustomerAndUnlinksOrders() {
+        let repository = FakeCustomerRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let customer = Customer(
+            id: "customer-amy",
+            name: "Amy",
+            phone: "5550101",
+            email: nil,
+            address: nil,
+            likes: nil,
+            dislikes: nil,
+            allergies: nil,
+            dietaryRestrictions: nil,
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let order = makeOrder(
+            id: "order-amy",
+            customerId: customer.id,
+            title: "Birthday Cake",
+            dueAt: timestamp
+        )
+        let importantDate = CustomerImportantDate(
+            id: "date-birthday",
+            customerId: customer.id,
+            label: "Birthday",
+            date: timestamp,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.customers = [customer]
+        repository.orders = [order]
+        repository.importantDates = [importantDate]
+        let viewModel = CustomerListViewModel(repository: repository)
+
+        viewModel.load()
+        viewModel.beginViewingCustomer(customer)
+
+        XCTAssertTrue(viewModel.deleteSelectedCustomer())
+
+        XCTAssertTrue(viewModel.customers.isEmpty)
+        XCTAssertNil(viewModel.selectedCustomer)
+        XCTAssertTrue(repository.importantDates.isEmpty)
+        XCTAssertEqual(repository.orders.first?.id, order.id)
+        XCTAssertNil(repository.orders.first?.customerId)
+        XCTAssertEqual(repository.orders.first?.customerName, "Amy")
+    }
+
     private func makeOrder(
         id: String,
         customerId: String,
@@ -371,6 +420,37 @@ private final class FakeCustomerRepository: CustomerRepository, CustomerImportan
 
     func fetchCustomers() throws -> [Customer] {
         customers
+    }
+
+    func deleteCustomer(id: String) throws {
+        customers.removeAll { $0.id == id }
+        importantDates.removeAll { $0.customerId == id }
+        orders = orders.map { order in
+            guard order.customerId == id else {
+                return order
+            }
+
+            return Order(
+                id: order.id,
+                customerId: nil,
+                cakeDesignId: order.cakeDesignId,
+                recipeId: order.recipeId,
+                recipeScaleMultiplier: order.recipeScaleMultiplier,
+                title: order.title,
+                customerName: order.customerName,
+                status: order.status,
+                dueAt: order.dueAt,
+                fulfillmentType: order.fulfillmentType,
+                deliveryAddress: order.deliveryAddress,
+                cakeNotes: order.cakeNotes,
+                cakeMessage: order.cakeMessage,
+                quotedPrice: order.quotedPrice,
+                depositPaid: order.depositPaid,
+                paymentNotes: order.paymentNotes,
+                createdAt: order.createdAt,
+                updatedAt: order.updatedAt
+            )
+        }
     }
 
     func save(_ importantDate: CustomerImportantDate) throws {
