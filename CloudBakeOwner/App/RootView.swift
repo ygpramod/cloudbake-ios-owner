@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     let database: AppDatabase
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
     @State private var navigationPath: [AppDestination] = []
     private let maximumSectionHistoryCount = 4
 
@@ -18,6 +19,9 @@ struct RootView: View {
                 }
         }
         .background(NativeBackSwipeEnabler().frame(width: 0, height: 0))
+        .onAppear {
+            navigateToOrdersWhenNotificationIsPending()
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             CloudBakeBottomNavigation(
                 selectedDestination: selectedDestination,
@@ -25,6 +29,13 @@ struct RootView: View {
             )
         }
         .environment(\.navigateToAppDestination, navigate)
+        .onChange(of: orderNotificationRouter.pendingOrderId) { _, orderId in
+            guard orderId != nil else {
+                return
+            }
+
+            navigateToOrdersWhenNotificationIsPending()
+        }
         .task {
             await refreshLocalReminders()
         }
@@ -58,6 +69,14 @@ struct RootView: View {
         if navigationPath.count > maximumSectionHistoryCount {
             navigationPath.removeFirst(navigationPath.count - maximumSectionHistoryCount)
         }
+    }
+
+    private func navigateToOrdersWhenNotificationIsPending() {
+        guard orderNotificationRouter.pendingOrderId != nil else {
+            return
+        }
+
+        navigate(.orders)
     }
 
     @ViewBuilder
@@ -122,6 +141,7 @@ struct RootView: View {
 #Preview {
     if let database = try? AppDatabase.makeInMemory() {
         RootView(database: database)
+            .environmentObject(OrderNotificationRouter())
     } else {
         ContentUnavailableView(
             "CloudBake cannot open",

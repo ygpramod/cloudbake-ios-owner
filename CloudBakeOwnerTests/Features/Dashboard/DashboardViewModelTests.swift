@@ -120,6 +120,33 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.upcomingOrderCount, 2)
         XCTAssertEqual(viewModel.nextUpcomingOrder?.id, "order-confirmed")
     }
+
+    func testLoadShowsPrimaryOverdueOrderAlert() {
+        let repository = FakeDashboardInventoryItemRepository()
+        let calendar = utcCalendar()
+        let now = calendar.date(from: DateComponents(year: 2027, month: 2, day: 10, hour: 19))!
+        let overdueToday = calendar.date(from: DateComponents(year: 2027, month: 2, day: 10, hour: 18))!
+        let laterOverdue = calendar.date(from: DateComponents(year: 2027, month: 2, day: 10, hour: 18, minute: 30))!
+        repository.orders = [
+            makeOrder(id: "order-later", title: "Later Cake", status: .confirmed, dueAt: laterOverdue),
+            makeOrder(id: "order-overdue", title: "Birthday Cake", status: .confirmed, dueAt: overdueToday)
+        ]
+        let viewModel = DashboardViewModel(
+            repository: repository,
+            orderPresentation: OrderListPresentation(
+                dateProvider: { now },
+                calendar: calendar
+            )
+        )
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.overdueOrderAlert?.order.id, "order-overdue")
+        XCTAssertEqual(
+            viewModel.overdueOrderAlert?.message,
+            "Birthday Cake was due at \(overdueToday.formatted(date: .omitted, time: .shortened)), update status?"
+        )
+    }
 }
 
 private func makeInventoryItem(

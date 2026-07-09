@@ -4,6 +4,7 @@ import Foundation
 final class DashboardViewModel: ObservableObject {
     @Published private(set) var lowInventoryItems: [InventoryItem] = []
     @Published private(set) var upcomingOrders: [Order] = []
+    @Published private(set) var overdueOrderAlert: OrderOverdueAlert?
     @Published var errorMessage: String?
 
     var displayedLowInventoryItems: [InventoryItem] {
@@ -39,11 +40,14 @@ final class DashboardViewModel: ObservableObject {
     func load() {
         do {
             lowInventoryItems = try repository.fetchInventoryItems().filter(\.isLowStock)
-            upcomingOrders = orderPresentation.activeOrders(from: try repository.fetchOrders())
+            let orders = try repository.fetchOrders()
+            upcomingOrders = orderPresentation.activeOrders(from: orders)
+            overdueOrderAlert = orderPresentation.primaryOverdueAlert(from: orders)
             errorMessage = nil
         } catch {
             lowInventoryItems = []
             upcomingOrders = []
+            overdueOrderAlert = nil
             errorMessage = "Low inventory could not be loaded."
         }
     }

@@ -6,16 +6,19 @@ struct OrderRow: View {
     let onChangeStatus: () -> Void
     let onReceivePayment: () -> Void
     let action: () -> Void
+    let isOverdue: Bool
 
     init(
         order: Order,
         dueDateDisplay: DueDateDisplay = .dateAndTime,
+        isOverdue: Bool = false,
         onChangeStatus: @escaping () -> Void,
         onReceivePayment: @escaping () -> Void,
         action: @escaping () -> Void
     ) {
         self.order = order
         self.dueDateDisplay = dueDateDisplay
+        self.isOverdue = isOverdue
         self.onChangeStatus = onChangeStatus
         self.onReceivePayment = onReceivePayment
         self.action = action
@@ -40,6 +43,16 @@ struct OrderRow: View {
                                     .foregroundStyle(.red)
                                     .accessibilityLabel("Cancelled")
                                     .accessibilityIdentifier("orders.item.cancelledBadge.\(order.id)")
+                            }
+
+                            if isOverdue {
+                                Text("Overdue")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(.red)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.red.opacity(0.10), in: Capsule())
+                                    .accessibilityIdentifier("orders.item.overdue.\(order.id)")
                             }
                         }
 

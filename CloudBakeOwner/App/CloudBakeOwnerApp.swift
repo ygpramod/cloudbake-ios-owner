@@ -5,13 +5,18 @@ struct CloudBakeOwnerApp: App {
     private let database = Result {
         try AppDatabase.openConfigured()
     }
+    @StateObject private var orderNotificationRouter = OrderNotificationRouter()
 
     var body: some Scene {
         WindowGroup {
             switch database {
             case .success(let database):
                 RootView(database: database)
+                    .environmentObject(orderNotificationRouter)
                     .preferredColorScheme(.light)
+                    .onAppear {
+                        orderNotificationRouter.configureNotificationCenter()
+                    }
             case .failure:
                 ContentUnavailableView(
                     "CloudBake cannot open",

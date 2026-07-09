@@ -23,6 +23,11 @@ struct OrderReminderDueGroup: Equatable {
     }
 }
 
+struct OrderOverdueAlert: Equatable {
+    let order: Order
+    let message: String
+}
+
 struct OrderListPresentation {
     let dateProvider: () -> Date
     let calendar: Calendar
@@ -50,6 +55,27 @@ struct OrderListPresentation {
         orders
             .filter(\.hasCompletedHistoryState)
             .sorted(by: Self.orderWasDueAfter)
+    }
+
+    func overdueOrders(from orders: [Order]) -> [Order] {
+        let now = dateProvider()
+        return activeOrders(from: orders)
+            .filter { $0.dueAt < now }
+    }
+
+    func isOverdue(_ order: Order) -> Bool {
+        order.hasActiveReminderState && order.dueAt < dateProvider()
+    }
+
+    func primaryOverdueAlert(from orders: [Order]) -> OrderOverdueAlert? {
+        guard let order = overdueOrders(from: orders).first else {
+            return nil
+        }
+
+        return OrderOverdueAlert(
+            order: order,
+            message: overdueMessage(for: order)
+        )
     }
 
     func customerReferencePhotos(from photos: [OrderPhoto]) -> [OrderPhoto] {
@@ -105,6 +131,15 @@ struct OrderListPresentation {
         let now = dateProvider()
         let reminders = reminderPlan(for: order)
         return reminders.first { $0.remindAt > now } ?? reminders.last
+    }
+
+    private func overdueMessage(for order: Order) -> String {
+        let now = dateProvider()
+        if calendar.isDate(order.dueAt, inSameDayAs: now) {
+            return "\(order.title) was due at \(order.dueAt.formatted(date: .omitted, time: .shortened)), update status?"
+        }
+
+        return "\(order.title) is overdue. Update status?"
     }
 
     static func checklistItemWasEnteredBefore(_ lhs: OrderChecklistItem, _ rhs: OrderChecklistItem) -> Bool {

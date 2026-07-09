@@ -3,6 +3,7 @@ import SwiftUI
 struct DashboardView: View {
     @StateObject private var viewModel: DashboardViewModel
     @Environment(\.navigateToAppDestination) private var navigate
+    @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
 
     init(viewModel: DashboardViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -15,6 +16,10 @@ struct DashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     DashboardHeader()
+
+                    if let overdueAlert = viewModel.overdueOrderAlert {
+                        overdueBanner(overdueAlert)
+                    }
 
                     DashboardSection(title: "Today") {
                         HStack(spacing: 16) {
@@ -96,6 +101,22 @@ struct DashboardView: View {
         }
 
         return "No orders yet"
+    }
+
+    private func overdueBanner(_ alert: OrderOverdueAlert) -> some View {
+        Button {
+            orderNotificationRouter.openOrder(id: alert.order.id)
+            navigate(.orders)
+        } label: {
+            Label(alert.message, systemImage: "clock.badge.exclamationmark")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.cloudBakePink)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(Color.cloudBakePink.opacity(0.10), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("dashboard.overdue.banner")
     }
 }
 
@@ -424,6 +445,7 @@ private extension InventoryItem {
             repository: PreviewDashboardInventoryItemRepository()
         )
     )
+    .environmentObject(OrderNotificationRouter())
 }
 
 private final class PreviewDashboardInventoryItemRepository: InventoryItemRepository, OrderRepository {
