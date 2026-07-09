@@ -327,13 +327,14 @@ private struct PaymentDueReminderRow: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("reminders.paymentDue.open.\(item.id)")
 
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 if item.whatsappURL != nil, canOpenWhatsApp {
                     CloudBakeInlineActionButton(
                         title: "WhatsApp Reminder",
                         systemImage: "message",
                         tint: .cloudBakeTeal,
                         accessibilityIdentifier: "reminders.paymentDue.whatsapp.\(item.id)",
+                        prominence: .prominent,
                         action: onWhatsAppReminder
                     )
                 }
@@ -343,6 +344,7 @@ private struct PaymentDueReminderRow: View {
                     systemImage: "checkmark.circle",
                     tint: .cloudBakeMint,
                     accessibilityIdentifier: "reminders.paymentDue.markPaid.\(item.id)",
+                    prominence: .prominent,
                     action: onMarkPaid
                 )
             }

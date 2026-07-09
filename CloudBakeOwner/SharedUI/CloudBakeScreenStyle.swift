@@ -389,26 +389,59 @@ struct CloudBakeCardDivider: View {
 }
 
 struct CloudBakeInlineActionButton: View {
+    enum Prominence {
+        case compact
+        case prominent
+    }
+
     let title: String
     let systemImage: String
     let tint: Color
     let accessibilityIdentifier: String
+    var prominence: Prominence = .compact
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
-                .font(.caption.weight(.semibold))
+                .font(font)
                 .labelStyle(.titleAndIcon)
                 .foregroundStyle(tint)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(tint.opacity(0.10), in: Capsule())
+                .frame(maxWidth: prominence == .prominent ? .infinity : nil)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.vertical, verticalPadding)
+                .background(backgroundColor, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .strokeBorder(tint.opacity(prominence == .prominent ? 0.16 : 0), lineWidth: 1)
+                }
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    private var font: Font {
+        switch prominence {
+        case .compact:
+            .caption.weight(.semibold)
+        case .prominent:
+            .subheadline.weight(.semibold)
+        }
+    }
+
+    private var horizontalPadding: CGFloat {
+        prominence == .prominent ? 14 : 10
+    }
+
+    private var verticalPadding: CGFloat {
+        prominence == .prominent ? 12 : 7
+    }
+
+    private var backgroundColor: Color {
+        tint.opacity(prominence == .prominent ? 0.12 : 0.10)
     }
 }
 
