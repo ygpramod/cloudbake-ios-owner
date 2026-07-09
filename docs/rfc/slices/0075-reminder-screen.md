@@ -54,9 +54,7 @@ must open WhatsApp using the linked customer phone number and prefill:
 Hi {First Name}, this is a reminder for your CloudBake order.
 
 Balance due: {balance}
-
 Order: {Cake Name}
-
 Due: {due date and time}
 
 You can make the payment when convenient. Thank you!
