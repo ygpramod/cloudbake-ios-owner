@@ -58,7 +58,7 @@ final class ReminderViewModel: ObservableObject {
 
     private static func paymentDueItems(from orders: [Order]) -> [PaymentDueReminderItem] {
         orders
-            .filter(\.hasActiveReminderState)
+            .filter { $0.status == .ready || $0.status == .completed }
             .compactMap { order in
                 guard let balanceDue = order.balanceDue,
                       balanceDue > 0 else {

@@ -67,8 +67,6 @@ struct DashboardView: View {
 
                     DashboardSection(title: "Areas") {
                         VStack(spacing: 0) {
-                            DashboardAreaRow(destination: .reminders, tint: .cloudBakePink)
-                            DashboardDivider()
                             DashboardAreaRow(destination: .orders, tint: .cloudBakePurple)
                             DashboardDivider()
                             DashboardAreaRow(destination: .inventory, tint: .cloudBakeOrange)
