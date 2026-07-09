@@ -106,6 +106,81 @@ final class ExpiryReminderSchedulerTests: XCTestCase {
         XCTAssertEqual(try scheduler.makeReminderRequests(), [])
     }
 
+    func testMakeReminderRequestsSchedulesNextMorningWhenTodayReminderTimePassed() throws {
+        let repository = FakeExpiryReminderRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2027, month: 1, day: 15, hour: 10, minute: 30))!
+        let expiresAt = calendar.date(from: DateComponents(year: 2027, month: 1, day: 20, hour: 18, minute: 0))!
+        repository.items = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake flour",
+                unit: .gram,
+                currentQuantity: 500,
+                minimumQuantity: 250,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-flour",
+                inventoryItemId: "inventory-flour",
+                remainingQuantity: 500,
+                expiresAt: expiresAt,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        let scheduler = ExpiryReminderScheduler(
+            repository: repository,
+            notificationCenter: FakeExpiryReminderNotificationCenter(),
+            dateProvider: { now }
+        )
+
+        let requests = try scheduler.makeReminderRequests()
+
+        let trigger = try XCTUnwrap(requests.first?.trigger as? UNCalendarNotificationTrigger)
+        XCTAssertEqual(trigger.dateComponents.day, 16)
+        XCTAssertEqual(trigger.dateComponents.hour, 9)
+        XCTAssertEqual(trigger.dateComponents.minute, 0)
+    }
+
+    func testMakeReminderRequestsDoesNotScheduleCatchUpAfterDailyReminderTimeForTodayExpiry() throws {
+        let repository = FakeExpiryReminderRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2027, month: 1, day: 15, hour: 10, minute: 30))!
+        let expiresAt = calendar.date(from: DateComponents(year: 2027, month: 1, day: 15, hour: 18, minute: 0))!
+        repository.items = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake flour",
+                unit: .gram,
+                currentQuantity: 500,
+                minimumQuantity: 250,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-flour",
+                inventoryItemId: "inventory-flour",
+                remainingQuantity: 500,
+                expiresAt: expiresAt,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        let scheduler = ExpiryReminderScheduler(
+            repository: repository,
+            notificationCenter: FakeExpiryReminderNotificationCenter(),
+            dateProvider: { now }
+        )
+
+        XCTAssertEqual(try scheduler.makeReminderRequests(), [])
+    }
+
     func testRefreshRemindersRequestsPermissionAndAddsRequests() async throws {
         let repository = FakeExpiryReminderRepository()
         let notificationCenter = FakeExpiryReminderNotificationCenter()

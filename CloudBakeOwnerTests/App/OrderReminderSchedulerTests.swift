@@ -22,7 +22,8 @@ final class OrderReminderSchedulerTests: XCTestCase {
         XCTAssertEqual(requests.map(\.identifier), [
             "order-reminder-order-vanilla-3d",
             "order-reminder-order-vanilla-2d",
-            "order-reminder-order-vanilla-1d"
+            "order-reminder-order-vanilla-1d",
+            "order-reminder-order-vanilla-0d"
         ])
         XCTAssertEqual(requests[0].content.title, "Order reminder")
         XCTAssertEqual(
@@ -33,9 +34,17 @@ final class OrderReminderSchedulerTests: XCTestCase {
         XCTAssertEqual(trigger.dateComponents.day, 11)
         XCTAssertEqual(trigger.dateComponents.hour, 15)
         XCTAssertEqual(trigger.dateComponents.minute, 30)
+        XCTAssertEqual(
+            requests[3].content.body,
+            "Vanilla Birthday was due at \(dueAt.formatted(date: .omitted, time: .shortened)), update status?"
+        )
+        XCTAssertEqual(
+            requests[3].content.userInfo[OrderReminderScheduler.orderNotificationOrderIdKey] as? String,
+            "order-vanilla"
+        )
     }
 
-    func testMakeReminderRequestsIgnoresInactivePastAndAlreadyMissedReminders() throws {
+    func testMakeReminderRequestsIgnoresInactivePastAndSchedulesDueTimeReminder() throws {
         let repository = FakeOrderReminderRepository()
         let calendar = Calendar(identifier: .gregorian)
         let now = calendar.date(from: DateComponents(year: 2027, month: 2, day: 10, hour: 9, minute: 0))!
@@ -56,7 +65,7 @@ final class OrderReminderSchedulerTests: XCTestCase {
 
         let requests = try scheduler.makeReminderRequests()
 
-        XCTAssertEqual(requests, [])
+        XCTAssertEqual(requests.map(\.identifier), ["order-reminder-order-tomorrow-0d"])
     }
 
     func testRefreshRemindersRequestsPermissionReplacesStaleOrderRequestsAndAddsCurrentRequests() async throws {
@@ -88,7 +97,8 @@ final class OrderReminderSchedulerTests: XCTestCase {
         XCTAssertEqual(notificationCenter.addedRequests.map(\.identifier), [
             "order-reminder-order-vanilla-3d",
             "order-reminder-order-vanilla-2d",
-            "order-reminder-order-vanilla-1d"
+            "order-reminder-order-vanilla-1d",
+            "order-reminder-order-vanilla-0d"
         ])
     }
 
