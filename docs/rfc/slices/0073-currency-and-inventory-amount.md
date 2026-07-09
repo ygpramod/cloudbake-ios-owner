@@ -7,7 +7,8 @@ This slice adds owner-level currency display and records amount on inventory sto
 In scope:
 
 1. Settings currency choice,
-2. supported currency symbols for dollar, Indian rupee, British pound, and Malaysian ringgit,
+2. supported currency symbols for dollar, Indian rupee, British pound, Malaysian ringgit, and
+   Singapore dollar,
 3. order money display using the selected currency symbol,
 4. amount capture on inventory add, stock adjustment, and stock batch correction,
 5. stock batch combining when quantity is added with the same expiry date and amount,
@@ -24,7 +25,7 @@ Out of scope:
 ## Requirements Summary
 
 The owner must be able to choose the app currency from Settings. The first supported symbols are
-`$`, `₹`, `£`, and `RM`.
+`$`, `₹`, `£`, `RM`, and `S$`.
 
 Order price, deposit, balance, and inventory amount display must use the selected symbol.
 

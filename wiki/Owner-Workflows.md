@@ -145,6 +145,8 @@ batches expiring within one month. These reminders are refreshed when the app op
 the foreground.
 
 The reminder names the inventory item, remaining quantity, unit, and expiry date.
+Expiry reminders are scheduled once per day at 9 AM; CloudBake does not send repeated same-day
+catch-up notifications when the app is opened after the 9 AM reminder time.
 
 ## Review Order Reminders
 
@@ -152,11 +154,13 @@ Order detail shows the next relevant reminder from the three-day, two-day, and o
 plan.
 
 When notification permission is granted, CloudBake schedules local owner notifications for
-Confirmed, In Progress, and Ready orders at future three-day, two-day, and one-day reminder times.
+Confirmed, In Progress, and Ready orders at future three-day, two-day, one-day, and due-time
+reminder times. The due-time notification says the order was due and asks the owner to update
+status. Tapping an order notification opens the matching order.
+
 Draft, Completed, Cancelled, past-due, and already-missed reminders are not scheduled.
 
-Reminder snooze, configurable offsets, day-of reminders, and calendar integration remain future
-work.
+Reminder snooze, configurable offsets, and calendar integration remain future work.
 
 ## Switch Order Tabs
 
@@ -255,7 +259,7 @@ CloudBake currently uses light appearance only while the owner app design is har
 
 Use Settings for app-wide owner preferences and data tools.
 
-The owner can choose the money display symbol from `$`, `₹`, `£`, and `RM`. This changes local
+The owner can choose the money display symbol from `$`, `₹`, `£`, `RM`, and `S$`. This changes local
 display for order prices, payments, balances, and inventory amount. It does not convert stored
 amounts or apply exchange rates.
 
@@ -305,8 +309,9 @@ appears in the detail column. On iPhone, order detail continues to open as a foc
 The Orders screen no longer has a standalone Reminders Due section. Order detail shows the next
 reminder for that cake. Completed and cancelled orders do not appear in due reminder calculations.
 Confirmed, In Progress, and Ready orders also schedule local owner notifications for future
-three-day, two-day, and one-day reminder times. Snooze, configurable reminder offsets, day-of
-reminders, and calendar integration are future work.
+three-day, two-day, one-day, and due-time reminder times. If an active order has passed its due
+time, CloudBake shows an Overdue pill on the order row and an update-status banner for the earliest
+overdue order. Snooze, configurable reminder offsets, and calendar integration are future work.
 
 Customer record selection opens from the order form. The owner can search customers by name, phone,
 email, or address, select a saved customer, or clear the link and keep manually entered order text.

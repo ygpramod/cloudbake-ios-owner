@@ -20,7 +20,8 @@ This slice adds local owner notification scheduling for order reminders.
 
 In scope:
 
-- schedule local iOS notifications for future three-day, two-day, and one-day order reminders,
+- schedule local iOS notifications for future three-day, two-day, one-day, and due-time order
+  reminders,
 - refresh scheduled order reminders when the app opens or returns to the foreground,
 - schedule notifications only for active scheduled order states,
 - remove stale order reminder notifications before scheduling current ones,
@@ -32,7 +33,6 @@ Out of scope:
 
 - reminder snooze,
 - custom reminder offsets,
-- day-of reminders,
 - preparation-start reminders,
 - calendar integration,
 - customer-facing notifications,
@@ -41,10 +41,11 @@ Out of scope:
 ## Requirements
 
 - Confirmed, In Progress, and Ready orders must schedule local notifications at future reminder
-  offsets three days, two days, and one day before due date.
+  offsets three days, two days, one day, and due time.
 - Draft, Completed, and Cancelled orders must not schedule local notifications.
 - Past-due orders must not schedule local notifications.
 - Reminder offsets that have already passed must not schedule notifications.
+- Due-time notification taps must carry the order id so the app can open the order directly.
 - Refreshing reminders must remove stale order reminder notifications without removing unrelated
   inventory expiry notifications.
 - Notification scheduling failures must not block app launch or foreground resume.
@@ -57,6 +58,10 @@ values for eligible reminder offsets. Notification identifiers use the stable fo
 `order-reminder-{orderId}-{offsetDays}d`, which allows the scheduler to replace stale order
 reminders while leaving other local notifications alone.
 
+Due-time notifications use the message `{Order title} was due at {time}, update status?` and include
+order metadata for local deep linking. Tapping the notification routes the owner to the matching
+order in the Orders workflow.
+
 `RootView` refreshes both inventory expiry reminders and order reminders on app launch and when the
 app becomes active. Both schedulers share the local notification abstraction so tests can verify
 permission requests, stale notification removal, and scheduled requests without touching
@@ -66,7 +71,7 @@ permission requests, stale notification removal, and scheduled requests without 
 
 Focused unit coverage verifies that:
 
-- future active orders produce three-day, two-day, and one-day notification requests,
+- future active orders produce three-day, two-day, one-day, and due-time notification requests,
 - draft, completed, cancelled, past-due, and already-missed reminder cases do not schedule
   notifications,
 - refresh requests notification permission, removes only stale order notifications, and adds the

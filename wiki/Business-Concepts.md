@@ -115,7 +115,7 @@ correction workflow rather than normal stock adjustment.
 
 App currency is the owner-selected display symbol for money values in CloudBake.
 
-The first supported symbols are `$`, `₹`, `£`, and `RM`. Currency selection is local to the owner
+The first supported symbols are `$`, `₹`, `£`, `RM`, and `S$`. Currency selection is local to the owner
 app and does not perform exchange-rate conversion.
 
 ## Recipe
