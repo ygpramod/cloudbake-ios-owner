@@ -3,9 +3,14 @@ import XCTest
 
 @MainActor
 final class ReminderViewModelTests: XCTestCase {
-    func testLoadShowsPaymentDueForReadyAndCompletedOrdersWithBalanceDue() {
+    func testLoadShowsPaymentDueForReadyAndCompletedOrdersWithBalanceDue() throws {
         let repository = FakeReminderRepository()
-        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Singapore") ?? .current
+        let dueAt = calendar.date(from: DateComponents(year: 2026, month: 7, day: 8, hour: 18))!
+        repository.customers = [
+            makeCustomer(id: "customer-amy", name: "Amy Rao", phone: "+65 9123 4567")
+        ]
         repository.orders = [
             makeOrder(
                 id: "order-confirmed",
@@ -17,7 +22,8 @@ final class ReminderViewModelTests: XCTestCase {
             ),
             makeOrder(
                 id: "order-ready",
-                title: "Chocolate Cake",
+                title: "Chocolate Truffle Cake",
+                customerId: "customer-amy",
                 status: .ready,
                 dueAt: dueAt,
                 quotedPrice: decimal("150"),
@@ -44,22 +50,36 @@ final class ReminderViewModelTests: XCTestCase {
 
         viewModel.load()
 
+        XCTAssertEqual(viewModel.paymentDueItems.count, 2)
+        XCTAssertEqual(viewModel.paymentDueItems[0].id, "order-ready")
+        XCTAssertEqual(viewModel.paymentDueItems[0].orderName, "Chocolate Truffle Cake")
+        XCTAssertEqual(viewModel.paymentDueItems[0].customerName, "Amy Rao")
+        XCTAssertEqual(viewModel.paymentDueItems[0].firstName, "Amy")
+        XCTAssertEqual(viewModel.paymentDueItems[0].balanceDueText, MoneyDisplay.formatted(decimal("100")))
         XCTAssertEqual(
-            viewModel.paymentDueItems,
-            [
-                PaymentDueReminderItem(
-                    id: "order-ready",
-                    orderName: "Chocolate Cake",
-                    customerName: "Amy",
-                    balanceDueText: MoneyDisplay.formatted(decimal("100"))
-                ),
-                PaymentDueReminderItem(
-                    id: "order-completed",
-                    orderName: "Completed Cake",
-                    customerName: "Amy",
-                    balanceDueText: MoneyDisplay.formatted(decimal("60"))
-                )
-            ]
+            viewModel.paymentDueItems[0].paymentMessage,
+            "\"Amy\" has \(MoneyDisplay.formatted(decimal("100"))) balance due for Chocolate Truffle Cake."
+        )
+        XCTAssertEqual(viewModel.paymentDueItems[1].id, "order-completed")
+        XCTAssertEqual(viewModel.paymentDueItems[1].whatsappURL, nil)
+        let whatsappURL = try XCTUnwrap(viewModel.paymentDueItems.first?.whatsappURL)
+        let components = try XCTUnwrap(URLComponents(url: whatsappURL, resolvingAgainstBaseURL: false))
+        XCTAssertEqual(components.scheme, "whatsapp")
+        XCTAssertEqual(components.host, "send")
+        XCTAssertEqual(components.queryItems?.first { $0.name == "phone" }?.value, "+6591234567")
+        XCTAssertEqual(
+            components.queryItems?.first { $0.name == "text" }?.value,
+            """
+            Hi Amy, this is a reminder for your CloudBake order.
+
+            Balance due: \(MoneyDisplay.formatted(decimal("100")))
+
+            Order: Chocolate Truffle Cake
+
+            Due: 8 Jul 2026, 6:00 PM
+
+            You can make the payment when convenient. Thank you!
+            """
         )
     }
 
@@ -124,13 +144,42 @@ final class ReminderViewModelTests: XCTestCase {
             ]
         )
     }
+
+    func testMarkPaidUpdatesOrderAndRemovesPaymentDueReminder() {
+        let repository = FakeReminderRepository()
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        repository.orders = [
+            makeOrder(
+                id: "order-ready",
+                title: "Chocolate Cake",
+                status: .ready,
+                dueAt: dueAt,
+                quotedPrice: decimal("150"),
+                depositPaid: decimal("50")
+            )
+        ]
+        let viewModel = ReminderViewModel(repository: repository)
+        viewModel.load()
+
+        XCTAssertTrue(viewModel.markPaid(orderId: "order-ready"))
+
+        XCTAssertEqual(repository.orders.first?.depositPaid, decimal("150"))
+        XCTAssertEqual(viewModel.paymentDueItems, [])
+    }
 }
 
-private final class FakeReminderRepository: OrderRepository, InventoryItemRepository {
+private final class FakeReminderRepository: OrderRepository, InventoryItemRepository, CustomerRepository {
     var orders: [Order] = []
     var items: [InventoryItem] = []
+    var customers: [Customer] = []
 
-    func save(_ order: Order) throws {}
+    func save(_ order: Order) throws {
+        if let existingIndex = orders.firstIndex(where: { $0.id == order.id }) {
+            orders[existingIndex] = order
+        } else {
+            orders.append(order)
+        }
+    }
 
     func fetchOrder(id: String) throws -> Order? {
         orders.first { $0.id == id }
@@ -152,6 +201,26 @@ private final class FakeReminderRepository: OrderRepository, InventoryItemReposi
 
     func fetchArchivedInventoryItems() throws -> [InventoryItem] {
         items.filter(\.isArchived)
+    }
+
+    func save(_ customer: Customer) throws {
+        if let existingIndex = customers.firstIndex(where: { $0.id == customer.id }) {
+            customers[existingIndex] = customer
+        } else {
+            customers.append(customer)
+        }
+    }
+
+    func fetchCustomer(id: String) throws -> Customer? {
+        customers.first { $0.id == id }
+    }
+
+    func fetchCustomers() throws -> [Customer] {
+        customers
+    }
+
+    func deleteCustomer(id: String) throws {
+        customers.removeAll { $0.id == id }
     }
 }
 

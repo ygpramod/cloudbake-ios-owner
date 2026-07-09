@@ -3,8 +3,10 @@ import SwiftUI
 struct ReminderView: View {
     @StateObject private var viewModel: ReminderViewModel
     @Environment(\.navigateToAppDestination) private var navigate
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
     @EnvironmentObject private var inventoryNavigationRouter: InventoryNavigationRouter
+    @State private var pendingPaidItem: PaymentDueReminderItem?
 
     init(viewModel: ReminderViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -20,6 +22,23 @@ struct ReminderView: View {
         .onAppear {
             viewModel.load()
         }
+        .cloudBakeCenteredPopup(
+            isPresented: pendingPaidItem != nil,
+            title: "Mark As Paid?",
+            subtitle: "Confirm payment received for this order.",
+            systemImage: "checkmark.circle",
+            cancelAccessibilityIdentifier: "reminders.paymentDue.markPaid.cancel",
+            onCancel: { pendingPaidItem = nil }
+        ) {
+            if let pendingPaidItem {
+                centeredPopupButton("Mark \(pendingPaidItem.orderName) Paid") {
+                    if viewModel.markPaid(orderId: pendingPaidItem.id) {
+                        self.pendingPaidItem = nil
+                    }
+                }
+                .accessibilityIdentifier("reminders.paymentDue.markPaid.confirm")
+            }
+        }
         .accessibilityIdentifier(AppDestination.reminders.screenAccessibilityIdentifier)
     }
 
@@ -32,17 +51,19 @@ struct ReminderView: View {
                 systemImage: "banknote",
                 items: viewModel.paymentDueItems
             ) { item in
-                reminderButton(
-                    accessibilityIdentifier: "reminders.paymentDue.\(item.id)",
-                    action: { openOrder(id: item.id) }
-                ) {
-                    ReminderListRow(
-                        title: item.orderName,
-                        subtitle: item.customerName,
-                        trailing: item.balanceDueText,
-                        tint: .cloudBakePink
-                    )
-                }
+                PaymentDueReminderRow(
+                    item: item,
+                    onOpenOrder: { openOrder(id: item.id) },
+                    onWhatsAppReminder: {
+                        if let whatsappURL = item.whatsappURL {
+                            openURL(whatsappURL)
+                        }
+                    },
+                    onMarkPaid: {
+                        pendingPaidItem = item
+                    }
+                )
+                .accessibilityIdentifier("reminders.paymentDue.\(item.id)")
             }
 
             reminderSection(
@@ -195,6 +216,50 @@ private struct ReminderListRow: View {
                     .foregroundStyle(tint)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+    }
+}
+
+private struct PaymentDueReminderRow: View {
+    let item: PaymentDueReminderItem
+    let onOpenOrder: () -> Void
+    let onWhatsAppReminder: () -> Void
+    let onMarkPaid: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Button(action: onOpenOrder) {
+                Text(item.paymentMessage)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("reminders.paymentDue.open.\(item.id)")
+
+            HStack(spacing: 10) {
+                CloudBakeInlineActionButton(
+                    title: "WhatsApp Reminder",
+                    systemImage: "message",
+                    tint: .cloudBakeTeal,
+                    accessibilityIdentifier: "reminders.paymentDue.whatsapp.\(item.id)",
+                    action: onWhatsAppReminder
+                )
+                .disabled(item.whatsappURL == nil)
+                .opacity(item.whatsappURL == nil ? 0.45 : 1)
+
+                CloudBakeInlineActionButton(
+                    title: "Mark as Paid",
+                    systemImage: "checkmark.circle",
+                    tint: .cloudBakeMint,
+                    accessibilityIdentifier: "reminders.paymentDue.markPaid.\(item.id)",
+                    action: onMarkPaid
+                )
             }
         }
         .padding(.horizontal, 18)
