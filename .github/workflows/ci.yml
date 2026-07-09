@@ -75,6 +75,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerAddOffersContactsImportAndManualEntry
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDuplicateWarningAppearsBeforeSaving
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeEditedFromDetail
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeDeletedFromDetail
           - feature: orders-core
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeAddedAndListed

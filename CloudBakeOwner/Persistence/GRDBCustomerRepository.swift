@@ -47,6 +47,19 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func deleteCustomer(id: String) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: "UPDATE orders SET customer_id = NULL WHERE customer_id = ?",
+                arguments: [id]
+            )
+            try db.execute(
+                sql: "DELETE FROM customers WHERE id = ?",
+                arguments: [id]
+            )
+        }
+    }
+
     func save(_ importantDate: CustomerImportantDate) throws {
         try writer.write { db in
             try db.execute(
