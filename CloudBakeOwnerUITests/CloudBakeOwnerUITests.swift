@@ -32,6 +32,16 @@ final class CloudBakeOwnerUITests: XCTestCase {
         }
     }
 
+    func testSettingsShowsInventoryCSVActions() throws {
+        let app = makeApp()
+        app.launch()
+
+        openDashboardDestination("Settings", in: app)
+
+        XCTAssertTrue(app.buttons["settings.inventory.import"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["settings.inventory.export"].waitForExistence(timeout: 5))
+    }
+
     func testOrderCanBeAddedAndListed() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15

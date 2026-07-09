@@ -61,6 +61,8 @@ notes, and changing customer requests without forcing the owner into a rigid ret
   descending, with cancelled orders visibly marked.
 - The owner must be able to view a single order with all business-critical details.
 - The owner must be able to edit an order while it is active.
+- The owner must be able to create a new customer from order customer selection when the customer
+  does not already exist.
 - Each order must have a status.
 - Each order must capture a due date and time.
 - Each order must capture whether it is for pickup or delivery.
@@ -152,6 +154,8 @@ Customer detail can show linked order history through
 `docs/rfc/slices/0041-customer-order-history.md`.
 Order add/edit can link customers through a searchable selection flow through
 `docs/rfc/slices/0042-order-customer-search-selection.md`.
+Order customer selection can also create and immediately link a new customer through
+`docs/rfc/slices/0072-customer-order-link-delete-inventory-csv.md`.
 Owner-visible order reminder planning is implemented in
 `docs/rfc/slices/0044-order-reminders.md`.
 Order add/edit can link one saved recipe for preparation context through

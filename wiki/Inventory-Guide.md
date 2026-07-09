@@ -199,14 +199,34 @@ Restore archived inventory when the owner needs to use it again.
 
 Archive is preferred over delete because inventory history can matter later.
 
+## Import And Export CSV
+
+Open Settings to import or export inventory CSV.
+
+CSV export includes active inventory items and their stock batches. Each row includes:
+
+1. name,
+2. unit,
+3. current quantity,
+4. minimum quantity,
+5. batch quantity,
+6. expiry date.
+
+CSV import creates new active inventory items or updates matching active items by name and unit.
+When updating an existing item, CloudBake replaces that item's saved stock batches with the imported
+batches and recalculates current quantity from the imported batch quantities.
+
+Use stock adjustment for normal day-to-day stock changes. Use CSV import when moving inventory data
+in bulk or making a deliberate correction from a reviewed file.
+
 ## Not Yet Supported
 
 Inventory does not yet support:
 
-1. recipe-driven automatic reduction,
-2. ingredient-density conversion between weight and volume,
-3. in-app baking catalog editing,
-4. inventory delete,
-5. supplier tracking,
-6. purchase planning,
-7. editing unit, current quantity, or expiry from item edit mode.
+1. ingredient-density conversion between weight and volume,
+2. in-app baking catalog editing,
+3. inventory delete,
+4. supplier tracking,
+5. purchase planning,
+6. editing unit, current quantity, or expiry from item edit mode,
+7. CSV conflict review before import replacement.

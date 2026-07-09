@@ -93,7 +93,13 @@ struct RootView: View {
                     repository: database.makeCoreDataRepository()
                 )
             )
-        case .designs, .settings:
+        case .settings:
+            SettingsView(
+                viewModel: SettingsViewModel(
+                    repository: database.makeCoreDataRepository()
+                )
+            )
+        case .designs:
             PlaceholderScreen(destination: destination)
         }
     }

@@ -62,6 +62,7 @@ The app should make customer memory useful without becoming a heavy CRM.
 - Customer records must be linkable from orders.
 - Orders should use customer records instead of duplicating long-term customer details.
 - The owner must be able to edit customer details after creation.
+- The owner must be able to delete a customer record after confirmation.
 - The owner must be able to search or select an existing customer when creating an order.
 
 ## Non Functional Requirements
@@ -137,7 +138,8 @@ customer.
 - Important dates should start as a flexible label and date list.
 - Likes, dislikes, allergies, dietary restrictions, and owner notes are optional.
 - Duplicate detection is required when adding customers.
-- Archive and delete are not required for the first customer implementation.
+- Customer deletion is supported for the owner MVP after explicit confirmation. Deleting a customer
+  clears order record links but preserves each order's customer name snapshot.
 - Contacts import uses Apple's explicit contact picker for one owner-selected contact.
 - Contacts import must create an editable draft and must not save until the owner taps Save.
 - Orders can optionally link to an existing customer record while keeping a customer name snapshot.
@@ -163,6 +165,8 @@ Regular-width iPad customer list/detail layout is implemented in
 `docs/rfc/slices/0043-ipad-customer-layout.md`.
 A customer-safe profile projection for future consumer-facing surfaces is implemented through
 `docs/rfc/slices/0067-future-consumer-customer-profile-model.md`.
+Customer creation from order linking and customer deletion are implemented in
+`docs/rfc/slices/0072-customer-order-link-delete-inventory-csv.md`.
 
 ## Owner Experience
 
@@ -175,6 +179,7 @@ Customers should eventually include these screens:
 - Edit customer flow.
 - Customer order history.
 - Customer selection from add order.
+- Customer deletion from detail.
 
 The first slice should establish list, add, detail, and local persistence foundations. Customer edit
 is the next slice.

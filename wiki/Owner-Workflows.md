@@ -188,6 +188,18 @@ The history includes manual stock adjustments and manual stock usage for the sel
 item. This is useful before recipe-driven stock changes exist, and it becomes more important once
 recipes start reducing inventory automatically.
 
+## Import And Export Inventory CSV
+
+Use Settings when inventory data needs to move into or out of CloudBake.
+
+Inventory CSV export saves active inventory and stock batches with name, unit, current quantity,
+minimum quantity, batch quantity, and expiry date.
+
+Inventory CSV import creates new active inventory items or updates matching active items by name
+and unit. When an imported row matches an existing item, the imported stock batches replace that
+item's saved stock batches so the CSV can be used as a deliberate correction source. The owner
+should review the CSV before import because there is no separate conflict review screen yet.
+
 ## Archive Inventory
 
 Use archive when an item should not appear in the active inventory list anymore.
@@ -352,13 +364,18 @@ restrictions, and notes are optional.
 Customer edit updates contact details and preference fields. Important date correction is future
 work.
 
+Customer detail supports deletion after confirmation. Deleting a customer clears optional order
+record links but keeps each order's customer name snapshot, so historical orders remain readable.
+
 The app warns before saving when a new customer looks like a duplicate. Contacts import can prefill
 contact details, but CloudBake-specific preferences and allergy notes remain owner-entered.
 
 Orders can link to customer records today. Linked order detail surfaces saved customer preferences
 and allergy details for owner review. Customer detail also shows linked orders in due-date order so
 the owner can review a customer's cake history from the customer record. Order add/edit uses a
-searchable customer selection flow so saved customers remain usable as the list grows.
+searchable customer selection flow so saved customers remain usable as the list grows. If the
+customer is missing while creating an order, the owner can create a new customer from the selection
+screen and immediately link that saved customer to the order draft.
 
 On iPad, Customers uses a list/detail layout: the customer list stays visible while selected
 customer contact details, preferences, important dates, and linked order history appear in the

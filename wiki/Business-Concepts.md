@@ -95,6 +95,17 @@ future restoration.
 
 Restoring moves an archived inventory item back to the active inventory list.
 
+## Inventory CSV
+
+Inventory CSV is an owner-controlled import/export format for active inventory and stock batches.
+
+It uses the columns `name`, `unit`, `current_quantity`, `minimum_quantity`, `batch_quantity`, and
+`expiry_date`. Dates use `yyyy-MM-dd`.
+
+CSV import can create new inventory items or update matching active items by name and unit. Updating
+from CSV replaces the matched item's stock batches, so it should be treated as a deliberate data
+correction workflow rather than normal stock adjustment.
+
 ## Recipe
 
 A recipe describes the ingredients and steps needed to make a cake or component.
@@ -166,6 +177,13 @@ visibility decisions.
 Customer preferences include likes, dislikes, allergies, flavor choices, and design preferences.
 
 Allergies and preferences are private owner data and must be handled carefully.
+
+## Customer Deletion
+
+Customer deletion removes the owner-managed customer record after confirmation.
+
+Existing orders are not deleted. They keep their customer name snapshot and lose only the optional
+link back to the deleted customer record.
 
 ## Order Checklist Item
 
