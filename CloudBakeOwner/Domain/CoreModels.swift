@@ -183,8 +183,27 @@ struct InventoryStockBatch: Equatable {
     let inventoryItemId: String
     let remainingQuantity: Double
     let expiresAt: Date?
+    let unitCost: Decimal?
     let createdAt: Date
     let updatedAt: Date
+
+    init(
+        id: String,
+        inventoryItemId: String,
+        remainingQuantity: Double,
+        expiresAt: Date?,
+        unitCost: Decimal? = nil,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.inventoryItemId = inventoryItemId
+        self.remainingQuantity = remainingQuantity
+        self.expiresAt = expiresAt
+        self.unitCost = unitCost
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
 struct Recipe: Equatable {

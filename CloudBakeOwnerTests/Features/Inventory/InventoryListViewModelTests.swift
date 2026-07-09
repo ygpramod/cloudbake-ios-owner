@@ -170,6 +170,7 @@ final class InventoryListViewModelTests: XCTestCase {
         viewModel.draftCurrentQuantity = "100"
         viewModel.draftMinimumQuantity = "250"
         viewModel.draftExpiryDate = expiresAt
+        viewModel.draftUnitCost = "2.50"
 
         XCTAssertTrue(viewModel.addItem())
 
@@ -181,6 +182,7 @@ final class InventoryListViewModelTests: XCTestCase {
                     inventoryItemId: "inventory-butter",
                     remainingQuantity: 100,
                     expiresAt: expiresAt,
+                    unitCost: Decimal(string: "2.50"),
                     createdAt: now,
                     updatedAt: now
                 )

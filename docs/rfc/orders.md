@@ -314,7 +314,8 @@ pricing, and recipe links.
 - Due date means the delivery or pickup time for the order.
 - Delivery address is not mandatory.
 - A draft order only requires customer name.
-- Payment currency should come from an app setting.
+- Payment currency comes from the owner-selected app currency setting implemented in
+  `docs/rfc/slices/0073-currency-and-inventory-unit-cost.md`.
 - Customer preferences should link to a separate customer record.
 - The Customer RFC should be implemented before customer preference details are added to orders.
 - Order reminders should be based on due date.

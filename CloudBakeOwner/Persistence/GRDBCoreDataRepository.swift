@@ -252,6 +252,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             inventoryItemId: row["inventory_item_id"],
             remainingQuantity: row["remaining_quantity"],
             expiresAt: optionalDate(row["expires_at_unix_time"]),
+            unitCost: optionalDecimal(row["unit_cost_decimal"]),
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )

@@ -19,7 +19,8 @@ An inventory item has a name, unit, current quantity, minimum quantity, and stoc
 
 ## Stock Batch
 
-A stock batch is one portion of an inventory item with its own remaining quantity and expiry date.
+A stock batch is one portion of an inventory item with its own remaining quantity, expiry date, and
+optional unit cost.
 
 Example:
 
@@ -27,7 +28,11 @@ Example:
 2. cake flour, 1000 g, expires August 10.
 
 These are the same inventory item but different stock batches. This matters because handmade cake
-work needs the older stock to be used before newer stock.
+work needs the older stock to be used before newer stock, and because the same ingredient can be
+bought at different costs.
+
+When added stock has the same expiry date and same unit cost as an existing batch, CloudBake can
+combine the quantities. Different expiry dates or different unit costs stay as separate batches.
 
 ## Expiry Date
 
@@ -99,12 +104,19 @@ Restoring moves an archived inventory item back to the active inventory list.
 
 Inventory CSV is an owner-controlled import/export format for active inventory and stock batches.
 
-It uses the columns `name`, `unit`, `current_quantity`, `minimum_quantity`, `batch_quantity`, and
-`expiry_date`. Dates use `yyyy-MM-dd`.
+It uses the columns `name`, `unit`, `current_quantity`, `minimum_quantity`, `batch_quantity`,
+`unit_cost`, and `expiry_date`. Dates use `yyyy-MM-dd`.
 
 CSV import can create new inventory items or update matching active items by name and unit. Updating
 from CSV replaces the matched item's stock batches, so it should be treated as a deliberate data
 correction workflow rather than normal stock adjustment.
+
+## App Currency
+
+App currency is the owner-selected display symbol for money values in CloudBake.
+
+The first supported symbols are `$`, `₹`, `£`, and `RM`. Currency selection is local to the owner
+app and does not perform exchange-rate conversion.
 
 ## Recipe
 

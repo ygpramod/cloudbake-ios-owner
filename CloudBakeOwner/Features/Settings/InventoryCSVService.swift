@@ -62,6 +62,7 @@ struct InventoryCSVService {
                 "current_quantity",
                 "minimum_quantity",
                 "batch_quantity",
+                "unit_cost",
                 "expiry_date"
             ]
         ]
@@ -69,10 +70,17 @@ struct InventoryCSVService {
         for item in items {
             let batches = try repository.fetchInventoryStockBatches(inventoryItemId: item.id)
             if batches.isEmpty {
-                rows.append(csvRow(item: item, batchQuantity: item.currentQuantity, expiryDate: nil))
+                rows.append(csvRow(item: item, batchQuantity: item.currentQuantity, unitCost: nil, expiryDate: nil))
             } else {
                 for batch in batches {
-                    rows.append(csvRow(item: item, batchQuantity: batch.remainingQuantity, expiryDate: batch.expiresAt))
+                    rows.append(
+                        csvRow(
+                            item: item,
+                            batchQuantity: batch.remainingQuantity,
+                            unitCost: batch.unitCost,
+                            expiryDate: batch.expiresAt
+                        )
+                    )
                 }
             }
         }
@@ -110,6 +118,7 @@ struct InventoryCSVService {
                         inventoryItemId: itemId,
                         remainingQuantity: row.batchQuantity,
                         expiresAt: row.expiryDate,
+                        unitCost: row.unitCost,
                         createdAt: now,
                         updatedAt: now
                     )
@@ -134,13 +143,14 @@ struct InventoryCSVService {
         )
     }
 
-    private func csvRow(item: InventoryItem, batchQuantity: Double, expiryDate: Date?) -> [String] {
+    private func csvRow(item: InventoryItem, batchQuantity: Double, unitCost: Decimal?, expiryDate: Date?) -> [String] {
         [
             item.name,
             item.unit.displayName,
             formatQuantity(item.currentQuantity),
             formatQuantity(item.minimumQuantity),
             formatQuantity(batchQuantity),
+            unitCost.map(formatMoney) ?? "",
             expiryDate.map(formatDate) ?? ""
         ]
     }
@@ -160,6 +170,7 @@ struct InventoryCSVService {
         let minimumIndex = try requiredHeader("minimum_quantity", in: headerLookup)
         let currentIndex = headerLookup[TextInputFormatting.normalizedSearchKey("current_quantity")]
         let batchIndex = headerLookup[TextInputFormatting.normalizedSearchKey("batch_quantity")]
+        let unitCostIndex = headerLookup[TextInputFormatting.normalizedSearchKey("unit_cost")]
         let expiryIndex = headerLookup[TextInputFormatting.normalizedSearchKey("expiry_date")]
 
         return try table.dropFirst().enumerated().map { offset, row in
@@ -181,6 +192,10 @@ struct InventoryCSVService {
             guard let batchQuantity = Double(quantityText), batchQuantity >= 0 else {
                 throw InventoryCSVError.invalidRow(rowNumber, "Batch quantity must be zero or greater.")
             }
+            let unitCostText = unitCostIndex.map { value(at: $0, in: row) } ?? ""
+            guard let unitCost = parseOptionalMoney(unitCostText) else {
+                throw InventoryCSVError.invalidRow(rowNumber, "Unit cost must be zero or greater.")
+            }
 
             let expiryText = expiryIndex.map { value(at: $0, in: row) } ?? ""
             let expiryDate = try parseOptionalDate(expiryText, rowNumber: rowNumber)
@@ -190,6 +205,7 @@ struct InventoryCSVService {
                 unit: unit,
                 minimumQuantity: minimumQuantity,
                 batchQuantity: batchQuantity,
+                unitCost: unitCost,
                 expiryDate: expiryDate
             )
         }
@@ -225,12 +241,29 @@ struct InventoryCSVService {
         return date
     }
 
+    private func parseOptionalMoney(_ text: String) -> Decimal?? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return .some(nil)
+        }
+
+        guard let amount = Decimal(string: trimmed), amount >= 0 else {
+            return nil
+        }
+
+        return .some(amount)
+    }
+
     private func formatDate(_ date: Date) -> String {
         Self.dateFormatter.string(from: date)
     }
 
     private func formatQuantity(_ quantity: Double) -> String {
         Self.quantityFormatter.string(from: NSNumber(value: quantity)) ?? "\(quantity)"
+    }
+
+    private func formatMoney(_ amount: Decimal) -> String {
+        NSDecimalNumber(decimal: amount).stringValue
     }
 
     private func encode(_ rows: [[String]]) -> String {
@@ -313,6 +346,7 @@ private struct InventoryCSVImportRow {
     let unit: InventoryUnit
     let minimumQuantity: Double
     let batchQuantity: Double
+    let unitCost: Decimal?
     let expiryDate: Date?
 }
 

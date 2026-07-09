@@ -22,6 +22,7 @@ final class InventoryCSVServiceTests: XCTestCase {
                 inventoryItemId: item.id,
                 remainingQuantity: 250,
                 expiresAt: expiry,
+                unitCost: Decimal(string: "2.50"),
                 createdAt: createdAt,
                 updatedAt: createdAt
             )
@@ -30,8 +31,8 @@ final class InventoryCSVServiceTests: XCTestCase {
 
         let csv = try service.exportCSV(repository: repository)
 
-        XCTAssertTrue(csv.contains("name,unit,current_quantity,minimum_quantity,batch_quantity,expiry_date"))
-        XCTAssertTrue(csv.contains("Cake flour,g,250,500,250,2026-08-15"))
+        XCTAssertTrue(csv.contains("name,unit,current_quantity,minimum_quantity,batch_quantity,unit_cost,expiry_date"))
+        XCTAssertTrue(csv.contains("Cake flour,g,250,500,250,2.5,2026-08-15"))
     }
 
     func testImportCreatesInventoryAndBatchesFromCSV() throws {
@@ -44,9 +45,9 @@ final class InventoryCSVServiceTests: XCTestCase {
 
         let summary = try service.importCSV(
             """
-            name,unit,current_quantity,minimum_quantity,batch_quantity,expiry_date
-            Cake flour,g,250,500,250,2026-08-15
-            Butter,kg,2,1,2,
+            name,unit,current_quantity,minimum_quantity,batch_quantity,unit_cost,expiry_date
+            Cake flour,g,250,500,250,2.50,2026-08-15
+            Butter,kg,2,1,2,,
             """,
             repository: repository
         )
@@ -56,6 +57,7 @@ final class InventoryCSVServiceTests: XCTestCase {
         XCTAssertEqual(repository.items.first { $0.name == "Cake flour" }?.currentQuantity, 250)
         XCTAssertEqual(repository.items.first { $0.name == "Butter" }?.unit, .kilogram)
         XCTAssertEqual(repository.batches.count, 2)
+        XCTAssertEqual(repository.batches.first { $0.remainingQuantity == 250 }?.unitCost, Decimal(string: "2.50"))
     }
 
     func testImportUpdatesExistingInventoryByNameAndUnit() throws {

@@ -64,9 +64,9 @@ The order derives:
 - `balanceDue = quotedPrice - depositPaid`,
 - `paymentStatus` as Not Priced, Unpaid, Part Paid, or Paid.
 
-Money amounts are stored as decimal strings in SQLite to avoid floating-point rounding drift. The
-first slice intentionally does not add currency configuration; a later app-setting slice can add
-currency display if needed.
+Money amounts are stored as decimal strings in SQLite to avoid floating-point rounding drift.
+Currency display now comes from the owner-selected app currency setting implemented in
+`docs/rfc/slices/0073-currency-and-inventory-unit-cost.md`.
 
 ## Testing
 

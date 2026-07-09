@@ -162,6 +162,7 @@ final class CoreDataRepositoryTests: XCTestCase {
             inventoryItemId: inventoryItem.id,
             remainingQuantity: 750,
             expiresAt: Date(timeIntervalSince1970: 1_800_086_400),
+            unitCost: Decimal(string: "2.50"),
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt
         )

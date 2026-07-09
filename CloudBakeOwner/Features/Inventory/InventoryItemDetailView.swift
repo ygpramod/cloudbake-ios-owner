@@ -142,8 +142,16 @@ struct InventoryItemDetailView: View {
                                             Text("\(batch.remainingQuantity.formatted()) \(item.unit.displayName)")
                                                 .foregroundStyle(.primary)
                                             Spacer()
-                                            Text(batch.expiryDisplayText)
-                                                .foregroundStyle(batch.expiryColor)
+                                            VStack(alignment: .trailing, spacing: 3) {
+                                                if let unitCost = batch.unitCost {
+                                                    Text("Unit Cost \(MoneyDisplay.formatted(unitCost))")
+                                                        .font(.caption)
+                                                        .foregroundStyle(.secondary)
+                                                }
+
+                                                Text(batch.expiryDisplayText)
+                                                    .foregroundStyle(batch.expiryColor)
+                                            }
                                             Image(systemName: "calendar")
                                                 .foregroundStyle(.secondary)
                                         }
