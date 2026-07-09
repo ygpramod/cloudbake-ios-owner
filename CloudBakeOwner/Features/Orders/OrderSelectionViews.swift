@@ -160,6 +160,8 @@ struct CustomerSelectionView: View {
     @StateObject private var customerViewModel: CustomerListViewModel
     @State private var searchText = ""
     @State private var isAddingCustomer = false
+    @State private var isChoosingAddMode = false
+    @State private var isImportingContact = false
 
     init(viewModel: OrderListViewModel, isPresented: Binding<Bool>) {
         self.viewModel = viewModel
@@ -171,8 +173,7 @@ struct CustomerSelectionView: View {
         List {
             Section {
                 Button {
-                    customerViewModel.beginAddingCustomer()
-                    isAddingCustomer = true
+                    isChoosingAddMode = true
                 } label: {
                     Label("New Customer", systemImage: "person.badge.plus")
                 }
@@ -235,6 +236,37 @@ struct CustomerSelectionView: View {
         }
         .navigationTitle("Customer Record")
         .searchable(text: $searchText, prompt: "Search Customers")
+        .cloudBakeCenteredPopup(
+            isPresented: isChoosingAddMode,
+            title: "Add Customer",
+            subtitle: "Choose how to start this customer record",
+            systemImage: "person.badge.plus",
+            cancelAccessibilityIdentifier: "orders.customerSelection.add.cancel",
+            onCancel: { isChoosingAddMode = false }
+        ) {
+            centeredPopupButton("Import From Contacts") {
+                isChoosingAddMode = false
+                isImportingContact = true
+            }
+            .accessibilityIdentifier("orders.customerSelection.add.importContacts")
+
+            centeredPopupButton("Enter Manually") {
+                isChoosingAddMode = false
+                customerViewModel.beginAddingCustomer()
+                isAddingCustomer = true
+            }
+            .accessibilityIdentifier("orders.customerSelection.add.manual")
+        }
+        .sheet(isPresented: $isImportingContact) {
+            CustomerContactPicker { contact in
+                let draft = CustomerContactDraftMapper().draft(from: contact)
+                customerViewModel.beginAddingCustomer(importedDraft: draft)
+                isImportingContact = false
+                DispatchQueue.main.async {
+                    isAddingCustomer = true
+                }
+            }
+        }
         .sheet(isPresented: $isAddingCustomer) {
             NavigationStack {
                 CustomerForm(

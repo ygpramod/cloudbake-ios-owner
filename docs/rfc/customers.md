@@ -224,9 +224,11 @@ The first implementation slice should create the minimum useful customer foundat
 - capture likes, dislikes, allergies, dietary restrictions, and notes,
 - include focused unit, integration, and acceptance coverage.
 
-Contacts import is implemented as an editable draft flow. Customer selection for orders should be
-done through the searchable selection flow. Customer detail now shows linked order history once
-orders reference a customer record. iPad customer navigation now uses a regular-width split layout.
+Contacts import is implemented as an editable draft flow. Customer selection for orders is done
+through the searchable selection flow, and creating a customer from that order selection flow offers
+the same Contacts import or manual entry choices as the main Customers screen. Customer detail now
+shows linked order history once orders reference a customer record. iPad customer navigation now
+uses a regular-width split layout.
 The customer domain now includes a conservative consumer profile projection that exposes only safe
 profile contact fields and excludes owner-only preferences, allergies, dietary notes, internal
 notes, address, timestamps, and order history.
