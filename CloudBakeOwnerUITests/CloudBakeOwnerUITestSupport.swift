@@ -59,7 +59,7 @@ extension CloudBakeOwnerUITests {
         let navigationDeadline = Date().addingTimeInterval(timeout)
         repeat {
             scrollToHittable(destinationButton, in: app, timeout: timeout, file: file, line: line)
-            tapWhenReady(destinationButton, timeout: timeout, file: file, line: line)
+            tapExisting(destinationButton, timeout: timeout, file: file, line: line)
 
             if app.descendants(matching: .any)[screenIdentifier].waitForExistence(timeout: 3) {
                 return

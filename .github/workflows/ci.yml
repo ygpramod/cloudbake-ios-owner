@@ -62,7 +62,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - feature: core-recipes-customers
+          - feature: core-recipes
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testAppLaunchesToDashboard
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testPrimaryNavigationDestinationsAreReachable
@@ -71,12 +71,6 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeNotesCanBeEditedFromDetail
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeAddedAndViewed
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDetailUsesSplitViewOnIPad
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerAddOffersContactsImportAndManualEntry
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDuplicateWarningAppearsBeforeSaving
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeEditedFromDetail
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeDeletedFromDetail
           - feature: orders-core
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeAddedAndListed
@@ -86,12 +80,18 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeEditedFromDetail
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrderAppearsInCompletedTab
-          - feature: orders-links
+          - feature: orders-links-customers
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsLinkedCustomerContext
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanCreateAndLinkNewCustomerFromSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkRecipeFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkDesignFromSearchableSelection
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeAddedAndViewed
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDetailUsesSplitViewOnIPad
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerAddOffersContactsImportAndManualEntry
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDuplicateWarningAppearsBeforeSaving
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeEditedFromDetail
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeDeletedFromDetail
           - feature: inventory
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDuplicateNameShowsWarningBeforeAdding
