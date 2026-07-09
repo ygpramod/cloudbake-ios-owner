@@ -66,7 +66,7 @@ The order derives:
 
 Money amounts are stored as decimal strings in SQLite to avoid floating-point rounding drift.
 Currency display now comes from the owner-selected app currency setting implemented in
-`docs/rfc/slices/0073-currency-and-inventory-unit-cost.md`.
+`docs/rfc/slices/0073-currency-and-inventory-amount.md`.
 
 ## Testing
 
