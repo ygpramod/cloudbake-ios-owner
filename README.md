@@ -76,6 +76,11 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0068: Dashboard Home Look And Feel
 - Slice RFC-0069: Second Level Screen Look And Feel
 - Slice RFC-0070: Detail Screen Look And Feel
+- Slice RFC-0071: Form Screen Look And Feel
+- Slice RFC-0072: Customer Order Link Delete Inventory CSV
+- Slice RFC-0073: Currency And Inventory Amount
+- Slice RFC-0074: Reminder Currency And Overdue Polish
+- Slice RFC-0075: Reminder Screen
 
 ## Base RFCs
 

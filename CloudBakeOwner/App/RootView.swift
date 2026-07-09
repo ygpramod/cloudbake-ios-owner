@@ -112,6 +112,12 @@ struct RootView: View {
                     repository: database.makeCoreDataRepository()
                 )
             )
+        case .reminders:
+            ReminderView(
+                viewModel: ReminderViewModel(
+                    repository: database.makeCoreDataRepository()
+                )
+            )
         case .settings:
             SettingsView(
                 viewModel: SettingsViewModel(

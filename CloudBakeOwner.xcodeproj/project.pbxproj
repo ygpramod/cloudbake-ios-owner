@@ -46,6 +46,9 @@
 		410000000000000000000020 /* RecipeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000028 /* RecipeListView.swift */; };
 		410000000000000000000021 /* RecipeListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000029 /* RecipeListViewModel.swift */; };
 		410000000000000000000022 /* RecipeListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002A /* RecipeListViewModelTests.swift */; };
+		4100000000000000000000AE /* ReminderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000AE /* ReminderView.swift */; };
+		4100000000000000000000AF /* ReminderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000AF /* ReminderViewModel.swift */; };
+		4100000000000000000000B0 /* ReminderViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000B0 /* ReminderViewModelTests.swift */; };
 		410000000000000000000023 /* RecipeDraftParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002B /* RecipeDraftParser.swift */; };
 		410000000000000000000024 /* RecipeDraftParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002C /* RecipeDraftParserTests.swift */; };
 		410000000000000000000025 /* InventoryUnitDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000002D /* InventoryUnitDisplay.swift */; };
@@ -221,6 +224,9 @@
 		42000000000000000000004D /* RecipeForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeForm.swift; sourceTree = "<group>"; };
 		42000000000000000000004E /* OrderPhotoPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoPreviewView.swift; sourceTree = "<group>"; };
 		42000000000000000000004F /* CameraImagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraImagePickerView.swift; sourceTree = "<group>"; };
+		4200000000000000000000AE /* ReminderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderView.swift; sourceTree = "<group>"; };
+		4200000000000000000000AF /* ReminderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderViewModel.swift; sourceTree = "<group>"; };
+		4200000000000000000000B0 /* ReminderViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderViewModelTests.swift; sourceTree = "<group>"; };
 		420000000000000000000050 /* OrderForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderForm.swift; sourceTree = "<group>"; };
 		420000000000000000000051 /* OrderSelectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderSelectionViews.swift; sourceTree = "<group>"; };
 		420000000000000000000052 /* OrderDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailView.swift; sourceTree = "<group>"; };
@@ -344,9 +350,19 @@
 				45000000000000000000001E /* Orders */,
 				450000000000000000000006 /* Placeholder */,
 				45000000000000000000001A /* Recipes */,
+				4500000000000000000000AE /* Reminders */,
 				450000000000000000000021 /* Settings */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		4500000000000000000000AE /* Reminders */ = {
+			isa = PBXGroup;
+			children = (
+				4200000000000000000000AE /* ReminderView.swift */,
+				4200000000000000000000AF /* ReminderViewModel.swift */,
+			);
+			path = Reminders;
 			sourceTree = "<group>";
 		};
 		450000000000000000000005 /* Dashboard */ = {
@@ -538,9 +554,18 @@
 				450000000000000000000017 /* Inventory */,
 				45000000000000000000001F /* Orders */,
 				45000000000000000000001B /* Recipes */,
+				4500000000000000000000AF /* Reminders */,
 				450000000000000000000022 /* Settings */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		4500000000000000000000AF /* Reminders */ = {
+			isa = PBXGroup;
+			children = (
+				4200000000000000000000B0 /* ReminderViewModelTests.swift */,
+			);
+			path = Reminders;
 			sourceTree = "<group>";
 		};
 		450000000000000000000018 /* Dashboard */ = {
@@ -842,6 +867,8 @@
 				41000000000000000000006A /* RecipeImportDraftValidation.swift in Sources */,
 				410000000000000000000020 /* RecipeListView.swift in Sources */,
 				410000000000000000000021 /* RecipeListViewModel.swift in Sources */,
+				4100000000000000000000AE /* ReminderView.swift in Sources */,
+				4100000000000000000000AF /* ReminderViewModel.swift in Sources */,
 				410000000000000000000081 /* InventoryCSVService.swift in Sources */,
 				410000000000000000000082 /* SettingsView.swift in Sources */,
 			);
@@ -883,6 +910,7 @@
 				41000000000000000000006F /* RecipeImportViewModelTests.swift in Sources */,
 				410000000000000000000022 /* RecipeListViewModelTests.swift in Sources */,
 				41000000000000000000006E /* RecipeListViewModelTestSupport.swift in Sources */,
+				4100000000000000000000B0 /* ReminderViewModelTests.swift in Sources */,
 				410000000000000000000083 /* InventoryCSVServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
