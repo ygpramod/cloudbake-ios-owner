@@ -3,6 +3,7 @@ import SwiftUI
 
 struct InventoryListView: View {
     @StateObject private var viewModel: InventoryListViewModel
+    @EnvironmentObject private var inventoryNavigationRouter: InventoryNavigationRouter
     @State private var isAddingItem = false
     @State private var isViewingItem = false
     @State private var isShowingArchivedItems = false
@@ -147,6 +148,10 @@ struct InventoryListView: View {
         }
         .onAppear {
             viewModel.load()
+            openPendingInventoryItem()
+        }
+        .onChange(of: inventoryNavigationRouter.pendingInventoryItemId) { _, _ in
+            openPendingInventoryItem()
         }
     }
 
@@ -225,6 +230,16 @@ struct InventoryListView: View {
         }
         .padding(20)
         .cloudBakeCardStyle()
+    }
+
+    private func openPendingInventoryItem() {
+        guard let itemId = inventoryNavigationRouter.consumePendingInventoryItemId(),
+              let item = viewModel.item(id: itemId) else {
+            return
+        }
+
+        viewModel.beginViewingItem(item)
+        isViewingItem = true
     }
 }
 

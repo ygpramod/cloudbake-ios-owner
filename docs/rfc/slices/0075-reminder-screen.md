@@ -36,12 +36,17 @@ Out of scope:
 
 The Reminder screen must contain three sections:
 
-1. `Payment Due`: order name, customer name, and balance due for active orders with a positive
-   balance.
+1. `Payment Due`: order name, customer name, and balance due for Ready or Completed orders with a
+   positive balance.
 2. `Orders For Today`: order name and customer name for active orders due today.
 3. `Low Inventory`: inventory item name and current/minimum quantity.
 
-Completed and Cancelled orders must not appear in Payment Due or Orders For Today.
+Confirmed and In Progress orders must not appear in Payment Due. Completed orders may appear in
+Payment Due when a balance remains. Cancelled orders must not appear in Payment Due or Orders For
+Today.
+
+Tapping an Orders For Today row must open that order detail. Tapping a Low Inventory row must open
+that inventory item detail. Payment Due rows also open the matching order detail.
 
 The screen must use the shared CloudBake second-level screen and card styling.
 
@@ -49,6 +54,6 @@ The screen must use the shared CloudBake second-level screen and card styling.
 
 Unit coverage verifies:
 
-1. payment due reminders include only active orders with positive balance due,
+1. payment due reminders include only Ready or Completed orders with positive balance due,
 2. today reminders include only active orders due on the current day,
 3. low inventory reminders show current and minimum quantity text.

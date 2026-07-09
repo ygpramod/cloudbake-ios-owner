@@ -2,6 +2,9 @@ import SwiftUI
 
 struct ReminderView: View {
     @StateObject private var viewModel: ReminderViewModel
+    @Environment(\.navigateToAppDestination) private var navigate
+    @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
+    @EnvironmentObject private var inventoryNavigationRouter: InventoryNavigationRouter
 
     init(viewModel: ReminderViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -29,13 +32,17 @@ struct ReminderView: View {
                 systemImage: "banknote",
                 items: viewModel.paymentDueItems
             ) { item in
-                ReminderListRow(
-                    title: item.orderName,
-                    subtitle: item.customerName,
-                    trailing: item.balanceDueText,
-                    tint: .cloudBakePink
-                )
-                .accessibilityIdentifier("reminders.paymentDue.\(item.id)")
+                reminderButton(
+                    accessibilityIdentifier: "reminders.paymentDue.\(item.id)",
+                    action: { openOrder(id: item.id) }
+                ) {
+                    ReminderListRow(
+                        title: item.orderName,
+                        subtitle: item.customerName,
+                        trailing: item.balanceDueText,
+                        tint: .cloudBakePink
+                    )
+                }
             }
 
             reminderSection(
@@ -45,12 +52,16 @@ struct ReminderView: View {
                 systemImage: "calendar",
                 items: viewModel.todayOrderItems
             ) { item in
-                ReminderListRow(
-                    title: item.orderName,
-                    subtitle: item.customerName,
-                    tint: .cloudBakePurple
-                )
-                .accessibilityIdentifier("reminders.todayOrder.\(item.id)")
+                reminderButton(
+                    accessibilityIdentifier: "reminders.todayOrder.\(item.id)",
+                    action: { openOrder(id: item.id) }
+                ) {
+                    ReminderListRow(
+                        title: item.orderName,
+                        subtitle: item.customerName,
+                        tint: .cloudBakePurple
+                    )
+                }
             }
 
             reminderSection(
@@ -60,12 +71,16 @@ struct ReminderView: View {
                 systemImage: "shippingbox",
                 items: viewModel.lowInventoryItems
             ) { item in
-                ReminderListRow(
-                    title: item.name,
-                    subtitle: item.quantityText,
-                    tint: .cloudBakeOrange
-                )
-                .accessibilityIdentifier("reminders.lowInventory.\(item.id)")
+                reminderButton(
+                    accessibilityIdentifier: "reminders.lowInventory.\(item.id)",
+                    action: { openInventoryItem(id: item.id) }
+                ) {
+                    ReminderListRow(
+                        title: item.name,
+                        subtitle: item.quantityText,
+                        tint: .cloudBakeOrange
+                    )
+                }
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -104,6 +119,29 @@ struct ReminderView: View {
                 }
             }
         }
+    }
+
+    private func reminderButton<Content: View>(
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        Button(action: action) {
+            content()
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    private func openOrder(id: String) {
+        orderNotificationRouter.openOrder(id: id)
+        navigate(.orders)
+    }
+
+    private func openInventoryItem(id: String) {
+        inventoryNavigationRouter.openInventoryItem(id: id)
+        navigate(.inventory)
     }
 }
 
@@ -202,5 +240,7 @@ private struct CompactReminderEmptyState: View {
                 repository: database.makeCoreDataRepository()
             )
         )
+        .environmentObject(OrderNotificationRouter())
+        .environmentObject(InventoryNavigationRouter())
     }
 }

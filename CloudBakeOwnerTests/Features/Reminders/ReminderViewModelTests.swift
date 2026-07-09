@@ -3,25 +3,25 @@ import XCTest
 
 @MainActor
 final class ReminderViewModelTests: XCTestCase {
-    func testLoadShowsPaymentDueForActiveOrdersWithBalanceDue() {
+    func testLoadShowsPaymentDueForReadyAndCompletedOrdersWithBalanceDue() {
         let repository = FakeReminderRepository()
         let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
         repository.orders = [
             makeOrder(
-                id: "order-part-paid",
-                title: "Chocolate Cake",
+                id: "order-confirmed",
+                title: "Confirmed Cake",
                 status: .confirmed,
                 dueAt: dueAt,
                 quotedPrice: decimal("150"),
                 depositPaid: decimal("50")
             ),
             makeOrder(
-                id: "order-paid",
-                title: "Paid Cake",
-                status: .confirmed,
+                id: "order-ready",
+                title: "Chocolate Cake",
+                status: .ready,
                 dueAt: dueAt,
-                quotedPrice: decimal("75"),
-                depositPaid: decimal("75")
+                quotedPrice: decimal("150"),
+                depositPaid: decimal("50")
             ),
             makeOrder(
                 id: "order-completed",
@@ -30,6 +30,14 @@ final class ReminderViewModelTests: XCTestCase {
                 dueAt: dueAt,
                 quotedPrice: decimal("80"),
                 depositPaid: decimal("20")
+            ),
+            makeOrder(
+                id: "order-paid",
+                title: "Paid Cake",
+                status: .ready,
+                dueAt: dueAt,
+                quotedPrice: decimal("75"),
+                depositPaid: decimal("75")
             )
         ]
         let viewModel = ReminderViewModel(repository: repository)
@@ -40,10 +48,16 @@ final class ReminderViewModelTests: XCTestCase {
             viewModel.paymentDueItems,
             [
                 PaymentDueReminderItem(
-                    id: "order-part-paid",
+                    id: "order-ready",
                     orderName: "Chocolate Cake",
                     customerName: "Amy",
                     balanceDueText: MoneyDisplay.formatted(decimal("100"))
+                ),
+                PaymentDueReminderItem(
+                    id: "order-completed",
+                    orderName: "Completed Cake",
+                    customerName: "Amy",
+                    balanceDueText: MoneyDisplay.formatted(decimal("60"))
                 )
             ]
         )

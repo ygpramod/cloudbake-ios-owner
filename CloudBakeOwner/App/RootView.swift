@@ -4,6 +4,7 @@ struct RootView: View {
     let database: AppDatabase
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
+    @EnvironmentObject private var inventoryNavigationRouter: InventoryNavigationRouter
     @State private var navigationPath: [AppDestination] = []
     private let maximumSectionHistoryCount = 4
 
@@ -21,6 +22,7 @@ struct RootView: View {
         .background(NativeBackSwipeEnabler().frame(width: 0, height: 0))
         .onAppear {
             navigateToOrdersWhenNotificationIsPending()
+            navigateToInventoryWhenItemIsPending()
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             CloudBakeBottomNavigation(
@@ -35,6 +37,13 @@ struct RootView: View {
             }
 
             navigateToOrdersWhenNotificationIsPending()
+        }
+        .onChange(of: inventoryNavigationRouter.pendingInventoryItemId) { _, itemId in
+            guard itemId != nil else {
+                return
+            }
+
+            navigateToInventoryWhenItemIsPending()
         }
         .task {
             await refreshLocalReminders()
@@ -77,6 +86,14 @@ struct RootView: View {
         }
 
         navigate(.orders)
+    }
+
+    private func navigateToInventoryWhenItemIsPending() {
+        guard inventoryNavigationRouter.pendingInventoryItemId != nil else {
+            return
+        }
+
+        navigate(.inventory)
     }
 
     @ViewBuilder
@@ -148,6 +165,7 @@ struct RootView: View {
     if let database = try? AppDatabase.makeInMemory() {
         RootView(database: database)
             .environmentObject(OrderNotificationRouter())
+            .environmentObject(InventoryNavigationRouter())
     } else {
         ContentUnavailableView(
             "CloudBake cannot open",

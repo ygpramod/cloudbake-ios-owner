@@ -70,6 +70,10 @@ final class InventoryListViewModel: ObservableObject {
         }
     }
 
+    func item(id: String) -> InventoryItem? {
+        items.first { $0.id == id }
+    }
+
     func load() {
         do {
             items = sortedInventoryItems(try repository.fetchInventoryItems())
