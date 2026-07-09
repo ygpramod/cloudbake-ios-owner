@@ -292,12 +292,13 @@ struct OrderListView: View {
     }
 
     private func openPendingNotificationOrder() {
-        guard let orderId = orderNotificationRouter.consumePendingOrderId(),
+        guard let orderId = orderNotificationRouter.pendingOrderId,
               let order = viewModel.order(id: orderId) else {
             return
         }
 
         openOrder(order)
+        orderNotificationRouter.clearPendingOrderId()
     }
 
     private var orderScopeSwipeGesture: some Gesture {

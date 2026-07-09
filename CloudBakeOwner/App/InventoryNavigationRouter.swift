@@ -8,11 +8,7 @@ final class InventoryNavigationRouter: ObservableObject {
         pendingInventoryItemId = id
     }
 
-    func consumePendingInventoryItemId() -> String? {
-        defer {
-            pendingInventoryItemId = nil
-        }
-
-        return pendingInventoryItemId
+    func clearPendingInventoryItemId() {
+        pendingInventoryItemId = nil
     }
 }
