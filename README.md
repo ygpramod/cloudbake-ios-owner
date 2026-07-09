@@ -92,6 +92,23 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 The repo-local `wiki/` directory is the authored source for GitHub Wiki pages. Update it in the
 same PR when owner-facing, operator-facing, or cross-repository guidance changes.
 
+## UI Consistency
+
+CloudBake has an established owner-app visual language. New implementation slices should reuse the
+shared UI primitives instead of introducing one-off styling:
+
+- `CloudBakeScreenScaffold` for second-level screens.
+- `CloudBakeDetailCard`, `CloudBakeDetailRow`, and `CloudBakeDetailDivider` for detail/settings
+  sections.
+- `cloudBakeFormScreenStyle()` for native data-entry forms.
+- `cloudBakeCenteredPopup` and `centeredPopupButton` for confirmations, status/payment choices,
+  destructive actions, and owner decisions.
+
+Popups should match the existing centered CloudBake style used by Orders, Customers, and Inventory:
+dimmed backdrop, rounded dialog, CloudBake pink action tint, full-width pill buttons, and clear
+accessibility identifiers. Do not add a new popup, alert, sheet, or dialog style unless the slice is
+explicitly changing the design system and updates the guardrails/RFCs with that decision.
+
 ## Build
 
 Open `CloudBakeOwner.xcodeproj` in Xcode, or run:

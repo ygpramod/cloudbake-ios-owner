@@ -29,6 +29,8 @@ Agents must:
 - Make every change typed, testable by design, consistent with existing app patterns, and small
   enough for a human reviewer to understand.
 - Keep private owner, customer, recipe, pricing, allergy, and photo data private by default.
+- Preserve CloudBake visual consistency. New screens, rows, forms, and popups must reuse the shared
+  app styling patterns unless a slice explicitly changes the design system.
 
 ## Implementation Agent
 
@@ -46,6 +48,16 @@ It must:
 - Inject external dependencies through protocols where practical; do not create network or database
   services directly inside SwiftUI views.
 - Handle loading, success, empty, error, and retry states when the workflow can reach them.
+- Reuse established CloudBake UI primitives before creating new visual structures:
+  `CloudBakeScreenScaffold` for second-level screens, `CloudBakeDetailCard` and
+  `CloudBakeDetailRow` for detail/settings rows, `cloudBakeFormScreenStyle()` for forms,
+  `cloudBakeCenteredPopup` and `centeredPopupButton` for modal confirmations and choices.
+- Keep owner-facing popups visually consistent with existing order, customer, and inventory popups:
+  centered dialog, dimmed background, CloudBake pink action tint, shared rounded-card layout,
+  full-width pill action buttons, destructive role only where the action is destructive, and clear
+  accessibility identifiers.
+- Do not introduce one-off `Alert`, `confirmationDialog`, sheet, menu, custom overlay, button, or
+  card styling when an existing CloudBake popup or row pattern already fits the workflow.
 - Avoid force unwraps, `try!`, `as!`, ignored errors, blocking the main thread, hardcoded API URLs,
   committed secrets, and silent failures.
 - Add or update unit, integration, and acceptance tests according to risk.
@@ -118,6 +130,8 @@ The agent must request changes for any blocking issue in these areas:
 - Security or privacy risk.
 - Missing or weak tests for material behavior.
 - UI workflow regression.
+- Visual consistency regression, including popups, forms, detail rows, or second-level screens that
+  diverge from shared CloudBake styling without an explicit design-system update.
 - Accessibility regression for critical workflows.
 - Documentation drift when durable truth changes.
 - Violation of architecture boundaries.

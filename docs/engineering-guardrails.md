@@ -50,6 +50,26 @@ A slice is done only when:
 - Avoid business logic inside `body`; view code should describe what appears, not decide domain
   rules.
 
+## UI Consistency
+
+- Reuse the established CloudBake visual language before adding new styling.
+- Second-level screens should use `CloudBakeScreenScaffold` unless a slice explicitly changes the
+  screen system.
+- Detail and settings rows should prefer `CloudBakeDetailCard`, `CloudBakeDetailRow`, and
+  `CloudBakeDetailDivider`.
+- Data-entry flows should keep native controls and use `cloudBakeFormScreenStyle()` unless there is
+  an explicit UX reason to introduce a different form shell.
+- Owner-facing confirmation, choice, payment, status, destructive, and warning popups should use
+  `cloudBakeCenteredPopup` and `centeredPopupButton`.
+- Popups must stay visually aligned with the existing Orders, Customers, and Inventory style:
+  centered dialog, dimmed backdrop, rounded card, CloudBake pink action tint, full-width pill
+  buttons, clear cancel behavior, and accessibility identifiers for acceptance-testable actions.
+- Do not introduce one-off `Alert`, `confirmationDialog`, custom overlays, button treatments,
+  nested cards, or popup layouts when an existing CloudBake component fits.
+- If a new UI pattern is truly needed, document the reason in the slice RFC or PR, update these
+  guardrails when the pattern becomes reusable, and avoid mixing the new pattern into unrelated
+  screens in the same change.
+
 ## Architecture Boundaries
 
 - UI may depend on presentation models, but not directly on persistence details.
