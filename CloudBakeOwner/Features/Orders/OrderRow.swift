@@ -74,9 +74,6 @@ struct OrderRow: View {
                         }
                         .font(.footnote.weight(.medium))
                         .foregroundStyle(Color.cloudBakePink)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.cloudBakePink.opacity(0.08), in: Capsule())
                     }
 
                     Spacer(minLength: 8)
