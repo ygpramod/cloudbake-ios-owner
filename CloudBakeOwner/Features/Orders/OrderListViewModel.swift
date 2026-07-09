@@ -77,8 +77,12 @@ final class OrderListViewModel: ObservableObject {
 
     func whatsappMessageURL(for order: Order) -> URL? {
         guard let customerId = order.customerId,
-              let customer = customers.first(where: { $0.id == customerId }),
-              !TextInputFormatting.trimmed(customer.phone).isEmpty else {
+              let customer = customers.first(where: { $0.id == customerId }) else {
+            return nil
+        }
+
+        let phone = normalizedPhoneNumber(customer.phone)
+        guard !phone.isEmpty else {
             return nil
         }
 
@@ -86,7 +90,7 @@ final class OrderListViewModel: ObservableObject {
         components.scheme = "whatsapp"
         components.host = "send"
         components.queryItems = [
-            URLQueryItem(name: "phone", value: normalizedPhoneNumber(customer.phone)),
+            URLQueryItem(name: "phone", value: phone),
             URLQueryItem(name: "text", value: orderMessage(for: order, customer: customer))
         ]
         return components.url
@@ -825,6 +829,10 @@ final class OrderListViewModel: ObservableObject {
     private func normalizedPhoneNumber(_ phone: String) -> String {
         let trimmed = TextInputFormatting.trimmed(phone)
         let digits = trimmed.filter(\.isNumber)
+        guard !digits.isEmpty else {
+            return ""
+        }
+
         if trimmed.hasPrefix("+") {
             return "+" + digits
         }

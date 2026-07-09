@@ -524,15 +524,18 @@ final class OrderListViewModelTests: XCTestCase {
         let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
         let unlinkedOrder = makeOrder(id: "order-unlinked", customerId: nil, dueAt: dueAt)
         let noPhoneOrder = makeOrder(id: "order-no-phone", customerId: "customer-no-phone", dueAt: dueAt)
-        repository.orders = [unlinkedOrder, noPhoneOrder]
+        let nonDialablePhoneOrder = makeOrder(id: "order-non-dialable-phone", customerId: "customer-non-dialable-phone", dueAt: dueAt)
+        repository.orders = [unlinkedOrder, noPhoneOrder, nonDialablePhoneOrder]
         repository.customers = [
-            makeCustomer(id: "customer-no-phone", name: "Amy Rao", phone: " ")
+            makeCustomer(id: "customer-no-phone", name: "Amy Rao", phone: " "),
+            makeCustomer(id: "customer-non-dialable-phone", name: "Maya Rao", phone: "N/A")
         ]
         let viewModel = OrderListViewModel(repository: repository)
         viewModel.load()
 
         XCTAssertNil(viewModel.whatsappMessageURL(for: unlinkedOrder))
         XCTAssertNil(viewModel.whatsappMessageURL(for: noPhoneOrder))
+        XCTAssertNil(viewModel.whatsappMessageURL(for: nonDialablePhoneOrder))
     }
 
     func testBeginViewingOrderSelectsOrderAndLinkedCustomer() {
