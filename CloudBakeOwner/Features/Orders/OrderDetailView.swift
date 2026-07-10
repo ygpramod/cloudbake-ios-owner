@@ -168,7 +168,8 @@ struct OrderDetailView: View {
             NavigationStack {
                 OrderExtraIngredientForm(
                     viewModel: viewModel,
-                    isPresented: $isAddingExtraIngredient
+                    isPresented: $isAddingExtraIngredient,
+                    onSave: viewModel.addExtraIngredientToSelectedOrder
                 )
             }
         }
@@ -750,9 +751,10 @@ struct OrderDetailView: View {
     }
 }
 
-private struct OrderExtraIngredientForm: View {
+struct OrderExtraIngredientForm: View {
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
+    let onSave: () -> Bool
 
     var body: some View {
         Form {
@@ -812,7 +814,7 @@ private struct OrderExtraIngredientForm: View {
 
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if viewModel.addExtraIngredientToSelectedOrder() {
+                    if onSave() {
                         isPresented = false
                     }
                 }
