@@ -82,6 +82,7 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0074: Reminder Currency And Overdue Polish
 - Slice RFC-0075: Reminder Screen
 - Slice RFC-0077: Inventory Aliases For Bill Scanning
+- Slice RFC-0078: Inventory Type And Optional Expiry
 
 ## Base RFCs
 

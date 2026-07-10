@@ -7,12 +7,13 @@ Inventory is the first active CloudBake owner workflow.
 Inventory tracks active items with:
 
 1. name,
-2. unit,
-3. current quantity,
-4. minimum quantity,
-5. archived state,
-6. stock batches with expiry dates and optional amount,
-7. transaction records for stock changes.
+2. type,
+3. unit,
+4. current quantity,
+5. minimum quantity,
+6. archived state,
+7. stock batches with optional expiry dates and optional amount,
+8. transaction records for stock changes.
 
 ## Units
 
@@ -45,6 +46,9 @@ density, such as flour grams per cup.
 An item is low inventory when current quantity is below minimum quantity, when it has expired
 remaining stock, or when remaining stock expires within one month.
 
+Perishable items are different. CloudBake hides perishable low-inventory alerts unless an active
+order needs that item through a linked recipe or order-specific extra ingredients.
+
 The app also uses local notifications for remaining stock expiring within one month after the owner
 grants notification permission.
 
@@ -63,7 +67,10 @@ Expiry example:
 
 ## Stock Batches And Expiry
 
-Each new stock quantity is tracked as a batch with its own expiry date and optional amount.
+Each new stock quantity is tracked as a batch with an optional expiry date and optional amount.
+
+Standard inventory can be saved without an expiry date. Perishable inventory defaults the expiry
+date to four days from the add or adjustment date.
 
 When newer stock is added for the same item, the app combines it into an existing batch only when
 the expiry date and amount are the same. If the expiry date or amount differs, the app keeps a
@@ -87,10 +94,11 @@ Tap an inventory row to inspect the item before changing it.
 The detail view shows:
 
 1. name,
-2. unit,
-3. current quantity,
-4. minimum quantity,
-5. remaining stock batches with quantity, amount, and expiry date.
+2. type,
+3. unit,
+4. current quantity,
+5. minimum quantity,
+6. remaining stock batches with quantity, amount, and expiry date.
 
 Use the expiry table to see how much stock expires on each date.
 

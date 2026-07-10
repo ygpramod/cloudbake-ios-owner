@@ -68,7 +68,12 @@ Use add inventory when a new ingredient or supply needs to be tracked.
 Before adding, the app warns when an existing item has the same or similar name. This helps avoid
 duplicates like multiple cake flour rows.
 
-When starting quantity is entered, the owner also captures an expiry date for that starting stock.
+Inventory type can be Standard or Perishable. Standard is the default. Perishable is for short-life
+ingredients such as fruit.
+
+When starting quantity is entered, the owner may capture an expiry date for that starting stock.
+Expiry is optional for Standard inventory. Perishable inventory defaults the expiry date to four
+days from the add date.
 
 ## View Inventory
 
@@ -80,8 +85,8 @@ first, then items below minimum quantity, then items expiring soon, followed by 
 Use inventory search when the list grows. Search matches inventory item names and stored units while
 preserving the same attention-first ordering inside the search results.
 
-The view mode shows name, unit, current quantity, minimum quantity, and an expiry table. The expiry
-table lists each remaining stock batch by quantity and expiry date.
+The view mode shows name, type, unit, current quantity, minimum quantity, and an expiry table. The
+expiry table lists each remaining stock batch by quantity and expiry date.
 
 The detail view exposes a direct edit action and visible action chips for history, use stock, and
 adjust stock, so the owner does not need to return to the list and swipe for common item work.
@@ -113,8 +118,9 @@ The app updates current quantity and records an adjustment transaction.
 The adjustment unit defaults to the item's unit. The owner can choose another compatible unit, such
 as kg for a flour item stored in grams or liters for a cream item stored in ml.
 
-Each adjustment also captures an expiry date and creates a separate stock batch. This keeps older
-and newer stock distinct when their expiry dates differ.
+Each adjustment can capture an expiry date and creates a separate stock batch. This keeps older and
+newer stock distinct when their expiry dates differ. Perishable inventory defaults the adjustment
+expiry date to four days from the adjustment date.
 
 Each adjustment can also capture an optional amount. If the added stock has the same expiry date
 and amount as an existing batch, CloudBake combines the quantities. If either differs, CloudBake
