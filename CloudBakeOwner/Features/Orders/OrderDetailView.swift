@@ -16,6 +16,7 @@ struct OrderDetailView: View {
     @State private var selectedFinalCakePhotoItem: PhotosPickerItem?
     @State private var cameraPhotoKind: OrderPhotoKind?
     @State private var previewingPhoto: OrderPhoto?
+    @State private var isAddingExtraIngredient = false
     @State private var editingChecklistItem: OrderChecklistItem?
     @State private var editedChecklistItemTitle = ""
     @State private var partialPaymentAmount = ""
@@ -158,6 +159,17 @@ struct OrderDetailView: View {
                         accessibilityIdentifier: "orders.detail.error"
                     )
                 }
+            }
+        }
+        .sheet(
+            isPresented: $isAddingExtraIngredient,
+            onDismiss: viewModel.cancelExtraIngredientEdit
+        ) {
+            NavigationStack {
+                OrderExtraIngredientForm(
+                    viewModel: viewModel,
+                    isPresented: $isAddingExtraIngredient
+                )
             }
         }
         .sheet(
@@ -397,6 +409,49 @@ struct OrderDetailView: View {
                                 .accessibilityIdentifier("orders.detail.recipeUsage")
                         }
                     }
+
+                    CloudBakeDetailDivider()
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Extra Ingredients")
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            if viewModel.selectedOrderRecipeUsage == nil {
+                                Button {
+                                    viewModel.beginAddingExtraIngredient()
+                                    isAddingExtraIngredient = true
+                                } label: {
+                                    Image(systemName: "plus")
+                                        .imageScale(.medium)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(Color.cloudBakePink)
+                                .accessibilityLabel("Add Extra Ingredient")
+                                .accessibilityIdentifier("orders.detail.extraIngredient.add")
+                            }
+                        }
+
+                        if viewModel.selectedOrderExtraIngredients.isEmpty {
+                            Text("No extra ingredients")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .accessibilityIdentifier("orders.detail.extraIngredient.empty")
+                        } else {
+                            VStack(spacing: 0) {
+                                ForEach(viewModel.selectedOrderExtraIngredients) { row in
+                                    OrderExtraIngredientListRow(
+                                        row: row,
+                                        canDelete: viewModel.selectedOrderRecipeUsage == nil,
+                                        onDelete: {
+                                            _ = viewModel.deleteExtraIngredient(row)
+                                        }
+                                    )
+                                }
+                            }
+                            .accessibilityIdentifier("orders.detail.extraIngredient.list")
+                        }
+                    }
+                    .padding(.vertical, 14)
                 }
             }
         }
@@ -692,6 +747,116 @@ struct OrderDetailView: View {
 
     private func formattedMoney(_ amount: Decimal) -> String {
         MoneyDisplay.formatted(amount)
+    }
+}
+
+private struct OrderExtraIngredientForm: View {
+    @ObservedObject var viewModel: OrderListViewModel
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        Form {
+            if viewModel.availableInventoryItems.isEmpty {
+                ContentUnavailableView(
+                    "No inventory items",
+                    systemImage: "shippingbox",
+                    description: Text("Add inventory before adding extra ingredients.")
+                )
+            } else {
+                Section("Extra Ingredient") {
+                    Picker("Inventory Item", selection: $viewModel.draftExtraIngredientInventoryItemId) {
+                        ForEach(viewModel.availableInventoryItems, id: \.id) { item in
+                            Text(item.name).tag(item.id)
+                        }
+                    }
+                    .onChange(of: viewModel.draftExtraIngredientInventoryItemId) { _, _ in
+                        viewModel.updateDraftExtraIngredientUnitForSelectedInventoryItem()
+                    }
+                    .accessibilityIdentifier("orders.extraIngredient.inventoryItem")
+
+                    TextField("Quantity", text: $viewModel.draftExtraIngredientQuantity)
+                        .keyboardType(.decimalPad)
+                        .accessibilityIdentifier("orders.extraIngredient.quantity")
+
+                    Picker("Unit", selection: $viewModel.draftExtraIngredientUnit) {
+                        ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
+                            Text(unit.displayName).tag(unit)
+                        }
+                    }
+                    .accessibilityIdentifier("orders.extraIngredient.unit")
+
+                    TextField("Note", text: $viewModel.draftExtraIngredientNote, axis: .vertical)
+                        .lineLimit(2...4)
+                        .accessibilityIdentifier("orders.extraIngredient.note")
+                }
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("orders.extraIngredient.error")
+                }
+            }
+        }
+        .cloudBakeFormScreenStyle()
+        .navigationTitle("Add Extra Ingredient")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    viewModel.cancelExtraIngredientEdit()
+                    isPresented = false
+                }
+                .accessibilityIdentifier("orders.extraIngredient.cancel")
+            }
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    if viewModel.addExtraIngredientToSelectedOrder() {
+                        isPresented = false
+                    }
+                }
+                .disabled(viewModel.availableInventoryItems.isEmpty)
+                .accessibilityIdentifier("orders.extraIngredient.save")
+            }
+        }
+    }
+}
+
+private struct OrderExtraIngredientListRow: View {
+    let row: OrderExtraIngredientRow
+    let canDelete: Bool
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(row.inventoryItemName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text("\(row.ingredient.quantity.formatted()) \(row.ingredient.unit.displayName)")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                if let note = row.ingredient.note {
+                    Text(note)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            if canDelete {
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .imageScale(.small)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.red)
+                .accessibilityLabel("Delete Extra Ingredient")
+                .accessibilityIdentifier("orders.detail.extraIngredient.delete.\(row.id)")
+            }
+        }
+        .padding(.vertical, 10)
+        .accessibilityIdentifier("orders.detail.extraIngredient.\(row.id)")
     }
 }
 

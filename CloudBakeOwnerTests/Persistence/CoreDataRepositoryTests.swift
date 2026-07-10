@@ -730,6 +730,160 @@ final class CoreDataRepositoryTests: XCTestCase {
         )
     }
 
+    func testOrderRecipeUsageDeductsOrderExtraIngredients() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let usedAt = Date(timeIntervalSince1970: 1_800_020_000)
+        let flour = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let almonds = InventoryItem(
+            id: "inventory-almonds",
+            name: "Almonds",
+            unit: .gram,
+            currentQuantity: 200,
+            minimumQuantity: 50,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let recipe = Recipe(
+            id: "recipe-vanilla",
+            name: "Vanilla cake",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-cake",
+            recipeId: recipe.id,
+            name: "Cake",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-flour",
+            componentId: component.id,
+            inventoryItemId: flour.id,
+            quantity: 100,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let order = Order(
+            id: "order-vanilla",
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: recipe.id,
+            title: "Vanilla almond cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_050_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let extraIngredient = OrderExtraIngredient(
+            id: "extra-almonds",
+            orderId: order.id,
+            inventoryItemId: almonds.id,
+            quantity: 0.05,
+            unit: .kilogram,
+            note: "Customer requested almond crunch",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(flour)
+        try repository.save(almonds)
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try repository.save(order)
+        try repository.save(extraIngredient)
+
+        XCTAssertEqual(try repository.fetchOrderExtraIngredients(orderId: order.id), [extraIngredient])
+
+        try repository.recordRecipeUsage(
+            for: order,
+            usageId: "usage-order-vanilla",
+            usedAt: usedAt,
+            transactionIdProvider: makeSequentialIdProvider(["transaction-almonds", "transaction-flour"])
+        )
+
+        XCTAssertEqual(try repository.fetchInventoryItem(id: flour.id)?.currentQuantity, 400)
+        XCTAssertEqual(try repository.fetchInventoryItem(id: almonds.id)?.currentQuantity, 150)
+        XCTAssertEqual(
+            try repository.fetchInventoryTransactions(inventoryItemId: almonds.id),
+            [
+                InventoryTransaction(
+                    id: "transaction-almonds",
+                    inventoryItemId: almonds.id,
+                    kind: .consumption,
+                    quantity: 50,
+                    occurredAt: usedAt,
+                    note: "Order recipe usage: Vanilla almond cake",
+                    createdAt: usedAt,
+                    updatedAt: usedAt
+                )
+            ]
+        )
+    }
+
+    func testOrderExtraIngredientCanBeDeleted() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let item = InventoryItem(
+            id: "inventory-sprinkles",
+            name: "Sprinkles",
+            unit: .gram,
+            currentQuantity: 200,
+            minimumQuantity: 50,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let order = Order(
+            id: "order-sprinkles",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Sprinkle cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_050_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let extraIngredient = OrderExtraIngredient(
+            id: "extra-sprinkles",
+            orderId: order.id,
+            inventoryItemId: item.id,
+            quantity: 20,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(item)
+        try repository.save(order)
+        try repository.save(extraIngredient)
+        try repository.deleteOrderExtraIngredient(id: extraIngredient.id)
+
+        XCTAssertEqual(try repository.fetchOrderExtraIngredients(orderId: order.id), [])
+    }
+
     func testOrderPhotosAreFetchedByKindThenEntryOrderAndCanBeDeleted() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
@@ -1457,4 +1611,15 @@ final class CoreDataRepositoryTests: XCTestCase {
 private struct TestTimestamps {
     let createdAt: Date
     let updatedAt: Date
+}
+
+private func makeSequentialIdProvider(_ ids: [String]) -> () -> String {
+    var remainingIds = ids
+    return {
+        guard !remainingIds.isEmpty else {
+            return "unexpected-transaction-id"
+        }
+
+        return remainingIds.removeFirst()
+    }
 }

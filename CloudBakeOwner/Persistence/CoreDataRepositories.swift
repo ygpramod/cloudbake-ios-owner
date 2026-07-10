@@ -70,6 +70,12 @@ protocol OrderRecipeUsageRepository {
     ) throws
 }
 
+protocol OrderExtraIngredientRepository {
+    func save(_ ingredient: OrderExtraIngredient) throws
+    func fetchOrderExtraIngredients(orderId: String) throws -> [OrderExtraIngredient]
+    func deleteOrderExtraIngredient(id: String) throws
+}
+
 protocol OrderChecklistRepository {
     func save(_ item: OrderChecklistItem) throws
     func fetchOrderChecklistItems(orderId: String) throws -> [OrderChecklistItem]

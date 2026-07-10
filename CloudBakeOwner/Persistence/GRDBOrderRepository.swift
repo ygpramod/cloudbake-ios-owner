@@ -90,6 +90,41 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func save(_ ingredient: OrderExtraIngredient) throws {
+        try writer.write { db in
+            try save(ingredient, in: db)
+        }
+    }
+
+    func fetchOrderExtraIngredients(orderId: String) throws -> [OrderExtraIngredient] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM order_extra_ingredients
+                    WHERE order_id = ?
+                    ORDER BY created_at_unix_time ASC, id
+                    """,
+                arguments: [orderId]
+            ).compactMap { row in
+                guard let unit = InventoryUnit(rawValue: row["unit"] as String) else {
+                    return nil
+                }
+
+                return orderExtraIngredient(from: row, unit: unit)
+            }
+        }
+    }
+
+    func deleteOrderExtraIngredient(id: String) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: "DELETE FROM order_extra_ingredients WHERE id = ?",
+                arguments: [id]
+            )
+        }
+    }
+
     func recordRecipeUsage(
         for order: Order,
         usageId: String,
@@ -256,6 +291,7 @@ private extension GRDBCoreDataRepository {
         try ensureOrderRecipeUsageIsNotRecorded(orderId: order.id, in: db)
         let pendingUsages = try pendingInventoryUsages(
             recipeId: recipeId,
+            orderId: order.id,
             scaleMultiplier: order.recipeScaleMultiplier,
             in: db
         )
@@ -374,9 +410,38 @@ private extension GRDBCoreDataRepository {
         )
     }
 
-    func pendingInventoryUsages(recipeId: String, scaleMultiplier: Decimal = 1, in db: Database) throws -> [PendingInventoryUsage] {
+    func save(_ ingredient: OrderExtraIngredient, in db: Database) throws {
+        try db.execute(
+            sql: """
+                INSERT INTO order_extra_ingredients
+                (id, order_id, inventory_item_id, quantity, unit, note, created_at_unix_time, updated_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                order_id = excluded.order_id,
+                inventory_item_id = excluded.inventory_item_id,
+                quantity = excluded.quantity,
+                unit = excluded.unit,
+                note = excluded.note,
+                created_at_unix_time = excluded.created_at_unix_time,
+                updated_at_unix_time = excluded.updated_at_unix_time
+                """,
+            arguments: arguments([
+                ingredient.id,
+                ingredient.orderId,
+                ingredient.inventoryItemId,
+                ingredient.quantity,
+                ingredient.unit.rawValue,
+                ingredient.note,
+                ingredient.createdAt.timeIntervalSince1970,
+                ingredient.updatedAt.timeIntervalSince1970
+            ])
+        )
+    }
+
+    func pendingInventoryUsages(recipeId: String, orderId: String, scaleMultiplier: Decimal = 1, in db: Database) throws -> [PendingInventoryUsage] {
         let ingredients = try recipeIngredients(recipeId: recipeId, in: db)
-        guard !ingredients.isEmpty else {
+        let extraIngredients = try orderExtraIngredients(orderId: orderId, in: db)
+        guard !ingredients.isEmpty || !extraIngredients.isEmpty else {
             throw OrderRecipeUsageError.recipeHasNoIngredients
         }
 
@@ -400,6 +465,24 @@ private extension GRDBCoreDataRepository {
                 pendingUsagesByItemId[item.id] = PendingInventoryUsage(item: item, quantity: requiredQuantity)
             }
         }
+        for ingredient in extraIngredients {
+            guard let item = try inventoryItem(id: ingredient.inventoryItemId, in: db) else {
+                throw OrderRecipeUsageError.missingInventoryItem(ingredient.inventoryItemId)
+            }
+            guard let requiredQuantity = ingredient.unit.convertedQuantity(ingredient.quantity, to: item.unit) else {
+                throw OrderRecipeUsageError.incompatibleIngredientUnit(itemName: item.name)
+            }
+            guard requiredQuantity > 0 else {
+                continue
+            }
+
+            if var pendingUsage = pendingUsagesByItemId[item.id] {
+                pendingUsage.quantity += requiredQuantity
+                pendingUsagesByItemId[item.id] = pendingUsage
+            } else {
+                pendingUsagesByItemId[item.id] = PendingInventoryUsage(item: item, quantity: requiredQuantity)
+            }
+        }
 
         let pendingUsages = pendingUsagesByItemId.values.sorted { lhs, rhs in
             lhs.item.name.localizedCaseInsensitiveCompare(rhs.item.name) == .orderedAscending
@@ -409,6 +492,24 @@ private extension GRDBCoreDataRepository {
         }
 
         return pendingUsages
+    }
+
+    func orderExtraIngredients(orderId: String, in db: Database) throws -> [OrderExtraIngredient] {
+        try Row.fetchAll(
+            db,
+            sql: """
+                SELECT * FROM order_extra_ingredients
+                WHERE order_id = ?
+                ORDER BY created_at_unix_time ASC, id
+                """,
+            arguments: [orderId]
+        ).compactMap { row in
+            guard let unit = InventoryUnit(rawValue: row["unit"] as String) else {
+                return nil
+            }
+
+            return orderExtraIngredient(from: row, unit: unit)
+        }
     }
 
     func validateStock(for pendingUsages: [PendingInventoryUsage], in db: Database) throws {

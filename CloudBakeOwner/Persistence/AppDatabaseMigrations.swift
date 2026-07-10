@@ -284,6 +284,23 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0017_create_order_extra_ingredients") { db in
+            try db.create(table: "order_extra_ingredients") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .cascade)
+                table.column("inventory_item_id", .text)
+                    .notNull()
+                    .references("inventory_items", onDelete: .restrict)
+                table.column("quantity", .double).notNull()
+                table.column("unit", .text).notNull()
+                table.column("note", .text)
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+        }
+
         return migrator
     }
 }
