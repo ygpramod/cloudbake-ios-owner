@@ -398,6 +398,17 @@ struct OrderRecipeUsage: Equatable {
     }
 }
 
+struct OrderExtraIngredient: Equatable {
+    let id: String
+    let orderId: String
+    let inventoryItemId: String
+    let quantity: Double
+    let unit: InventoryUnit
+    let note: String?
+    let createdAt: Date
+    let updatedAt: Date
+}
+
 struct OrderChecklistItem: Equatable {
     let id: String
     let orderId: String

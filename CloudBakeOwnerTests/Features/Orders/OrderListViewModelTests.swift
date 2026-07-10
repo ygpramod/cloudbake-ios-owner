@@ -574,9 +574,52 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.selectedOrderCustomer)
         XCTAssertNil(viewModel.selectedOrderRecipe)
         XCTAssertNil(viewModel.selectedOrderCakeDesign)
+        XCTAssertTrue(viewModel.selectedOrderExtraIngredients.isEmpty)
         XCTAssertTrue(viewModel.selectedOrderChecklistItems.isEmpty)
         XCTAssertTrue(viewModel.selectedOrderPhotos.isEmpty)
         XCTAssertEqual(viewModel.draftChecklistItemTitle, "")
+    }
+
+    func testExtraIngredientCanBeAddedAndDisplayedForSelectedOrder() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-vanilla",
+            recipeId: "recipe-vanilla",
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        let almonds = makeInventoryItem(id: "inventory-almonds", name: "Almonds", unit: .gram)
+        repository.orders = [order]
+        repository.inventoryItems = [almonds]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "extra"),
+            dateProvider: { Date(timeIntervalSince1970: 1_800_150_000) }
+        )
+        viewModel.beginViewingOrder(order)
+        viewModel.beginAddingExtraIngredient()
+
+        viewModel.draftExtraIngredientQuantity = "75"
+        viewModel.draftExtraIngredientNote = "Extra crunch"
+
+        XCTAssertTrue(viewModel.addExtraIngredientToSelectedOrder())
+        XCTAssertEqual(
+            viewModel.selectedOrderExtraIngredients,
+            [
+                OrderExtraIngredientRow(
+                    ingredient: OrderExtraIngredient(
+                        id: "extra-1",
+                        orderId: order.id,
+                        inventoryItemId: almonds.id,
+                        quantity: 75,
+                        unit: .gram,
+                        note: "Extra crunch",
+                        createdAt: Date(timeIntervalSince1970: 1_800_150_000),
+                        updatedAt: Date(timeIntervalSince1970: 1_800_150_000)
+                    ),
+                    inventoryItemName: "Almonds"
+                )
+            ]
+        )
     }
 
 }

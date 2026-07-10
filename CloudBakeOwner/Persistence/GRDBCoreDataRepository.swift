@@ -11,6 +11,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     OrderRepository,
     OrderStatusChangeRepository,
     OrderRecipeUsageRepository,
+    OrderExtraIngredientRepository,
     OrderChecklistRepository,
     OrderPhotoRepository,
     InventoryTransactionRepository,
@@ -149,6 +150,19 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             recipeId: row["recipe_id"],
             recipeScaleMultiplier: optionalDecimal(row["recipe_scale_multiplier_decimal"]) ?? 1,
             usedAt: date(row["used_at_unix_time"]),
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    func orderExtraIngredient(from row: Row, unit: InventoryUnit) -> OrderExtraIngredient {
+        OrderExtraIngredient(
+            id: row["id"],
+            orderId: row["order_id"],
+            inventoryItemId: row["inventory_item_id"],
+            quantity: row["quantity"],
+            unit: unit,
+            note: row["note"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )

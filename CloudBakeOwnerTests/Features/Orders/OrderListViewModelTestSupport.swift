@@ -113,6 +113,25 @@ func makeCakeDesign(
     )
 }
 
+func makeInventoryItem(
+    id: String,
+    name: String,
+    unit: InventoryUnit = .gram,
+    currentQuantity: Double = 500,
+    minimumQuantity: Double = 100
+) -> InventoryItem {
+    let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+    return InventoryItem(
+        id: id,
+        name: name,
+        unit: unit,
+        currentQuantity: currentQuantity,
+        minimumQuantity: minimumQuantity,
+        createdAt: timestamp,
+        updatedAt: timestamp
+    )
+}
+
 func makeChecklistItem(
     id: String,
     orderId: String,
@@ -163,8 +182,10 @@ final class FakeOrderRepository: OrderRepository,
     CustomerImportantDateRepository,
     RecipeRepository,
     CakeDesignRepository,
+    InventoryItemRepository,
     OrderRecipeUsageRepository,
     OrderStatusChangeRepository,
+    OrderExtraIngredientRepository,
     OrderChecklistRepository,
     OrderPhotoRepository {
     var orders: [Order] = []
@@ -172,7 +193,9 @@ final class FakeOrderRepository: OrderRepository,
     var customerImportantDates: [CustomerImportantDate] = []
     var recipes: [Recipe] = []
     var cakeDesigns: [CakeDesign] = []
+    var inventoryItems: [InventoryItem] = []
     var usages: [OrderRecipeUsage] = []
+    var extraIngredients: [OrderExtraIngredient] = []
     var checklistItems: [OrderChecklistItem] = []
     var orderPhotos: [OrderPhoto] = []
     var recordedTransactionIds: [String] = []
@@ -277,8 +300,48 @@ final class FakeOrderRepository: OrderRepository,
         }
     }
 
+    func save(_ item: InventoryItem) throws {
+        inventoryItems.removeAll { $0.id == item.id }
+        inventoryItems.append(item)
+    }
+
+    func fetchInventoryItem(id: String) throws -> InventoryItem? {
+        inventoryItems.first { $0.id == id }
+    }
+
+    func fetchInventoryItems() throws -> [InventoryItem] {
+        inventoryItems.sorted { lhs, rhs in
+            lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    func fetchArchivedInventoryItems() throws -> [InventoryItem] {
+        inventoryItems.filter(\.isArchived)
+    }
+
     func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? {
         usages.first { $0.orderId == orderId }
+    }
+
+    func save(_ ingredient: OrderExtraIngredient) throws {
+        extraIngredients.removeAll { $0.id == ingredient.id }
+        extraIngredients.append(ingredient)
+    }
+
+    func fetchOrderExtraIngredients(orderId: String) throws -> [OrderExtraIngredient] {
+        extraIngredients
+            .filter { $0.orderId == orderId }
+            .sorted {
+                if $0.createdAt == $1.createdAt {
+                    return $0.id < $1.id
+                }
+
+                return $0.createdAt < $1.createdAt
+            }
+    }
+
+    func deleteOrderExtraIngredient(id: String) throws {
+        extraIngredients.removeAll { $0.id == id }
     }
 
     func save(_ item: OrderChecklistItem) throws {

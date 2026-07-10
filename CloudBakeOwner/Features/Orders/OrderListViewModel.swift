@@ -11,9 +11,11 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var selectedOrderRecipe: Recipe?
     @Published private(set) var selectedOrderCakeDesign: CakeDesign?
     @Published private(set) var selectedOrderRecipeUsage: OrderRecipeUsage?
+    @Published private(set) var selectedOrderExtraIngredients: [OrderExtraIngredientRow] = []
     @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
     @Published private(set) var selectedOrderPhotos: [OrderPhoto] = []
     @Published private(set) var editingOrder: Order?
+    @Published private(set) var availableInventoryItems: [InventoryItem] = []
     @Published var draftTitle = ""
     @Published var draftCustomerName = ""
     @Published var draftCustomerId = ""
@@ -30,16 +32,20 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftQuotedPrice = ""
     @Published var draftDepositPaid = ""
     @Published var draftPaymentNotes = ""
+    @Published var draftExtraIngredientInventoryItemId = ""
+    @Published var draftExtraIngredientQuantity = ""
+    @Published var draftExtraIngredientUnit: InventoryUnit = .gram
+    @Published var draftExtraIngredientNote = ""
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & InventoryItemRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let presentation: OrderListPresentation
 
     init(
-        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderChecklistRepository & OrderPhotoRepository,
+        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & InventoryItemRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
@@ -162,6 +168,7 @@ final class OrderListViewModel: ObservableObject {
         loadSelectedOrderRecipe(for: order)
         loadSelectedOrderCakeDesign(for: order)
         loadSelectedOrderRecipeUsage(for: order)
+        loadSelectedOrderExtraIngredients(for: order)
         loadSelectedOrderChecklistItems(for: order)
         loadSelectedOrderPhotos(for: order)
     }
@@ -172,9 +179,11 @@ final class OrderListViewModel: ObservableObject {
         selectedOrderRecipe = nil
         selectedOrderCakeDesign = nil
         selectedOrderRecipeUsage = nil
+        selectedOrderExtraIngredients = []
         selectedOrderChecklistItems = []
         selectedOrderPhotos = []
         draftChecklistItemTitle = ""
+        resetExtraIngredientDraft()
         editingOrder = nil
         errorMessage = nil
     }
@@ -399,6 +408,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderRecipe(for: savedOrder)
             loadSelectedOrderCakeDesign(for: savedOrder)
             loadSelectedOrderRecipeUsage(for: savedOrder)
+            loadSelectedOrderExtraIngredients(for: savedOrder)
             loadSelectedOrderChecklistItems(for: savedOrder)
             loadSelectedOrderPhotos(for: savedOrder)
             return true
@@ -500,6 +510,76 @@ final class OrderListViewModel: ObservableObject {
         return addPayment(to: selectedOrder, amountText: amountText)
     }
 
+    func beginAddingExtraIngredient() {
+        loadAvailableInventoryItems()
+        resetExtraIngredientDraft(keepingInventoryItems: true)
+        if let firstItem = availableInventoryItems.first {
+            draftExtraIngredientInventoryItemId = firstItem.id
+            draftExtraIngredientUnit = firstItem.unit
+        }
+        errorMessage = nil
+    }
+
+    func updateDraftExtraIngredientUnitForSelectedInventoryItem() {
+        guard let item = availableInventoryItems.first(where: { $0.id == draftExtraIngredientInventoryItemId }) else {
+            return
+        }
+
+        draftExtraIngredientUnit = item.unit
+    }
+
+    func addExtraIngredientToSelectedOrder() -> Bool {
+        guard let selectedOrder else {
+            errorMessage = "Order could not be found."
+            return false
+        }
+        guard let draft = validatedExtraIngredientDraft() else {
+            return false
+        }
+
+        let now = dateProvider()
+        let ingredient = OrderExtraIngredient(
+            id: idGenerator(),
+            orderId: selectedOrder.id,
+            inventoryItemId: draft.inventoryItemId,
+            quantity: draft.quantity,
+            unit: draft.unit,
+            note: draft.note,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        do {
+            try repository.save(ingredient)
+            resetExtraIngredientDraft()
+            loadSelectedOrderExtraIngredients(for: selectedOrder)
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Extra ingredient could not be saved."
+            return false
+        }
+    }
+
+    func deleteExtraIngredient(_ row: OrderExtraIngredientRow) -> Bool {
+        do {
+            try repository.deleteOrderExtraIngredient(id: row.ingredient.id)
+            if let selectedOrder {
+                loadSelectedOrderExtraIngredients(for: selectedOrder)
+            }
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Extra ingredient could not be deleted."
+            return false
+        }
+    }
+
+    func cancelExtraIngredientEdit() {
+        resetExtraIngredientDraft()
+        errorMessage = nil
+    }
+
     private func refreshAfterSavingOrder(_ order: Order) {
         if selectedOrder?.id == order.id {
             selectedOrder = order
@@ -507,6 +587,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderRecipe(for: order)
             loadSelectedOrderCakeDesign(for: order)
             loadSelectedOrderRecipeUsage(for: order)
+            loadSelectedOrderExtraIngredients(for: order)
             loadSelectedOrderChecklistItems(for: order)
             loadSelectedOrderPhotos(for: order)
         }
@@ -786,11 +867,22 @@ final class OrderListViewModel: ObservableObject {
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
             cakeDesigns = try repository.fetchCakeDesigns()
+            availableInventoryItems = try repository.fetchInventoryItems()
         } catch {
             customers = []
             recipes = []
             cakeDesigns = []
+            availableInventoryItems = []
             errorMessage = "Order form references could not be loaded."
+        }
+    }
+
+    private func loadAvailableInventoryItems() {
+        do {
+            availableInventoryItems = try repository.fetchInventoryItems()
+        } catch {
+            availableInventoryItems = []
+            errorMessage = "Inventory items could not be loaded."
         }
     }
 
@@ -877,6 +969,23 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    private func loadSelectedOrderExtraIngredients(for order: Order) {
+        do {
+            let inventoryItems = try repository.fetchInventoryItems()
+            let itemNamesById = Dictionary(uniqueKeysWithValues: inventoryItems.map { ($0.id, $0.name) })
+            selectedOrderExtraIngredients = try repository.fetchOrderExtraIngredients(orderId: order.id).map { ingredient in
+                OrderExtraIngredientRow(
+                    ingredient: ingredient,
+                    inventoryItemName: itemNamesById[ingredient.inventoryItemId] ?? "Inventory item unavailable"
+                )
+            }
+            availableInventoryItems = inventoryItems
+        } catch {
+            selectedOrderExtraIngredients = []
+            errorMessage = "Extra ingredients could not be loaded."
+        }
+    }
+
     private func loadSelectedOrderChecklistItems(for order: Order) {
         do {
             selectedOrderChecklistItems = try repository.fetchOrderChecklistItems(orderId: order.id)
@@ -935,6 +1044,16 @@ final class OrderListViewModel: ObservableObject {
         draftPaymentNotes = ""
     }
 
+    private func resetExtraIngredientDraft(keepingInventoryItems: Bool = false) {
+        if !keepingInventoryItems {
+            availableInventoryItems = []
+        }
+        draftExtraIngredientInventoryItemId = ""
+        draftExtraIngredientQuantity = ""
+        draftExtraIngredientUnit = .gram
+        draftExtraIngredientNote = ""
+    }
+
     private func validatedDraft() -> ValidatedOrderDraft? {
         let input = OrderDraftValidationInput(
             title: draftTitle,
@@ -953,4 +1072,38 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    private func validatedExtraIngredientDraft() -> ValidatedOrderExtraIngredientDraft? {
+        guard availableInventoryItems.contains(where: { $0.id == draftExtraIngredientInventoryItemId }) else {
+            errorMessage = "Choose an inventory item."
+            return nil
+        }
+
+        guard let quantity = Double(TextInputFormatting.trimmed(draftExtraIngredientQuantity)), quantity > 0 else {
+            errorMessage = "Extra ingredient quantity must be greater than zero."
+            return nil
+        }
+
+        return ValidatedOrderExtraIngredientDraft(
+            inventoryItemId: draftExtraIngredientInventoryItemId,
+            quantity: quantity,
+            unit: draftExtraIngredientUnit,
+            note: TextInputFormatting.optionalText(draftExtraIngredientNote)
+        )
+    }
+}
+
+struct OrderExtraIngredientRow: Identifiable, Equatable {
+    let ingredient: OrderExtraIngredient
+    let inventoryItemName: String
+
+    var id: String {
+        ingredient.id
+    }
+}
+
+private struct ValidatedOrderExtraIngredientDraft {
+    let inventoryItemId: String
+    let quantity: Double
+    let unit: InventoryUnit
+    let note: String?
 }
