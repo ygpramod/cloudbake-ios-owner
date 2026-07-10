@@ -46,6 +46,7 @@ struct RootView: View {
             navigateToInventoryWhenItemIsPending()
         }
         .task {
+            navigateToInitialUITestDestination()
             await refreshLocalReminders()
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -94,6 +95,17 @@ struct RootView: View {
         }
 
         navigate(.inventory)
+    }
+
+    private func navigateToInitialUITestDestination() {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1",
+              let rawDestination = ProcessInfo.processInfo.environment["CLOUDBAKE_INITIAL_DESTINATION"],
+              let destination = AppDestination(rawValue: rawDestination),
+              destination != .dashboard else {
+            return
+        }
+
+        navigate(destination)
     }
 
     @ViewBuilder
