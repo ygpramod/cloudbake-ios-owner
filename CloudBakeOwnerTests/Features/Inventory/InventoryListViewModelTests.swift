@@ -156,6 +156,25 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testAddItemPersistsCleanedAliases() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "inventory-flour" },
+            dateProvider: { now }
+        )
+        viewModel.draftName = "Cake Flour"
+        viewModel.draftAliases = "Maida, Aashirvaad Maida\nmaida"
+        viewModel.draftCurrentQuantity = "100"
+        viewModel.draftMinimumQuantity = "250"
+
+        XCTAssertTrue(viewModel.addItem())
+
+        XCTAssertEqual(repository.items.first?.aliases, ["Maida", "Aashirvaad Maida"])
+        XCTAssertEqual(viewModel.draftAliases, "")
+    }
+
     func testAddItemStoresInitialStockBatchWithExpiry() {
         let repository = FakeInventoryItemRepository()
         let now = Date(timeIntervalSince1970: 1_800_030_000)

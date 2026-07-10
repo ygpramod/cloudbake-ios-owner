@@ -32,6 +32,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         return InventoryItem(
             id: row["id"],
             name: row["name"],
+            aliases: inventoryAliases(from: row["aliases_json"]),
             unit: unit,
             currentQuantity: row["current_quantity"],
             minimumQuantity: row["minimum_quantity"],
@@ -42,6 +43,25 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             updatedAt: date(row["updated_at_unix_time"]),
             archivedAt: optionalDate(row["archived_at_unix_time"])
         )
+    }
+
+    func inventoryAliases(from json: String?) -> [String] {
+        guard let json,
+              let data = json.data(using: .utf8),
+              let aliases = try? JSONDecoder().decode([String].self, from: data) else {
+            return []
+        }
+
+        return InventoryAliases.aliases(from: aliases.joined(separator: "\n"))
+    }
+
+    func inventoryAliasesJSON(_ aliases: [String]) -> String {
+        guard let data = try? JSONEncoder().encode(InventoryAliases.aliases(from: aliases.joined(separator: "\n"))),
+              let json = String(data: data, encoding: .utf8) else {
+            return "[]"
+        }
+
+        return json
     }
 
     func recipe(from row: Row) -> Recipe {

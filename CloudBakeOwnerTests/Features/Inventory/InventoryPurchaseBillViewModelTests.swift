@@ -70,6 +70,75 @@ extension InventoryListViewModelTests {
         XCTAssertEqual(viewModel.purchaseBillDrafts.first?.matchedInventoryItemName, "Cake flour")
     }
 
+    func testCreatePurchaseBillDraftsUsesInventoryAliases() {
+        var ids = ["draft-flour"]
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake Flour",
+                aliases: ["Aashirvaad Maida", "Plain Flour"],
+                unit: .gram,
+                currentQuantity: 500,
+                minimumQuantity: 250,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() }
+        )
+        viewModel.load()
+        viewModel.purchaseBillRecognizedText = "Aashirvaad Maida 1 kg"
+
+        XCTAssertTrue(viewModel.createPurchaseBillDrafts(catalog: []))
+
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.name, "Cake Flour")
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.matchedInventoryItemId, "inventory-flour")
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.quantityText, "1")
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.unit, .kilogram)
+    }
+
+    func testInventoryAliasMatchesBeforeBundledCatalog() {
+        var ids = ["draft-flour"]
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-owner-flour",
+                name: "Owner Cake Flour",
+                aliases: ["Maida"],
+                unit: .gram,
+                currentQuantity: 500,
+                minimumQuantity: 250,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() }
+        )
+        viewModel.load()
+        viewModel.purchaseBillRecognizedText = "Maida 1 kg"
+
+        XCTAssertTrue(
+            viewModel.createPurchaseBillDrafts(
+                catalog: [
+                    BakingCatalogItem(
+                        name: "Bundled Cake Flour",
+                        aliases: ["maida"],
+                        category: "Ingredient",
+                        active: true
+                    )
+                ]
+            )
+        )
+
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.name, "Owner Cake Flour")
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.matchedInventoryItemId, "inventory-owner-flour")
+    }
+
     func testRefreshPurchaseBillDraftMatchUpdatesAfterNameEdit() {
         let repository = FakeInventoryItemRepository()
         repository.items = [

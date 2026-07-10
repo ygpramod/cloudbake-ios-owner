@@ -7,6 +7,7 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var archivedItems: [InventoryItem] = []
     @Published var searchText = ""
     @Published var draftName = ""
+    @Published var draftAliases = ""
     @Published var draftUnit: InventoryUnit = .gram
     @Published var draftCurrentQuantity = ""
     @Published var draftMinimumQuantity = ""
@@ -63,7 +64,8 @@ final class InventoryListViewModel: ObservableObject {
         return items.filter { item in
             [
                 item.name,
-                item.unit.displayName
+                item.unit.displayName,
+                InventoryAliases.displayText(item.aliases)
             ]
                 .map(TextInputFormatting.normalizedSearchKey)
                 .contains { $0.contains(query) }
@@ -119,6 +121,7 @@ final class InventoryListViewModel: ObservableObject {
         let item = InventoryItem(
             id: idGenerator(),
             name: name,
+            aliases: InventoryAliases.aliases(from: draftAliases),
             unit: draftUnit,
             currentQuantity: quantities.current,
             minimumQuantity: quantities.minimum,
@@ -153,6 +156,7 @@ final class InventoryListViewModel: ObservableObject {
     func beginEditing(_ item: InventoryItem) {
         editingItem = item
         draftName = item.name
+        draftAliases = InventoryAliases.displayText(item.aliases)
         draftUnit = item.unit
         draftCurrentQuantity = item.currentQuantity.formatted()
         draftMinimumQuantity = item.minimumQuantity.formatted()
@@ -192,6 +196,7 @@ final class InventoryListViewModel: ObservableObject {
         let item = InventoryItem(
             id: editingItem.id,
             name: name,
+            aliases: InventoryAliases.aliases(from: draftAliases),
             unit: editingItem.unit,
             currentQuantity: editingItem.currentQuantity,
             minimumQuantity: minimumQuantity,
@@ -287,6 +292,7 @@ final class InventoryListViewModel: ObservableObject {
         let updatedItem = InventoryItem(
             id: selectedItem.id,
             name: selectedItem.name,
+            aliases: selectedItem.aliases,
             unit: selectedItem.unit,
             currentQuantity: selectedItem.currentQuantity + quantityDelta,
             minimumQuantity: selectedItem.minimumQuantity,
@@ -337,6 +343,7 @@ final class InventoryListViewModel: ObservableObject {
         let updatedItem = InventoryItem(
             id: selectedItem.id,
             name: selectedItem.name,
+            aliases: selectedItem.aliases,
             unit: selectedItem.unit,
             currentQuantity: updatedQuantity,
             minimumQuantity: selectedItem.minimumQuantity,
@@ -362,6 +369,7 @@ final class InventoryListViewModel: ObservableObject {
         let archivedItem = InventoryItem(
             id: currentItem.id,
             name: currentItem.name,
+            aliases: currentItem.aliases,
             unit: currentItem.unit,
             currentQuantity: currentItem.currentQuantity,
             minimumQuantity: currentItem.minimumQuantity,
@@ -385,6 +393,7 @@ final class InventoryListViewModel: ObservableObject {
         let restoredItem = InventoryItem(
             id: item.id,
             name: item.name,
+            aliases: item.aliases,
             unit: item.unit,
             currentQuantity: item.currentQuantity,
             minimumQuantity: item.minimumQuantity,
@@ -512,7 +521,7 @@ final class InventoryListViewModel: ObservableObject {
     func createPurchaseBillDrafts(catalog: [BakingCatalogItem]) -> Bool {
         let drafts = PurchaseBillDraftParser.draftItems(
             from: purchaseBillRecognizedText,
-            catalog: catalog
+            catalog: purchaseBillCatalog(merging: catalog)
         )
 
         guard !drafts.isEmpty else {
@@ -595,6 +604,7 @@ final class InventoryListViewModel: ObservableObject {
                 plannedExistingItems[existingItem.id] = InventoryItem(
                     id: itemToUpdate.id,
                     name: itemToUpdate.name,
+                    aliases: itemToUpdate.aliases,
                     unit: itemToUpdate.unit,
                     currentQuantity: itemToUpdate.currentQuantity + itemQuantity,
                     minimumQuantity: itemToUpdate.minimumQuantity,
@@ -792,6 +802,7 @@ final class InventoryListViewModel: ObservableObject {
 
     private func resetDraft() {
         draftName = ""
+        draftAliases = ""
         draftUnit = .gram
         draftCurrentQuantity = ""
         draftMinimumQuantity = ""
@@ -849,6 +860,17 @@ final class InventoryListViewModel: ObservableObject {
 
             return left.name.localizedCaseInsensitiveCompare(right.name) == .orderedAscending
         }
+    }
+
+    private func purchaseBillCatalog(merging bundledCatalog: [BakingCatalogItem]) -> [BakingCatalogItem] {
+        items.map { item in
+            BakingCatalogItem(
+                name: item.name,
+                aliases: item.aliases,
+                category: "Inventory",
+                active: !item.isArchived
+            )
+        } + bundledCatalog
     }
 
     private func inventoryAttentionPriority(_ item: InventoryItem) -> Int {

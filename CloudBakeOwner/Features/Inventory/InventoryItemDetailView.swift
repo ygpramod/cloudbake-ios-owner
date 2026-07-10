@@ -82,6 +82,13 @@ struct InventoryItemDetailView: View {
                         CloudBakeDetailRow("Name") {
                             Text(item.name)
                         }
+                        if !item.aliases.isEmpty {
+                            CloudBakeDetailDivider()
+                            CloudBakeDetailRow("Aliases") {
+                                Text(InventoryAliases.displayText(item.aliases))
+                                    .multilineTextAlignment(.trailing)
+                            }
+                        }
                         CloudBakeDetailDivider()
                         CloudBakeDetailRow("Unit") {
                             Text(item.unit.displayName)
