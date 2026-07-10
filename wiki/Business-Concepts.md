@@ -15,12 +15,15 @@ Examples:
 5. cake boxes,
 6. fondant.
 
-An inventory item has a name, unit, current quantity, minimum quantity, and stock batches.
+An inventory item has a name, type, unit, current quantity, minimum quantity, and stock batches.
+
+Inventory type can be Standard or Perishable. Standard items are normal pantry ingredients or
+supplies. Perishable items are short-life ingredients such as fruit.
 
 ## Stock Batch
 
-A stock batch is one portion of an inventory item with its own remaining quantity, expiry date, and
-optional amount.
+A stock batch is one portion of an inventory item with its own remaining quantity, optional expiry
+date, and optional amount.
 
 Example:
 
@@ -36,8 +39,10 @@ combine the quantities. Different expiry dates or different amounts stay as sepa
 
 ## Expiry Date
 
-Expiry date is captured for new stock when inventory is added or adjusted upward. The owner can
+Expiry date is optional for new stock when inventory is added or adjusted upward. The owner can
 correct a stock batch quantity or expiry date from inventory detail.
+
+Perishable inventory defaults new stock expiry to four days from the add or adjustment date.
 
 The app uses expiry to warn the owner one month before expiry and to decide which batch should be
 consumed first.
@@ -58,6 +63,9 @@ Minimum quantity is the threshold below which the owner wants to be alerted.
 
 If current quantity is below minimum quantity, the item is treated as low inventory.
 
+For perishable inventory, low-inventory alerts are shown only when an active order needs the item
+through a linked recipe or order-specific extra ingredients.
+
 ## Low Inventory
 
 Low inventory means the owner should consider restocking.
@@ -67,6 +75,9 @@ stock expiring within one month. It is not manually assigned.
 
 An item can be low inventory even when current quantity is above minimum if any remaining stock has
 expired or is close to expiry.
+
+Perishable low inventory is suppressed from Dashboard and Reminders until active order demand makes
+the item relevant.
 
 ## Inventory Transaction
 
