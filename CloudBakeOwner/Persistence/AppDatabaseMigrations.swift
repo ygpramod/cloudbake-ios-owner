@@ -307,6 +307,12 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0019_add_inventory_type") { db in
+            try db.alter(table: "inventory_items") { table in
+                table.add(column: "inventory_type", .text).notNull().defaults(to: InventoryItemType.standard.rawValue)
+            }
+        }
+
         return migrator
     }
 }

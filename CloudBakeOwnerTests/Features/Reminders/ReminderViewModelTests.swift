@@ -143,6 +143,62 @@ final class ReminderViewModelTests: XCTestCase {
         )
     }
 
+    func testLoadSuppressesPerishableLowInventoryUntilActiveOrderNeedsIt() {
+        let repository = FakeReminderRepository()
+        repository.items = [
+            makeInventoryItem(
+                id: "inventory-strawberry",
+                name: "Strawberry",
+                type: .perishable,
+                currentQuantity: 0,
+                minimumQuantity: 10
+            )
+        ]
+        let viewModel = ReminderViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.lowInventoryItems, [])
+    }
+
+    func testLoadShowsPerishableLowInventoryWhenActiveOrderExtraIngredientNeedsIt() {
+        let repository = FakeReminderRepository()
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        repository.items = [
+            makeInventoryItem(
+                id: "inventory-strawberry",
+                name: "Strawberry",
+                type: .perishable,
+                currentQuantity: 0,
+                minimumQuantity: 10
+            )
+        ]
+        repository.orders = [
+            makeOrder(id: "order-strawberry-cake", status: .confirmed, dueAt: dueAt)
+        ]
+        repository.extraIngredients = [
+            makeOrderExtraIngredient(
+                id: "extra-strawberry",
+                orderId: "order-strawberry-cake",
+                inventoryItemId: "inventory-strawberry"
+            )
+        ]
+        let viewModel = ReminderViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(
+            viewModel.lowInventoryItems,
+            [
+                LowInventoryReminderItem(
+                    id: "inventory-strawberry",
+                    name: "Strawberry",
+                    quantityText: "0 / 10 g"
+                )
+            ]
+        )
+    }
+
     func testMarkPaidUpdatesOrderAndRemovesPaymentDueReminder() {
         let repository = FakeReminderRepository()
         let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
@@ -166,10 +222,18 @@ final class ReminderViewModelTests: XCTestCase {
     }
 }
 
-private final class FakeReminderRepository: OrderRepository, InventoryItemRepository, CustomerRepository {
+private final class FakeReminderRepository: OrderRepository,
+    InventoryItemRepository,
+    CustomerRepository,
+    RecipeComponentRepository,
+    RecipeIngredientRepository,
+    OrderExtraIngredientRepository {
     var orders: [Order] = []
     var items: [InventoryItem] = []
     var customers: [Customer] = []
+    var components: [RecipeComponent] = []
+    var ingredients: [RecipeIngredient] = []
+    var extraIngredients: [OrderExtraIngredient] = []
 
     func save(_ order: Order) throws {
         if let existingIndex = orders.firstIndex(where: { $0.id == order.id }) {
@@ -220,11 +284,42 @@ private final class FakeReminderRepository: OrderRepository, InventoryItemReposi
     func deleteCustomer(id: String) throws {
         customers.removeAll { $0.id == id }
     }
+
+    func save(_ component: RecipeComponent) throws {}
+
+    func fetchRecipeComponent(id: String) throws -> RecipeComponent? {
+        components.first { $0.id == id }
+    }
+
+    func fetchRecipeComponents(recipeId: String) throws -> [RecipeComponent] {
+        components.filter { $0.recipeId == recipeId }
+    }
+
+    func save(_ ingredient: RecipeIngredient) throws {}
+
+    func fetchRecipeIngredient(id: String) throws -> RecipeIngredient? {
+        ingredients.first { $0.id == id }
+    }
+
+    func fetchRecipeIngredients(componentId: String) throws -> [RecipeIngredient] {
+        ingredients.filter { $0.componentId == componentId }
+    }
+
+    func deleteRecipeIngredient(id: String) throws {}
+
+    func save(_ ingredient: OrderExtraIngredient) throws {}
+
+    func fetchOrderExtraIngredients(orderId: String) throws -> [OrderExtraIngredient] {
+        extraIngredients.filter { $0.orderId == orderId }
+    }
+
+    func deleteOrderExtraIngredient(id: String) throws {}
 }
 
 private func makeInventoryItem(
     id: String,
     name: String,
+    type: InventoryItemType = .standard,
     currentQuantity: Double,
     minimumQuantity: Double
 ) -> InventoryItem {
@@ -232,9 +327,24 @@ private func makeInventoryItem(
     return InventoryItem(
         id: id,
         name: name,
+        type: type,
         unit: .gram,
         currentQuantity: currentQuantity,
         minimumQuantity: minimumQuantity,
+        createdAt: timestamp,
+        updatedAt: timestamp
+    )
+}
+
+private func makeOrderExtraIngredient(id: String, orderId: String, inventoryItemId: String) -> OrderExtraIngredient {
+    let timestamp = Date(timeIntervalSince1970: 1_800_040_000)
+    return OrderExtraIngredient(
+        id: id,
+        orderId: orderId,
+        inventoryItemId: inventoryItemId,
+        quantity: 1,
+        unit: .gram,
+        note: nil,
         createdAt: timestamp,
         updatedAt: timestamp
     )

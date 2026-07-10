@@ -133,10 +133,25 @@ private enum MeasurementFamily {
     case count
 }
 
+enum InventoryItemType: String, Equatable, CaseIterable {
+    case standard
+    case perishable
+
+    var displayName: String {
+        switch self {
+        case .standard:
+            return "Standard"
+        case .perishable:
+            return "Perishable"
+        }
+    }
+}
+
 struct InventoryItem: Equatable {
     let id: String
     let name: String
     let aliases: [String]
+    let type: InventoryItemType
     let unit: InventoryUnit
     let currentQuantity: Double
     let minimumQuantity: Double
@@ -151,6 +166,7 @@ struct InventoryItem: Equatable {
         id: String,
         name: String,
         aliases: [String] = [],
+        type: InventoryItemType = .standard,
         unit: InventoryUnit,
         currentQuantity: Double,
         minimumQuantity: Double,
@@ -164,6 +180,7 @@ struct InventoryItem: Equatable {
         self.id = id
         self.name = name
         self.aliases = aliases
+        self.type = type
         self.unit = unit
         self.currentQuantity = currentQuantity
         self.minimumQuantity = minimumQuantity
@@ -177,6 +194,19 @@ struct InventoryItem: Equatable {
 
     var isLowStock: Bool {
         currentQuantity < minimumQuantity || hasExpiredStock || hasExpiringSoonStock
+    }
+
+    func showsLowInventoryAlert(neededInventoryItemIds: Set<String>) -> Bool {
+        guard isLowStock else {
+            return false
+        }
+
+        switch type {
+        case .standard:
+            return true
+        case .perishable:
+            return neededInventoryItemIds.contains(id)
+        }
     }
 
     var isArchived: Bool {

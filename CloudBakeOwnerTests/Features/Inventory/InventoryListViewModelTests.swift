@@ -188,6 +188,7 @@ final class InventoryListViewModelTests: XCTestCase {
         viewModel.draftName = "Butter"
         viewModel.draftCurrentQuantity = "100"
         viewModel.draftMinimumQuantity = "250"
+        viewModel.draftHasExpiryDate = true
         viewModel.draftExpiryDate = expiresAt
         viewModel.draftAmount = "2.50"
 
@@ -207,6 +208,62 @@ final class InventoryListViewModelTests: XCTestCase {
                 )
             ]
         )
+    }
+
+    func testAddItemCanStoreInitialStockBatchWithoutExpiry() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        var ids = ["inventory-sugar", "batch-sugar-initial"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.draftName = "Sugar"
+        viewModel.draftCurrentQuantity = "100"
+        viewModel.draftMinimumQuantity = "250"
+        viewModel.draftHasExpiryDate = false
+
+        XCTAssertTrue(viewModel.addItem())
+
+        XCTAssertEqual(repository.batches.first?.expiresAt, nil)
+    }
+
+    func testSelectingPerishableDefaultsExpiryToFourDays() {
+        let repository = FakeInventoryItemRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            dateProvider: { now }
+        )
+
+        viewModel.selectDraftType(.perishable)
+
+        XCTAssertEqual(viewModel.draftType, .perishable)
+        XCTAssertTrue(viewModel.draftHasExpiryDate)
+        XCTAssertEqual(viewModel.draftExpiryDate, calendar.date(byAdding: .day, value: 4, to: now))
+    }
+
+    func testAddItemPersistsPerishableTypeAndFourDayExpiry() {
+        let repository = FakeInventoryItemRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
+        var ids = ["inventory-strawberry", "batch-strawberry-initial"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.draftName = "Strawberry"
+        viewModel.draftCurrentQuantity = "10"
+        viewModel.draftMinimumQuantity = "5"
+        viewModel.selectDraftType(.perishable)
+
+        XCTAssertTrue(viewModel.addItem())
+
+        XCTAssertEqual(repository.items.first?.type, .perishable)
+        XCTAssertEqual(repository.batches.first?.expiresAt, calendar.date(byAdding: .day, value: 4, to: now))
     }
 
     func testAddItemRejectsBlankName() {

@@ -96,6 +96,7 @@
 		410000000000000000000050 /* InventoryStockOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000058 /* InventoryStockOperation.swift */; };
 		410000000000000000000051 /* InventoryPurchaseBillDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000059 /* InventoryPurchaseBillDraft.swift */; };
 		4100000000000000000000B4 /* InventoryAliases.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000B4 /* InventoryAliases.swift */; };
+		4100000000000000000000B6 /* InventoryLowInventoryAlertRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000B6 /* InventoryLowInventoryAlertRules.swift */; };
 		410000000000000000000052 /* CustomerContactPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005A /* CustomerContactPicker.swift */; };
 		410000000000000000000053 /* CustomerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005B /* CustomerDetailView.swift */; };
 		410000000000000000000054 /* CustomerForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005C /* CustomerForm.swift */; };
@@ -245,6 +246,7 @@
 		420000000000000000000058 /* InventoryStockOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockOperation.swift; sourceTree = "<group>"; };
 		420000000000000000000059 /* InventoryPurchaseBillDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryPurchaseBillDraft.swift; sourceTree = "<group>"; };
 		4200000000000000000000B4 /* InventoryAliases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryAliases.swift; sourceTree = "<group>"; };
+		4200000000000000000000B6 /* InventoryLowInventoryAlertRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryLowInventoryAlertRules.swift; sourceTree = "<group>"; };
 		42000000000000000000005A /* CustomerContactPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerContactPicker.swift; sourceTree = "<group>"; };
 		42000000000000000000005B /* CustomerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDetailView.swift; sourceTree = "<group>"; };
 		42000000000000000000005C /* CustomerForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerForm.swift; sourceTree = "<group>"; };
@@ -501,6 +503,7 @@
 				420000000000000000000015 /* CoreModels.swift */,
 					42000000000000000000003C /* CustomerConsumerProfile.swift */,
 					4200000000000000000000B4 /* InventoryAliases.swift */,
+					4200000000000000000000B6 /* InventoryLowInventoryAlertRules.swift */,
 					42000000000000000000002D /* InventoryUnitDisplay.swift */,
 				420000000000000000000037 /* OrderConsumerPreview.swift */,
 				420000000000000000000036 /* OrderDisplay.swift */,
@@ -843,6 +846,7 @@
 				410000000000000000000041 /* InventoryItemDetailView.swift in Sources */,
 					41000000000000000000003E /* InventoryItemForm.swift in Sources */,
 					4100000000000000000000B4 /* InventoryAliases.swift in Sources */,
+					4100000000000000000000B6 /* InventoryLowInventoryAlertRules.swift in Sources */,
 					41000000000000000000004F /* InventoryDraftValidation.swift in Sources */,
 				410000000000000000000012 /* InventoryListView.swift in Sources */,
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,

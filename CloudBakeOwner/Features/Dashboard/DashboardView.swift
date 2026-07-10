@@ -448,7 +448,11 @@ private extension InventoryItem {
     .environmentObject(OrderNotificationRouter())
 }
 
-private final class PreviewDashboardInventoryItemRepository: InventoryItemRepository, OrderRepository {
+private final class PreviewDashboardInventoryItemRepository: InventoryItemRepository,
+    OrderRepository,
+    RecipeComponentRepository,
+    RecipeIngredientRepository,
+    OrderExtraIngredientRepository {
     func save(_ item: InventoryItem) throws {}
 
     func fetchInventoryItem(id: String) throws -> InventoryItem? {
@@ -482,4 +486,34 @@ private final class PreviewDashboardInventoryItemRepository: InventoryItemReposi
     func fetchOrders() throws -> [Order] {
         []
     }
+
+    func save(_ component: RecipeComponent) throws {}
+
+    func fetchRecipeComponent(id: String) throws -> RecipeComponent? {
+        nil
+    }
+
+    func fetchRecipeComponents(recipeId: String) throws -> [RecipeComponent] {
+        []
+    }
+
+    func save(_ ingredient: RecipeIngredient) throws {}
+
+    func fetchRecipeIngredient(id: String) throws -> RecipeIngredient? {
+        nil
+    }
+
+    func fetchRecipeIngredients(componentId: String) throws -> [RecipeIngredient] {
+        []
+    }
+
+    func deleteRecipeIngredient(id: String) throws {}
+
+    func save(_ ingredient: OrderExtraIngredient) throws {}
+
+    func fetchOrderExtraIngredients(orderId: String) throws -> [OrderExtraIngredient] {
+        []
+    }
+
+    func deleteOrderExtraIngredient(id: String) throws {}
 }
