@@ -75,6 +75,16 @@ struct InventoryItemDetailView: View {
                         viewModel.beginViewingHistory(item)
                         isShowingHistory = true
                     }
+
+                    CloudBakeInlineActionButton(
+                        title: "Alias",
+                        systemImage: "tag",
+                        tint: .cloudBakePink,
+                        accessibilityIdentifier: "inventory.detail.alias"
+                    ) {
+                        viewModel.beginEditing(item)
+                        isEditingItem = true
+                    }
                 }
 
                 CloudBakeSection("Item") {

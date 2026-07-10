@@ -117,9 +117,11 @@ extension CloudBakeOwnerUITests {
         let adjustButton = app.buttons["inventory.detail.adjust"]
         let consumeButton = app.buttons["inventory.detail.consume"]
         let historyButton = app.buttons["inventory.detail.history"]
+        let aliasButton = app.buttons["inventory.detail.alias"]
         scrollToHittable(adjustButton, in: app, timeout: 5)
         scrollToHittable(consumeButton, in: app, timeout: 5)
         scrollToHittable(historyButton, in: app, timeout: 5)
+        scrollToHittable(aliasButton, in: app, timeout: 5)
 
         let batchRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.detail.batch.edit.")).firstMatch
         XCTAssertTrue(batchRow.waitForExistence(timeout: 5))
