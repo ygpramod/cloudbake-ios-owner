@@ -129,9 +129,10 @@ structured ingredient rows.
 
 When an order links to a saved recipe, marking the Confirmed order Ready or Completed records one
 usage event for the order and deducts ingredient quantities from inventory using compatible unit
-conversion and oldest-expiry-first stock batches. Future recipe work should add
-stronger OCR cleanup, richer component grouping, method details, scaling, and optional LLM-assisted
-interpretation.
+conversion and oldest-expiry-first stock batches. Order-specific extra ingredients let the owner
+handle customer-specific recipe changes without changing the saved recipe; those extras are deducted
+with the order's one-time recipe usage. Future recipe work should add stronger OCR cleanup, richer
+component grouping, method details, scaling, and optional LLM-assisted interpretation.
 
 Important units include kg, liters, ml, grams, teaspoons, tablespoons, and cups.
 
