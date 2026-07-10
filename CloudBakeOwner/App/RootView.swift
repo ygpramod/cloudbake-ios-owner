@@ -24,11 +24,13 @@ struct RootView: View {
             navigateToOrdersWhenNotificationIsPending()
             navigateToInventoryWhenItemIsPending()
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .overlay(alignment: .bottom) {
             CloudBakeBottomNavigation(
                 selectedDestination: selectedDestination,
                 onSelect: navigate
             )
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            .ignoresSafeArea(.container, edges: .bottom)
         }
         .environment(\.navigateToAppDestination, navigate)
         .onChange(of: orderNotificationRouter.pendingOrderId) { _, orderId in
