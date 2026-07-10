@@ -422,10 +422,16 @@ final class FakeOrderRepository: OrderRepository,
         status: OrderStatus,
         updatedAt: Date,
         usageId: String,
+        extraIngredients: [OrderExtraIngredient]?,
         transactionIdProvider: () -> String
     ) throws -> Order {
         if let changeOrderStatusError {
             throw changeOrderStatusError
+        }
+
+        if let extraIngredients {
+            self.extraIngredients.removeAll { $0.orderId == order.id }
+            self.extraIngredients.append(contentsOf: extraIngredients)
         }
 
         let updatedOrder = Order(
