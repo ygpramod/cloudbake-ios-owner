@@ -210,6 +210,27 @@ final class InventoryListViewModelTests: XCTestCase {
         )
     }
 
+    func testAddItemDefaultsInitialStockBatchToOneMonthExpiry() {
+        let repository = FakeInventoryItemRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
+        var ids = ["inventory-sugar", "batch-sugar-initial"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.draftName = "Sugar"
+        viewModel.draftCurrentQuantity = "100"
+        viewModel.draftMinimumQuantity = "250"
+
+        XCTAssertTrue(viewModel.draftHasExpiryDate)
+        XCTAssertEqual(viewModel.draftExpiryDate, calendar.date(byAdding: .month, value: 1, to: now))
+        XCTAssertTrue(viewModel.addItem())
+
+        XCTAssertEqual(repository.batches.first?.expiresAt, calendar.date(byAdding: .month, value: 1, to: now))
+    }
+
     func testAddItemCanStoreInitialStockBatchWithoutExpiry() {
         let repository = FakeInventoryItemRepository()
         let now = Date(timeIntervalSince1970: 1_800_030_000)

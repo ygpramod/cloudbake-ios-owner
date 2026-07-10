@@ -39,8 +39,9 @@ combine the quantities. Different expiry dates or different amounts stay as sepa
 
 ## Expiry Date
 
-Expiry date is optional for new stock when inventory is added or adjusted upward. The owner can
-correct a stock batch quantity or expiry date from inventory detail.
+Expiry date is optional for new stock when inventory is added or adjusted upward. The app defaults
+expiry on, and the owner can turn it off before saving. The owner can correct a stock batch quantity
+or expiry date from inventory detail.
 
 Perishable inventory defaults new stock expiry to four days from the add or adjustment date.
 

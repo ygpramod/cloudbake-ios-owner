@@ -12,7 +12,7 @@ final class InventoryListViewModel: ObservableObject {
     @Published var draftUnit: InventoryUnit = .gram
     @Published var draftCurrentQuantity = ""
     @Published var draftMinimumQuantity = ""
-    @Published var draftHasExpiryDate = false
+    @Published var draftHasExpiryDate = true
     @Published var draftExpiryDate = Date()
     @Published var draftAmount = ""
     @Published var errorMessage: String?
@@ -55,9 +55,9 @@ final class InventoryListViewModel: ObservableObject {
         self.repository = repository
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
-        self.draftExpiryDate = Date()
+        self.draftExpiryDate = defaultExpiryDate(for: .standard)
         self.draftBatchExpiryDate = Date()
-        self.draftAdjustmentExpiryDate = Date()
+        self.draftAdjustmentExpiryDate = defaultExpiryDate(for: .standard)
     }
 
     var visibleItems: [InventoryItem] {
@@ -431,7 +431,7 @@ final class InventoryListViewModel: ObservableObject {
         adjustingItem = item
         draftAdjustmentQuantity = ""
         draftAdjustmentUnit = item.unit
-        draftAdjustmentHasExpiryDate = item.type == .perishable
+        draftAdjustmentHasExpiryDate = true
         draftAdjustmentExpiryDate = defaultExpiryDate(for: item.type)
         draftAdjustmentAmount = ""
         draftAdjustmentNote = ""
@@ -824,8 +824,8 @@ final class InventoryListViewModel: ObservableObject {
         draftUnit = .gram
         draftCurrentQuantity = ""
         draftMinimumQuantity = ""
-        draftHasExpiryDate = false
-        draftExpiryDate = Date()
+        draftHasExpiryDate = true
+        draftExpiryDate = defaultExpiryDate(for: .standard)
         draftAmount = ""
         errorMessage = nil
         duplicateWarningMessage = nil
@@ -846,8 +846,8 @@ final class InventoryListViewModel: ObservableObject {
         adjustingItem = nil
         draftAdjustmentQuantity = ""
         draftAdjustmentUnit = .gram
-        draftAdjustmentHasExpiryDate = false
-        draftAdjustmentExpiryDate = Date()
+        draftAdjustmentHasExpiryDate = true
+        draftAdjustmentExpiryDate = defaultExpiryDate(for: .standard)
         draftAdjustmentAmount = ""
         draftAdjustmentNote = ""
         errorMessage = nil
@@ -880,10 +880,15 @@ final class InventoryListViewModel: ObservableObject {
     private func defaultExpiryDate(for type: InventoryItemType) -> Date {
         switch type {
         case .standard:
-            return Date()
+            return defaultStandardExpiryDate()
         case .perishable:
             return defaultPerishableExpiryDate()
         }
+    }
+
+    private func defaultStandardExpiryDate() -> Date {
+        let now = dateProvider()
+        return Calendar.current.date(byAdding: .month, value: 1, to: now) ?? now
     }
 
     private func defaultPerishableExpiryDate() -> Date {

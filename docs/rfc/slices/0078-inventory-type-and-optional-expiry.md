@@ -40,7 +40,7 @@ Out of scope:
 ## Requirements
 
 - Existing inventory items must default to Standard.
-- Standard inventory can be saved with stock that has no expiry date.
+- Standard inventory defaults to having an expiry date, but the owner can turn expiry off before saving.
 - Perishable inventory must default the expiry date to four days from the action date.
 - The owner may still change the perishable expiry date before saving.
 - Dashboard and Reminders low-inventory alerts must hide perishable items unless an active order

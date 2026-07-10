@@ -69,8 +69,9 @@ Expiry example:
 
 Each new stock quantity is tracked as a batch with an optional expiry date and optional amount.
 
-Standard inventory can be saved without an expiry date. Perishable inventory defaults the expiry
-date to four days from the add or adjustment date.
+Standard inventory defaults to having an expiry date one month from the add or adjustment date, but
+the owner can turn expiry off before saving. Perishable inventory defaults the expiry date to four
+days from the add or adjustment date.
 
 When newer stock is added for the same item, the app combines it into an existing batch only when
 the expiry date and amount are the same. If the expiry date or amount differs, the app keeps a
