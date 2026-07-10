@@ -21,7 +21,7 @@ customer-specific adjustments.
 In scope:
 
 - storing order-specific extra ingredients linked to inventory items,
-- adding extra ingredients from order detail under Recipe Information,
+- adding extra ingredients from the order form and from order detail under Recipe Information,
 - showing a simple extra-ingredient list with quantity and unit,
 - deleting an extra ingredient before recipe usage is recorded,
 - deducting extra ingredients together with the linked recipe when a Confirmed order becomes Ready
@@ -39,7 +39,8 @@ Out of scope:
 
 - Extra ingredients must belong to one order and must not modify the original recipe.
 - Each extra ingredient must link to an inventory item and store quantity, unit, and optional note.
-- Order detail must show extra ingredients as a simple list under the linked recipe section.
+- Order form and order detail must show extra ingredients as a simple list under the linked recipe
+  section.
 - The owner must be able to add extra ingredients before recipe usage is recorded.
 - The owner must be able to delete mistaken extra ingredients before recipe usage is recorded.
 - When recipe usage is recorded, extra ingredient quantities must be converted into the inventory
@@ -53,7 +54,9 @@ Migration `0017_create_order_extra_ingredients` adds `order_extra_ingredients`, 
 and `inventory_items`.
 
 `OrderExtraIngredientRepository` handles save, fetch, and delete. `OrderListViewModel` owns the add
-draft and displays `OrderExtraIngredientRow` values with inventory item names.
+draft and displays `OrderExtraIngredientRow` values with inventory item names. In the order form,
+new extra ingredients remain draft rows until the order is saved, so cancelling the form does not
+persist ingredient changes.
 
 `GRDBCoreDataRepository.recordRecipeUsage` now builds pending inventory usage from both saved recipe
 ingredients and the order's extra ingredients. Recipe ingredients still use the order recipe
@@ -64,6 +67,6 @@ multiplier; extra ingredients are exact order quantities and are not multiplied.
 Focused tests cover:
 
 - saving, fetching, deleting, and displaying order extra ingredients,
+- saving order-form draft extra ingredients with a new order,
 - recipe usage deducting order extra ingredients,
 - preserving existing one-time recipe usage and inventory transaction behavior.
-

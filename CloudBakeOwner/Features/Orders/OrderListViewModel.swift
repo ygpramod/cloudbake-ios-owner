@@ -36,6 +36,7 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftExtraIngredientQuantity = ""
     @Published var draftExtraIngredientUnit: InventoryUnit = .gram
     @Published var draftExtraIngredientNote = ""
+    @Published private(set) var draftExtraIngredientRows: [OrderExtraIngredientDraftRow] = []
     @Published var errorMessage: String?
 
     private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & InventoryItemRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository
@@ -157,6 +158,7 @@ final class OrderListViewModel: ObservableObject {
 
     func beginAddingOrder() {
         resetDraft()
+        draftExtraIngredientRows = []
         errorMessage = nil
         loadFormReferences()
     }
@@ -221,6 +223,7 @@ final class OrderListViewModel: ObservableObject {
     func clearDraftRecipeLink() {
         draftRecipeId = ""
         draftRecipeScaleMultiplier = "1"
+        draftExtraIngredientRows = []
     }
 
     func draftRecipeName() -> String {
@@ -280,7 +283,9 @@ final class OrderListViewModel: ObservableObject {
 
         do {
             try repository.save(order)
+            try saveDraftExtraIngredients(for: order, updatedAt: now)
             resetDraft()
+            draftExtraIngredientRows = []
             load()
             return true
         } catch {
@@ -291,6 +296,7 @@ final class OrderListViewModel: ObservableObject {
 
     func cancelAddOrder() {
         resetDraft()
+        draftExtraIngredientRows = []
         errorMessage = nil
     }
 
@@ -318,6 +324,8 @@ final class OrderListViewModel: ObservableObject {
         draftPaymentNotes = selectedOrder.paymentNotes ?? ""
         errorMessage = nil
         loadFormReferences()
+        loadSelectedOrderExtraIngredients(for: selectedOrder)
+        draftExtraIngredientRows = selectedOrderExtraIngredients.map { OrderExtraIngredientDraftRow(row: $0) }
     }
 
     var editedOrderRequiresInventoryDeductionConfirmation: Bool {
@@ -389,6 +397,7 @@ final class OrderListViewModel: ObservableObject {
                     createdAt: order.createdAt,
                     updatedAt: order.updatedAt
                 )
+                try saveDraftExtraIngredients(for: orderBeforeStatusChange, updatedAt: now)
                 savedOrder = try repository.changeOrderStatus(
                     order: orderBeforeStatusChange,
                     status: order.status,
@@ -398,11 +407,13 @@ final class OrderListViewModel: ObservableObject {
                 )
             } else {
                 try repository.save(order)
+                try saveDraftExtraIngredients(for: order, updatedAt: now)
                 savedOrder = order
             }
             selectedOrder = savedOrder
             self.editingOrder = nil
             resetDraft()
+            draftExtraIngredientRows = []
             load()
             loadSelectedOrderCustomer(for: savedOrder)
             loadSelectedOrderRecipe(for: savedOrder)
@@ -559,6 +570,34 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = "Extra ingredient could not be saved."
             return false
         }
+    }
+
+    func addExtraIngredientToDraftOrder() -> Bool {
+        guard let draft = validatedExtraIngredientDraft() else {
+            return false
+        }
+
+        let inventoryItemName = availableInventoryItems
+            .first(where: { $0.id == draft.inventoryItemId })?
+            .name ?? "Inventory item unavailable"
+        draftExtraIngredientRows.append(
+            OrderExtraIngredientDraftRow(
+                id: idGenerator(),
+                existingIngredient: nil,
+                inventoryItemId: draft.inventoryItemId,
+                inventoryItemName: inventoryItemName,
+                quantity: draft.quantity,
+                unit: draft.unit,
+                note: draft.note
+            )
+        )
+        resetExtraIngredientDraft(keepingInventoryItems: true)
+        errorMessage = nil
+        return true
+    }
+
+    func deleteDraftExtraIngredient(_ row: OrderExtraIngredientDraftRow) {
+        draftExtraIngredientRows.removeAll { $0.id == row.id }
     }
 
     func deleteExtraIngredient(_ row: OrderExtraIngredientRow) -> Bool {
@@ -859,6 +898,8 @@ final class OrderListViewModel: ObservableObject {
     func cancelEditingOrder() {
         editingOrder = nil
         resetDraft()
+        resetExtraIngredientDraft()
+        draftExtraIngredientRows = []
         errorMessage = nil
     }
 
@@ -986,6 +1027,36 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    private func saveDraftExtraIngredients(for order: Order, updatedAt: Date) throws {
+        let existingIngredients = try repository.fetchOrderExtraIngredients(orderId: order.id)
+        guard order.recipeId != nil else {
+            for ingredient in existingIngredients {
+                try repository.deleteOrderExtraIngredient(id: ingredient.id)
+            }
+            return
+        }
+
+        let keptExistingIds = Set(draftExtraIngredientRows.compactMap { $0.existingIngredient?.id })
+        for ingredient in existingIngredients where !keptExistingIds.contains(ingredient.id) {
+            try repository.deleteOrderExtraIngredient(id: ingredient.id)
+        }
+
+        for row in draftExtraIngredientRows where row.existingIngredient == nil {
+            try repository.save(
+                OrderExtraIngredient(
+                    id: row.id,
+                    orderId: order.id,
+                    inventoryItemId: row.inventoryItemId,
+                    quantity: row.quantity,
+                    unit: row.unit,
+                    note: row.note,
+                    createdAt: updatedAt,
+                    updatedAt: updatedAt
+                )
+            )
+        }
+    }
+
     private func loadSelectedOrderChecklistItems(for order: Order) {
         do {
             selectedOrderChecklistItems = try repository.fetchOrderChecklistItems(orderId: order.id)
@@ -1098,6 +1169,44 @@ struct OrderExtraIngredientRow: Identifiable, Equatable {
 
     var id: String {
         ingredient.id
+    }
+}
+
+struct OrderExtraIngredientDraftRow: Identifiable, Equatable {
+    let id: String
+    let existingIngredient: OrderExtraIngredient?
+    let inventoryItemId: String
+    let inventoryItemName: String
+    let quantity: Double
+    let unit: InventoryUnit
+    let note: String?
+
+    init(
+        id: String,
+        existingIngredient: OrderExtraIngredient?,
+        inventoryItemId: String,
+        inventoryItemName: String,
+        quantity: Double,
+        unit: InventoryUnit,
+        note: String?
+    ) {
+        self.id = id
+        self.existingIngredient = existingIngredient
+        self.inventoryItemId = inventoryItemId
+        self.inventoryItemName = inventoryItemName
+        self.quantity = quantity
+        self.unit = unit
+        self.note = note
+    }
+
+    init(row: OrderExtraIngredientRow) {
+        self.id = row.ingredient.id
+        self.existingIngredient = row.ingredient
+        self.inventoryItemId = row.ingredient.inventoryItemId
+        self.inventoryItemName = row.inventoryItemName
+        self.quantity = row.ingredient.quantity
+        self.unit = row.ingredient.unit
+        self.note = row.ingredient.note
     }
 }
 

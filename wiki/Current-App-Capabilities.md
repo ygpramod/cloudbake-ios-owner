@@ -82,8 +82,8 @@ The app currently supports:
 72. owner-confirmed linked recipe usage when a Confirmed order is marked Ready or Completed,
 73. recipe-driven inventory deduction with unit conversion, recipe scaling, and
     oldest-expiry-first batch usage,
-74. order-specific extra ingredients under linked recipe detail, with inventory-backed deduction
-    during recipe usage,
+74. order-specific extra ingredients from order form or linked recipe detail, with inventory-backed
+    deduction during recipe usage,
 75. order detail checklist item add, edit, complete/incomplete toggle, entry-order display, and
     deletion,
 76. regular-width iPad order list/detail split view,

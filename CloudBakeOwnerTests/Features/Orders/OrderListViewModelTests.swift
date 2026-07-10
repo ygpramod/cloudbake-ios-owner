@@ -622,4 +622,65 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
+    func testOrderFormSavesDraftExtraIngredientsWithNewOrder() throws {
+        let repository = FakeOrderRepository()
+        let recipe = makeRecipe(id: "recipe-vanilla", name: "Vanilla Sponge")
+        let almonds = makeInventoryItem(id: "inventory-almonds", name: "Almonds", unit: .gram)
+        repository.recipes = [recipe]
+        repository.inventoryItems = [almonds]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "order-form"),
+            dateProvider: { Date(timeIntervalSince1970: 1_800_150_000) }
+        )
+
+        viewModel.beginAddingOrder()
+        viewModel.draftTitle = "Vanilla Almond Cake"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.selectDraftRecipe(id: recipe.id)
+        viewModel.beginAddingExtraIngredient()
+        viewModel.draftExtraIngredientQuantity = "40"
+
+        XCTAssertTrue(viewModel.addExtraIngredientToDraftOrder())
+        XCTAssertEqual(viewModel.draftExtraIngredientRows.map(\.inventoryItemName), ["Almonds"])
+        XCTAssertTrue(viewModel.addOrder())
+
+        let savedOrder = try XCTUnwrap(repository.orders.first)
+        XCTAssertEqual(savedOrder.id, "order-form-2")
+        XCTAssertEqual(savedOrder.recipeId, recipe.id)
+        XCTAssertEqual(
+            repository.extraIngredients,
+            [
+                OrderExtraIngredient(
+                    id: "order-form-1",
+                    orderId: savedOrder.id,
+                    inventoryItemId: almonds.id,
+                    quantity: 40,
+                    unit: .gram,
+                    note: nil,
+                    createdAt: Date(timeIntervalSince1970: 1_800_150_000),
+                    updatedAt: Date(timeIntervalSince1970: 1_800_150_000)
+                )
+            ]
+        )
+    }
+
+    func testClearingDraftRecipeRemovesDraftExtraIngredients() {
+        let repository = FakeOrderRepository()
+        repository.recipes = [makeRecipe(id: "recipe-vanilla", name: "Vanilla Sponge")]
+        repository.inventoryItems = [makeInventoryItem(id: "inventory-almonds", name: "Almonds")]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginAddingOrder()
+        viewModel.selectDraftRecipe(id: "recipe-vanilla")
+        viewModel.beginAddingExtraIngredient()
+        viewModel.draftExtraIngredientQuantity = "40"
+        XCTAssertTrue(viewModel.addExtraIngredientToDraftOrder())
+
+        viewModel.clearDraftRecipeLink()
+
+        XCTAssertTrue(viewModel.draftRecipeId.isEmpty)
+        XCTAssertTrue(viewModel.draftExtraIngredientRows.isEmpty)
+    }
+
 }

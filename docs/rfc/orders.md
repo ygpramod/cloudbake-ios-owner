@@ -249,9 +249,10 @@ no-expiry batches last.
 
 Recipe usage is owner-confirmed and one-time per order. Orders can now store a positive recipe
 multiplier; usage applies that multiplier after unit conversion and records it on the usage event.
-Order detail can also store order-specific extra ingredients for customer-specific recipe changes.
-Extra ingredients appear as a simple list under the linked recipe section, do not modify the saved
-recipe, and are deducted with the linked recipe when the one-time usage event is recorded. Extra
+Order form and order detail can also store order-specific extra ingredients for customer-specific
+recipe changes. Extra ingredients appear as a simple list under the linked recipe section, do not
+modify the saved recipe, and are deducted with the linked recipe when the one-time usage event is
+recorded. Extra
 ingredient quantities are exact order quantities and are not multiplied by the recipe multiplier.
 Partial recipe usage, multi-recipe orders, inventory reservation, and serving/yield modeling remain
 future work.
@@ -339,8 +340,9 @@ pricing, and recipe links.
 - Orders can now change status from detail without opening the full edit form.
 - Orders can now deduct linked recipe ingredients once when a Confirmed order is marked Ready or
   Completed. Linked recipe usage can be scaled with an owner-entered positive recipe multiplier.
-- Orders can now store order-specific extra ingredients under the linked recipe section. These
-  ingredients are deducted with the linked recipe usage without changing the original recipe.
+- Orders can now store order-specific extra ingredients from order form or detail under the linked
+  recipe section. These ingredients are deducted with the linked recipe usage without changing the
+  original recipe.
 - Orders can now store owner checklist items in order detail. Checklist items remain in entry order
   and support add, edit, complete/incomplete toggle, and deletion; reorder, templates, and
   checklist-driven status changes remain future work.

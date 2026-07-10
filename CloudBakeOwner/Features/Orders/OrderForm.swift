@@ -10,6 +10,7 @@ struct OrderForm: View {
     @State private var isSelectingCustomer = false
     @State private var isSelectingRecipe = false
     @State private var isSelectingDesign = false
+    @State private var isAddingExtraIngredient = false
 
     init(
         title: String = "Add Order",
@@ -59,6 +60,10 @@ struct OrderForm: View {
                     TextField("Recipe Multiplier", text: $viewModel.draftRecipeScaleMultiplier)
                         .keyboardType(.decimalPad)
                         .accessibilityIdentifier("orders.form.recipeScaleMultiplier")
+
+                    if !viewModel.draftRecipeId.isEmpty {
+                        extraIngredientsContent
+                    }
                 }
             }
 
@@ -170,6 +175,83 @@ struct OrderForm: View {
                 .accessibilityIdentifier("orders.form.save")
             }
         }
+        .sheet(
+            isPresented: $isAddingExtraIngredient,
+            onDismiss: viewModel.cancelExtraIngredientEdit
+        ) {
+            NavigationStack {
+                OrderExtraIngredientForm(
+                    viewModel: viewModel,
+                    isPresented: $isAddingExtraIngredient,
+                    onSave: viewModel.addExtraIngredientToDraftOrder
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var extraIngredientsContent: some View {
+        if !viewModel.draftExtraIngredientRows.isEmpty {
+            ForEach(viewModel.draftExtraIngredientRows) { row in
+                OrderFormExtraIngredientRow(
+                    row: row,
+                    canDelete: viewModel.selectedOrderRecipeUsage == nil,
+                    onDelete: {
+                        viewModel.deleteDraftExtraIngredient(row)
+                    }
+                )
+            }
+        } else {
+            Text("No extra ingredients")
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("orders.form.extraIngredient.empty")
+        }
+
+        if viewModel.selectedOrderRecipeUsage == nil {
+            Button {
+                viewModel.beginAddingExtraIngredient()
+                isAddingExtraIngredient = true
+            } label: {
+                Label("Add Extra Ingredient", systemImage: "plus")
+            }
+            .foregroundStyle(Color.cloudBakePink)
+            .accessibilityIdentifier("orders.form.extraIngredient.add")
+        }
+    }
+}
+
+private struct OrderFormExtraIngredientRow: View {
+    let row: OrderExtraIngredientDraftRow
+    let canDelete: Bool
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(row.inventoryItemName)
+                    .font(.subheadline.weight(.semibold))
+                Text("\(row.quantity.formatted()) \(row.unit.displayName)")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                if let note = row.note {
+                    Text(note)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            if canDelete {
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .imageScale(.small)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.red)
+                .accessibilityLabel("Delete Extra Ingredient")
+                .accessibilityIdentifier("orders.form.extraIngredient.delete.\(row.id)")
+            }
+        }
+        .accessibilityIdentifier("orders.form.extraIngredient.\(row.id)")
     }
 }
 
