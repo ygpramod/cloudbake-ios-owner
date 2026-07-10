@@ -336,9 +336,45 @@ extension CloudBakeOwnerUITests {
             file: file,
             line: line
         )
-        target.coordinate(withNormalizedOffset: CGVector(dx: 0.16, dy: 0.5)).tap()
-        Thread.sleep(forTimeInterval: 0.2)
+        focusTextInput(target, timeout: timeout, file: file, line: line)
         target.typeText(text)
+    }
+
+    func focusTextInput(
+        _ element: XCUIElement,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            element.coordinate(withNormalizedOffset: CGVector(dx: 0.16, dy: 0.5)).tap()
+            if waitForKeyboardFocus(element, timeout: 0.8) {
+                return
+            }
+
+            element.tap()
+            if waitForKeyboardFocus(element, timeout: 0.8) {
+                return
+            }
+        } while Date() < deadline
+
+        XCTFail("Text input did not receive keyboard focus before typing.", file: file, line: line)
+    }
+
+    private func waitForKeyboardFocus(_ element: XCUIElement, timeout: TimeInterval) -> Bool {
+        let focusPredicate = NSPredicate(format: "hasKeyboardFocus == true")
+        let focusExpectation = XCTNSPredicateExpectation(predicate: focusPredicate, object: element)
+        if XCTWaiter.wait(for: [focusExpectation], timeout: timeout) == .completed {
+            return true
+        }
+
+        let keyboard = XCUIApplication().keyboards.firstMatch
+        if keyboard.exists || keyboard.waitForExistence(timeout: 0.2) {
+            return true
+        }
+
+        return keyboard.exists
     }
 
     func dismissKeyboard(in app: XCUIApplication) {

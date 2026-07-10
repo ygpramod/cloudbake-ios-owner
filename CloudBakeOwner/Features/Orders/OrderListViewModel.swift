@@ -75,6 +75,27 @@ final class OrderListViewModel: ObservableObject {
         orders.first { $0.id == id }
     }
 
+    func whatsappMessageURL(for order: Order) -> URL? {
+        guard let customerId = order.customerId,
+              let customer = customers.first(where: { $0.id == customerId }) else {
+            return nil
+        }
+
+        let phone = normalizedPhoneNumber(customer.phone)
+        guard !phone.isEmpty else {
+            return nil
+        }
+
+        var components = URLComponents()
+        components.scheme = "whatsapp"
+        components.host = "send"
+        components.queryItems = [
+            URLQueryItem(name: "phone", value: phone),
+            URLQueryItem(name: "text", value: orderMessage(for: order, customer: customer))
+        ]
+        return components.url
+    }
+
     func isOverdue(_ order: Order) -> Bool {
         presentation.isOverdue(order)
     }
@@ -785,6 +806,38 @@ final class OrderListViewModel: ObservableObject {
             selectedOrderCustomer = nil
             errorMessage = "Customer details could not be loaded."
         }
+    }
+
+    private func orderMessage(for order: Order, customer: Customer) -> String {
+        """
+        Hi \(firstName(from: customer.name)), this is regarding your CloudBake order.
+
+        Order: \(order.title)
+        Due: \(order.dueAt.formatted(date: .abbreviated, time: .shortened))
+
+        Thank you!
+        """
+    }
+
+    private func firstName(from name: String) -> String {
+        TextInputFormatting.trimmed(name)
+            .split(separator: " ")
+            .first
+            .map(String.init) ?? name
+    }
+
+    private func normalizedPhoneNumber(_ phone: String) -> String {
+        let trimmed = TextInputFormatting.trimmed(phone)
+        let digits = trimmed.filter(\.isNumber)
+        guard !digits.isEmpty else {
+            return ""
+        }
+
+        if trimmed.hasPrefix("+") {
+            return "+" + digits
+        }
+
+        return String(digits)
     }
 
     private func loadSelectedOrderRecipe(for order: Order) {

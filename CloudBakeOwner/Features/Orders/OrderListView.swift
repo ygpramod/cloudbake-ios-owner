@@ -1,8 +1,10 @@
 import SwiftUI
+import UIKit
 
 struct OrderListView: View {
     @StateObject private var viewModel: OrderListViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
@@ -12,6 +14,7 @@ struct OrderListView: View {
     @State private var orderReceivingPayment: Order?
     @State private var orderAddingPartialPayment: Order?
     @State private var partialPaymentAmount = ""
+    @State private var canOpenWhatsApp = false
 
     init(viewModel: OrderListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -62,6 +65,7 @@ struct OrderListView: View {
         }
         .onAppear {
             viewModel.load()
+            refreshWhatsAppAvailability()
             openPendingNotificationOrder()
         }
         .onChange(of: orderNotificationRouter.pendingOrderId) { _, _ in
@@ -263,10 +267,27 @@ struct OrderListView: View {
             onReceivePayment: {
                 orderReceivingPayment = order
             },
+            onSendMessage: messageAction(for: order),
             action: {
                 openOrder(order)
             }
         )
+    }
+
+    private func messageAction(for order: Order) -> (() -> Void)? {
+        guard canOpenWhatsApp,
+              let url = viewModel.whatsappMessageURL(for: order) else {
+            return nil
+        }
+
+        return {
+            openURL(url)
+        }
+    }
+
+    private func refreshWhatsAppAvailability() {
+        canOpenWhatsApp = URL(string: "whatsapp://send")
+            .map { UIApplication.shared.canOpenURL($0) } ?? false
     }
 
     private func overdueBanner(_ alert: OrderOverdueAlert) -> some View {
