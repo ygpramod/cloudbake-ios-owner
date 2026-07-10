@@ -683,4 +683,30 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.draftExtraIngredientRows.isEmpty)
     }
 
+    func testFailedStatusEditDoesNotPersistDraftExtraIngredients() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-vanilla",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        repository.orders = [order]
+        repository.recipes = [makeRecipe(id: "recipe-vanilla", name: "Vanilla Sponge")]
+        repository.inventoryItems = [makeInventoryItem(id: "inventory-almonds", name: "Almonds")]
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock(itemName: "Almonds")
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.beginViewingOrder(order)
+        viewModel.beginEditingOrder()
+        viewModel.draftStatus = .ready
+        viewModel.beginAddingExtraIngredient()
+        viewModel.draftExtraIngredientQuantity = "40"
+        XCTAssertTrue(viewModel.addExtraIngredientToDraftOrder())
+
+        XCTAssertFalse(viewModel.saveEditedOrder(confirmingRecipeUsage: true))
+
+        XCTAssertTrue(repository.extraIngredients.isEmpty)
+        XCTAssertEqual(viewModel.errorMessage, "Not enough Almonds in inventory.")
+    }
+
 }

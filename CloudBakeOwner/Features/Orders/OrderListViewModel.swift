@@ -397,12 +397,12 @@ final class OrderListViewModel: ObservableObject {
                     createdAt: order.createdAt,
                     updatedAt: order.updatedAt
                 )
-                try saveDraftExtraIngredients(for: orderBeforeStatusChange, updatedAt: now)
                 savedOrder = try repository.changeOrderStatus(
                     order: orderBeforeStatusChange,
                     status: order.status,
                     updatedAt: now,
                     usageId: idGenerator(),
+                    extraIngredients: draftExtraIngredients(for: orderBeforeStatusChange, updatedAt: now),
                     transactionIdProvider: idGenerator
                 )
             } else {
@@ -453,6 +453,7 @@ final class OrderListViewModel: ObservableObject {
                 status: status,
                 updatedAt: now,
                 usageId: idGenerator(),
+                extraIngredients: nil,
                 transactionIdProvider: idGenerator
             )
             refreshAfterSavingOrder(updatedOrder)
@@ -1042,19 +1043,35 @@ final class OrderListViewModel: ObservableObject {
         }
 
         for row in draftExtraIngredientRows where row.existingIngredient == nil {
-            try repository.save(
-                OrderExtraIngredient(
-                    id: row.id,
-                    orderId: order.id,
-                    inventoryItemId: row.inventoryItemId,
-                    quantity: row.quantity,
-                    unit: row.unit,
-                    note: row.note,
-                    createdAt: updatedAt,
-                    updatedAt: updatedAt
-                )
-            )
+            try repository.save(draftExtraIngredient(from: row, order: order, updatedAt: updatedAt))
         }
+    }
+
+    private func draftExtraIngredients(for order: Order, updatedAt: Date) -> [OrderExtraIngredient] {
+        guard order.recipeId != nil else {
+            return []
+        }
+
+        return draftExtraIngredientRows.map { row in
+            draftExtraIngredient(from: row, order: order, updatedAt: updatedAt)
+        }
+    }
+
+    private func draftExtraIngredient(
+        from row: OrderExtraIngredientDraftRow,
+        order: Order,
+        updatedAt: Date
+    ) -> OrderExtraIngredient {
+        OrderExtraIngredient(
+            id: row.id,
+            orderId: order.id,
+            inventoryItemId: row.inventoryItemId,
+            quantity: row.quantity,
+            unit: row.unit,
+            note: row.note,
+            createdAt: row.existingIngredient?.createdAt ?? updatedAt,
+            updatedAt: updatedAt
+        )
     }
 
     private func loadSelectedOrderChecklistItems(for order: Order) {

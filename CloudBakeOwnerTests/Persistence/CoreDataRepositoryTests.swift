@@ -1012,6 +1012,7 @@ final class CoreDataRepositoryTests: XCTestCase {
             status: .ready,
             updatedAt: readyAt,
             usageId: "usage-order-buttercream",
+            extraIngredients: nil,
             transactionIdProvider: { "transaction-order-buttercream-sugar" }
         )
 
@@ -1087,6 +1088,7 @@ final class CoreDataRepositoryTests: XCTestCase {
             status: .completed,
             updatedAt: completedAt,
             usageId: "usage-order-buttercream",
+            extraIngredients: nil,
             transactionIdProvider: { "transaction-order-buttercream-sugar" }
         )
 

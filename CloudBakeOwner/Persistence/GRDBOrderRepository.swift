@@ -35,6 +35,7 @@ extension GRDBCoreDataRepository {
         status: OrderStatus,
         updatedAt: Date,
         usageId: String,
+        extraIngredients: [OrderExtraIngredient]? = nil,
         transactionIdProvider: () -> String
     ) throws -> Order {
         let updatedOrder = Order(
@@ -59,6 +60,10 @@ extension GRDBCoreDataRepository {
         )
 
         try writer.write { db in
+            if let extraIngredients {
+                try replaceOrderExtraIngredients(orderId: order.id, with: extraIngredients, in: db)
+            }
+
             if shouldRecordRecipeUsage(from: order.status, to: status), let recipeId = order.recipeId {
                 try recordRecipeUsageIfNeeded(
                     order: order,
@@ -436,6 +441,21 @@ private extension GRDBCoreDataRepository {
                 ingredient.updatedAt.timeIntervalSince1970
             ])
         )
+    }
+
+    func replaceOrderExtraIngredients(
+        orderId: String,
+        with ingredients: [OrderExtraIngredient],
+        in db: Database
+    ) throws {
+        try db.execute(
+            sql: "DELETE FROM order_extra_ingredients WHERE order_id = ?",
+            arguments: [orderId]
+        )
+
+        for ingredient in ingredients {
+            try save(ingredient, in: db)
+        }
     }
 
     func pendingInventoryUsages(recipeId: String, orderId: String, scaleMultiplier: Decimal = 1, in db: Database) throws -> [PendingInventoryUsage] {

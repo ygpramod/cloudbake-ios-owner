@@ -56,6 +56,7 @@ protocol OrderStatusChangeRepository {
         status: OrderStatus,
         updatedAt: Date,
         usageId: String,
+        extraIngredients: [OrderExtraIngredient]?,
         transactionIdProvider: () -> String
     ) throws -> Order
 }
