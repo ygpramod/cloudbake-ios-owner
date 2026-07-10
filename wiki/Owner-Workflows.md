@@ -204,6 +204,10 @@ The owner can take a bill photo, retake the photo, or choose an existing bill im
 library. The selected image is previewed, read locally with Apple Vision OCR, and turned into
 editable draft inventory rows.
 
+Inventory item aliases help this flow recognize bill names that differ from the saved inventory
+name. Add aliases such as brand names, abbreviations, or local ingredient names from the inventory
+add/edit form.
+
 Manual bill text entry remains available when an image is unclear.
 
 ## Review Stock History
