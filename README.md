@@ -88,6 +88,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 ## Base RFCs
 
 - Customers: `docs/rfc/customers.md`
+- Designs: `docs/rfc/designs.md`
 - Orders: `docs/rfc/orders.md`
 
 ## Engineering Guardrails
