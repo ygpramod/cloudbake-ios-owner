@@ -58,7 +58,7 @@ extension CloudBakeOwnerUITests {
         )
         let navigationDeadline = Date().addingTimeInterval(timeout)
         repeat {
-            scrollToHittable(destinationButton, in: app, timeout: timeout, file: file, line: line)
+            scrollToVisible(destinationButton, in: app, timeout: timeout, file: file, line: line)
             tapExisting(destinationButton, timeout: timeout, file: file, line: line)
 
             if app.descendants(matching: .any)[screenIdentifier].waitForExistence(timeout: 3) {
@@ -426,6 +426,22 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(element.isHittable, "Element was not hittable after scrolling.", file: file, line: line)
     }
 
+    func scrollToVisible(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while (!element.exists || !isElementVisible(element, in: app)) && Date() < deadline {
+            scrollTowardHittableElement(element, in: app)
+            _ = element.waitForExistence(timeout: 1)
+        }
+        XCTAssertTrue(element.exists, "Element did not exist after scrolling.", file: file, line: line)
+        XCTAssertTrue(isElementVisible(element, in: app), "Element was not visible after scrolling.", file: file, line: line)
+    }
+
     func scrollToTop(in app: XCUIApplication) {
         for _ in 0..<3 {
             app.swipeDown()
@@ -460,6 +476,12 @@ extension CloudBakeOwnerUITests {
         } else {
             dragPrimaryScrollableArea(in: app, fromY: 0.72, toY: 0.48)
         }
+    }
+
+    private func isElementVisible(_ element: XCUIElement, in app: XCUIApplication) -> Bool {
+        guard element.exists, !element.frame.isEmpty else { return false }
+        let appFrame = app.windows.firstMatch.exists ? app.windows.firstMatch.frame : app.frame
+        return appFrame.intersects(element.frame)
     }
 
     private func swipeDownInPrimaryScrollableArea(in app: XCUIApplication) {
