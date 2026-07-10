@@ -35,6 +35,16 @@ struct InventoryItemForm: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Picker("Type", selection: $viewModel.draftType) {
+                    ForEach(InventoryItemType.allCases, id: \.self) { type in
+                        Text(type.displayName).tag(type)
+                    }
+                }
+                .accessibilityIdentifier("inventory.form.type")
+                .onChange(of: viewModel.draftType) { _, newType in
+                    viewModel.selectDraftType(newType)
+                }
+
                 if showsUnit {
                     Picker("Unit", selection: $viewModel.draftUnit) {
                         ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
@@ -74,12 +84,17 @@ struct InventoryItemForm: View {
                 }
 
                 if showsExpiryDate {
-                    DatePicker(
-                        "Expiry Date",
-                        selection: $viewModel.draftExpiryDate,
-                        displayedComponents: .date
-                    )
-                    .accessibilityIdentifier("inventory.form.expiryDate")
+                    Toggle("Has Expiry Date", isOn: $viewModel.draftHasExpiryDate)
+                        .accessibilityIdentifier("inventory.form.hasExpiryDate")
+
+                    if viewModel.draftHasExpiryDate {
+                        DatePicker(
+                            "Expiry Date",
+                            selection: $viewModel.draftExpiryDate,
+                            displayedComponents: .date
+                        )
+                        .accessibilityIdentifier("inventory.form.expiryDate")
+                    }
                 }
             }
 

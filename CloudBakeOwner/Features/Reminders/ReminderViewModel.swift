@@ -29,12 +29,12 @@ final class ReminderViewModel: ObservableObject {
     @Published private(set) var lowInventoryItems: [LowInventoryReminderItem] = []
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & InventoryItemRepository & CustomerRepository
+    private let repository: any OrderRepository & InventoryItemRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
     private let dateProvider: () -> Date
     private let calendar: Calendar
 
     init(
-        repository: any OrderRepository & InventoryItemRepository & CustomerRepository,
+        repository: any OrderRepository & InventoryItemRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
     ) {
@@ -47,7 +47,13 @@ final class ReminderViewModel: ObservableObject {
         do {
             let orders = try repository.fetchOrders()
             let customers = try repository.fetchCustomers()
-            let lowInventory = try repository.fetchInventoryItems().filter(\.isLowStock)
+            let lowInventory = try InventoryLowInventoryAlertRules.itemsForAlerts(
+                inventoryItems: repository.fetchInventoryItems(),
+                activeOrders: orders,
+                recipeComponents: repository.fetchRecipeComponents(recipeId:),
+                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
+                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
+            )
             paymentDueItems = paymentDueItems(from: orders, customers: customers)
             todayOrderItems = todayOrderItems(from: orders)
             lowInventoryItems = lowInventory.map(Self.lowInventoryItem)

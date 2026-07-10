@@ -23,11 +23,11 @@ final class DashboardViewModel: ObservableObject {
         upcomingOrders.first
     }
 
-    private let repository: any InventoryItemRepository & OrderRepository
+    private let repository: any InventoryItemRepository & OrderRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
     private let orderPresentation: OrderListPresentation
 
     init(
-        repository: any InventoryItemRepository & OrderRepository,
+        repository: any InventoryItemRepository & OrderRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
         orderPresentation: OrderListPresentation = OrderListPresentation(
             dateProvider: Date.init,
             calendar: .current
@@ -39,8 +39,14 @@ final class DashboardViewModel: ObservableObject {
 
     func load() {
         do {
-            lowInventoryItems = try repository.fetchInventoryItems().filter(\.isLowStock)
             let orders = try repository.fetchOrders()
+            lowInventoryItems = try InventoryLowInventoryAlertRules.itemsForAlerts(
+                inventoryItems: repository.fetchInventoryItems(),
+                activeOrders: orders,
+                recipeComponents: repository.fetchRecipeComponents(recipeId:),
+                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
+                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
+            )
             upcomingOrders = orderPresentation.activeOrders(from: orders)
             overdueOrderAlert = orderPresentation.primaryOverdueAlert(from: orders)
             errorMessage = nil

@@ -56,6 +56,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
         viewModel.load()
         viewModel.beginAdjusting(item)
         viewModel.draftAdjustmentQuantity = "100"
+        viewModel.draftAdjustmentHasExpiryDate = true
         viewModel.draftAdjustmentExpiryDate = Date(timeIntervalSince1970: 1_800_202_800)
         viewModel.draftAdjustmentNote = " Restocked from supplier "
 
@@ -169,6 +170,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
 
         viewModel.beginAdjusting(item)
         viewModel.draftAdjustmentQuantity = "100"
+        viewModel.draftAdjustmentHasExpiryDate = true
         viewModel.draftAdjustmentExpiryDate = expiry
         viewModel.draftAdjustmentAmount = "2.50"
 
@@ -215,6 +217,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
 
         viewModel.beginAdjusting(item)
         viewModel.draftAdjustmentQuantity = "100"
+        viewModel.draftAdjustmentHasExpiryDate = true
         viewModel.draftAdjustmentExpiryDate = expiry
         viewModel.draftAdjustmentAmount = "3.00"
 
@@ -249,7 +252,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
                 updatedAt: createdAt
             )
         ]
-        var ids = ["transaction-flour-adjustment", "batch-flour-adjustment"]
+        var ids = ["batch-flour-adjustment", "transaction-flour-adjustment"]
         let viewModel = InventoryListViewModel(
             repository: repository,
             idGenerator: { ids.removeFirst() },
@@ -258,6 +261,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
         viewModel.beginViewingItem(item)
         viewModel.beginAdjusting(item)
         viewModel.draftAdjustmentQuantity = "100"
+        viewModel.draftAdjustmentHasExpiryDate = true
         viewModel.draftAdjustmentExpiryDate = Date(timeIntervalSince1970: 1_800_202_800)
 
         XCTAssertTrue(viewModel.recordStockAdjustment())

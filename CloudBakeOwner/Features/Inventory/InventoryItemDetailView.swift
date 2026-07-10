@@ -100,6 +100,10 @@ struct InventoryItemDetailView: View {
                             }
                         }
                         CloudBakeDetailDivider()
+                        CloudBakeDetailRow("Type") {
+                            Text(item.type.displayName)
+                        }
+                        CloudBakeDetailDivider()
                         CloudBakeDetailRow("Unit") {
                             Text(item.unit.displayName)
                         }

@@ -22,12 +22,17 @@ struct InventoryBatchForm: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    DatePicker(
-                        "Expiry Date",
-                        selection: $viewModel.draftBatchExpiryDate,
-                        displayedComponents: .date
-                    )
-                    .accessibilityIdentifier("inventory.batch.expiryDate")
+                    Toggle("Has Expiry Date", isOn: $viewModel.draftBatchHasExpiryDate)
+                        .accessibilityIdentifier("inventory.batch.hasExpiryDate")
+
+                    if viewModel.draftBatchHasExpiryDate {
+                        DatePicker(
+                            "Expiry Date",
+                            selection: $viewModel.draftBatchExpiryDate,
+                            displayedComponents: .date
+                        )
+                        .accessibilityIdentifier("inventory.batch.expiryDate")
+                    }
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Amount")
@@ -154,12 +159,17 @@ struct InventoryStockAdjustmentForm: View {
                     .accessibilityIdentifier("inventory.adjust.unit")
                 }
 
-                DatePicker(
-                    "Expiry Date",
-                    selection: $viewModel.draftAdjustmentExpiryDate,
-                    displayedComponents: .date
-                )
-                .accessibilityIdentifier("inventory.adjust.expiryDate")
+                Toggle("Has Expiry Date", isOn: $viewModel.draftAdjustmentHasExpiryDate)
+                    .accessibilityIdentifier("inventory.adjust.hasExpiryDate")
+
+                if viewModel.draftAdjustmentHasExpiryDate {
+                    DatePicker(
+                        "Expiry Date",
+                        selection: $viewModel.draftAdjustmentExpiryDate,
+                        displayedComponents: .date
+                    )
+                    .accessibilityIdentifier("inventory.adjust.expiryDate")
+                }
 
                 TextField("Amount", text: $viewModel.draftAdjustmentAmount)
                     .keyboardType(.decimalPad)

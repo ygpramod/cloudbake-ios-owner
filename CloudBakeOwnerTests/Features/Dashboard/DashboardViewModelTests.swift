@@ -104,6 +104,49 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.lowInventoryItems, [expiringSoonItem])
     }
 
+    func testLoadSuppressesPerishableLowInventoryWhenNoActiveOrderNeedsIt() {
+        let repository = FakeDashboardInventoryItemRepository()
+        let fruit = makeInventoryItem(
+            id: "inventory-strawberry",
+            name: "Strawberry",
+            type: .perishable,
+            currentQuantity: 0,
+            minimumQuantity: 10
+        )
+        repository.items = [fruit]
+        let viewModel = DashboardViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.lowInventoryItems, [])
+    }
+
+    func testLoadShowsPerishableLowInventoryWhenActiveOrderRecipeNeedsIt() {
+        let repository = FakeDashboardInventoryItemRepository()
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let fruit = makeInventoryItem(
+            id: "inventory-strawberry",
+            name: "Strawberry",
+            type: .perishable,
+            currentQuantity: 0,
+            minimumQuantity: 10
+        )
+        let component = makeRecipeComponent(id: "component-filling", recipeId: "recipe-fruit-cake")
+        repository.items = [fruit]
+        repository.orders = [
+            makeOrder(id: "order-fruit-cake", recipeId: "recipe-fruit-cake", status: .confirmed, dueAt: dueAt)
+        ]
+        repository.components = [component]
+        repository.ingredients = [
+            makeRecipeIngredient(id: "ingredient-strawberry", componentId: component.id, inventoryItemId: fruit.id)
+        ]
+        let viewModel = DashboardViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.lowInventoryItems, [fruit])
+    }
+
     func testLoadCountsOnlyActiveUpcomingOrders() {
         let repository = FakeDashboardInventoryItemRepository()
         let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
@@ -152,6 +195,7 @@ final class DashboardViewModelTests: XCTestCase {
 private func makeInventoryItem(
     id: String,
     name: String,
+    type: InventoryItemType = .standard,
     currentQuantity: Double,
     minimumQuantity: Double,
     hasExpiredStock: Bool = false,
@@ -162,6 +206,7 @@ private func makeInventoryItem(
     return InventoryItem(
         id: id,
         name: name,
+        type: type,
         unit: .gram,
         currentQuantity: currentQuantity,
         minimumQuantity: minimumQuantity,
@@ -173,9 +218,16 @@ private func makeInventoryItem(
     )
 }
 
-private final class FakeDashboardInventoryItemRepository: InventoryItemRepository, OrderRepository {
+private final class FakeDashboardInventoryItemRepository: InventoryItemRepository,
+    OrderRepository,
+    RecipeComponentRepository,
+    RecipeIngredientRepository,
+    OrderExtraIngredientRepository {
     var items: [InventoryItem] = []
     var orders: [Order] = []
+    var components: [RecipeComponent] = []
+    var ingredients: [RecipeIngredient] = []
+    var extraIngredients: [OrderExtraIngredient] = []
 
     func save(_ item: InventoryItem) throws {}
 
@@ -200,4 +252,60 @@ private final class FakeDashboardInventoryItemRepository: InventoryItemRepositor
     func fetchOrders() throws -> [Order] {
         orders
     }
+
+    func save(_ component: RecipeComponent) throws {}
+
+    func fetchRecipeComponent(id: String) throws -> RecipeComponent? {
+        components.first { $0.id == id }
+    }
+
+    func fetchRecipeComponents(recipeId: String) throws -> [RecipeComponent] {
+        components.filter { $0.recipeId == recipeId }
+    }
+
+    func save(_ ingredient: RecipeIngredient) throws {}
+
+    func fetchRecipeIngredient(id: String) throws -> RecipeIngredient? {
+        ingredients.first { $0.id == id }
+    }
+
+    func fetchRecipeIngredients(componentId: String) throws -> [RecipeIngredient] {
+        ingredients.filter { $0.componentId == componentId }
+    }
+
+    func deleteRecipeIngredient(id: String) throws {}
+
+    func save(_ ingredient: OrderExtraIngredient) throws {}
+
+    func fetchOrderExtraIngredients(orderId: String) throws -> [OrderExtraIngredient] {
+        extraIngredients.filter { $0.orderId == orderId }
+    }
+
+    func deleteOrderExtraIngredient(id: String) throws {}
+}
+
+private func makeRecipeComponent(id: String, recipeId: String) -> RecipeComponent {
+    let timestamp = Date(timeIntervalSince1970: 1_800_040_000)
+    return RecipeComponent(
+        id: id,
+        recipeId: recipeId,
+        name: "Component",
+        sortOrder: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp
+    )
+}
+
+private func makeRecipeIngredient(id: String, componentId: String, inventoryItemId: String) -> RecipeIngredient {
+    let timestamp = Date(timeIntervalSince1970: 1_800_040_000)
+    return RecipeIngredient(
+        id: id,
+        componentId: componentId,
+        inventoryItemId: inventoryItemId,
+        quantity: 1,
+        unit: .gram,
+        note: nil,
+        createdAt: timestamp,
+        updatedAt: timestamp
+    )
 }
