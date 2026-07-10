@@ -66,6 +66,7 @@ final class InventoryCSVServiceTests: XCTestCase {
         let existing = InventoryItem(
             id: "inventory-flour",
             name: "Cake flour",
+            aliases: ["Maida", "Plain Flour"],
             unit: .gram,
             currentQuantity: 100,
             minimumQuantity: 50,
@@ -100,6 +101,7 @@ final class InventoryCSVServiceTests: XCTestCase {
         XCTAssertEqual(summary, InventoryCSVImportSummary(importedItemCount: 1, importedBatchCount: 2))
         XCTAssertEqual(repository.items.count, 1)
         XCTAssertEqual(repository.items[0].id, existing.id)
+        XCTAssertEqual(repository.items[0].aliases, ["Maida", "Plain Flour"])
         XCTAssertEqual(repository.items[0].currentQuantity, 300)
         XCTAssertEqual(repository.items[0].minimumQuantity, 500)
         XCTAssertEqual(repository.batches.map(\.remainingQuantity).sorted(), [125, 175])

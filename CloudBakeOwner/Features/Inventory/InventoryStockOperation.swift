@@ -155,6 +155,7 @@ enum InventoryStockOperation {
         InventoryItem(
             id: item.id,
             name: item.name,
+            aliases: item.aliases,
             unit: item.unit,
             currentQuantity: currentQuantity,
             minimumQuantity: item.minimumQuantity,

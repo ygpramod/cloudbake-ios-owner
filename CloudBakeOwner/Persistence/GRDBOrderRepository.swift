@@ -560,6 +560,7 @@ private extension GRDBCoreDataRepository {
             let updatedItem = InventoryItem(
                 id: item.id,
                 name: item.name,
+                aliases: item.aliases,
                 unit: item.unit,
                 currentQuantity: item.currentQuantity - pendingUsage.quantity,
                 minimumQuantity: item.minimumQuantity,

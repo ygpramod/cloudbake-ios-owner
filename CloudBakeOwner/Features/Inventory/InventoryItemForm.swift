@@ -22,6 +22,19 @@ struct InventoryItemForm: View {
                         .accessibilityIdentifier("inventory.form.name")
                 }
 
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Aliases")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("Aliases", text: $viewModel.draftAliases, axis: .vertical)
+                        .textInputAutocapitalization(.words)
+                        .lineLimit(2...4)
+                        .accessibilityIdentifier("inventory.form.aliases")
+                    Text("Separate bill names with commas or new lines.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 if showsUnit {
                     Picker("Unit", selection: $viewModel.draftUnit) {
                         ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in

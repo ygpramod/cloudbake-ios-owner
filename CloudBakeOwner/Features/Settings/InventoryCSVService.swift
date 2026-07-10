@@ -126,6 +126,7 @@ struct InventoryCSVService {
             let item = InventoryItem(
                 id: itemId,
                 name: firstRow.name,
+                aliases: existingItem?.aliases ?? [],
                 unit: firstRow.unit,
                 currentQuantity: batches.reduce(0) { $0 + $1.remainingQuantity },
                 minimumQuantity: firstRow.minimumQuantity,

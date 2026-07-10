@@ -95,6 +95,7 @@
 		41000000000000000000004F /* InventoryDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000057 /* InventoryDraftValidation.swift */; };
 		410000000000000000000050 /* InventoryStockOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000058 /* InventoryStockOperation.swift */; };
 		410000000000000000000051 /* InventoryPurchaseBillDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000059 /* InventoryPurchaseBillDraft.swift */; };
+		4100000000000000000000B4 /* InventoryAliases.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000B4 /* InventoryAliases.swift */; };
 		410000000000000000000052 /* CustomerContactPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005A /* CustomerContactPicker.swift */; };
 		410000000000000000000053 /* CustomerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005B /* CustomerDetailView.swift */; };
 		410000000000000000000054 /* CustomerForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000005C /* CustomerForm.swift */; };
@@ -131,6 +132,7 @@
 		410000000000000000000073 /* CustomerDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007B /* CustomerDraftValidationTests.swift */; };
 		410000000000000000000074 /* OrderListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007C /* OrderListViewModelTestSupport.swift */; };
 		410000000000000000000075 /* CloudBakeScreenStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007D /* CloudBakeScreenStyle.swift */; };
+		4100000000000000000000B5 /* InventoryAliasesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000B5 /* InventoryAliasesTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -242,6 +244,7 @@
 		420000000000000000000057 /* InventoryDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryDraftValidation.swift; sourceTree = "<group>"; };
 		420000000000000000000058 /* InventoryStockOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockOperation.swift; sourceTree = "<group>"; };
 		420000000000000000000059 /* InventoryPurchaseBillDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryPurchaseBillDraft.swift; sourceTree = "<group>"; };
+		4200000000000000000000B4 /* InventoryAliases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryAliases.swift; sourceTree = "<group>"; };
 		42000000000000000000005A /* CustomerContactPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerContactPicker.swift; sourceTree = "<group>"; };
 		42000000000000000000005B /* CustomerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDetailView.swift; sourceTree = "<group>"; };
 		42000000000000000000005C /* CustomerForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerForm.swift; sourceTree = "<group>"; };
@@ -278,6 +281,7 @@
 		42000000000000000000007B /* CustomerDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDraftValidationTests.swift; sourceTree = "<group>"; };
 		42000000000000000000007C /* OrderListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListViewModelTestSupport.swift; sourceTree = "<group>"; };
 		42000000000000000000007D /* CloudBakeScreenStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeScreenStyle.swift; sourceTree = "<group>"; };
+		4200000000000000000000B5 /* InventoryAliasesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryAliasesTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -495,8 +499,9 @@
 			children = (
 				42000000000000000000001F /* BakingCatalog.swift */,
 				420000000000000000000015 /* CoreModels.swift */,
-				42000000000000000000003C /* CustomerConsumerProfile.swift */,
-				42000000000000000000002D /* InventoryUnitDisplay.swift */,
+					42000000000000000000003C /* CustomerConsumerProfile.swift */,
+					4200000000000000000000B4 /* InventoryAliases.swift */,
+					42000000000000000000002D /* InventoryUnitDisplay.swift */,
 				420000000000000000000037 /* OrderConsumerPreview.swift */,
 				420000000000000000000036 /* OrderDisplay.swift */,
 				420000000000000000000039 /* OrderStateRules.swift */,
@@ -527,9 +532,10 @@
 		450000000000000000000014 /* Domain */ = {
 			isa = PBXGroup;
 			children = (
-				420000000000000000000020 /* BakingCatalogTests.swift */,
-				420000000000000000000018 /* CoreModelsTests.swift */,
-				420000000000000000000023 /* PurchaseBillDraftParserTests.swift */,
+					420000000000000000000020 /* BakingCatalogTests.swift */,
+					420000000000000000000018 /* CoreModelsTests.swift */,
+					4200000000000000000000B5 /* InventoryAliasesTests.swift */,
+					420000000000000000000023 /* PurchaseBillDraftParserTests.swift */,
 				42000000000000000000002C /* RecipeDraftParserTests.swift */,
 				42000000000000000000005E /* TextInputFormattingTests.swift */,
 			);
@@ -835,8 +841,9 @@
 				41000000000000000000003D /* ArchivedInventoryView.swift in Sources */,
 				41000000000000000000003C /* InventoryHistoryView.swift in Sources */,
 				410000000000000000000041 /* InventoryItemDetailView.swift in Sources */,
-				41000000000000000000003E /* InventoryItemForm.swift in Sources */,
-				41000000000000000000004F /* InventoryDraftValidation.swift in Sources */,
+					41000000000000000000003E /* InventoryItemForm.swift in Sources */,
+					4100000000000000000000B4 /* InventoryAliases.swift in Sources */,
+					41000000000000000000004F /* InventoryDraftValidation.swift in Sources */,
 				410000000000000000000012 /* InventoryListView.swift in Sources */,
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
 				41000000000000000000003B /* InventoryItemRow.swift in Sources */,
@@ -889,10 +896,11 @@
 			files = (
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
 				41000000000000000000000B /* AppDatabaseTests.swift in Sources */,
-				410000000000000000000018 /* BakingCatalogTests.swift in Sources */,
-				410000000000000000000010 /* CoreModelsTests.swift in Sources */,
-				410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
-				410000000000000000000056 /* TextInputFormattingTests.swift in Sources */,
+					410000000000000000000018 /* BakingCatalogTests.swift in Sources */,
+					410000000000000000000010 /* CoreModelsTests.swift in Sources */,
+					410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
+					4100000000000000000000B5 /* InventoryAliasesTests.swift in Sources */,
+					410000000000000000000056 /* TextInputFormattingTests.swift in Sources */,
 				410000000000000000000028 /* CustomerListViewModelTests.swift in Sources */,
 				41000000000000000000002A /* CustomerContactImportTests.swift in Sources */,
 				410000000000000000000073 /* CustomerDraftValidationTests.swift in Sources */,

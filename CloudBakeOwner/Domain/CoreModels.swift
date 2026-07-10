@@ -136,6 +136,7 @@ private enum MeasurementFamily {
 struct InventoryItem: Equatable {
     let id: String
     let name: String
+    let aliases: [String]
     let unit: InventoryUnit
     let currentQuantity: Double
     let minimumQuantity: Double
@@ -149,6 +150,7 @@ struct InventoryItem: Equatable {
     init(
         id: String,
         name: String,
+        aliases: [String] = [],
         unit: InventoryUnit,
         currentQuantity: Double,
         minimumQuantity: Double,
@@ -161,6 +163,7 @@ struct InventoryItem: Equatable {
     ) {
         self.id = id
         self.name = name
+        self.aliases = aliases
         self.unit = unit
         self.currentQuantity = currentQuantity
         self.minimumQuantity = minimumQuantity

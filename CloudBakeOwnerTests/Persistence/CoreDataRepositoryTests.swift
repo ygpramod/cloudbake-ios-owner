@@ -12,6 +12,7 @@ final class CoreDataRepositoryTests: XCTestCase {
         let inventoryItem = InventoryItem(
             id: "inventory-flour",
             name: "Cake flour",
+            aliases: ["Maida", "Plain flour"],
             unit: .gram,
             currentQuantity: 750,
             minimumQuantity: 500,
@@ -1195,6 +1196,7 @@ final class CoreDataRepositoryTests: XCTestCase {
         let original = InventoryItem(
             id: "inventory-flour",
             name: "Cake flour",
+            aliases: ["Maida"],
             unit: .gram,
             currentQuantity: 250,
             minimumQuantity: 500,
@@ -1204,6 +1206,7 @@ final class CoreDataRepositoryTests: XCTestCase {
         let edited = InventoryItem(
             id: "inventory-flour",
             name: "Cake flour fine",
+            aliases: ["Aashirvaad Maida", "Plain flour"],
             unit: .kilogram,
             currentQuantity: 1.25,
             minimumQuantity: 2,
