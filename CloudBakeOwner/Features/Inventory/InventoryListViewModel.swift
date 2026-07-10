@@ -869,12 +869,8 @@ final class InventoryListViewModel: ObservableObject {
 
     func selectDraftType(_ type: InventoryItemType) {
         draftType = type
-        guard type == .perishable else {
-            return
-        }
-
         draftHasExpiryDate = true
-        draftExpiryDate = defaultPerishableExpiryDate()
+        draftExpiryDate = defaultExpiryDate(for: type)
     }
 
     private func defaultExpiryDate(for type: InventoryItemType) -> Date {

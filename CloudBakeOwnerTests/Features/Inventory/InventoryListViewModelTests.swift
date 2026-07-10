@@ -266,6 +266,23 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftExpiryDate, calendar.date(byAdding: .day, value: 4, to: now))
     }
 
+    func testSelectingStandardDefaultsExpiryToOneMonth() {
+        let repository = FakeInventoryItemRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            dateProvider: { now }
+        )
+        viewModel.selectDraftType(.perishable)
+
+        viewModel.selectDraftType(.standard)
+
+        XCTAssertEqual(viewModel.draftType, .standard)
+        XCTAssertTrue(viewModel.draftHasExpiryDate)
+        XCTAssertEqual(viewModel.draftExpiryDate, calendar.date(byAdding: .month, value: 1, to: now))
+    }
+
     func testAddItemPersistsPerishableTypeAndFourDayExpiry() {
         let repository = FakeInventoryItemRepository()
         let calendar = Calendar(identifier: .gregorian)
