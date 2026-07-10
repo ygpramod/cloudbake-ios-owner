@@ -2,10 +2,9 @@ import XCTest
 
 extension CloudBakeOwnerUITests {
     func testCustomerCanBeAddedAndViewed() throws {
-        let app = makeApp()
+        let app = makeApp(initialDestination: "customers")
         app.launch()
 
-        openDashboardDestination("Customers", in: app)
         assertScreenVisible("screen.customers", in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["No customers yet"].waitForExistence(timeout: 5))
 
@@ -26,7 +25,7 @@ extension CloudBakeOwnerUITests {
     }
 
     func testCustomerDetailUsesSplitViewOnIPad() throws {
-        let app = makeApp()
+        let app = makeApp(initialDestination: "customers")
         app.launchEnvironment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] = "1"
         app.launch()
 
@@ -35,7 +34,6 @@ extension CloudBakeOwnerUITests {
             throw XCTSkip("Customer split view is only expected on regular-width iPad layouts.")
         }
 
-        openDashboardDestination("Customers", in: app)
         assertScreenVisible("screen.customers", in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["Select a customer"].waitForExistence(timeout: 5))
 
@@ -53,11 +51,10 @@ extension CloudBakeOwnerUITests {
     }
 
     func testCustomerAddOffersContactsImportAndManualEntry() throws {
-        let app = makeApp()
+        let app = makeApp(initialDestination: "customers")
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        openDashboardDestination("Customers", in: app, timeout: transitionTimeout)
         assertScreenVisible("screen.customers", in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["customers.add"], timeout: transitionTimeout)
 
@@ -67,11 +64,11 @@ extension CloudBakeOwnerUITests {
     }
 
     func testCustomerDuplicateWarningAppearsBeforeSaving() throws {
-        let app = makeApp()
+        let app = makeApp(initialDestination: "customers")
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        openDashboardDestination("Customers", in: app, timeout: transitionTimeout)
+        assertScreenVisible("screen.customers", in: app, timeout: transitionTimeout)
         addCustomer(named: "Amy", phone: "5550101", in: app)
         tapWhenReady(app.buttons["customers.add"], timeout: transitionTimeout)
         tapWhenReady(app.buttons["Enter Manually"], timeout: transitionTimeout)
@@ -84,10 +81,10 @@ extension CloudBakeOwnerUITests {
     }
 
     func testCustomerCanBeEditedFromDetail() throws {
-        let app = makeApp()
+        let app = makeApp(initialDestination: "customers")
         app.launch()
 
-        openDashboardDestination("Customers", in: app)
+        assertScreenVisible("screen.customers", in: app, timeout: 5)
         addCustomer(named: "Amy", phone: "5550101", in: app)
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "customers.item."))
             .firstMatch
@@ -108,11 +105,11 @@ extension CloudBakeOwnerUITests {
     }
 
     func testCustomerCanBeDeletedFromDetail() throws {
-        let app = makeApp()
+        let app = makeApp(initialDestination: "customers")
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        openDashboardDestination("Customers", in: app, timeout: transitionTimeout)
+        assertScreenVisible("screen.customers", in: app, timeout: transitionTimeout)
         addCustomer(named: "Amy", phone: "5550101", in: app)
         let customerRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "customers.item.")).firstMatch
         tapWhenReady(customerRow, timeout: transitionTimeout)

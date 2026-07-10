@@ -1,9 +1,12 @@
 import XCTest
 
 extension CloudBakeOwnerUITests {
-    func makeApp() -> XCUIApplication {
+    func makeApp(initialDestination: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] = "1"
+        if let initialDestination {
+            app.launchEnvironment["CLOUDBAKE_INITIAL_DESTINATION"] = initialDestination
+        }
         return app
     }
 
