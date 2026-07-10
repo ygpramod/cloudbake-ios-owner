@@ -104,6 +104,17 @@ When adding inventory, the app checks for same or similar names before creating 
 This is meant to avoid accidental duplicates. The owner can still intentionally add a duplicate if
 the warning is reviewed and accepted.
 
+## Inventory Aliases
+
+Inventory aliases are alternate bill names for an ingredient or supply.
+
+Use aliases when receipts use brand names, abbreviations, or local names that differ from the
+inventory name. For example, an inventory item named `Cake Flour` can have aliases such as `Maida`,
+`Aashirvaad Maida`, or `Plain Flour`.
+
+Aliases are edited from the inventory add/edit form. Separate multiple aliases with commas or new
+lines. CloudBake removes blank aliases and duplicate aliases before saving.
+
 ## Baking Catalog
 
 The baking catalog is a JSON config that lists ingredients, decorations, and packaging that are
@@ -123,8 +134,9 @@ Purchase bill draft parsing turns recognized bill text into inventory draft cand
 Bill text recognition uses Apple's local Vision OCR framework. Receipt images do not need to leave
 the device for the first version, and there is no OCR subscription or per-scan service fee.
 
-The parser reads bill text line by line, keeps only lines that match the baking catalog, and captures
-common quantity/unit pairs such as `1 kg`, `500g`, `250 ml`, `12 pcs`, `2 tsp`, or `1 cup`.
+The parser reads bill text line by line, keeps only lines that match the baking catalog or an active
+inventory item's name or aliases, and captures common quantity/unit pairs such as `1 kg`, `500g`,
+`250 ml`, `12 pcs`, `2 tsp`, or `1 cup`.
 
 The owner can open Import Bill, take a purchase bill photo, retake the photo, or choose an existing
 bill image from the photo library. The app reads the selected image using local Vision OCR and
@@ -139,6 +151,9 @@ editing recognized text, names, quantities, units, minimum quantities, and expir
 When a draft matches an existing active inventory item, CloudBake adds the draft quantity to that
 existing item and creates a new stock batch with the draft expiry date. Compatible units are
 converted first, such as `1 kg` on the bill becoming `1000 g` for an item stored in grams.
+
+When bill text matches an inventory alias, the draft uses the saved inventory item name so saving the
+draft updates that item.
 
 Drafts that do not match existing inventory create normal inventory items and initial stock batches.
 Manual recognized text entry remains available as a fallback when a bill photo cannot be read
