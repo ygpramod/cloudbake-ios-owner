@@ -82,41 +82,43 @@ The app currently supports:
 72. owner-confirmed linked recipe usage when a Confirmed order is marked Ready or Completed,
 73. recipe-driven inventory deduction with unit conversion, recipe scaling, and
     oldest-expiry-first batch usage,
-74. order detail checklist item add, edit, complete/incomplete toggle, entry-order display, and
+74. order-specific extra ingredients under linked recipe detail, with inventory-backed deduction
+    during recipe usage,
+75. order detail checklist item add, edit, complete/incomplete toggle, entry-order display, and
     deletion,
-75. regular-width iPad order list/detail split view,
-76. optional saved cake design link from order add/edit,
-77. simple Completed orders tab for completed and cancelled orders ordered by delivery or pickup
+76. regular-width iPad order list/detail split view,
+77. optional saved cake design link from order add/edit,
+78. simple Completed orders tab for completed and cancelled orders ordered by delivery or pickup
     date-time descending,
-78. linked design name, notes, and photo reference in order detail,
-79. completed order tab that keeps completed and cancelled orders out of active order views, with
+79. linked design name, notes, and photo reference in order detail,
+80. completed order tab that keeps completed and cancelled orders out of active order views, with
     cancelled rows visibly marked,
-80. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
+81. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
     notes,
-81. visible order row actions for quick status changes and payment recording,
-82. order detail payment status actions for marking Paid or adding a partial payment,
-83. scheduled local owner notifications for Confirmed, In Progress, and Ready order reminders,
-84. due-time order notifications that route back to the matching order,
-85. overdue order row pills and an in-app update-status banner for the earliest overdue order,
-86. local order photo metadata and app-owned local photo file storage,
-87. order detail photo groups for customer reference photos and final cake photos,
-88. photo library import for order reference and final cake photos,
-89. camera capture for order reference and final cake photos,
-90. full-screen preview for saved order photos,
-91. caption editing for saved order photos,
-92. promotion of final cake photos into linked saved cake designs,
-93. saved order photo deletion from order detail,
-94. Settings inventory CSV import and export for active inventory and stock batches,
-95. Reminders screen with payment due WhatsApp/Mark as Paid actions, today's orders, low inventory
+82. visible order row actions for quick status changes and payment recording,
+83. order detail payment status actions for marking Paid or adding a partial payment,
+84. scheduled local owner notifications for Confirmed, In Progress, and Ready order reminders,
+85. due-time order notifications that route back to the matching order,
+86. overdue order row pills and an in-app update-status banner for the earliest overdue order,
+87. local order photo metadata and app-owned local photo file storage,
+88. order detail photo groups for customer reference photos and final cake photos,
+89. photo library import for order reference and final cake photos,
+90. camera capture for order reference and final cake photos,
+91. full-screen preview for saved order photos,
+92. caption editing for saved order photos,
+93. promotion of final cake photos into linked saved cake designs,
+94. saved order photo deletion from order detail,
+95. Settings inventory CSV import and export for active inventory and stock batches,
+96. Reminders screen with payment due WhatsApp/Mark as Paid actions, today's orders, low inventory
     sections, and detail routing,
-96. shared CloudBake visual styling for second-level Orders, Inventory, Recipes, Customers, Designs,
+97. shared CloudBake visual styling for second-level Orders, Inventory, Recipes, Customers, Designs,
     and Settings screens, with compact title headers and grouped Inventory header actions,
-97. native iOS push navigation with short recent-page history and left-edge swipe back to the
+98. native iOS push navigation with short recent-page history and left-edge swipe back to the
     previous screen,
-98. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,
-99. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
-100. centered CloudBake confirmation popups for order, customer, and inventory actions,
-101. unit, integration, and feature-sharded acceptance test lanes.
+99. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,
+100. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
+101. centered CloudBake confirmation popups for order, customer, and inventory actions,
+102. unit, integration, and feature-sharded acceptance test lanes.
 
 ## Partially Prepared
 

@@ -359,9 +359,12 @@ the same status transition is saved through edit order, the app uses the same on
 rule.
 The order form includes a Recipe Multiplier for scaling the linked recipe up or down before usage.
 Quantities are converted into each inventory item's unit when compatible, then multiplied by the
-order recipe multiplier. Stock batches are consumed oldest-expiry-first, and the usage can be
-recorded only once for the order to prevent accidental double deduction. Partial recipe usage,
-multi-recipe orders, inventory reservation, and serving/yield modeling remain future work.
+order recipe multiplier. Order detail can also add order-specific extra ingredients under Recipe
+Information for customer-specific changes that should not update the saved recipe. Extra ingredients
+show as a simple quantity list, can be deleted before recipe usage is recorded, and are deducted with
+the linked recipe as exact order quantities. Stock batches are consumed oldest-expiry-first, and the
+usage can be recorded only once for the order to prevent accidental double deduction. Partial recipe
+usage, multi-recipe orders, inventory reservation, and serving/yield modeling remain future work.
 
 Order detail includes a Checklist section for owner preparation tasks such as crumb coat, topper
 pickup, box ready, or final photo. The owner can add checklist items, edit item titles, and tap any
