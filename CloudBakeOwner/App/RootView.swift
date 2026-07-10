@@ -13,24 +13,27 @@ struct RootView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            destinationView(for: .dashboard)
-                .navigationDestination(for: AppDestination.self) { destination in
-                    destinationView(for: destination)
-                }
-        }
-        .background(NativeBackSwipeEnabler().frame(width: 0, height: 0))
-        .onAppear {
-            navigateToOrdersWhenNotificationIsPending()
-            navigateToInventoryWhenItemIsPending()
-        }
-        .overlay(alignment: .bottom) {
+        ZStack(alignment: .bottom) {
+            NavigationStack(path: $navigationPath) {
+                destinationView(for: .dashboard)
+                    .navigationDestination(for: AppDestination.self) { destination in
+                        destinationView(for: destination)
+                    }
+            }
+            .background(NativeBackSwipeEnabler().frame(width: 0, height: 0))
+
             CloudBakeBottomNavigation(
                 selectedDestination: selectedDestination,
                 onSelect: navigate
             )
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .ignoresSafeArea(.container, edges: .bottom)
+        }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .ignoresSafeArea(.container, edges: .bottom)
+        .onAppear {
+            navigateToOrdersWhenNotificationIsPending()
+            navigateToInventoryWhenItemIsPending()
         }
         .environment(\.navigateToAppDestination, navigate)
         .onChange(of: orderNotificationRouter.pendingOrderId) { _, orderId in
