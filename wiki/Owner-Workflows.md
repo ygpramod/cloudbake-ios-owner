@@ -71,9 +71,9 @@ duplicates like multiple cake flour rows.
 Inventory type can be Standard or Perishable. Standard is the default. Perishable is for short-life
 ingredients such as fruit.
 
-When starting quantity is entered, the owner may capture an expiry date for that starting stock.
-Expiry is optional for Standard inventory. Perishable inventory defaults the expiry date to four
-days from the add date.
+When starting quantity is entered, expiry is selected by default but can be turned off before
+saving. Standard inventory defaults expiry to one month from the add date. Perishable inventory
+defaults the expiry date to four days from the add date.
 
 ## View Inventory
 
@@ -118,9 +118,10 @@ The app updates current quantity and records an adjustment transaction.
 The adjustment unit defaults to the item's unit. The owner can choose another compatible unit, such
 as kg for a flour item stored in grams or liters for a cream item stored in ml.
 
-Each adjustment can capture an expiry date and creates a separate stock batch. This keeps older and
-newer stock distinct when their expiry dates differ. Perishable inventory defaults the adjustment
-expiry date to four days from the adjustment date.
+Each adjustment selects an expiry date by default, can be saved without expiry when the owner turns
+expiry off, and creates a separate stock batch. This keeps older and newer stock distinct when their
+expiry dates differ. Perishable inventory defaults the adjustment expiry date to four days from the
+adjustment date.
 
 Each adjustment can also capture an optional amount. If the added stock has the same expiry date
 and amount as an existing batch, CloudBake combines the quantities. If either differs, CloudBake

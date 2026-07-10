@@ -20,6 +20,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.adjustingItem, item)
         XCTAssertEqual(viewModel.draftAdjustmentQuantity, "")
         XCTAssertEqual(viewModel.draftAdjustmentUnit, .gram)
+        XCTAssertTrue(viewModel.draftAdjustmentHasExpiryDate)
         XCTAssertEqual(viewModel.draftAdjustmentNote, "")
         XCTAssertNil(viewModel.errorMessage)
     }
@@ -161,7 +162,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
                 updatedAt: createdAt
             )
         ]
-        var ids = ["batch-flour-adjustment", "transaction-flour-adjustment"]
+        var ids = ["transaction-flour-adjustment", "batch-flour-adjustment"]
         let viewModel = InventoryListViewModel(
             repository: repository,
             idGenerator: { ids.removeFirst() },
@@ -208,7 +209,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
                 updatedAt: createdAt
             )
         ]
-        var ids = ["batch-flour-adjustment", "transaction-flour-adjustment"]
+        var ids = ["transaction-flour-adjustment", "batch-flour-adjustment"]
         let viewModel = InventoryListViewModel(
             repository: repository,
             idGenerator: { ids.removeFirst() },
@@ -252,7 +253,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
                 updatedAt: createdAt
             )
         ]
-        var ids = ["batch-flour-adjustment", "transaction-flour-adjustment"]
+        var ids = ["transaction-flour-adjustment", "batch-flour-adjustment"]
         let viewModel = InventoryListViewModel(
             repository: repository,
             idGenerator: { ids.removeFirst() },
@@ -318,17 +319,19 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
                 updatedAt: createdAt
             )
         ]
-        var dates = [adjustedAt, archivedAt]
+        var currentDate = adjustedAt
+        var ids = ["transaction-flour-adjustment", "batch-flour-adjustment"]
         let viewModel = InventoryListViewModel(
             repository: repository,
-            idGenerator: { "transaction-flour-adjustment" },
-            dateProvider: { dates.removeFirst() }
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { currentDate }
         )
         viewModel.load()
         viewModel.beginAdjusting(item)
         viewModel.draftAdjustmentQuantity = "100"
         XCTAssertTrue(viewModel.recordStockAdjustment())
 
+        currentDate = archivedAt
         viewModel.archiveItem(item)
 
         XCTAssertEqual(viewModel.items, [])
