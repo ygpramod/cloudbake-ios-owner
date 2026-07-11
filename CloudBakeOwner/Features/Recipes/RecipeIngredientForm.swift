@@ -66,7 +66,7 @@ struct RecipeIngredientForm: View {
                         isPresented = false
                     }
                 }
-                .disabled(viewModel.availableInventoryItems.isEmpty)
+                .disabled(!viewModel.canSubmitIngredientDraft)
                 .accessibilityIdentifier("recipes.ingredient.save")
             }
         }

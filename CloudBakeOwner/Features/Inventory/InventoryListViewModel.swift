@@ -151,6 +151,28 @@ final class InventoryListViewModel: ObservableObject {
         )
     }
 
+    func canSubmitItemDraft(requiresCurrentQuantity: Bool) -> Bool {
+        guard !TextInputFormatting.trimmed(draftName).isEmpty else {
+            return false
+        }
+
+        guard let minimumQuantity = parsedQuantity(from: draftMinimumQuantity), minimumQuantity >= 0 else {
+            return false
+        }
+
+        if requiresCurrentQuantity {
+            guard let currentQuantity = parsedQuantity(from: draftCurrentQuantity), currentQuantity >= 0 else {
+                return false
+            }
+
+            guard InventoryStockOperation.optionalMoneyAmount(from: draftAmount) != nil else {
+                return false
+            }
+        }
+
+        return true
+    }
+
     func item(id: String) -> InventoryItem? {
         items.first { $0.id == id }
     }

@@ -193,6 +193,26 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.visibleItems, [expired, expiringSoon])
     }
 
+    func testItemDraftCanSubmitOnlyWhenRequiredQuantitiesAreValid() {
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+
+        XCTAssertFalse(viewModel.canSubmitItemDraft(requiresCurrentQuantity: true))
+
+        viewModel.draftName = "Butter"
+        viewModel.draftMinimumQuantity = "250"
+        XCTAssertFalse(viewModel.canSubmitItemDraft(requiresCurrentQuantity: true))
+        XCTAssertTrue(viewModel.canSubmitItemDraft(requiresCurrentQuantity: false))
+
+        viewModel.draftCurrentQuantity = "-1"
+        XCTAssertFalse(viewModel.canSubmitItemDraft(requiresCurrentQuantity: true))
+
+        viewModel.draftCurrentQuantity = "100"
+        XCTAssertTrue(viewModel.canSubmitItemDraft(requiresCurrentQuantity: true))
+
+        viewModel.draftAmount = "-3"
+        XCTAssertFalse(viewModel.canSubmitItemDraft(requiresCurrentQuantity: true))
+    }
+
     func testAddItemPersistsAndReloadsInventory() {
         let repository = FakeInventoryItemRepository()
         let now = Date(timeIntervalSince1970: 1_800_030_000)
