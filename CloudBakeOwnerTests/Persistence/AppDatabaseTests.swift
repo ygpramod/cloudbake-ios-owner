@@ -107,6 +107,23 @@ final class AppDatabaseTests: XCTestCase {
                     1_800_030_100
                 ]
             )
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, cake_design_id, title, status, due_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "order-legacy-design",
+                    "design-legacy",
+                    "Legacy linked order",
+                    OrderStatus.confirmed.rawValue,
+                    1_800_040_000,
+                    1_800_030_000,
+                    1_800_030_100
+                ]
+            )
         }
 
         try migrator.migrate(queue)
@@ -117,5 +134,38 @@ final class AppDatabaseTests: XCTestCase {
         XCTAssertEqual(design.photoReference, "photos/legacy-floral.jpg")
         XCTAssertNil(design.originatingOrderPhotoId)
         XCTAssertNil(design.originatingOrderId)
+        XCTAssertEqual(
+            try repository.fetchOrder(id: "order-legacy-design")?.cakeDesignId,
+            design.id
+        )
+    }
+
+    func testCakeDesignFetchRejectsUnknownPersistedSourceKind() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let design = CakeDesign(
+            id: "design-invalid-source",
+            name: "Invalid source",
+            notes: nil,
+            photoReference: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(design)
+        try queue.write { db in
+            try db.execute(
+                sql: "UPDATE cake_designs SET source_kind = ? WHERE id = ?",
+                arguments: ["unexpected-source", design.id]
+            )
+        }
+
+        XCTAssertThrowsError(try repository.fetchCakeDesign(id: design.id)) { error in
+            XCTAssertEqual(
+                error as? CakeDesignPersistenceError,
+                .invalidSourceKind("unexpected-source")
+            )
+        }
     }
 }

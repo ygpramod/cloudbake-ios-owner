@@ -1,6 +1,10 @@
 import Foundation
 import GRDB
 
+enum CakeDesignPersistenceError: Error, Equatable {
+    case invalidSourceKind(String)
+}
+
 final class GRDBCoreDataRepository: InventoryItemRepository,
     RecipeRepository,
     RecipeComponentRepository,
@@ -116,13 +120,18 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         )
     }
 
-    func cakeDesign(from row: Row) -> CakeDesign {
-        CakeDesign(
+    func cakeDesign(from row: Row) throws -> CakeDesign {
+        let sourceKindValue: String = row["source_kind"]
+        guard let sourceKind = CakeDesignSourceKind(rawValue: sourceKindValue) else {
+            throw CakeDesignPersistenceError.invalidSourceKind(sourceKindValue)
+        }
+
+        return CakeDesign(
             id: row["id"],
             name: row["name"],
             notes: row["notes"],
             photoReference: row["photo_reference"],
-            sourceKind: CakeDesignSourceKind(rawValue: row["source_kind"]) ?? .ownerMade,
+            sourceKind: sourceKind,
             originatingOrderPhotoId: row["originating_order_photo_id"],
             originatingOrderId: row["originating_order_id"],
             createdAt: date(row["created_at_unix_time"]),
