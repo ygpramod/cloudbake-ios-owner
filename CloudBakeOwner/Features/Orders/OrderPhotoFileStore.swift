@@ -1,9 +1,52 @@
 import Foundation
+import Photos
 
 protocol OrderPhotoFileStore {
     func saveOrderPhoto(data: Data, orderId: String, photoId: String) throws -> String
     func deleteOrderPhoto(relativePath: String) throws
     func fileURL(for relativePath: String) -> URL
+}
+
+protocol DesignPhotoLibrary {
+    func savePhoto(at fileURL: URL) async throws -> String
+    func containsAsset(identifier: String) -> Bool
+}
+
+enum DesignPhotoLibraryError: Error, Equatable {
+    case accessDenied
+    case assetCreationFailed
+}
+
+final class PhotoKitDesignPhotoLibrary: DesignPhotoLibrary {
+    static let referencePrefix = "photos://"
+
+    func savePhoto(at fileURL: URL) async throws -> String {
+        let authorization = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        guard authorization == .authorized || authorization == .limited else {
+            throw DesignPhotoLibraryError.accessDenied
+        }
+
+        var localIdentifier: String?
+        try await PHPhotoLibrary.shared().performChanges {
+            localIdentifier = PHAssetChangeRequest
+                .creationRequestForAssetFromImage(atFileURL: fileURL)?
+                .placeholderForCreatedAsset?
+                .localIdentifier
+        }
+        guard let localIdentifier else {
+            throw DesignPhotoLibraryError.assetCreationFailed
+        }
+        return Self.referencePrefix + localIdentifier
+    }
+
+    func containsAsset(identifier: String) -> Bool {
+        PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil).firstObject != nil
+    }
+
+    static func assetIdentifier(from reference: String) -> String? {
+        guard reference.hasPrefix(referencePrefix) else { return nil }
+        return String(reference.dropFirst(referencePrefix.count))
+    }
 }
 
 final class LocalOrderPhotoFileStore: OrderPhotoFileStore {

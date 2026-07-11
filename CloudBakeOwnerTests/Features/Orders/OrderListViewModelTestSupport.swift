@@ -504,3 +504,19 @@ final class FakeOrderPhotoFileStore: OrderPhotoFileStore {
         URL(fileURLWithPath: "/tmp").appendingPathComponent(relativePath)
     }
 }
+
+final class FakeDesignPhotoLibrary: DesignPhotoLibrary {
+    var savedFileURLs: [URL] = []
+    var savedReference = "photos://asset-design"
+    var saveError: Error?
+
+    func savePhoto(at fileURL: URL) async throws -> String {
+        savedFileURLs.append(fileURL)
+        if let saveError { throw saveError }
+        return savedReference
+    }
+
+    func containsAsset(identifier: String) -> Bool {
+        savedReference == PhotoKitDesignPhotoLibrary.referencePrefix + identifier
+    }
+}

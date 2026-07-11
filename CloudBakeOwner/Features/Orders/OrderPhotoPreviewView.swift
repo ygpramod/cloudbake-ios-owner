@@ -4,7 +4,7 @@ struct OrderPhotoPreviewView: View {
     let photo: OrderPhoto
     let photoURL: URL
     let onSaveCaption: (String) -> OrderPhoto?
-    let onPromoteToDesign: (String, String) -> Bool
+    let onPromoteToDesign: (String, String) async -> Bool
     let onClose: () -> Void
     @State private var displayedPhoto: OrderPhoto
     @State private var draftCaption = ""
@@ -17,7 +17,7 @@ struct OrderPhotoPreviewView: View {
         photo: OrderPhoto,
         photoURL: URL,
         onSaveCaption: @escaping (String) -> OrderPhoto?,
-        onPromoteToDesign: @escaping (String, String) -> Bool,
+        onPromoteToDesign: @escaping (String, String) async -> Bool,
         onClose: @escaping () -> Void
     ) {
         self.photo = photo
@@ -152,8 +152,10 @@ struct OrderPhotoPreviewView: View {
 
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Save") {
-                            if onPromoteToDesign(draftDesignName, draftDesignNotes) {
-                                isPromotingToDesign = false
+                            Task {
+                                if await onPromoteToDesign(draftDesignName, draftDesignNotes) {
+                                    isPromotingToDesign = false
+                                }
                             }
                         }
                         .accessibilityIdentifier("orders.detail.photos.design.save")
