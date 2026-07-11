@@ -1,5 +1,6 @@
 import ImageIO
 import Photos
+import PhotosUI
 import SwiftUI
 import UIKit
 
@@ -7,6 +8,7 @@ struct CakeDesignListView: View {
     @StateObject private var viewModel: CakeDesignListViewModel
     @State private var previewingDesign: CakeDesign?
     @State private var previewingCustomerReference: CustomerReferenceDesign?
+    @State private var isImportingInternetInspiration = false
     @FocusState private var isSearchFocused: Bool
 
     init(viewModel: CakeDesignListViewModel) {
@@ -66,6 +68,9 @@ struct CakeDesignListView: View {
                 )
             }
         }
+        .sheet(isPresented: $isImportingInternetInspiration) {
+            InternetInspirationImportView(viewModel: viewModel)
+        }
         .onAppear {
             viewModel.load()
         }
@@ -73,7 +78,10 @@ struct CakeDesignListView: View {
 
     @ViewBuilder
     private var designResults: some View {
-        if viewModel.visibleDesigns.isEmpty && viewModel.visibleCustomerReferences.isEmpty {
+        if viewModel.visibleDesigns.isEmpty
+            && viewModel.visibleCustomerReferences.isEmpty
+            && viewModel.visibleInternetInspirations.isEmpty
+            && !viewModel.searchText.isEmpty {
             CloudBakeEmptyState(
                 title: "No matching designs",
                 systemImage: "magnifyingglass",
@@ -120,31 +128,53 @@ struct CakeDesignListView: View {
                 }
                 }
             }
+
+            HStack {
+                Text("Internet Inspiration (\(viewModel.visibleInternetInspirations.count))")
+                    .font(CloudBakeTheme.Typography.sectionTitle)
+                    .accessibilityIdentifier("designs.internetInspiration.title")
+                Spacer()
+                Button {
+                    isImportingInternetInspiration = true
+                } label: {
+                    Label("Add inspiration", systemImage: "plus")
+                        .labelStyle(.iconOnly)
+                        .frame(minWidth: 44, minHeight: 36)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .accessibilityLabel("Add Internet Inspiration")
+                .accessibilityIdentifier("designs.internetInspiration.add")
+            }
+
+            if viewModel.visibleInternetInspirations.isEmpty {
+                Text("No internet inspiration saved")
+                    .font(CloudBakeTheme.Typography.rowDetail)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 14) {
+                        ForEach(viewModel.visibleInternetInspirations, id: \.id) { design in
+                            designTile(design)
+                                .frame(width: 150)
+                        }
+                    }
+                }
+            }
     }
 
     private func customerReferenceTile(_ reference: CustomerReferenceDesign) -> some View {
         Button {
             previewingCustomerReference = reference
         } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                DesignPhotoView(
-                    source: viewModel.availablePhotoSource(for: reference.photo),
-                    maximumPixelSize: 600,
-                    contentMode: .fill
-                )
-                .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-
-                Text(reference.title)
-                    .font(CloudBakeTheme.Typography.rowTitle)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-                Text(reference.order.customerName)
-                    .font(CloudBakeTheme.Typography.rowDetail)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            .padding(12)
+            DesignPhotoView(
+                source: viewModel.availablePhotoSource(for: reference.photo),
+                maximumPixelSize: 600,
+                contentMode: .fill
+            )
+            .aspectRatio(1, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
         .buttonStyle(.plain)
         .cloudBakeCardStyle()
@@ -157,29 +187,13 @@ struct CakeDesignListView: View {
         Button {
             previewingDesign = design
         } label: {
-            VStack(alignment: .leading, spacing: 10) {
-                DesignPhotoView(
-                    source: viewModel.availablePhotoSource(for: design),
-                    maximumPixelSize: 600,
-                    contentMode: .fill
-                )
-                .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-
-                Text(design.name)
-                    .font(CloudBakeTheme.Typography.rowTitle)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-
-                if let notes = design.notes {
-                    Text(notes)
-                        .font(CloudBakeTheme.Typography.rowDetail)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            DesignPhotoView(
+                source: viewModel.availablePhotoSource(for: design),
+                maximumPixelSize: 600,
+                contentMode: .fill
+            )
+            .aspectRatio(1, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -201,6 +215,7 @@ private struct CustomerReferencePreviewView: View {
             VStack(alignment: .leading, spacing: 20) {
                 DesignPhotoView(source: photoSource, maximumPixelSize: 2_400, contentMode: .fit)
                     .aspectRatio(1, contentMode: .fit)
+                    .frame(maxWidth: .infinity, alignment: .center)
                     .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     .accessibilityIdentifier("designs.customerReference.preview.photo")
 
@@ -218,12 +233,93 @@ private struct CustomerReferencePreviewView: View {
             }
             .padding(CloudBakeTheme.Spacing.screenHorizontal)
         }
-        .background(Color.cloudBakeBlush.ignoresSafeArea())
+        .background(CloudBakeScreenBackground().ignoresSafeArea())
         .navigationTitle(reference.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
+            }
+        }
+    }
+}
+
+private struct InternetInspirationImportView: View {
+    @ObservedObject var viewModel: CakeDesignListViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var name = ""
+    @State private var sourceName = ""
+    @State private var sourceURL = ""
+    @State private var notes = ""
+    @State private var isSaving = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Photo") {
+                    PhotosPicker(selection: $selectedItem, matching: .images) {
+                        Label(
+                            selectedItem == nil ? "Choose from Photos" : "Photo selected",
+                            systemImage: selectedItem == nil ? "photo.on.rectangle" : "checkmark.circle.fill"
+                        )
+                    }
+                    .accessibilityIdentifier("designs.internetInspiration.photo")
+                }
+
+                Section("Inspiration") {
+                    TextField("Name", text: $name)
+                        .textInputAutocapitalization(.words)
+                        .accessibilityIdentifier("designs.internetInspiration.name")
+                    TextField("Source or creator (optional)", text: $sourceName)
+                        .accessibilityIdentifier("designs.internetInspiration.sourceName")
+                    TextField("Source URL (optional)", text: $sourceURL)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.URL)
+                        .accessibilityIdentifier("designs.internetInspiration.sourceURL")
+                    TextField("Notes (optional)", text: $notes, axis: .vertical)
+                        .lineLimit(2...5)
+                        .accessibilityIdentifier("designs.internetInspiration.notes")
+                }
+
+                if let errorMessage = viewModel.errorMessage {
+                    Section {
+                        Text(errorMessage).foregroundStyle(.red)
+                    }
+                }
+            }
+            .cloudBakeFormScreenStyle()
+            .navigationTitle("Add Inspiration")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .disabled(isSaving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        guard let selectedItem, !isSaving else {
+                            if self.selectedItem == nil {
+                                viewModel.errorMessage = "Inspiration photo is required."
+                            }
+                            return
+                        }
+                        isSaving = true
+                        Task {
+                            if await viewModel.importInternetInspiration(
+                                item: selectedItem,
+                                name: name,
+                                sourceName: sourceName,
+                                sourceURL: sourceURL,
+                                notes: notes
+                            ) {
+                                dismiss()
+                            }
+                            isSaving = false
+                        }
+                    }
+                    .disabled(isSaving)
+                    .accessibilityIdentifier("designs.internetInspiration.save")
+                }
             }
         }
     }
@@ -240,6 +336,7 @@ private struct CakeDesignPreviewView: View {
             VStack(alignment: .leading, spacing: 20) {
                 DesignPhotoView(source: photoSource, maximumPixelSize: 2_400, contentMode: .fit)
                 .aspectRatio(1, contentMode: .fit)
+                .frame(maxWidth: .infinity, alignment: .center)
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .accessibilityLabel(accessibilityLabel)
                 .accessibilityIdentifier("designs.preview.photo")
@@ -251,7 +348,17 @@ private struct CakeDesignPreviewView: View {
 
                     CloudBakeDetailDivider()
                     CloudBakeDetailRow("Collection") {
-                        Text("My Designs")
+                        Text(design.sourceKind == .internetInspiration ? "Internet Inspiration" : "My Designs")
+                    }
+
+                    if let sourceName = design.sourceName {
+                        CloudBakeDetailDivider()
+                        CloudBakeDetailRow("Source") { Text(sourceName) }
+                    }
+
+                    if let sourceURL = design.sourceURL {
+                        CloudBakeDetailDivider()
+                        CloudBakeDetailRow("Source URL") { Text(sourceURL) }
                     }
 
                     if let notes = design.notes {
@@ -272,7 +379,7 @@ private struct CakeDesignPreviewView: View {
             }
             .padding(CloudBakeTheme.Spacing.screenHorizontal)
         }
-        .background(Color.cloudBakeBlush.ignoresSafeArea())
+        .background(CloudBakeScreenBackground().ignoresSafeArea())
         .navigationTitle(design.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

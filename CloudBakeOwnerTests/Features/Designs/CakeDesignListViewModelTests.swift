@@ -145,6 +145,63 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.visibleCustomerReferences.isEmpty)
     }
 
+    func testSaveInternetInspirationPersistsPrivateSourceMetadata() {
+        let repository = FakeCakeDesignRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_100_000)
+        let viewModel = CakeDesignListViewModel(
+            repository: repository,
+            idGenerator: { "design-internet" },
+            dateProvider: { timestamp }
+        )
+
+        XCTAssertTrue(
+            viewModel.saveInternetInspiration(
+                photoReference: "photos://internet-asset",
+                name: "  Blue Lambeth  ",
+                sourceName: "  Cake Artist  ",
+                sourceURL: " https://example.com/cake ",
+                notes: "  Piping reference  "
+            )
+        )
+
+        XCTAssertEqual(
+            repository.designs,
+            [
+                CakeDesign(
+                    id: "design-internet",
+                    name: "Blue Lambeth",
+                    notes: "Piping reference",
+                    photoReference: "photos://internet-asset",
+                    sourceKind: .internetInspiration,
+                    sourceName: "Cake Artist",
+                    sourceURL: "https://example.com/cake",
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            ]
+        )
+        XCTAssertEqual(viewModel.internetInspirations, repository.designs)
+        viewModel.searchText = "artist piping"
+        XCTAssertEqual(viewModel.visibleInternetInspirations.map(\.id), ["design-internet"])
+    }
+
+    func testSaveInternetInspirationRejectsInvalidSourceURL() {
+        let repository = FakeCakeDesignRepository()
+        let viewModel = CakeDesignListViewModel(repository: repository)
+
+        XCTAssertFalse(
+            viewModel.saveInternetInspiration(
+                photoReference: "photos://internet-asset",
+                name: "Inspiration",
+                sourceName: "",
+                sourceURL: "example.com/no-scheme",
+                notes: ""
+            )
+        )
+        XCTAssertTrue(repository.designs.isEmpty)
+        XCTAssertEqual(viewModel.errorMessage, "Source URL must be a valid http or https address.")
+    }
+
     private func makeDesign(
         id: String,
         name: String,
