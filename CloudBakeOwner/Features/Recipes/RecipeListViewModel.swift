@@ -1,9 +1,49 @@
 import CoreGraphics
 import Foundation
 
+struct RecipeListSummary: Equatable {
+    let ingredientCount: Int
+    let ingredientNames: [String]
+
+    var ingredientCountText: String {
+        "\(ingredientCount) ingredient\(ingredientCount == 1 ? "" : "s")"
+    }
+}
+
+enum RecipeFilter: String, CaseIterable, Identifiable {
+    case all
+    case withIngredients
+    case needsIngredients
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all:
+            return "All"
+        case .withIngredients:
+            return "With ingredients"
+        case .needsIngredients:
+            return "Needs ingredients"
+        }
+    }
+
+    func includes(_ summary: RecipeListSummary?) -> Bool {
+        switch self {
+        case .all:
+            return true
+        case .withIngredients:
+            return (summary?.ingredientCount ?? 0) > 0
+        case .needsIngredients:
+            return (summary?.ingredientCount ?? 0) == 0
+        }
+    }
+}
+
 @MainActor
 final class RecipeListViewModel: ObservableObject {
     @Published private(set) var recipes: [Recipe] = []
+    @Published private(set) var recipeSummaries: [String: RecipeListSummary] = [:]
     @Published private(set) var selectedRecipe: Recipe?
     @Published private(set) var recipeIngredients: [RecipeIngredientRow] = []
     @Published private(set) var availableInventoryItems: [InventoryItem] = []
@@ -16,6 +56,7 @@ final class RecipeListViewModel: ObservableObject {
     @Published var draftIngredientNote = ""
     @Published var importIngredientDrafts: [RecipeImportIngredientDraftRow] = []
     @Published var searchText = ""
+    @Published var recipeFilter: RecipeFilter = .all
     @Published var errorMessage: String?
     @Published private(set) var isRecognizingRecipeScan = false
     @Published private(set) var editingIngredient: RecipeIngredient?
@@ -37,6 +78,7 @@ final class RecipeListViewModel: ObservableObject {
     func load() {
         do {
             recipes = try repository.fetchRecipes()
+            recipeSummaries = try loadRecipeSummaries(for: recipes)
             errorMessage = nil
         } catch {
             errorMessage = "Recipes could not be loaded."
@@ -45,14 +87,21 @@ final class RecipeListViewModel: ObservableObject {
 
     var visibleRecipes: [Recipe] {
         let query = TextInputFormatting.normalizedSearchKey(searchText)
-        guard !query.isEmpty else {
-            return recipes
-        }
-
         return recipes.filter { recipe in
-            [
+            let summary = recipeSummaries[recipe.id]
+            guard recipeFilter.includes(summary) else {
+                return false
+            }
+
+            guard !query.isEmpty else {
+                return true
+            }
+
+            return [
                 recipe.name,
-                recipe.notes
+                recipe.notes,
+                summary?.ingredientCountText,
+                summary?.ingredientNames.joined(separator: " ")
             ]
             .compactMap { $0 }
             .map(TextInputFormatting.normalizedSearchKey)
@@ -316,6 +365,7 @@ final class RecipeListViewModel: ObservableObject {
 
             try repository.save(ingredient)
             resetIngredientDraft()
+            load()
             loadRecipeDetail()
             return true
         } catch {
@@ -327,6 +377,7 @@ final class RecipeListViewModel: ObservableObject {
     func deleteIngredient(_ ingredient: RecipeIngredient) {
         do {
             try repository.deleteRecipeIngredient(id: ingredient.id)
+            load()
             loadRecipeDetail()
         } catch {
             errorMessage = "Recipe ingredient could not be deleted."
@@ -403,6 +454,29 @@ final class RecipeListViewModel: ObservableObject {
             recipeIngredients = []
             errorMessage = "Recipe details could not be loaded."
         }
+    }
+
+    private func loadRecipeSummaries(for recipes: [Recipe]) throws -> [String: RecipeListSummary] {
+        let inventoryItemsById = Dictionary(
+            uniqueKeysWithValues: try repository.fetchInventoryItems().map { ($0.id, $0) }
+        )
+        var summaries: [String: RecipeListSummary] = [:]
+
+        for recipe in recipes {
+            let ingredients = try repository.fetchRecipeComponents(recipeId: recipe.id).flatMap { component in
+                try repository.fetchRecipeIngredients(componentId: component.id)
+            }
+            let ingredientNames = ingredients
+                .compactMap { inventoryItemsById[$0.inventoryItemId]?.name }
+                .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+
+            summaries[recipe.id] = RecipeListSummary(
+                ingredientCount: ingredients.count,
+                ingredientNames: ingredientNames
+            )
+        }
+
+        return summaries
     }
 
     private func loadAvailableInventoryItems() {
