@@ -381,7 +381,7 @@ private struct CustomerReferencePreviewView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    if let updated = onToggleFavorite(reference) { reference = updated }
+                    if let updated = onToggleFavorite(reference) { apply(updated) }
                 } label: {
                     Image(systemName: reference.photo.isFavorite ? "heart.fill" : "heart")
                 }
@@ -407,7 +407,7 @@ private struct CustomerReferencePreviewView: View {
             TextField("Comma-separated tags", text: $tagsText)
             Button("Cancel", role: .cancel) {}
             Button("Save") {
-                if let updated = onUpdateTags(tagsText, reference) { reference = updated }
+                if let updated = onUpdateTags(tagsText, reference) { apply(updated) }
             }
         }
         .cloudBakeCenteredPopup(
@@ -476,6 +476,12 @@ private struct CustomerReferencePreviewView: View {
         guard references.indices.contains(target) else { return }
         isPhotoZoomed = false
         withAnimation(.easeInOut(duration: 0.2)) { reference = references[target] }
+    }
+
+    private func apply(_ updated: CustomerReferenceDesign) {
+        reference = updated
+        guard let index = references.firstIndex(where: { $0.id == updated.id }) else { return }
+        references[index] = updated
     }
 }
 
@@ -695,7 +701,7 @@ private struct CakeDesignPreviewView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    if let updated = onToggleFavorite(design) { design = updated }
+                    if let updated = onToggleFavorite(design) { apply(updated) }
                 } label: {
                     Image(systemName: design.isFavorite ? "heart.fill" : "heart")
                 }
@@ -724,7 +730,7 @@ private struct CakeDesignPreviewView: View {
             TextField("Comma-separated tags", text: $tagsText)
             Button("Cancel", role: .cancel) {}
             Button("Save") {
-                if let updated = onUpdateTags(tagsText, design) { design = updated }
+                if let updated = onUpdateTags(tagsText, design) { apply(updated) }
             }
         }
         .cloudBakeCenteredPopup(
@@ -793,6 +799,12 @@ private struct CakeDesignPreviewView: View {
         guard designs.indices.contains(target) else { return }
         isPhotoZoomed = false
         withAnimation(.easeInOut(duration: 0.2)) { design = designs[target] }
+    }
+
+    private func apply(_ updated: CakeDesign) {
+        design = updated
+        guard let index = designs.firstIndex(where: { $0.id == updated.id }) else { return }
+        designs[index] = updated
     }
 }
 

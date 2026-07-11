@@ -18,6 +18,7 @@ final class AppDatabase {
             try database.seedInventoryFixtureIfRequested()
             try database.seedCakeDesignFixtureIfRequested()
             try database.seedDesignGalleryFixtureIfRequested()
+            try database.seedInternetInspirationFixtureIfRequested()
             try database.seedOrderPhotoFixtureIfRequested()
             return database
         }
@@ -257,6 +258,29 @@ final class AppDatabase {
                     notes: nil,
                     photoReference: nil,
                     tags: ["Floral"],
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            )
+        }
+    }
+
+    private func seedInternetInspirationFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_INTERNET_INSPIRATION_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        for index in 0..<8 {
+            try repository.save(
+                CakeDesign(
+                    id: "design-ui-internet-\(index)",
+                    name: "Internet Inspiration \(index)",
+                    notes: nil,
+                    photoReference: nil,
+                    sourceKind: .internetInspiration,
+                    sourceName: "Fixture Artist",
                     createdAt: timestamp,
                     updatedAt: timestamp
                 )

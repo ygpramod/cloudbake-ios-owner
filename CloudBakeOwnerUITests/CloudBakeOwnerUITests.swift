@@ -138,23 +138,41 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.buttons["Reset Zoom"])
 
         XCTAssertFalse(app.buttons["Previous Design"].isEnabled)
+        tapWhenReady(app.buttons["Add Favorite"])
         tapWhenReady(app.buttons["Next Design"])
 
         XCTAssertTrue(app.navigationBars["Second Gallery Cake"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Next Design"].isEnabled)
         tapWhenReady(app.buttons["Previous Design"])
         XCTAssertTrue(app.navigationBars["First Gallery Cake"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Remove Favorite"].exists)
+
+        tapWhenReady(app.buttons["Tags"])
+        let tagsField = app.textFields["Comma-separated tags"]
+        XCTAssertTrue(tagsField.waitForExistence(timeout: 5))
+        tagsField.tap()
+        tagsField.typeText(", Wedding")
+        tapWhenReady(app.buttons["Save"])
+        tapWhenReady(app.buttons["Next Design"])
+        tapWhenReady(app.buttons["Previous Design"])
+        tapWhenReady(app.buttons["Tags"])
+        XCTAssertTrue(
+            String(describing: app.textFields["Comma-separated tags"].value)
+                .contains("Wedding")
+        )
+        tapWhenReady(app.buttons["Cancel"])
     }
 
     func testDesignLandingCanScrollFromBottomBackToTop() throws {
         let app = makeApp(initialDestination: "designs")
         app.launchEnvironment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] = "1"
         app.launchEnvironment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] = "1"
+        app.launchEnvironment["CLOUDBAKE_SEED_INTERNET_INSPIRATION_FIXTURE"] = "1"
         app.launch()
 
-        let internetSection = app.staticTexts["designs.internetInspiration.title"]
-        scrollToHittable(internetSection, in: app, timeout: 10)
-        XCTAssertTrue(internetSection.isHittable)
+        let bottomInspiration = app.buttons["designs.item.design-ui-internet-7"]
+        scrollToHittable(bottomInspiration, in: app, timeout: 10)
+        XCTAssertTrue(bottomInspiration.isHittable)
 
         for _ in 0..<4 { app.swipeDown() }
 
