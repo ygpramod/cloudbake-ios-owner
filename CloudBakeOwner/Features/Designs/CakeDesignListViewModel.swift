@@ -16,13 +16,35 @@ struct CustomerReferenceDesign: Identifiable, Equatable {
     var title: String { photo.caption ?? order.title }
 }
 
+enum DesignLibraryFilter: Hashable, Identifiable {
+    case all
+    case favorites
+    case tag(String)
+
+    var id: String {
+        switch self {
+        case .all: "control:all"
+        case .favorites: "control:favorites"
+        case .tag(let tag): "tag:\(TextInputFormatting.normalizedSearchKey(tag))"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .all: "All"
+        case .favorites: "Favorites"
+        case .tag(let tag): tag
+        }
+    }
+}
+
 @MainActor
 final class CakeDesignListViewModel: ObservableObject {
     @Published private(set) var designs: [CakeDesign] = []
     @Published private(set) var customerReferences: [CustomerReferenceDesign] = []
     @Published private(set) var internetInspirations: [CakeDesign] = []
     @Published var searchText = ""
-    @Published var selectedFilter: String?
+    @Published var selectedFilter: DesignLibraryFilter = .all
     @Published var errorMessage: String?
 
     private let repository: any CakeDesignRepository
@@ -63,6 +85,9 @@ final class CakeDesignListViewModel: ObservableObject {
                     }
             } else {
                 customerReferences = []
+            }
+            if !availableFilters.contains(selectedFilter) {
+                selectedFilter = .all
             }
             errorMessage = nil
         } catch {
@@ -145,7 +170,7 @@ final class CakeDesignListViewModel: ObservableObject {
         !searchTerms.isEmpty
     }
 
-    var availableFilters: [String] {
+    var availableFilters: [DesignLibraryFilter] {
         let persistedDesigns = designs + internetInspirations
         let allTags = DesignTags.normalized(
             persistedDesigns.flatMap(\.tags) + customerReferences.flatMap { $0.photo.tags }
@@ -160,11 +185,14 @@ final class CakeDesignListViewModel: ObservableObject {
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         let hasFavorite = persistedDesigns.contains(where: \.isFavorite)
             || customerReferences.contains { $0.photo.isFavorite }
-        return ["All"] + (hasFavorite ? ["Favorites"] : []) + matchingSuggested + custom
+        return [.all]
+            + (hasFavorite ? [.favorites] : [])
+            + matchingSuggested.map(DesignLibraryFilter.tag)
+            + custom.map(DesignLibraryFilter.tag)
     }
 
-    func selectFilter(_ filter: String) {
-        selectedFilter = filter == "All" ? nil : filter
+    func selectFilter(_ filter: DesignLibraryFilter) {
+        selectedFilter = filter
     }
 
     func toggleFavorite(_ design: CakeDesign) -> CakeDesign? {
@@ -327,10 +355,15 @@ final class CakeDesignListViewModel: ObservableObject {
     }
 
     private func matchesSelectedFilter(tags: [String], isFavorite: Bool) -> Bool {
-        guard let selectedFilter else { return true }
-        if selectedFilter == "Favorites" { return isFavorite }
-        let selectedKey = TextInputFormatting.normalizedSearchKey(selectedFilter)
-        return tags.contains { TextInputFormatting.normalizedSearchKey($0) == selectedKey }
+        switch selectedFilter {
+        case .all:
+            return true
+        case .favorites:
+            return isFavorite
+        case .tag(let tag):
+            let selectedKey = TextInputFormatting.normalizedSearchKey(tag)
+            return tags.contains { TextInputFormatting.normalizedSearchKey($0) == selectedKey }
+        }
     }
 
     private func saveDesignCopy(
@@ -398,13 +431,14 @@ final class CakeDesignListViewModel: ObservableObject {
     }
 
     func accessibilityLabel(for design: CakeDesign) -> String {
+        let favoriteSuffix = design.isFavorite ? ", favorite" : ""
         if design.photoReference == nil {
-            return "\(design.name), design without a linked photo"
+            return "\(design.name), design without a linked photo\(favoriteSuffix)"
         }
         if availablePhotoSource(for: design) == nil {
-            return "\(design.name), photo unavailable"
+            return "\(design.name), photo unavailable\(favoriteSuffix)"
         }
 
-        return "\(design.name), design photo"
+        return "\(design.name), design photo\(favoriteSuffix)"
     }
 }

@@ -70,6 +70,21 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
     }
 
+    func testAccessibilityLabelIncludesFavoriteState() {
+        let viewModel = CakeDesignListViewModel(repository: FakeCakeDesignRepository())
+        let design = makeDesign(
+            id: "design-favorite",
+            name: "Favorite Cake",
+            photoReference: nil,
+            isFavorite: true
+        )
+
+        XCTAssertEqual(
+            viewModel.accessibilityLabel(for: design),
+            "Favorite Cake, design without a linked photo, favorite"
+        )
+    }
+
     func testAccessibilityLabelCallsOutDeletedPhotoFile() {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -281,17 +296,20 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
         viewModel.load()
 
-        XCTAssertEqual(viewModel.availableFilters, ["All", "Favorites", "Wedding", "Chocolate", "Floral"])
-        viewModel.selectFilter("Favorites")
+        XCTAssertEqual(
+            viewModel.availableFilters,
+            [.all, .favorites, .tag("Wedding"), .tag("Chocolate"), .tag("Floral")]
+        )
+        viewModel.selectFilter(.favorites)
         XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [ownerDesign.id])
         XCTAssertTrue(viewModel.visibleInternetInspirations.isEmpty)
         XCTAssertTrue(viewModel.visibleCustomerReferences.isEmpty)
 
-        viewModel.selectFilter("Wedding")
+        viewModel.selectFilter(.tag("Wedding"))
         XCTAssertEqual(viewModel.visibleCustomerReferences.map(\.id), ["photo-wedding"])
         XCTAssertTrue(viewModel.visibleDesigns.isEmpty)
 
-        viewModel.selectFilter("All")
+        viewModel.selectFilter(.all)
         viewModel.searchText = "floral"
         XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [ownerDesign.id])
     }
@@ -308,6 +326,30 @@ final class CakeDesignListViewModelTests: XCTestCase {
         let favorite = tagged.flatMap(viewModel.toggleFavorite)
         XCTAssertEqual(favorite?.isFavorite, true)
         XCTAssertEqual(repository.designs.first, favorite)
+    }
+
+    func testReservedLabelsRemainDistinctTagFiltersAndStaleSelectionResets() {
+        let repository = FakeCakeDesignRepository()
+        let design = makeDesign(
+            id: "design-reserved-tags",
+            name: "Reserved Tags",
+            tags: ["All", "Favorites"]
+        )
+        repository.designs = [design]
+        let viewModel = CakeDesignListViewModel(repository: repository)
+        viewModel.load()
+
+        XCTAssertEqual(
+            viewModel.availableFilters,
+            [.all, .tag("All"), .tag("Favorites")]
+        )
+        viewModel.selectFilter(.tag("Favorites"))
+        XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [design.id])
+
+        _ = viewModel.updateTags("Other", for: design)
+
+        XCTAssertEqual(viewModel.selectedFilter, .all)
+        XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [design.id])
     }
 
     private func makeDesign(
