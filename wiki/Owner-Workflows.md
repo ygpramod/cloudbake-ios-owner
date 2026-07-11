@@ -355,6 +355,11 @@ Design selection opens from the order form when saved cake designs exist. The ow
 existing design reference, clear the link, and review the linked design name, notes, and photo
 reference from order detail.
 
+From Designs detail, `Use for New Order` opens the normal add-order form with the selected image
+already linked. The order remains an unsaved draft until Save is selected. Owner-made and internet
+inspiration items retain their saved-design relationship; customer references retain a separate
+originating order-photo relationship so their provenance is not changed.
+
 Order detail also includes a Photos section for order-specific images. Customer References are for
 images the customer shares before preparation, while Final Cake Photos are for what the owner made
 and delivered. Each group shows compact camera and photo-library icons beside the group title. The
