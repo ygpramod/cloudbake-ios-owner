@@ -126,7 +126,7 @@ struct DashboardView: View {
             return "\(firstItem.name) and more"
         }
 
-        return firstItem.lowInventoryDetail
+        return "\(firstItem.name) · \(firstItem.lowInventoryDetail)"
     }
 }
 
@@ -225,6 +225,8 @@ private struct DashboardAttentionRow: View {
         }
         .buttonStyle(.plain)
         .disabled(!isActionable)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title), \(detail)")
         .accessibilityIdentifier(isActionable ? accessibilityIdentifier : "\(accessibilityIdentifier).empty")
     }
 }
