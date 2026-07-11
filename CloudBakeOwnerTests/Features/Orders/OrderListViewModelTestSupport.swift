@@ -409,6 +409,10 @@ final class FakeOrderRepository: OrderRepository,
             }
     }
 
+    func fetchOrderPhotos(kind: OrderPhotoKind) throws -> [OrderPhoto] {
+        orderPhotos.filter { $0.kind == kind }
+    }
+
     func deleteOrderPhoto(id: String) throws {
         orderPhotos.removeAll { $0.id == id }
     }

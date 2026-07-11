@@ -962,12 +962,17 @@ final class CoreDataRepositoryTests: XCTestCase {
             try repository.fetchOrderPhotos(orderId: order.id),
             [firstReference, secondReference, finalPhoto]
         )
+        XCTAssertEqual(
+            try repository.fetchOrderPhotos(kind: .customerReference),
+            [secondReference, firstReference]
+        )
 
         try repository.deleteOrderPhoto(id: secondReference.id)
         XCTAssertEqual(
             try repository.fetchOrderPhotos(orderId: order.id),
             [firstReference, finalPhoto]
         )
+        XCTAssertEqual(try repository.fetchOrderPhotos(kind: .customerReference), [firstReference])
         XCTAssertEqual(try repository.fetchOrder(id: order.id), order)
     }
 

@@ -227,6 +227,20 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchOrderPhotos(kind: OrderPhotoKind) throws -> [OrderPhoto] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM order_photos
+                    WHERE kind = ?
+                    ORDER BY created_at_unix_time DESC, id
+                    """,
+                arguments: [kind.rawValue]
+            ).compactMap(orderPhoto)
+        }
+    }
+
     func deleteOrderPhoto(id: String) throws {
         try writer.write { db in
             try db.execute(

@@ -100,6 +100,51 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.accessibilityLabel(for: design), "Photos Cake, design photo")
     }
 
+    func testLoadDerivesCustomerReferencesFromOrderPhotos() {
+        let designRepository = FakeCakeDesignRepository()
+        let orderRepository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-reference",
+            title: "Blue wedding cake",
+            dueAt: Date(timeIntervalSince1970: 1_800_090_000)
+        )
+        let reference = OrderPhoto(
+            id: "photo-customer-reference",
+            orderId: order.id,
+            kind: .customerReference,
+            localPhotoPath: "OrderPhotos/reference.jpg",
+            caption: "Blue flowers",
+            createdAt: Date(timeIntervalSince1970: 1_800_080_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_080_000)
+        )
+        let finalPhoto = OrderPhoto(
+            id: "photo-final",
+            orderId: order.id,
+            kind: .finalCake,
+            localPhotoPath: "OrderPhotos/final.jpg",
+            caption: nil,
+            createdAt: reference.createdAt,
+            updatedAt: reference.updatedAt
+        )
+        orderRepository.orders = [order]
+        orderRepository.orderPhotos = [finalPhoto, reference]
+        let viewModel = CakeDesignListViewModel(
+            repository: designRepository,
+            customerReferenceRepository: orderRepository
+        )
+
+        viewModel.load()
+
+        XCTAssertEqual(
+            viewModel.customerReferences,
+            [CustomerReferenceDesign(photo: reference, order: order)]
+        )
+        viewModel.searchText = "blue"
+        XCTAssertEqual(viewModel.visibleCustomerReferences.map(\.id), [reference.id])
+        viewModel.searchText = "unknown"
+        XCTAssertTrue(viewModel.visibleCustomerReferences.isEmpty)
+    }
+
     private func makeDesign(
         id: String,
         name: String,

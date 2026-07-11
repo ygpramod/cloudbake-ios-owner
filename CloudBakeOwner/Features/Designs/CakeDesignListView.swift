@@ -6,6 +6,7 @@ import UIKit
 struct CakeDesignListView: View {
     @StateObject private var viewModel: CakeDesignListViewModel
     @State private var previewingDesign: CakeDesign?
+    @State private var previewingCustomerReference: CustomerReferenceDesign?
     @FocusState private var isSearchFocused: Bool
 
     init(viewModel: CakeDesignListViewModel) {
@@ -17,7 +18,7 @@ struct CakeDesignListView: View {
             title: "Designs",
             selectedDestination: .designs
         ) {
-            if viewModel.designs.isEmpty {
+            if !viewModel.hasContent {
                 CloudBakeEmptyState(
                     title: "No designs yet",
                     systemImage: "photo.on.rectangle",
@@ -57,6 +58,14 @@ struct CakeDesignListView: View {
                 )
             }
         }
+        .sheet(item: $previewingCustomerReference) { reference in
+            NavigationStack {
+                CustomerReferencePreviewView(
+                    reference: reference,
+                    photoSource: viewModel.availablePhotoSource(for: reference.photo)
+                )
+            }
+        }
         .onAppear {
             viewModel.load()
         }
@@ -64,13 +73,14 @@ struct CakeDesignListView: View {
 
     @ViewBuilder
     private var designResults: some View {
-        if viewModel.visibleDesigns.isEmpty {
+        if viewModel.visibleDesigns.isEmpty && viewModel.visibleCustomerReferences.isEmpty {
             CloudBakeEmptyState(
                 title: "No matching designs",
                 systemImage: "magnifyingglass",
                 message: "Try another cake name, note, tag, or photo reference."
             )
         } else {
+            if !viewModel.visibleDesigns.isEmpty {
             Text("My Designs (\(viewModel.visibleDesigns.count))")
                 .font(CloudBakeTheme.Typography.sectionTitle)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -86,7 +96,55 @@ struct CakeDesignListView: View {
                     designTile(design)
                 }
             }
+            }
+
+            if !viewModel.visibleCustomerReferences.isEmpty {
+                Text("Customer References (\(viewModel.visibleCustomerReferences.count))")
+                    .font(CloudBakeTheme.Typography.sectionTitle)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("designs.customerReferences.title")
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 14) {
+                        ForEach(viewModel.visibleCustomerReferences) { reference in
+                            customerReferenceTile(reference)
+                                .frame(width: 150)
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    private func customerReferenceTile(_ reference: CustomerReferenceDesign) -> some View {
+        Button {
+            previewingCustomerReference = reference
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                DesignPhotoView(
+                    source: viewModel.availablePhotoSource(for: reference.photo),
+                    maximumPixelSize: 600,
+                    contentMode: .fill
+                )
+                .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+                Text(reference.title)
+                    .font(CloudBakeTheme.Typography.rowTitle)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                Text(reference.order.customerName)
+                    .font(CloudBakeTheme.Typography.rowDetail)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .padding(12)
+        }
+        .buttonStyle(.plain)
+        .cloudBakeCardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(reference.title), customer reference from \(reference.order.customerName)")
+        .accessibilityIdentifier("designs.customerReference.\(reference.id)")
     }
 
     private func designTile(_ design: CakeDesign) -> some View {
@@ -125,6 +183,44 @@ struct CakeDesignListView: View {
         .accessibilityIdentifier("designs.item.\(design.id)")
     }
 
+}
+
+private struct CustomerReferencePreviewView: View {
+    let reference: CustomerReferenceDesign
+    let photoSource: CakeDesignPhotoSource?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                DesignPhotoView(source: photoSource, maximumPixelSize: 2_400, contentMode: .fit)
+                    .aspectRatio(1, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .accessibilityIdentifier("designs.customerReference.preview.photo")
+
+                CloudBakeDetailCard {
+                    CloudBakeDetailRow("Source") { Text("Customer Reference") }
+                    CloudBakeDetailDivider()
+                    CloudBakeDetailRow("Customer") { Text(reference.order.customerName) }
+                    CloudBakeDetailDivider()
+                    CloudBakeDetailRow("Order") { Text(reference.order.title) }
+                    if let caption = reference.photo.caption {
+                        CloudBakeDetailDivider()
+                        CloudBakeDetailRow("Caption") { Text(caption) }
+                    }
+                }
+            }
+            .padding(CloudBakeTheme.Spacing.screenHorizontal)
+        }
+        .background(Color.cloudBakeBlush.ignoresSafeArea())
+        .navigationTitle(reference.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") { dismiss() }
+            }
+        }
+    }
 }
 
 private struct CakeDesignPreviewView: View {
