@@ -177,7 +177,7 @@ private final class FakeCakeDesignRepository: CakeDesignRepository {
         _ design: CakeDesign,
         linking order: Order,
         photo: OrderPhoto,
-        cleanupRelativePath: String
+        cleanupRelativePath: String?
     ) throws {
         try save(design)
     }

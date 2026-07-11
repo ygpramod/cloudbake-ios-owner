@@ -161,6 +161,42 @@ final class OrderPhotoViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testPromotePhotosBackedFinalCakeReusesAssetWithoutCreatingACopy() async {
+        let repository = FakeOrderRepository()
+        let designPhotoLibrary = FakeDesignPhotoLibrary()
+        let order = makeOrder(id: "order-photos-final", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        repository.orders = [order]
+        let timestamp = Date(timeIntervalSince1970: 1_800_080_000)
+        let photo = OrderPhoto(
+            id: "photo-photos-final",
+            orderId: order.id,
+            kind: .finalCake,
+            localPhotoPath: designPhotoLibrary.savedReference,
+            caption: "Photos final",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.orderPhotos = [photo]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            designPhotoLibrary: designPhotoLibrary,
+            idGenerator: { "design-photos-final" }
+        )
+        viewModel.beginViewingOrder(order)
+
+        let didPromote = await viewModel.promoteFinalCakePhotoToDesign(
+            photo,
+            name: "Photos Final",
+            notes: ""
+        )
+
+        XCTAssertTrue(didPromote)
+        XCTAssertEqual(repository.cakeDesigns.first?.photoReference, photo.localPhotoPath)
+        XCTAssertTrue(designPhotoLibrary.savedFileURLs.isEmpty)
+        XCTAssertTrue(repository.pendingDesignPhotoCleanupPaths.isEmpty)
+        XCTAssertEqual(viewModel.selectedOrderPhotos.first?.localPhotoPath, photo.localPhotoPath)
+    }
+
     func testPromoteReferencePhotoToDesignIsRejected() async {
         let repository = FakeOrderRepository()
         let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
@@ -283,7 +319,7 @@ final class OrderPhotoViewModelTests: XCTestCase {
         let firstPromotion = Task {
             await viewModel.promoteFinalCakePhotoToDesign(photo, name: "First", notes: "")
         }
-        while designPhotoLibrary.savedFileURLs.isEmpty {
+        while !designPhotoLibrary.isSaveSuspended {
             await Task.yield()
         }
 

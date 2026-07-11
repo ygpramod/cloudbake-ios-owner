@@ -32,7 +32,7 @@ protocol CakeDesignRepository {
         _ design: CakeDesign,
         linking order: Order,
         photo: OrderPhoto,
-        cleanupRelativePath: String
+        cleanupRelativePath: String?
     ) throws
     func fetchPendingDesignPhotoCleanupPaths() throws -> [String]
     func deletePendingDesignPhotoCleanupPath(_ relativePath: String) throws

@@ -254,20 +254,22 @@ extension GRDBCoreDataRepository {
         _ design: CakeDesign,
         linking order: Order,
         photo: OrderPhoto,
-        cleanupRelativePath: String
+        cleanupRelativePath: String?
     ) throws {
         try writer.write { db in
             try save(design, in: db)
             try save(order, in: db)
             try save(photo, in: db)
-            try db.execute(
-                sql: """
-                    INSERT OR IGNORE INTO design_photo_cleanups
-                    (relative_path, created_at_unix_time)
-                    VALUES (?, ?)
-                    """,
-                arguments: [cleanupRelativePath, design.updatedAt.timeIntervalSince1970]
-            )
+            if let cleanupRelativePath {
+                try db.execute(
+                    sql: """
+                        INSERT OR IGNORE INTO design_photo_cleanups
+                        (relative_path, created_at_unix_time)
+                        VALUES (?, ?)
+                        """,
+                    arguments: [cleanupRelativePath, design.updatedAt.timeIntervalSince1970]
+                )
+            }
         }
     }
 
