@@ -197,10 +197,12 @@ added later if actual owner use demonstrates the need.
 The library must be photograph-led. Cards should contain:
 
 - a large thumbnail,
-- design name,
 - a favourite control or state,
 - order usage count such as `Used 7x` when usage exists,
 - a subtle source marker when the surrounding collection does not already make provenance clear.
+
+The Designs landing thumbnails do not show names or descriptive metadata. That information remains
+available to VoiceOver and appears in detail after selection, keeping browsing visually photo-first.
 
 The usage count must be derived from orders linked to the design; it must not be manually entered.
 
@@ -208,8 +210,7 @@ Because the first app has one owner, the heart represents the owner's favourite 
 a numeric public like count. A count such as `18 likes` would imply consumer engagement that does
 not exist. Public popularity metrics belong to a future consumer RFC.
 
-Cards must remain readable with long names and Dynamic Type. The photo area should keep a stable
-aspect ratio so image loading does not move the grid.
+The photo area should keep a stable aspect ratio so image loading does not move the grid.
 
 ## Design Detail
 
