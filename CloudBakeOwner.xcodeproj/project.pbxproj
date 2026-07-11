@@ -133,6 +133,9 @@
 		410000000000000000000073 /* CustomerDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007B /* CustomerDraftValidationTests.swift */; };
 		410000000000000000000074 /* OrderListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007C /* OrderListViewModelTestSupport.swift */; };
 		410000000000000000000075 /* CloudBakeScreenStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007D /* CloudBakeScreenStyle.swift */; };
+		410000000000000000000084 /* CakeDesignListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000084 /* CakeDesignListView.swift */; };
+		410000000000000000000085 /* CakeDesignListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000085 /* CakeDesignListViewModel.swift */; };
+		410000000000000000000086 /* CakeDesignListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000086 /* CakeDesignListViewModelTests.swift */; };
 		4100000000000000000000B5 /* InventoryAliasesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000B5 /* InventoryAliasesTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -160,6 +163,9 @@
 		420000000000000000000081 /* InventoryCSVService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCSVService.swift; sourceTree = "<group>"; };
 		420000000000000000000082 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		420000000000000000000083 /* InventoryCSVServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCSVServiceTests.swift; sourceTree = "<group>"; };
+		420000000000000000000084 /* CakeDesignListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CakeDesignListView.swift; sourceTree = "<group>"; };
+		420000000000000000000085 /* CakeDesignListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CakeDesignListViewModel.swift; sourceTree = "<group>"; };
+		420000000000000000000086 /* CakeDesignListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CakeDesignListViewModelTests.swift; sourceTree = "<group>"; };
 		420000000000000000000003 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		420000000000000000000004 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		420000000000000000000005 /* PlaceholderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderScreen.swift; sourceTree = "<group>"; };
@@ -359,6 +365,7 @@
 			children = (
 				45000000000000000000001C /* Customers */,
 				450000000000000000000005 /* Dashboard */,
+				450000000000000000000023 /* Designs */,
 				450000000000000000000015 /* Inventory */,
 				45000000000000000000001E /* Orders */,
 				450000000000000000000006 /* Placeholder */,
@@ -367,6 +374,15 @@
 				450000000000000000000021 /* Settings */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		450000000000000000000023 /* Designs */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000084 /* CakeDesignListView.swift */,
+				420000000000000000000085 /* CakeDesignListViewModel.swift */,
+			);
+			path = Designs;
 			sourceTree = "<group>";
 		};
 		4500000000000000000000AE /* Reminders */ = {
@@ -568,6 +584,7 @@
 			children = (
 				45000000000000000000001D /* Customers */,
 				450000000000000000000018 /* Dashboard */,
+				450000000000000000000024 /* Designs */,
 				450000000000000000000017 /* Inventory */,
 				45000000000000000000001F /* Orders */,
 				45000000000000000000001B /* Recipes */,
@@ -575,6 +592,14 @@
 				450000000000000000000022 /* Settings */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		450000000000000000000024 /* Designs */ = {
+			isa = PBXGroup;
+			children = (
+				420000000000000000000086 /* CakeDesignListViewModelTests.swift */,
+			);
+			path = Designs;
 			sourceTree = "<group>";
 		};
 		4500000000000000000000AF /* Reminders */ = {
@@ -833,6 +858,8 @@
 				410000000000000000000058 /* GRDBRecipeRepository.swift in Sources */,
 				410000000000000000000055 /* TextInputFormatting.swift in Sources */,
 				410000000000000000000034 /* CustomerConsumerProfile.swift in Sources */,
+				410000000000000000000084 /* CakeDesignListView.swift in Sources */,
+				410000000000000000000085 /* CakeDesignListViewModel.swift in Sources */,
 				410000000000000000000029 /* CustomerContactImport.swift in Sources */,
 				410000000000000000000052 /* CustomerContactPicker.swift in Sources */,
 				410000000000000000000053 /* CustomerDetailView.swift in Sources */,
@@ -908,6 +935,7 @@
 				410000000000000000000028 /* CustomerListViewModelTests.swift in Sources */,
 				41000000000000000000002A /* CustomerContactImportTests.swift in Sources */,
 				410000000000000000000073 /* CustomerDraftValidationTests.swift in Sources */,
+				410000000000000000000086 /* CakeDesignListViewModelTests.swift in Sources */,
 				41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */,
 				4100000000000000000000B3 /* NavigationRouterTests.swift in Sources */,
 				410000000000000000000032 /* OrderReminderSchedulerTests.swift in Sources */,
