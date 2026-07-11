@@ -14,6 +14,7 @@ struct OrderListView: View {
     @State private var orderAddingPartialPayment: Order?
     @State private var partialPaymentAmount = ""
     @State private var canOpenWhatsApp = false
+    @FocusState private var isSearchFocused: Bool
 
     init(viewModel: OrderListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -171,6 +172,15 @@ struct OrderListView: View {
                 .accessibilityIdentifier("orders.scope")
             }
 
+            if !viewModel.orders.isEmpty {
+                CloudBakeSearchField(
+                    text: $viewModel.searchText,
+                    prompt: "Search orders",
+                    accessibilityIdentifier: "orders.search",
+                    isFocused: $isSearchFocused
+                )
+            }
+
             if viewModel.orders.isEmpty {
                 CloudBakeEmptyState(
                     title: "No orders yet",
@@ -178,27 +188,31 @@ struct OrderListView: View {
                     message: "Add accepted or draft cake orders to track due dates and customer requests."
                 )
             } else if orderScope == .completed {
-                if viewModel.completedOrders.isEmpty {
+                if viewModel.visibleCompletedOrders.isEmpty {
                     CloudBakeEmptyState(
-                        title: "No completed orders",
+                        title: viewModel.searchText.isEmpty ? "No completed orders" : "No matching completed orders",
                         systemImage: "checkmark.circle",
-                        message: "Orders marked completed will appear here."
+                        message: viewModel.searchText.isEmpty
+                            ? "Orders marked completed will appear here."
+                            : "Try another cake, customer, status, or fulfillment detail."
                     )
                 } else {
                     CloudBakeSection("Completed") {
                         VStack(spacing: 16) {
-                            ForEach(viewModel.completedOrders, id: \.id) { order in
+                            ForEach(viewModel.visibleCompletedOrders, id: \.id) { order in
                                 orderRow(order, dueDateDisplay: .dateOnly)
                                     .cloudBakeCardStyle()
                             }
                         }
                     }
                 }
-            } else if viewModel.activeOrders.isEmpty {
+            } else if viewModel.visibleActiveOrders.isEmpty {
                 CloudBakeEmptyState(
-                    title: "No active orders",
+                    title: viewModel.searchText.isEmpty ? "No active orders" : "No matching active orders",
                     systemImage: "calendar",
-                    message: "Draft, confirmed, in-progress, and ready orders will appear by delivery day."
+                    message: viewModel.searchText.isEmpty
+                        ? "Draft, confirmed, in-progress, and ready orders will appear by delivery day."
+                        : "Try another cake, customer, status, or fulfillment detail."
                 )
             } else {
                 VStack(alignment: .leading, spacing: 24) {

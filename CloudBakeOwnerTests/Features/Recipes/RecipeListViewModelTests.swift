@@ -21,6 +21,36 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testVisibleRecipesFiltersByNameAndNotes() {
+        let repository = FakeRecipeRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let vanilla = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla Sponge",
+            notes: "Book page 12",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let chocolate = Recipe(
+            id: "recipe-chocolate-fudge",
+            name: "Chocolate Fudge",
+            notes: "Ganache filling",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.recipes = [vanilla, chocolate]
+        let viewModel = RecipeListViewModel(repository: repository)
+
+        viewModel.load()
+        viewModel.searchText = "ganache"
+
+        XCTAssertEqual(viewModel.visibleRecipes, [chocolate])
+
+        viewModel.searchText = "vanilla"
+
+        XCTAssertEqual(viewModel.visibleRecipes, [vanilla])
+    }
+
     func testAddRecipePersistsAndReloadsRecipes() {
         let repository = FakeRecipeRepository()
         let now = Date(timeIntervalSince1970: 1_800_031_000)
