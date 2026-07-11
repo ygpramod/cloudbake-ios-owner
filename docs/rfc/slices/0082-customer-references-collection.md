@@ -22,6 +22,8 @@ second design record.
 4. Show photo, customer, order, and caption context in reference detail.
 5. Search reference captions, order titles, and customer names.
 6. Remove a reference from the collection automatically when its order-photo record is deleted.
+7. Save every newly added order photo to Photos and persist only its asset identifier, so customer
+   references comply with the same ownership boundary before appearing in Designs.
 
 Out of scope:
 
@@ -33,8 +35,9 @@ Out of scope:
 
 The collection is a read-only projection over `OrderPhoto` and `Order`; it creates no duplicate
 metadata or image binary. Source identity remains visible in both the tile accessibility label and
-detail view. Photo rendering supports canonical Photos identifiers and transitional legacy order
-photo references through the shared image pipeline.
+detail view. Photo rendering supports canonical Photos identifiers and read-only legacy order-photo
+references through the shared image pipeline. New picker and camera additions go directly to Photos
+and do not create a permanent app-container image.
 
 ## Test Strategy
 

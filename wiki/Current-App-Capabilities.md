@@ -136,6 +136,8 @@ The app currently supports:
     reference compatibility.
 111. a private Customer References collection in Designs, derived from order reference photos with
     originating customer and order context and without duplicating photo records.
+112. Photos-owned order images: new customer-reference and final-cake photos are saved to Photos,
+    and order metadata stores only the returned asset identifier.
 
 ## Partially Prepared
 
