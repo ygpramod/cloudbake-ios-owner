@@ -110,7 +110,7 @@ final class CoreModelsTests: XCTestCase {
             id: "design-flowers",
             name: "Pink Floral Cake",
             notes: "Owner-only design correction",
-            photoReference: "cloudbake://designs/pink-floral.jpg",
+            photoReference: "photos://pink-floral-asset",
             isPortfolioPublished: true,
             createdAt: timestamp,
             updatedAt: timestamp
@@ -127,7 +127,7 @@ final class CoreModelsTests: XCTestCase {
                 dueAt: timestamp,
                 fulfillmentType: .delivery,
                 designName: "Pink Floral Cake",
-                designPhotoReference: "cloudbake://designs/pink-floral.jpg"
+                designPhotoReference: "photos://pink-floral-asset"
             )
         )
     }
@@ -163,6 +163,17 @@ final class CoreModelsTests: XCTestCase {
                 design: design(sourceKind: .ownerMade, isPublished: true, photoReference: nil)
             )
         )
+        for reference in ["OrderPhotos/legacy.jpg", "https://example.com/cake.jpg", "photos://", "photos://   "] {
+            XCTAssertNil(
+                ConsumerDesignPreview(
+                    design: design(
+                        sourceKind: .ownerMade,
+                        isPublished: true,
+                        photoReference: reference
+                    )
+                )
+            )
+        }
     }
 
     func testConsumerDesignPreviewIncludesOnlyApprovedPortfolioFields() throws {
@@ -189,9 +200,78 @@ final class CoreModelsTests: XCTestCase {
             ConsumerDesignPreview(
                 designId: design.id,
                 name: design.name,
-                photoReference: "photos://public-asset",
-                tags: design.tags
+                photoReference: "photos://public-asset"
             )
+        )
+    }
+
+    func testConsumerOrderPreviewRequiresItsLinkedPublishedOwnerDesign() {
+        let timestamp = Date(timeIntervalSince1970: 1_800_120_000)
+        let linkedOrder = Order(
+            id: "order-linked-design",
+            customerId: nil,
+            cakeDesignId: "design-linked",
+            title: "Linked cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        func design(
+            id: String = "design-linked",
+            sourceKind: CakeDesignSourceKind = .ownerMade,
+            isPublished: Bool = true
+        ) -> CakeDesign {
+            CakeDesign(
+                id: id,
+                name: "Projected design",
+                notes: nil,
+                photoReference: "photos://projected-asset",
+                sourceKind: sourceKind,
+                isPortfolioPublished: isPublished,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        }
+
+        XCTAssertEqual(
+            ConsumerOrderPreview(order: linkedOrder, cakeDesign: design()).designName,
+            "Projected design"
+        )
+        XCTAssertNil(
+            ConsumerOrderPreview(order: linkedOrder, cakeDesign: design(id: "design-other"))
+                .designName
+        )
+        XCTAssertNil(
+            ConsumerOrderPreview(order: linkedOrder, cakeDesign: design(isPublished: false))
+                .designName
+        )
+        XCTAssertNil(
+            ConsumerOrderPreview(
+                order: linkedOrder,
+                cakeDesign: design(sourceKind: .internetInspiration)
+            ).designName
+        )
+        let unlinkedOrder = Order(
+            id: "order-unlinked-design",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Unlinked cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        XCTAssertNil(
+            ConsumerOrderPreview(order: unlinkedOrder, cakeDesign: design()).designName
         )
     }
 
