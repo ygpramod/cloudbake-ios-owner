@@ -129,6 +129,8 @@ The app currently supports:
 107. unit, integration, and feature-sharded acceptance test lanes.
 108. persisted cake-design provenance for owner-made, customer-reference, and internet-inspiration
     records, including optional originating order and order-photo relationships.
+109. an owner-made My Designs photo gallery and design detail view backed by locally stored final
+    cake photos, with explicit handling when a stored photo is unavailable.
 
 ## Partially Prepared
 
