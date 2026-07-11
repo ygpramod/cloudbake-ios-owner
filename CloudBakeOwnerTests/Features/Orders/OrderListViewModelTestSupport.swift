@@ -161,7 +161,8 @@ func makeOrderPhoto(
     id: String,
     orderId: String,
     kind: OrderPhotoKind,
-    caption: String? = nil
+    caption: String? = nil,
+    tags: [String] = []
 ) -> OrderPhoto {
     let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
     return OrderPhoto(
@@ -170,6 +171,7 @@ func makeOrderPhoto(
         kind: kind,
         localPhotoPath: "OrderPhotos/\(orderId)/\(id).jpg",
         caption: caption,
+        tags: tags,
         createdAt: timestamp,
         updatedAt: timestamp
     )

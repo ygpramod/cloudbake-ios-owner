@@ -745,6 +745,33 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(app.staticTexts["orders.detail.designPhotoReference"], in: app, timeout: transitionTimeout)
     }
 
+    func testOrderCanSelectCustomerReferenceFromPhotoFirstDesignPicker() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 25
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] = "1"
+        app.launch()
+
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+
+        let designField = app.buttons["orders.form.design"]
+        scrollToHittable(designField, in: app, timeout: transitionTimeout)
+        tapWhenReady(designField, timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Choose Design"].waitForExistence(timeout: transitionTimeout))
+
+        let search = app.textFields["orders.designSelection.search"]
+        typeText("Customer sketch", into: search, timeout: transitionTimeout)
+        let reference = app.descendants(matching: .any)[
+            "orders.designSelection.customerReference.photo-ui-fixture-reference"
+        ]
+        XCTAssertTrue(reference.waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(reference, timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.buttons["orders.form.design"].label.contains("Customer Reference"))
+    }
+
     func testOrderCanUseLinkedRecipeToDeductInventory() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15

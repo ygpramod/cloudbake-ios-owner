@@ -86,6 +86,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanCreateAndLinkNewCustomerFromSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkRecipeFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkDesignFromSearchableSelection
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanSelectCustomerReferenceFromPhotoFirstDesignPicker
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeAddedAndViewed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerAddOffersContactsImportAndManualEntry
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDuplicateWarningAppearsBeforeSaving

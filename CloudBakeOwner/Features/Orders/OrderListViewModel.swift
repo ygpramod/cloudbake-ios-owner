@@ -32,6 +32,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var customers: [Customer] = []
     @Published private(set) var recipes: [Recipe] = []
     @Published private(set) var cakeDesigns: [CakeDesign] = []
+    @Published private(set) var designCustomerReferences: [CustomerReferenceDesign] = []
     @Published private(set) var selectedOrder: Order?
     @Published private(set) var selectedOrderCustomer: Customer?
     @Published private(set) var selectedOrderRecipe: Recipe?
@@ -365,6 +366,7 @@ final class OrderListViewModel: ObservableObject {
 
     func cakeDesigns(matching searchText: String, tag: String?) -> [CakeDesign] {
         cakeDesigns(matching: searchText).filter { design in
+            guard design.sourceKind == .ownerMade else { return false }
             guard let tag else { return true }
             let selectedKey = TextInputFormatting.normalizedSearchKey(tag)
             return design.tags.contains {
@@ -374,7 +376,43 @@ final class OrderListViewModel: ObservableObject {
     }
 
     var mostUsedDesignTags: [String] {
-        DesignTagRanking.mostUsed(in: cakeDesigns.map(\.tags))
+        DesignTagRanking.mostUsed(
+            in: cakeDesigns.filter { $0.sourceKind == .ownerMade }.map(\.tags)
+                + designCustomerReferences.map { $0.photo.tags }
+        )
+    }
+
+    func customerReferences(matching searchText: String, tag: String?) -> [CustomerReferenceDesign] {
+        let terms = searchText.split { !$0.isLetter && !$0.isNumber }
+            .map(String.init)
+            .map(TextInputFormatting.normalizedSearchKey)
+            .filter { !$0.isEmpty }
+        return designCustomerReferences.filter { reference in
+            let fields = ([
+                reference.title,
+                reference.order.title,
+                reference.order.customerName
+            ] + reference.photo.tags).map(TextInputFormatting.normalizedSearchKey)
+            let matchesSearch = terms.allSatisfy { term in
+                fields.contains { $0.contains(term) }
+            }
+            guard matchesSearch, let tag else { return matchesSearch }
+            let selectedKey = TextInputFormatting.normalizedSearchKey(tag)
+            return reference.photo.tags.contains {
+                TextInputFormatting.normalizedSearchKey($0) == selectedKey
+            }
+        }
+    }
+
+    func designPhotoSource(for reference: CustomerReferenceDesign) -> CakeDesignPhotoSource? {
+        let path = reference.photo.localPhotoPath
+        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: path) {
+            return designPhotoLibrary.containsAsset(identifier: identifier)
+                ? .photosAsset(identifier)
+                : nil
+        }
+        let url = photoFileStore.fileURL(for: path)
+        return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
     }
 
     func designPhotoSource(for design: CakeDesign) -> CakeDesignPhotoSource? {
@@ -1135,11 +1173,25 @@ final class OrderListViewModel: ObservableObject {
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
             cakeDesigns = try repository.fetchCakeDesigns(sourceKind: .ownerMade)
+            if let linkedDesignId = editingOrder?.cakeDesignId,
+               !cakeDesigns.contains(where: { $0.id == linkedDesignId }),
+               let linkedDesign = try repository.fetchCakeDesign(id: linkedDesignId) {
+                cakeDesigns.append(linkedDesign)
+            }
+            let allOrders = try repository.fetchOrders()
+            let ordersById = Dictionary(uniqueKeysWithValues: allOrders.map { ($0.id, $0) })
+            designCustomerReferences = try repository.fetchOrderPhotos(kind: .customerReference)
+                .compactMap { photo in
+                    ordersById[photo.orderId].map {
+                        CustomerReferenceDesign(photo: photo, order: $0)
+                    }
+                }
             availableInventoryItems = try repository.fetchInventoryItems()
         } catch {
             customers = []
             recipes = []
             cakeDesigns = []
+            designCustomerReferences = []
             availableInventoryItems = []
             errorMessage = "Order form references could not be loaded."
         }
