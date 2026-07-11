@@ -95,6 +95,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(reference)
         let useForNewOrder = app.buttons["designs.customerReference.useForNewOrder"]
         XCTAssertTrue(useForNewOrder.waitForExistence(timeout: 5))
+        scrollToHittable(useForNewOrder, in: app, timeout: 5)
         tapWhenReady(useForNewOrder)
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 10))
