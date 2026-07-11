@@ -134,6 +134,8 @@ final class AppDatabaseTests: XCTestCase {
         XCTAssertEqual(design.photoReference, "photos/legacy-floral.jpg")
         XCTAssertNil(design.originatingOrderPhotoId)
         XCTAssertNil(design.originatingOrderId)
+        XCTAssertTrue(design.tags.isEmpty)
+        XCTAssertFalse(design.isFavorite)
         XCTAssertEqual(
             try repository.fetchOrder(id: "order-legacy-design")?.cakeDesignId,
             design.id

@@ -345,6 +345,17 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0023_add_design_tags_and_favorites") { db in
+            try db.alter(table: "cake_designs") { table in
+                table.add(column: "tags_json", .text).notNull().defaults(to: "[]")
+                table.add(column: "is_favorite", .boolean).notNull().defaults(to: false)
+            }
+            try db.alter(table: "order_photos") { table in
+                table.add(column: "tags_json", .text).notNull().defaults(to: "[]")
+                table.add(column: "is_favorite", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return migrator
     }
 }
