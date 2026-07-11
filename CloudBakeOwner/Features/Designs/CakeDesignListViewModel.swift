@@ -31,6 +31,14 @@ final class CakeDesignListViewModel: ObservableObject {
         design.photoReference.map(photoFileStore.fileURL(for:))
     }
 
+    func availablePhotoURL(for design: CakeDesign) -> URL? {
+        guard let photoURL = photoURL(for: design),
+              FileManager.default.fileExists(atPath: photoURL.path) else {
+            return nil
+        }
+        return photoURL
+    }
+
     var visibleDesigns: [CakeDesign] {
         let query = TextInputFormatting.normalizedSearchKey(searchText)
         guard !query.isEmpty else {
@@ -52,6 +60,9 @@ final class CakeDesignListViewModel: ObservableObject {
     func accessibilityLabel(for design: CakeDesign) -> String {
         if design.photoReference == nil {
             return "\(design.name), design without a linked photo"
+        }
+        if availablePhotoURL(for: design) == nil {
+            return "\(design.name), photo unavailable"
         }
 
         return "\(design.name), design photo"
