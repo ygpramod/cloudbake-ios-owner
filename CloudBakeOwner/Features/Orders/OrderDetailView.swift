@@ -16,6 +16,7 @@ struct OrderDetailView: View {
     @State private var selectedFinalCakePhotoItem: PhotosPickerItem?
     @State private var cameraPhotoKind: OrderPhotoKind?
     @State private var previewingPhoto: OrderPhoto?
+    @State private var isPreviewingLinkedDesign = false
     @State private var isAddingExtraIngredient = false
     @State private var editingChecklistItem: OrderChecklistItem?
     @State private var editedChecklistItemTitle = ""
@@ -259,6 +260,16 @@ struct OrderDetailView: View {
                 )
             }
         }
+        .fullScreenCover(isPresented: $isPreviewingLinkedDesign) {
+            if let linkedDesignPreview {
+                LinkedDesignPhotoPreviewView(
+                    title: linkedDesignPreview.title,
+                    sourceName: linkedDesignPreview.sourceName,
+                    photoSource: linkedDesignPreview.photoSource,
+                    onClose: { isPreviewingLinkedDesign = false }
+                )
+            }
+        }
         .centeredOrderPopup(
             isPresented: isSelectingStatus,
             title: "Change Status",
@@ -486,18 +497,57 @@ struct OrderDetailView: View {
                         }
                     }
 
-                    if let photoReference = viewModel.selectedOrderCakeDesign?.photoReference
-                        ?? viewModel.selectedOrderCustomerReferencePhoto?.localPhotoPath {
+                    if let linkedDesignPreview {
                         CloudBakeDetailDivider()
-                        CloudBakeDetailRow("Photo") {
-                            Text(photoReference)
-                                .lineLimit(2)
-                                .accessibilityIdentifier("orders.detail.designPhotoReference")
+                        Button {
+                            isPreviewingLinkedDesign = true
+                        } label: {
+                            HStack(spacing: 14) {
+                                Text("Photo")
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                DesignPhotoView(
+                                    source: linkedDesignPreview.photoSource,
+                                    maximumPixelSize: 240,
+                                    contentMode: .fill
+                                )
+                                .frame(width: 72, height: 72)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Open linked design photo")
+                        .accessibilityIdentifier("orders.detail.designPhotoThumbnail")
                     }
                 }
             }
         }
+    }
+
+    private var linkedDesignPreview: LinkedDesignPreview? {
+        if let design = viewModel.selectedOrderCakeDesign,
+           design.photoReference != nil {
+            return LinkedDesignPreview(
+                title: design.name,
+                sourceName: viewModel.selectedOrderDesignSourceName ?? "My Designs",
+                photoSource: viewModel.designPhotoSource(for: design)
+            )
+        }
+
+        if let photo = viewModel.selectedOrderCustomerReferencePhoto {
+            return LinkedDesignPreview(
+                title: photo.caption ?? "Customer Reference",
+                sourceName: "Customer Reference",
+                photoSource: viewModel.orderPhotoSource(photo)
+            )
+        }
+
+        return nil
     }
 
     private var photosSection: some View {
@@ -761,6 +811,53 @@ struct OrderDetailView: View {
 
     private func formattedMoney(_ amount: Decimal) -> String {
         MoneyDisplay.formatted(amount)
+    }
+}
+
+private struct LinkedDesignPreview {
+    let title: String
+    let sourceName: String
+    let photoSource: CakeDesignPhotoSource?
+}
+
+private struct LinkedDesignPhotoPreviewView: View {
+    let title: String
+    let sourceName: String
+    let photoSource: CakeDesignPhotoSource?
+    let onClose: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                CloudBakeScreenBackground().ignoresSafeArea()
+
+                VStack(spacing: 20) {
+                    Spacer(minLength: 20)
+                    DesignPhotoView(
+                        source: photoSource,
+                        maximumPixelSize: 2_400,
+                        contentMode: .fit
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .accessibilityLabel("\(title), \(sourceName)")
+                    .accessibilityIdentifier("orders.detail.designPhotoPreview")
+
+                    Text(sourceName)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(CloudBakeTheme.Spacing.screenHorizontal)
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", action: onClose)
+                        .accessibilityIdentifier("orders.detail.designPhotoPreview.done")
+                }
+            }
+        }
     }
 }
 
