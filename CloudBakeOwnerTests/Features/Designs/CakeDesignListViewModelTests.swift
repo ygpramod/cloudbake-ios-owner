@@ -202,6 +202,39 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, "Source URL must be a valid http or https address.")
     }
 
+    func testInternetInspirationReusesPickerIdentifierWithoutSavingACopy() async throws {
+        let photoLibrary = FakeDesignPhotoLibrary()
+        let viewModel = CakeDesignListViewModel(
+            repository: FakeCakeDesignRepository(),
+            designPhotoLibrary: photoLibrary
+        )
+
+        let reference = try await viewModel.internetInspirationPhotoReference(
+            itemIdentifier: "picker-selected-asset",
+            fallbackData: Data([0xCA, 0xFE])
+        )
+
+        XCTAssertEqual(reference, "photos://picker-selected-asset")
+        XCTAssertTrue(photoLibrary.savedData.isEmpty)
+    }
+
+    func testInternetInspirationSavesFallbackDataWhenPickerHasNoIdentifier() async throws {
+        let photoLibrary = FakeDesignPhotoLibrary()
+        let viewModel = CakeDesignListViewModel(
+            repository: FakeCakeDesignRepository(),
+            designPhotoLibrary: photoLibrary
+        )
+        let data = Data([0xCA, 0xFE])
+
+        let reference = try await viewModel.internetInspirationPhotoReference(
+            itemIdentifier: nil,
+            fallbackData: data
+        )
+
+        XCTAssertEqual(reference, photoLibrary.savedReference)
+        XCTAssertEqual(photoLibrary.savedData, [data])
+    }
+
     private func makeDesign(
         id: String,
         name: String,
