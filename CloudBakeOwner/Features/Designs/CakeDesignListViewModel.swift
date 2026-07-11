@@ -101,37 +101,21 @@ final class CakeDesignListViewModel: ObservableObject {
     }
 
     var visibleDesigns: [CakeDesign] {
-        let query = TextInputFormatting.normalizedSearchKey(searchText)
-        guard !query.isEmpty else {
-            return designs
-        }
-
+        let terms = searchTerms
+        guard !terms.isEmpty else { return designs }
         return designs.filter { design in
-            [
-                design.name,
-                design.notes,
-                design.photoReference
-            ]
-            .compactMap { $0 }
-            .map(TextInputFormatting.normalizedSearchKey)
-            .contains { $0.contains(query) }
+            matchesAllTerms(terms, values: [design.name, design.notes])
         }
     }
 
     var visibleCustomerReferences: [CustomerReferenceDesign] {
-        let terms = searchText
-            .split(whereSeparator: \.isWhitespace)
-            .map(String.init)
-            .map(TextInputFormatting.normalizedSearchKey)
-            .filter { !$0.isEmpty }
+        let terms = searchTerms
         guard !terms.isEmpty else { return customerReferences }
         return customerReferences.filter { reference in
-            let searchableValues = [reference.photo.caption, reference.order.title, reference.order.customerName]
-                .compactMap { $0 }
-                .map(TextInputFormatting.normalizedSearchKey)
-            return terms.allSatisfy { term in
-                searchableValues.contains { $0.contains(term) }
-            }
+            matchesAllTerms(
+                terms,
+                values: [reference.photo.caption, reference.order.title, reference.order.customerName]
+            )
         }
     }
 

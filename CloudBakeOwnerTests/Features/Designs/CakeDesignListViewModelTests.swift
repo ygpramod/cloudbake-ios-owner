@@ -20,7 +20,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testVisibleDesignsSearchesNameNotesAndPhotoReference() {
+    func testVisibleDesignsUsesAndSearchAcrossNameAndNotes() {
         let repository = FakeCakeDesignRepository()
         let flowers = makeDesign(
             id: "design-flowers",
@@ -38,13 +38,17 @@ final class CakeDesignListViewModelTests: XCTestCase {
         let viewModel = CakeDesignListViewModel(repository: repository)
 
         viewModel.load()
-        viewModel.searchText = "buttercream"
+        viewModel.searchText = "pink buttercream"
 
         XCTAssertEqual(viewModel.visibleDesigns, [flowers])
 
         viewModel.searchText = "ganache"
 
         XCTAssertEqual(viewModel.visibleDesigns, [ganache])
+
+        viewModel.searchText = "pink anniversary"
+
+        XCTAssertTrue(viewModel.visibleDesigns.isEmpty)
     }
 
     func testAccessibilityLabelCallsOutMissingPhoto() {
