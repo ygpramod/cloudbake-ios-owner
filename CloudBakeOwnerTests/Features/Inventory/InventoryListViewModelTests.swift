@@ -120,6 +120,79 @@ final class InventoryListViewModelTests: XCTestCase {
         ])
     }
 
+    func testVisibleItemsFilterByLowStock() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_020_000)
+        let lowStock = InventoryItem(
+            id: "inventory-low",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 100,
+            minimumQuantity: 500,
+            createdAt: now,
+            updatedAt: now
+        )
+        let healthy = InventoryItem(
+            id: "inventory-healthy",
+            name: "Caster sugar",
+            unit: .gram,
+            currentQuantity: 750,
+            minimumQuantity: 250,
+            createdAt: now,
+            updatedAt: now
+        )
+        repository.items = [healthy, lowStock]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.load()
+
+        viewModel.itemFilter = .lowStock
+
+        XCTAssertEqual(viewModel.visibleItems, [lowStock])
+    }
+
+    func testVisibleItemsFilterByExpiringSoonAndExpiredStock() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_020_000)
+        let expiringSoon = InventoryItem(
+            id: "inventory-expiring",
+            name: "Butter",
+            unit: .gram,
+            currentQuantity: 750,
+            minimumQuantity: 250,
+            earliestExpiryAt: now.addingTimeInterval(86_400),
+            hasExpiringSoonStock: true,
+            createdAt: now,
+            updatedAt: now
+        )
+        let expired = InventoryItem(
+            id: "inventory-expired",
+            name: "Cream",
+            unit: .milliliter,
+            currentQuantity: 500,
+            minimumQuantity: 250,
+            earliestExpiryAt: now.addingTimeInterval(-86_400),
+            hasExpiredStock: true,
+            createdAt: now,
+            updatedAt: now
+        )
+        let healthy = InventoryItem(
+            id: "inventory-healthy",
+            name: "Caster sugar",
+            unit: .gram,
+            currentQuantity: 750,
+            minimumQuantity: 250,
+            createdAt: now,
+            updatedAt: now
+        )
+        repository.items = [healthy, expiringSoon, expired]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.load()
+
+        viewModel.itemFilter = .expiringSoon
+
+        XCTAssertEqual(viewModel.visibleItems, [expired, expiringSoon])
+    }
+
     func testAddItemPersistsAndReloadsInventory() {
         let repository = FakeInventoryItemRepository()
         let now = Date(timeIntervalSince1970: 1_800_030_000)

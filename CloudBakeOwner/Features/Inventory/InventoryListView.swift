@@ -58,6 +58,17 @@ struct InventoryListView: View {
                     isFocused: $isSearchFocused
                 )
 
+                Picker("Inventory filter", selection: $viewModel.itemFilter) {
+                    ForEach(InventoryItemFilter.allCases) { filter in
+                        Text(filter.title).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(6)
+                .background(.white.opacity(0.90), in: Capsule())
+                .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
+                .accessibilityIdentifier("inventory.filter")
+
                 inventoryResults
                     .contentShape(Rectangle())
                     .simultaneousGesture(
@@ -161,7 +172,9 @@ struct InventoryListView: View {
             CloudBakeEmptyState(
                 title: "No matching inventory",
                 systemImage: "magnifyingglass",
-                message: "Try another ingredient or unit name."
+                message: viewModel.searchText.isEmpty
+                    ? "Try another stock filter."
+                    : "Try another ingredient, alias, or unit name."
             )
         } else {
             CloudBakeSection("Items") {
