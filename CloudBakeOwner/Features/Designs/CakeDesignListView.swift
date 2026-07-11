@@ -280,7 +280,8 @@ struct CakeDesignListView: View {
 
 private struct CustomerReferencePreviewView: View {
     @State private var reference: CustomerReferenceDesign
-    let references: [CustomerReferenceDesign]
+    @State private var references: [CustomerReferenceDesign]
+    @State private var isPhotoZoomed = false
     let photoSource: (CustomerReferenceDesign) -> CakeDesignPhotoSource?
     let usageOrders: (CustomerReferenceDesign) -> [Order]
     let onToggleFavorite: (CustomerReferenceDesign) -> CustomerReferenceDesign?
@@ -302,7 +303,7 @@ private struct CustomerReferencePreviewView: View {
         onDelete: @escaping (CustomerReferenceDesign) -> Bool
     ) {
         _reference = State(initialValue: reference)
-        self.references = references
+        _references = State(initialValue: references)
         self.photoSource = photoSource
         self.usageOrders = usageOrders
         self.onToggleFavorite = onToggleFavorite
@@ -316,9 +317,12 @@ private struct CustomerReferencePreviewView: View {
                 ZoomableDesignPhoto(
                     source: photoSource(reference),
                     accessibilityLabel: "\(reference.title), customer reference",
-                    accessibilityIdentifier: "designs.customerReference.preview.photo"
+                    accessibilityIdentifier: "designs.customerReference.preview.photo",
+                    isZoomed: $isPhotoZoomed
                 )
                 .id(reference.id)
+
+                adjacentControls
 
                 CloudBakeDetailCard {
                     CloudBakeDetailRow("Source") { Text("Customer Reference") }
@@ -428,17 +432,50 @@ private struct CustomerReferencePreviewView: View {
     private var adjacentReferenceSwipe: some Gesture {
         DragGesture(minimumDistance: 40)
             .onEnded { value in
-                guard abs(value.translation.width) > abs(value.translation.height) * 1.4,
+                guard !isPhotoZoomed,
+                      abs(value.translation.width) > abs(value.translation.height) * 1.4,
                       abs(value.translation.width) >= 72,
-                      let index = references.firstIndex(where: { $0.id == reference.id }) else {
+                      currentReferenceIndex != nil else {
                     return
                 }
-                let nextIndex = value.translation.width < 0 ? index + 1 : index - 1
-                guard references.indices.contains(nextIndex) else { return }
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    reference = references[nextIndex]
-                }
+                moveReference(by: value.translation.width < 0 ? 1 : -1)
             }
+    }
+
+    private var currentReferenceIndex: Int? {
+        references.firstIndex(where: { $0.id == reference.id })
+    }
+
+    private var adjacentControls: some View {
+        HStack(spacing: 12) {
+            adjacentButton(systemImage: "chevron.left", label: "Previous Reference", offset: -1)
+            adjacentButton(systemImage: "chevron.right", label: "Next Reference", offset: 1)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityIdentifier("designs.customerReference.adjacentControls")
+    }
+
+    private func adjacentButton(systemImage: String, label: String, offset: Int) -> some View {
+        Button { moveReference(by: offset) } label: {
+            Image(systemName: systemImage).frame(minWidth: 44, minHeight: 32)
+        }
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.capsule)
+        .disabled(!canMoveReference(by: offset))
+        .accessibilityLabel(label)
+    }
+
+    private func canMoveReference(by offset: Int) -> Bool {
+        guard let currentReferenceIndex else { return false }
+        return references.indices.contains(currentReferenceIndex + offset)
+    }
+
+    private func moveReference(by offset: Int) {
+        guard let currentReferenceIndex else { return }
+        let target = currentReferenceIndex + offset
+        guard references.indices.contains(target) else { return }
+        isPhotoZoomed = false
+        withAnimation(.easeInOut(duration: 0.2)) { reference = references[target] }
     }
 }
 
@@ -529,7 +566,8 @@ private struct InternetInspirationImportView: View {
 
 private struct CakeDesignPreviewView: View {
     @State private var design: CakeDesign
-    let designs: [CakeDesign]
+    @State private var designs: [CakeDesign]
+    @State private var isPhotoZoomed = false
     let photoSource: (CakeDesign) -> CakeDesignPhotoSource?
     let accessibilityLabel: (CakeDesign) -> String
     let usageOrders: (CakeDesign) -> [Order]
@@ -553,7 +591,7 @@ private struct CakeDesignPreviewView: View {
         onDelete: @escaping (CakeDesign) -> Bool
     ) {
         _design = State(initialValue: design)
-        self.designs = designs
+        _designs = State(initialValue: designs)
         self.photoSource = photoSource
         self.accessibilityLabel = accessibilityLabel
         self.usageOrders = usageOrders
@@ -568,9 +606,12 @@ private struct CakeDesignPreviewView: View {
                 ZoomableDesignPhoto(
                     source: photoSource(design),
                     accessibilityLabel: accessibilityLabel(design),
-                    accessibilityIdentifier: "designs.preview.photo"
+                    accessibilityIdentifier: "designs.preview.photo",
+                    isZoomed: $isPhotoZoomed
                 )
                 .id(design.id)
+
+                adjacentControls
 
                 CloudBakeDetailCard {
                     CloudBakeDetailRow("Name") {
@@ -708,66 +749,122 @@ private struct CakeDesignPreviewView: View {
     private var adjacentDesignSwipe: some Gesture {
         DragGesture(minimumDistance: 40)
             .onEnded { value in
-                guard abs(value.translation.width) > abs(value.translation.height) * 1.4,
+                guard !isPhotoZoomed,
+                      abs(value.translation.width) > abs(value.translation.height) * 1.4,
                       abs(value.translation.width) >= 72,
-                      let index = designs.firstIndex(where: { $0.id == design.id }) else {
+                      currentDesignIndex != nil else {
                     return
                 }
-                let nextIndex = value.translation.width < 0 ? index + 1 : index - 1
-                guard designs.indices.contains(nextIndex) else { return }
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    design = designs[nextIndex]
-                }
+                moveDesign(by: value.translation.width < 0 ? 1 : -1)
             }
+    }
+
+    private var currentDesignIndex: Int? {
+        designs.firstIndex(where: { $0.id == design.id })
+    }
+
+    private var adjacentControls: some View {
+        HStack(spacing: 12) {
+            adjacentButton(systemImage: "chevron.left", label: "Previous Design", offset: -1)
+            adjacentButton(systemImage: "chevron.right", label: "Next Design", offset: 1)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityIdentifier("designs.preview.adjacentControls")
+    }
+
+    private func adjacentButton(systemImage: String, label: String, offset: Int) -> some View {
+        Button { moveDesign(by: offset) } label: {
+            Image(systemName: systemImage).frame(minWidth: 44, minHeight: 32)
+        }
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.capsule)
+        .disabled(!canMoveDesign(by: offset))
+        .accessibilityLabel(label)
+    }
+
+    private func canMoveDesign(by offset: Int) -> Bool {
+        guard let currentDesignIndex else { return false }
+        return designs.indices.contains(currentDesignIndex + offset)
+    }
+
+    private func moveDesign(by offset: Int) {
+        guard let currentDesignIndex else { return }
+        let target = currentDesignIndex + offset
+        guard designs.indices.contains(target) else { return }
+        isPhotoZoomed = false
+        withAnimation(.easeInOut(duration: 0.2)) { design = designs[target] }
     }
 }
 
 extension CakeDesign: Identifiable {}
 
+enum DesignPhotoZoom {
+    static func clampedScale(_ value: CGFloat) -> CGFloat {
+        min(max(value, 1), 4)
+    }
+
+    static func clampedOffset(_ value: CGSize, scale: CGFloat, in size: CGSize) -> CGSize {
+        let maximumX = size.width * (scale - 1) / 2
+        let maximumY = size.height * (scale - 1) / 2
+        return CGSize(
+            width: min(max(value.width, -maximumX), maximumX),
+            height: min(max(value.height, -maximumY), maximumY)
+        )
+    }
+}
+
 private struct ZoomableDesignPhoto: View {
     let source: CakeDesignPhotoSource?
     let accessibilityLabel: String
     let accessibilityIdentifier: String
+    @Binding var isZoomed: Bool
     @State private var scale: CGFloat = 1
     @State private var gestureStartScale: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var gestureStartOffset: CGSize = .zero
+    @State private var viewportSize: CGSize = .zero
 
     var body: some View {
         VStack(spacing: 10) {
-            DesignPhotoView(source: source, maximumPixelSize: 2_400, contentMode: .fit)
-                .aspectRatio(1, contentMode: .fit)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .scaleEffect(scale)
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                .contentShape(Rectangle())
-                .gesture(
-                    MagnificationGesture()
-                        .onChanged { value in
-                            scale = clampedScale(gestureStartScale * value)
+            GeometryReader { geometry in
+                DesignPhotoView(source: source, maximumPixelSize: 2_400, contentMode: .fit)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .scaleEffect(scale)
+                    .offset(offset)
+                    .contentShape(Rectangle())
+                    .gesture(magnificationGesture(in: geometry.size))
+                    .simultaneousGesture(panGesture(in: geometry.size))
+                    .accessibilityLabel(accessibilityLabel)
+                    .accessibilityValue("\(Int((scale * 100).rounded())) percent")
+                    .accessibilityHint("Swipe up or down to adjust zoom")
+                    .accessibilityIdentifier(accessibilityIdentifier)
+                    .accessibilityAdjustableAction { direction in
+                        switch direction {
+                        case .increment: zoom(by: 0.5, in: geometry.size)
+                        case .decrement: zoom(by: -0.5, in: geometry.size)
+                        @unknown default: break
                         }
-                        .onEnded { _ in
-                            gestureStartScale = scale
-                        }
-                )
-                .accessibilityLabel(accessibilityLabel)
-                .accessibilityIdentifier(accessibilityIdentifier)
-                .accessibilityAdjustableAction { direction in
-                    switch direction {
-                    case .increment: zoom(by: 0.5)
-                    case .decrement: zoom(by: -0.5)
-                    @unknown default: break
                     }
-                }
+                    .onAppear { viewportSize = geometry.size }
+                    .onChange(of: geometry.size) { _, newSize in viewportSize = newSize }
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
             HStack(spacing: 12) {
                 zoomButton(systemImage: "minus.magnifyingglass", label: "Zoom Out") {
-                    zoom(by: -0.5)
+                    setScale(scale - 0.5)
                 }
+                .disabled(scale <= 1)
                 zoomButton(systemImage: "1.magnifyingglass", label: "Reset Zoom") {
                     setScale(1)
                 }
+                .disabled(scale <= 1)
                 zoomButton(systemImage: "plus.magnifyingglass", label: "Zoom In") {
-                    zoom(by: 0.5)
+                    setScale(scale + 0.5)
                 }
+                .disabled(scale >= 4)
             }
             .accessibilityIdentifier("designs.preview.zoomControls")
         }
@@ -787,20 +884,58 @@ private struct ZoomableDesignPhoto: View {
         .accessibilityLabel(label)
     }
 
-    private func zoom(by amount: CGFloat) {
+    private func magnificationGesture(in size: CGSize) -> some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                scale = DesignPhotoZoom.clampedScale(gestureStartScale * value)
+                offset = DesignPhotoZoom.clampedOffset(offset, scale: scale, in: size)
+                isZoomed = scale > 1
+            }
+            .onEnded { _ in
+                gestureStartScale = scale
+                gestureStartOffset = offset
+            }
+    }
+
+    private func panGesture(in size: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 8)
+            .onChanged { value in
+                guard scale > 1 else { return }
+                offset = DesignPhotoZoom.clampedOffset(
+                    CGSize(
+                        width: gestureStartOffset.width + value.translation.width,
+                        height: gestureStartOffset.height + value.translation.height
+                    ),
+                    scale: scale,
+                    in: size
+                )
+            }
+            .onEnded { _ in
+                gestureStartOffset = offset
+            }
+    }
+
+    private func zoom(by amount: CGFloat, in size: CGSize) {
         setScale(scale + amount)
+        offset = DesignPhotoZoom.clampedOffset(offset, scale: scale, in: size)
+        gestureStartOffset = offset
     }
 
     private func setScale(_ value: CGFloat) {
         withAnimation(.easeInOut(duration: 0.15)) {
-            scale = clampedScale(value)
+            scale = DesignPhotoZoom.clampedScale(value)
             gestureStartScale = scale
+            if scale == 1 {
+                offset = .zero
+                gestureStartOffset = .zero
+            } else if viewportSize != .zero {
+                offset = DesignPhotoZoom.clampedOffset(offset, scale: scale, in: viewportSize)
+                gestureStartOffset = offset
+            }
+            isZoomed = scale > 1
         }
     }
 
-    private func clampedScale(_ value: CGFloat) -> CGFloat {
-        min(max(value, 1), 4)
-    }
 }
 
 private actor DesignThumbnailLoader {

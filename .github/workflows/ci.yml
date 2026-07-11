@@ -105,6 +105,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignCanStartAnUnsavedOrderDraftWithTheDesignLinked
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerReferenceDraftShowsItsCurrentSelectedProvenance
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignDetailSupportsZoomControlsAndAdjacentSwipe
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignLandingCanScrollFromBottomBackToTop
 
     steps:
       - name: Checkout
