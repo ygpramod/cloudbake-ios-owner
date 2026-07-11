@@ -1,6 +1,10 @@
 import XCTest
 @testable import CloudBakeOwner
 
+private enum TestDesignRepositoryError: Error {
+    case forcedFailure
+}
+
 @MainActor
 final class CakeDesignListViewModelTests: XCTestCase {
     func testLoadFetchesDesigns() {
@@ -399,6 +403,53 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.delete(reference))
         XCTAssertTrue(orderRepository.orderPhotos.isEmpty)
         XCTAssertTrue(photoFileStore.deletedRelativePaths.isEmpty)
+    }
+
+    func testDeletingLegacyReferenceQueuesAndRetriesFailedFileCleanup() {
+        let repository = FakeOrderRepository()
+        let photoFileStore = FakeOrderPhotoFileStore()
+        photoFileStore.deleteError = TestDesignRepositoryError.forcedFailure
+        let order = makeOrder(id: "order-legacy-delete", dueAt: Date(timeIntervalSince1970: 1_800_100_000))
+        let photo = OrderPhoto(
+            id: "photo-legacy-delete",
+            orderId: order.id,
+            kind: .customerReference,
+            localPhotoPath: "OrderPhotos/legacy-delete.jpg",
+            caption: nil,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt
+        )
+        repository.orders = [order]
+        repository.orderPhotos = [photo]
+        let viewModel = CakeDesignListViewModel(
+            repository: repository,
+            photoFileStore: photoFileStore,
+            customerReferenceRepository: repository
+        )
+        viewModel.load()
+        guard let reference = viewModel.customerReferences.first else {
+            return XCTFail("Expected legacy reference")
+        }
+
+        XCTAssertTrue(viewModel.delete(reference))
+        XCTAssertTrue(repository.orderPhotos.isEmpty)
+        XCTAssertEqual(repository.pendingDesignPhotoCleanupPaths, [photo.localPhotoPath])
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "Reference removed. The old local photo will be cleaned up automatically."
+        )
+
+        photoFileStore.deleteError = nil
+        let reloadedViewModel = CakeDesignListViewModel(
+            repository: repository,
+            photoFileStore: photoFileStore,
+            customerReferenceRepository: repository
+        )
+        reloadedViewModel.load()
+
+        XCTAssertTrue(repository.pendingDesignPhotoCleanupPaths.isEmpty)
+        XCTAssertEqual(photoFileStore.deletedRelativePaths, [photo.localPhotoPath])
+        XCTAssertNil(reloadedViewModel.errorMessage)
     }
 
     private func makeDesign(

@@ -34,6 +34,31 @@ final class CloudBakeOwnerUITests: XCTestCase {
         }
     }
 
+    func testDesignRemovalCanBeCancelledAndConfirmed() throws {
+        let app = makeApp(initialDestination: "designs")
+        app.launchEnvironment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] = "1"
+        app.launch()
+
+        let design = app.buttons["designs.item.design-ui-fixture-floral"]
+        XCTAssertTrue(design.waitForExistence(timeout: 10))
+        tapWhenReady(design)
+
+        let remove = app.buttons["Remove Design"]
+        XCTAssertTrue(remove.waitForExistence(timeout: 5))
+        tapWhenReady(remove)
+        let cancel = app.buttons["designs.delete.cancel"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+        tapWhenReady(cancel)
+        XCTAssertTrue(app.buttons["designs.preview.done"].exists)
+
+        tapWhenReady(remove)
+        let confirm = app.buttons["designs.delete.confirm"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        tapWhenReady(confirm)
+
+        XCTAssertTrue(app.staticTexts["No owner designs saved"].waitForExistence(timeout: 5))
+    }
+
     func testSettingsShowsInventoryCSVActions() throws {
         let app = makeApp()
         app.launch()

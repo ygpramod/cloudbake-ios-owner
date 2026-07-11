@@ -980,6 +980,16 @@ final class CoreDataRepositoryTests: XCTestCase {
         )
         XCTAssertEqual(try repository.fetchOrderPhotos(kind: .customerReference), [firstReference])
         XCTAssertEqual(try repository.fetchOrder(id: order.id), order)
+
+        try repository.deleteOrderPhoto(
+            id: firstReference.id,
+            cleanupRelativePath: firstReference.localPhotoPath
+        )
+        XCTAssertTrue(try repository.fetchOrderPhotos(kind: .customerReference).isEmpty)
+        XCTAssertEqual(
+            try repository.fetchPendingDesignPhotoCleanupPaths(),
+            [firstReference.localPhotoPath]
+        )
     }
 
     func testPromotedDesignTransactionRollsBackWhenPhotoUpdateFails() throws {

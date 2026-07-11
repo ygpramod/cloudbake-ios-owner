@@ -423,6 +423,13 @@ final class FakeOrderRepository: OrderRepository,
         orderPhotos.removeAll { $0.id == id }
     }
 
+    func deleteOrderPhoto(id: String, cleanupRelativePath: String?) throws {
+        orderPhotos.removeAll { $0.id == id }
+        if let cleanupRelativePath {
+            pendingDesignPhotoCleanupPaths.append(cleanupRelativePath)
+        }
+    }
+
     func recordRecipeUsage(
         for order: Order,
         usageId: String,
