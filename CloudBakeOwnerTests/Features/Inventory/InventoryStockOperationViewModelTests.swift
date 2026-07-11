@@ -25,6 +25,51 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testStockAdjustmentPreviewShowsSignedChangeAndResultingQuantity() {
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+        viewModel.beginAdjusting(item)
+        viewModel.draftAdjustmentQuantity = "0.5"
+        viewModel.draftAdjustmentUnit = .kilogram
+
+        XCTAssertEqual(
+            viewModel.stockAdjustmentPreview,
+            InventoryStockMutationPreview(
+                currentQuantity: 250,
+                quantityChange: 500,
+                resultingQuantity: 750,
+                unit: .gram
+            )
+        )
+        XCTAssertEqual(viewModel.stockAdjustmentPreview?.quantityChangeText, "+500 g")
+        XCTAssertEqual(viewModel.stockAdjustmentPreview?.resultingQuantityText, "750 g")
+    }
+
+    func testStockAdjustmentPreviewIsHiddenForInvalidQuantity() {
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+        viewModel.beginAdjusting(item)
+        viewModel.draftAdjustmentQuantity = "0"
+
+        XCTAssertNil(viewModel.stockAdjustmentPreview)
+    }
+
     func testRecordStockAdjustmentIncreasesCurrentQuantityAndStoresTransaction() {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
@@ -563,6 +608,51 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
         XCTAssertEqual(repository.transactions.first?.quantity, 750)
         XCTAssertEqual(repository.batches[0].remainingQuantity, 0)
         XCTAssertEqual(repository.batches[1].remainingQuantity, 250)
+    }
+
+    func testStockConsumptionPreviewShowsSignedChangeAndResultingQuantity() {
+        let item = InventoryItem(
+            id: "inventory-oil",
+            name: "Vegetable oil",
+            unit: .milliliter,
+            currentQuantity: 1_000,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+        viewModel.beginConsuming(item)
+        viewModel.draftConsumptionQuantity = "0.25"
+        viewModel.draftConsumptionUnit = .liter
+
+        XCTAssertEqual(
+            viewModel.stockConsumptionPreview,
+            InventoryStockMutationPreview(
+                currentQuantity: 1_000,
+                quantityChange: -250,
+                resultingQuantity: 750,
+                unit: .milliliter
+            )
+        )
+        XCTAssertEqual(viewModel.stockConsumptionPreview?.quantityChangeText, "-250 ml")
+        XCTAssertEqual(viewModel.stockConsumptionPreview?.resultingQuantityText, "750 ml")
+    }
+
+    func testStockConsumptionPreviewIsHiddenWhenQuantityExceedsCurrentStock() {
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 250,
+            minimumQuantity: 500,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+        viewModel.beginConsuming(item)
+        viewModel.draftConsumptionQuantity = "251"
+
+        XCTAssertNil(viewModel.stockConsumptionPreview)
     }
 
     func testRecordStockConsumptionRefreshesSelectedItemDetailState() {
