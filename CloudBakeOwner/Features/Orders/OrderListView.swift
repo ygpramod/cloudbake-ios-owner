@@ -3,7 +3,6 @@ import UIKit
 
 struct OrderListView: View {
     @StateObject private var viewModel: OrderListViewModel
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.openURL) private var openURL
     @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
     @State private var isAddingOrder = false
@@ -21,30 +20,7 @@ struct OrderListView: View {
     }
 
     var body: some View {
-        Group {
-            if horizontalSizeClass == .regular {
-                NavigationSplitView {
-                    orderList
-                } detail: {
-                    if viewModel.selectedOrder == nil {
-                        ContentUnavailableView(
-                            "Select an order",
-                            systemImage: "calendar",
-                            description: Text("Choose an order to view cake details, customer context, reminders, and checklist.")
-                        )
-                        .accessibilityIdentifier("orders.detail.empty")
-                    } else {
-                        OrderDetailView(
-                            viewModel: viewModel,
-                            isPresented: .constant(true),
-                            showsDoneButton: false
-                        )
-                    }
-                }
-            } else {
-                orderList
-            }
-        }
+        orderList
         .sheet(isPresented: $isAddingOrder, onDismiss: viewModel.cancelAddOrder) {
             NavigationStack {
                 OrderForm(
@@ -307,9 +283,7 @@ struct OrderListView: View {
 
     private func openOrder(_ order: Order) {
         viewModel.beginViewingOrder(order)
-        if horizontalSizeClass != .regular {
-            isViewingOrder = true
-        }
+        isViewingOrder = true
     }
 
     private func openPendingNotificationOrder() {

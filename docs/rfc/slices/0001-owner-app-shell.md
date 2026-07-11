@@ -10,12 +10,12 @@ Draft
 
 ## Goal
 
-Create the smallest useful owner app foundation: a SwiftUI iPhone/iPad app that builds, launches, shows the primary navigation shell, and has basic CI/test coverage.
+Create the smallest useful owner app foundation: a SwiftUI iPhone app that builds, launches, shows the primary navigation shell, and has basic CI/test coverage.
 
 ## Scope
 
 - Create the initial owner app project structure.
-- Configure one SwiftUI app target for iPhone and iPad.
+- Configure one SwiftUI app target for iPhone.
 - Add a dashboard as the launch screen.
 - Add primary navigation destinations for core product areas.
 - Add placeholder screens only.
@@ -36,7 +36,7 @@ Create the smallest useful owner app foundation: a SwiftUI iPhone/iPad app that 
 
 ## Requirements
 
-- The app must build as a native Swift/SwiftUI iPhone and iPad app.
+- The app must build as a native Swift/SwiftUI iPhone app.
 - The app must launch to a dashboard or primary shell.
 - The app must expose navigation destinations for Dashboard, Orders, Inventory, Recipes, Designs, Customers, and Settings.
 - Tests must exist from this slice.
@@ -45,7 +45,7 @@ Create the smallest useful owner app foundation: a SwiftUI iPhone/iPad app that 
 
 ## Acceptance Criteria
 
-- The owner app builds for iPhone and iPad.
+- The owner app builds for iPhone.
 - The app launches successfully.
 - Primary navigation exists for Dashboard, Orders, Inventory, Recipes, Designs, Customers, and Settings.
 - Placeholder screens exist for each primary destination.

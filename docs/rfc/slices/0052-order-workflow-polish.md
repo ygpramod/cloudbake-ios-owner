@@ -10,7 +10,7 @@ Implemented
 
 ## Context
 
-After the core Orders workflow, customer/recipe/design linking, checklist support, iPad layout, and
+After the core Orders workflow, customer/recipe/design linking, checklist support, deferred iPad layout, and
 inventory deduction slices, the Orders screen needs a tighter owner workflow for daily use. The
 owner primarily needs to see active work by due date, keep completed work available without
 cluttering active screens, and keep checklist tasks simple to maintain.

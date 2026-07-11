@@ -749,33 +749,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
     }
 
-    func testOrderDetailUsesSplitViewOnIPad() throws {
-        let app = makeApp()
-        let transitionTimeout: TimeInterval = 15
-        app.launch()
-
-        guard app.windows.firstMatch.waitForExistence(timeout: 5),
-              app.windows.firstMatch.frame.width >= 700 else {
-            throw XCTSkip("Order split view is only expected on regular-width iPad layouts.")
-        }
-
-        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
-        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.staticTexts["Select an order"].waitForExistence(timeout: transitionTimeout))
-
-        addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
-        tapWhenReady(
-            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item."))
-                .firstMatch,
-            timeout: transitionTimeout
-        )
-
-        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
-        XCTAssertFalse(app.buttons["orders.detail.done"].exists)
-        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(app.staticTexts["orders.detail.customerName"].waitForExistence(timeout: transitionTimeout))
-    }
-
     private func swipeOrderScopeLeftThroughEmptySpace(in ordersScreen: XCUIElement) {
         swipeOrderScopeThroughEmptySpace(in: ordersScreen, fromX: 0.88, toX: 0.12)
     }

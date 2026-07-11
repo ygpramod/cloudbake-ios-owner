@@ -11,7 +11,7 @@ CloudBake starts as a private owner tool.
 
 Current direction:
 
-1. work offline on iPhone and iPad,
+1. work offline on iPhone,
 2. store data on the device first,
 3. support handmade cake workflows instead of generic restaurant inventory workflows,
 4. support recipe-driven inventory reduction when Confirmed orders become Ready or Completed,

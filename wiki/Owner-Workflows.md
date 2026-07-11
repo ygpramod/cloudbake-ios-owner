@@ -332,8 +332,8 @@ ascending. Completed and cancelled orders are kept out of active work and appear
 Completed tab ordered by delivery or pickup date-time descending. Cancelled rows show a small red
 indicator so they are not mistaken for fulfilled work.
 
-On iPad, Orders uses a list/detail layout: the order list stays visible while selected order detail
-appears in the detail column. On iPhone, order detail continues to open as a focused sheet.
+iPad Orders layout is deferred while the owner app targets iPhone only. Order detail opens as a
+focused sheet on supported iPhones.
 
 The Orders screen no longer has a standalone Reminders Due section. Order detail shows the next
 reminder for that cake. Completed and cancelled orders do not appear in due reminder calculations.
@@ -428,9 +428,8 @@ customer is missing while creating an order, the owner can create a new customer
 screen by importing from Contacts or entering manually, then immediately link that saved customer to
 the order draft.
 
-On iPad, Customers uses a list/detail layout: the customer list stays visible while selected
-customer contact details, preferences, important dates, and linked order history appear in the
-detail column. On iPhone, customer detail continues to open as a focused sheet.
+iPad Customers layout is deferred while the owner app targets iPhone only. Customer detail opens as
+a focused sheet on supported iPhones.
 
 ## Future Pricing Workflow
 
