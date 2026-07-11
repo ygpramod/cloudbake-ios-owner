@@ -105,9 +105,11 @@ same PR when owner-facing, operator-facing, or cross-repository guidance changes
 CloudBake has an established owner-app visual language. New implementation slices should reuse the
 shared UI primitives instead of introducing one-off styling:
 
+- `CloudBakeTheme` for semantic color, typography, spacing, shape, and elevation tokens.
 - `CloudBakeScreenScaffold` for second-level screens.
 - `CloudBakeDetailCard`, `CloudBakeDetailRow`, and `CloudBakeDetailDivider` for detail/settings
   sections.
+- `CloudBakeStatusBadge` and `CloudBakeLabeledField` for compact status and metadata display.
 - `cloudBakeFormScreenStyle()` for native data-entry forms.
 - `cloudBakeCenteredPopup` and `centeredPopupButton` for confirmations, status/payment choices,
   destructive actions, and owner decisions.

@@ -1,6 +1,60 @@
 import SwiftUI
 import UIKit
 
+enum CloudBakeTheme {
+    enum ColorToken {
+        static let appBackground = Color.cloudBakeBlush
+        static let appBackgroundWash = Color.white
+        static let surface = Color.white
+        static let primaryAction = Color.cloudBakePink
+        static let secondaryAction = Color.cloudBakePurple
+        static let inventoryAccent = Color.cloudBakeOrange
+        static let recipeAccent = Color.cloudBakeMint
+        static let customerAccent = Color.cloudBakeTeal
+        static let ownerAccent = Color.cloudBakeBrown
+        static let destructive = Color.red
+        static let success = Color.green
+    }
+
+    enum Typography {
+        static let screenTitle = Font.system(size: 28, weight: .heavy, design: .rounded)
+        static let brandTitle = Font.system(size: 28, weight: .heavy, design: .serif)
+        static let metricValue = Font.system(size: 28, weight: .bold, design: .rounded)
+        static let sectionTitle = Font.headline.weight(.semibold)
+        static let rowTitle = Font.headline.weight(.semibold)
+        static let rowDetail = Font.footnote
+        static let metadata = Font.caption
+    }
+
+    enum Spacing {
+        static let screenHorizontal: CGFloat = 24
+        static let detailHorizontal: CGFloat = 22
+        static let screenTop: CGFloat = 18
+        static let section: CGFloat = 24
+        static let sectionContent: CGFloat = 14
+        static let rowContent: CGFloat = 18
+        static let cardPadding: CGFloat = 20
+        static let compactControl: CGFloat = 12
+        static let bottomNavigationHeight: CGFloat = 104
+    }
+
+    enum Shape {
+        static let cardRadius: CGFloat = 24
+        static let largeCardRadius: CGFloat = 28
+        static let bannerRadius: CGFloat = 18
+        static let iconRadius: CGFloat = 15
+    }
+
+    enum Elevation {
+        static let softShadow = Color.black.opacity(0.08)
+        static let softRadius: CGFloat = 18
+        static let softYOffset: CGFloat = 8
+        static let controlShadow = Color.black.opacity(0.06)
+        static let controlRadius: CGFloat = 12
+        static let controlYOffset: CGFloat = 6
+    }
+}
+
 struct CloudBakeScreenScaffold<Content: View>: View {
     let title: String
     let selectedDestination: AppDestination
@@ -30,7 +84,7 @@ struct CloudBakeScreenScaffold<Content: View>: View {
             CloudBakeScreenBackground()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 26) {
+                VStack(alignment: .leading, spacing: CloudBakeTheme.Spacing.section) {
                     CloudBakeScreenHeader(
                         title: title,
                         primaryAction: primaryAction,
@@ -40,9 +94,9 @@ struct CloudBakeScreenScaffold<Content: View>: View {
 
                     content
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 18)
-                .padding(.bottom, 104)
+                .padding(.horizontal, CloudBakeTheme.Spacing.screenHorizontal)
+                .padding(.top, CloudBakeTheme.Spacing.screenTop)
+                .padding(.bottom, CloudBakeTheme.Spacing.bottomNavigationHeight)
             }
             .scrollDismissesKeyboard(.interactively)
         }
@@ -92,7 +146,7 @@ struct CloudBakeDetailScaffold<Content: View>: View {
             CloudBakeScreenBackground()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: CloudBakeTheme.Spacing.section) {
                     CloudBakeDetailHeader(
                         title: title,
                         showsBackButton: showsBackButton,
@@ -104,8 +158,8 @@ struct CloudBakeDetailScaffold<Content: View>: View {
 
                     content
                 }
-                .padding(.horizontal, 22)
-                .padding(.top, 18)
+                .padding(.horizontal, CloudBakeTheme.Spacing.detailHorizontal)
+                .padding(.top, CloudBakeTheme.Spacing.screenTop)
                 .padding(.bottom, 36)
             }
         }
@@ -129,7 +183,7 @@ extension View {
             .scrollContentBackground(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .background(CloudBakeScreenBackground())
-            .tint(Color.cloudBakePink)
+            .tint(CloudBakeTheme.ColorToken.primaryAction)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
@@ -162,7 +216,7 @@ struct CloudBakeHeroCard<Content: View>: View {
 
             Spacer(minLength: 0)
         }
-        .padding(22)
+        .padding(CloudBakeTheme.Spacing.cardPadding + 2)
         .cloudBakeCardStyle()
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: 3, style: .continuous)
@@ -180,7 +234,7 @@ struct CloudBakeDetailCard<Content: View>: View {
         VStack(spacing: 0) {
             content
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, CloudBakeTheme.Spacing.cardPadding)
         .padding(.vertical, 6)
         .cloudBakeCardStyle()
     }
@@ -229,10 +283,10 @@ struct CloudBakeSection<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: CloudBakeTheme.Spacing.sectionContent) {
             if let title {
                 Text(title)
-                    .font(.headline.weight(.semibold))
+                    .font(CloudBakeTheme.Typography.sectionTitle)
                     .foregroundStyle(.secondary)
             }
 
@@ -306,7 +360,11 @@ struct CloudBakeSearchField: View {
             Capsule()
                 .stroke(.white.opacity(0.72), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
+        .shadow(
+            color: CloudBakeTheme.Elevation.controlShadow,
+            radius: CloudBakeTheme.Elevation.controlRadius,
+            y: CloudBakeTheme.Elevation.controlYOffset
+        )
     }
 }
 
@@ -332,9 +390,9 @@ struct CloudBakeEmptyState: View {
         VStack(spacing: 14) {
             Image(systemName: systemImage)
                 .font(.system(size: 34, weight: .semibold))
-                .foregroundStyle(Color.cloudBakePink)
+                .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
                 .frame(width: 74, height: 74)
-                .background(Circle().fill(Color.cloudBakePink.opacity(0.10)))
+                .background(Circle().fill(CloudBakeTheme.ColorToken.primaryAction.opacity(0.10)))
 
             Text(title)
                 .font(.title3.weight(.semibold))
@@ -359,11 +417,68 @@ struct CloudBakeErrorBanner: View {
     var body: some View {
         Label(message, systemImage: "exclamationmark.triangle.fill")
             .font(.subheadline)
-            .foregroundStyle(.red)
+            .foregroundStyle(CloudBakeTheme.ColorToken.destructive)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
-            .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(
+                CloudBakeTheme.ColorToken.destructive.opacity(0.08),
+                in: RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.bannerRadius, style: .continuous)
+            )
             .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
+struct CloudBakeStatusBadge: View {
+    let title: String
+    let systemImage: String?
+    let tint: Color
+
+    init(_ title: String, systemImage: String? = nil, tint: Color) {
+        self.title = title
+        self.systemImage = systemImage
+        self.tint = tint
+    }
+
+    var body: some View {
+        Label {
+            Text(title)
+                .font(CloudBakeTheme.Typography.metadata.weight(.semibold))
+        } icon: {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.semibold))
+            }
+        }
+        .labelStyle(.titleAndIcon)
+        .foregroundStyle(tint)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(tint.opacity(0.10), in: Capsule())
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct CloudBakeLabeledField<Value: View>: View {
+    let title: String
+    @ViewBuilder let value: Value
+
+    init(_ title: String, @ViewBuilder value: () -> Value) {
+        self.title = title
+        self.value = value()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(CloudBakeTheme.Typography.metadata.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            value
+                .font(.body)
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -454,7 +569,7 @@ private struct CloudBakeScreenHeader: View {
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
             Text(title)
-                .font(.system(size: 28, weight: .heavy, design: .rounded))
+                .font(CloudBakeTheme.Typography.screenTitle)
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.78)
@@ -495,10 +610,14 @@ private struct CloudBakeDetailHeader: View {
                     Button(action: onBack) {
                         Image(systemName: "chevron.left")
                             .font(.title3.weight(.semibold))
-                            .foregroundStyle(Color.cloudBakePink)
+                            .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
                             .frame(width: 50, height: 50)
                             .background(.white.opacity(0.92), in: Circle())
-                            .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
+                            .shadow(
+                                color: CloudBakeTheme.Elevation.softShadow,
+                                radius: CloudBakeTheme.Elevation.controlRadius,
+                                y: CloudBakeTheme.Elevation.controlYOffset
+                            )
                     }
                     .accessibilityLabel("Back")
                     .accessibilityIdentifier(backAccessibilityIdentifier)
@@ -538,11 +657,15 @@ private struct CloudBakeDetailHeaderButton: View {
                         .font(.subheadline.weight(.semibold))
                 }
             }
-            .foregroundStyle(Color.cloudBakePink)
+            .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
             .frame(minWidth: isPrimary ? 86 : 50, minHeight: 50)
             .padding(.horizontal, isPrimary ? 12 : 0)
             .background(.white.opacity(0.92), in: Capsule())
-            .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
+            .shadow(
+                color: CloudBakeTheme.Elevation.softShadow,
+                radius: CloudBakeTheme.Elevation.controlRadius,
+                y: CloudBakeTheme.Elevation.controlYOffset
+            )
         }
         .accessibilityLabel(action.title)
         .accessibilityIdentifier(action.accessibilityIdentifier)
@@ -556,10 +679,14 @@ private struct CloudBakeHeaderActionButton: View {
         Button(action: action.action) {
             Image(systemName: action.systemImage)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(Color.cloudBakePink)
+                .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
                 .frame(width: 58, height: 58)
                 .background(.white.opacity(0.90), in: Circle())
-                .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
+                .shadow(
+                    color: CloudBakeTheme.Elevation.softShadow,
+                    radius: CloudBakeTheme.Elevation.controlRadius,
+                    y: CloudBakeTheme.Elevation.controlYOffset
+                )
         }
         .accessibilityLabel(action.title)
         .accessibilityIdentifier(action.accessibilityIdentifier)
@@ -580,10 +707,14 @@ private struct CloudBakeHeaderActionMenu: View {
         } label: {
             Image(systemName: "ellipsis")
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(Color.cloudBakePink)
+                .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
                 .frame(width: 58, height: 58)
                 .background(.white.opacity(0.90), in: Circle())
-                .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
+                .shadow(
+                    color: CloudBakeTheme.Elevation.softShadow,
+                    radius: CloudBakeTheme.Elevation.controlRadius,
+                    y: CloudBakeTheme.Elevation.controlYOffset
+                )
         }
         .accessibilityLabel("More actions")
         .accessibilityIdentifier("screen.actions.more")
@@ -619,7 +750,7 @@ struct CloudBakeBottomNavigation: View {
             UnevenRoundedRectangle(topLeadingRadius: 26, topTrailingRadius: 26)
                 .fill(.ultraThinMaterial)
                 .overlay(alignment: .top) {
-                    Color.cloudBakePink.opacity(0.18)
+                    CloudBakeTheme.ColorToken.primaryAction.opacity(0.18)
                         .frame(height: 1)
                 }
         )
@@ -634,7 +765,7 @@ private struct CloudBakeBottomNavigationItem: View {
     var body: some View {
         if isSelected {
             itemContent
-                .foregroundStyle(Color.cloudBakePink)
+                .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(destination.bottomNavigationTitle)
                 .accessibilityIdentifier(destination.bottomNavigationAccessibilityIdentifier)
@@ -664,7 +795,7 @@ private struct CloudBakeBottomNavigationItem: View {
                 .accessibilityHidden(true)
 
             Circle()
-                .fill(isSelected ? Color.cloudBakePink : .clear)
+                .fill(isSelected ? CloudBakeTheme.ColorToken.primaryAction : .clear)
                 .frame(width: 6, height: 6)
                 .accessibilityHidden(true)
         }
@@ -676,9 +807,9 @@ struct CloudBakeScreenBackground: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color.cloudBakeBlush.opacity(0.48),
-                    .white,
-                    Color.cloudBakeBlush.opacity(0.34)
+                    CloudBakeTheme.ColorToken.appBackground.opacity(0.48),
+                    CloudBakeTheme.ColorToken.appBackgroundWash,
+                    CloudBakeTheme.ColorToken.appBackground.opacity(0.34)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -686,7 +817,7 @@ struct CloudBakeScreenBackground: View {
             .ignoresSafeArea()
 
             Circle()
-                .fill(Color.cloudBakePink.opacity(0.10))
+                .fill(CloudBakeTheme.ColorToken.primaryAction.opacity(0.10))
                 .frame(width: 190, height: 190)
                 .blur(radius: 8)
                 .offset(x: -200, y: -330)
@@ -696,13 +827,20 @@ struct CloudBakeScreenBackground: View {
 }
 
 extension View {
-    func cloudBakeCardStyle(cornerRadius: CGFloat = 24) -> some View {
-        background(.white.opacity(0.90), in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    func cloudBakeCardStyle(cornerRadius: CGFloat = CloudBakeTheme.Shape.cardRadius) -> some View {
+        background(
+            CloudBakeTheme.ColorToken.surface.opacity(0.90),
+            in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(.white.opacity(0.72), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
+            .shadow(
+                color: CloudBakeTheme.Elevation.softShadow,
+                radius: CloudBakeTheme.Elevation.softRadius,
+                y: CloudBakeTheme.Elevation.softYOffset
+            )
     }
 }
 
