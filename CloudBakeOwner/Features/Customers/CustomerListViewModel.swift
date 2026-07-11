@@ -100,12 +100,19 @@ final class CustomerListViewModel: ObservableObject {
         return URL(string: "tel://\(Self.callablePhone(customer.phone))")
     }
 
-    func messageURL(for customer: Customer) -> URL? {
+    func whatsappMessageURL(for customer: Customer) -> URL? {
         guard Self.isSupportedPhone(customer.phone) else {
             return nil
         }
 
-        return URL(string: "sms:\(Self.callablePhone(customer.phone))")
+        var components = URLComponents()
+        components.scheme = "whatsapp"
+        components.host = "send"
+        components.queryItems = [
+            URLQueryItem(name: "phone", value: TextInputFormatting.digitsOnly(customer.phone)),
+            URLQueryItem(name: "text", value: "Hi \(Self.firstName(from: customer.name)), ")
+        ]
+        return components.url
     }
 
     func beginViewingCustomer(_ customer: Customer) {
@@ -429,6 +436,10 @@ final class CustomerListViewModel: ObservableObject {
         let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
         let digits = TextInputFormatting.digitsOnly(trimmed)
         return trimmed.hasPrefix("+") ? "+\(digits)" : digits
+    }
+
+    private static func firstName(from name: String) -> String {
+        name.split(whereSeparator: \.isWhitespace).first.map(String.init) ?? name
     }
 
 }

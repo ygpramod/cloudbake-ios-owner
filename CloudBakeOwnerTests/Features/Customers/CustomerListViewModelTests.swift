@@ -101,7 +101,10 @@ final class CustomerListViewModelTests: XCTestCase {
             )
         )
         XCTAssertEqual(viewModel.phoneURL(for: customer)?.absoluteString, "tel://+6591234567")
-        XCTAssertEqual(viewModel.messageURL(for: customer)?.absoluteString, "sms:+6591234567")
+        XCTAssertEqual(
+            viewModel.whatsappMessageURL(for: customer)?.absoluteString,
+            "whatsapp://send?phone=6591234567&text=Hi%20Amy,%20"
+        )
     }
 
     func testAddCustomerPersistsRequiredAndOptionalFields() {

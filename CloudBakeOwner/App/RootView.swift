@@ -4,6 +4,7 @@ struct RootView: View {
     let database: AppDatabase
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
+    @EnvironmentObject private var orderNavigationRouter: OrderNavigationRouter
     @EnvironmentObject private var inventoryNavigationRouter: InventoryNavigationRouter
     @State private var navigationPath: [AppDestination] = []
     private let maximumSectionHistoryCount = 4
@@ -33,6 +34,7 @@ struct RootView: View {
         .ignoresSafeArea(.container, edges: .bottom)
         .onAppear {
             navigateToOrdersWhenNotificationIsPending()
+            navigateToOrdersWhenNewOrderIsPending()
             navigateToInventoryWhenItemIsPending()
         }
         .environment(\.navigateToAppDestination, navigate)
@@ -42,6 +44,13 @@ struct RootView: View {
             }
 
             navigateToOrdersWhenNotificationIsPending()
+        }
+        .onChange(of: orderNavigationRouter.pendingNewOrderCustomerId) { _, customerId in
+            guard customerId != nil else {
+                return
+            }
+
+            navigateToOrdersWhenNewOrderIsPending()
         }
         .onChange(of: inventoryNavigationRouter.pendingInventoryItemId) { _, itemId in
             guard itemId != nil else {
@@ -88,6 +97,14 @@ struct RootView: View {
 
     private func navigateToOrdersWhenNotificationIsPending() {
         guard orderNotificationRouter.pendingOrderId != nil else {
+            return
+        }
+
+        navigate(.orders)
+    }
+
+    private func navigateToOrdersWhenNewOrderIsPending() {
+        guard orderNavigationRouter.pendingNewOrderCustomerId != nil else {
             return
         }
 

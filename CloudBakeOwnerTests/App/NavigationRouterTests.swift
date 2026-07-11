@@ -46,4 +46,16 @@ final class NavigationRouterTests: XCTestCase {
 
         XCTAssertNil(router.pendingInventoryItemId)
     }
+
+    func testOrderNavigationRouterCarriesCustomerIntoNewOrderRequest() {
+        let router = OrderNavigationRouter()
+
+        router.beginNewOrder(customerId: "customer-amy")
+
+        XCTAssertEqual(router.pendingNewOrderCustomerId, "customer-amy")
+
+        router.clearPendingNewOrder()
+
+        XCTAssertNil(router.pendingNewOrderCustomerId)
+    }
 }
