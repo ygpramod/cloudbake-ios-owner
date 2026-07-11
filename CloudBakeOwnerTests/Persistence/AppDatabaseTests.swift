@@ -142,6 +142,67 @@ final class AppDatabaseTests: XCTestCase {
         )
     }
 
+    func testUniqueDesignOriginMigrationRepairsDuplicatesBeforeCreatingIndex() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0023_add_design_tags_and_favorites")
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_050_000)
+        let order = Order(
+            id: "order-duplicate-origin",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Duplicate origin",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let photo = OrderPhoto(
+            id: "photo-duplicate-origin",
+            orderId: order.id,
+            kind: .finalCake,
+            localPhotoPath: "photos://duplicate-origin",
+            caption: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        func design(id: String) -> CakeDesign {
+            CakeDesign(
+                id: id,
+                name: id,
+                notes: nil,
+                photoReference: photo.localPhotoPath,
+                sourceKind: .ownerMade,
+                originatingOrderPhotoId: photo.id,
+                originatingOrderId: order.id,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        }
+        try repository.save(order)
+        try repository.save(photo)
+        try repository.save(design(id: "design-b"))
+        try repository.save(design(id: "design-a"))
+
+        try migrator.migrate(queue)
+
+        XCTAssertEqual(
+            try repository.fetchCakeDesign(id: "design-a")?.originatingOrderPhotoId,
+            photo.id
+        )
+        XCTAssertNil(
+            try repository.fetchCakeDesign(id: "design-b")?.originatingOrderPhotoId
+        )
+        XCTAssertEqual(try repository.fetchCakeDesigns().count, 2)
+        XCTAssertThrowsError(try repository.save(design(id: "design-c")))
+        XCTAssertNil(try repository.fetchCakeDesign(id: "design-c"))
+    }
+
     func testCakeDesignFetchRejectsUnknownPersistedSourceKind() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         try AppDatabaseMigrations.makeMigrator().migrate(queue)
