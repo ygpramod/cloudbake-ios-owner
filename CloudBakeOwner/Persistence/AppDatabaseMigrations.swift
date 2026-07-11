@@ -331,6 +331,13 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0021_create_design_photo_cleanups") { db in
+            try db.create(table: "design_photo_cleanups") { table in
+                table.column("relative_path", .text).primaryKey()
+                table.column("created_at_unix_time", .double).notNull()
+            }
+        }
+
         return migrator
     }
 }

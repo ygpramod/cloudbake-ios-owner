@@ -236,11 +236,42 @@ extension GRDBCoreDataRepository {
         }
     }
 
-    func savePromotedDesign(_ design: CakeDesign, linking order: Order, photo: OrderPhoto) throws {
+    func savePromotedDesign(
+        _ design: CakeDesign,
+        linking order: Order,
+        photo: OrderPhoto,
+        cleanupRelativePath: String
+    ) throws {
         try writer.write { db in
             try save(design, in: db)
             try save(order, in: db)
             try save(photo, in: db)
+            try db.execute(
+                sql: """
+                    INSERT OR IGNORE INTO design_photo_cleanups
+                    (relative_path, created_at_unix_time)
+                    VALUES (?, ?)
+                    """,
+                arguments: [cleanupRelativePath, design.updatedAt.timeIntervalSince1970]
+            )
+        }
+    }
+
+    func fetchPendingDesignPhotoCleanupPaths() throws -> [String] {
+        try writer.read { db in
+            try String.fetchAll(
+                db,
+                sql: "SELECT relative_path FROM design_photo_cleanups ORDER BY created_at_unix_time, relative_path"
+            )
+        }
+    }
+
+    func deletePendingDesignPhotoCleanupPath(_ relativePath: String) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: "DELETE FROM design_photo_cleanups WHERE relative_path = ?",
+                arguments: [relativePath]
+            )
         }
     }
 }

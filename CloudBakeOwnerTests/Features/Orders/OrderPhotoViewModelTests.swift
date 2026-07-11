@@ -236,6 +236,44 @@ final class OrderPhotoViewModelTests: XCTestCase {
         XCTAssertTrue(repository.orderPhotos.isEmpty)
     }
 
+    func testPromoteFinalCakePhotoQueuesFailedLocalCleanupAndReportsSaved() async {
+        let repository = FakeOrderRepository()
+        let photoFileStore = FakeOrderPhotoFileStore()
+        photoFileStore.deleteError = TestRepositoryError.forcedFailure
+        let designPhotoLibrary = FakeDesignPhotoLibrary()
+        let order = makeOrder(id: "order-cleanup-failure", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        repository.orders = [order]
+        let photo = makeOrderPhoto(id: "photo-final", orderId: order.id, kind: .finalCake)
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            photoFileStore: photoFileStore,
+            designPhotoLibrary: designPhotoLibrary
+        )
+        viewModel.beginViewingOrder(order)
+
+        let didPromote = await viewModel.promoteFinalCakePhotoToDesign(
+            photo,
+            name: "Cleanup Design",
+            notes: ""
+        )
+
+        XCTAssertTrue(didPromote)
+        XCTAssertEqual(repository.cakeDesigns.first?.photoReference, designPhotoLibrary.savedReference)
+        XCTAssertEqual(repository.orders.first?.cakeDesignId, repository.cakeDesigns.first?.id)
+        XCTAssertEqual(repository.pendingDesignPhotoCleanupPaths, [photo.localPhotoPath])
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "Design saved. The old local photo copy will be removed automatically."
+        )
+
+        photoFileStore.deleteError = nil
+        viewModel.load()
+
+        XCTAssertTrue(repository.pendingDesignPhotoCleanupPaths.isEmpty)
+        XCTAssertEqual(photoFileStore.deletedRelativePaths, [photo.localPhotoPath])
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testDeleteOrderPhotoRemovesMetadataAndStoredFile() {
         let repository = FakeOrderRepository()
         let photoFileStore = FakeOrderPhotoFileStore()

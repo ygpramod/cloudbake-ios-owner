@@ -264,6 +264,10 @@ struct DesignPhotoView: View {
     let contentMode: ContentMode
     @State private var image: UIImage?
 
+    private var loadRequest: DesignPhotoLoadRequest {
+        DesignPhotoLoadRequest(source: source, maximumPixelSize: maximumPixelSize)
+    }
+
     var body: some View {
         Group {
             if let image {
@@ -276,12 +280,22 @@ struct DesignPhotoView: View {
                     .background(Color.cloudBakePink.opacity(0.10))
             }
         }
-        .task(id: source) {
+        .task(id: loadRequest) {
+            image = nil
             guard let source else {
-                image = nil
                 return
             }
-            image = await DesignThumbnailLoader.shared.image(for: source, maximumPixelSize: maximumPixelSize)
+            let loadedImage = await DesignThumbnailLoader.shared.image(
+                for: source,
+                maximumPixelSize: maximumPixelSize
+            )
+            guard !Task.isCancelled else { return }
+            image = loadedImage
         }
     }
+}
+
+private struct DesignPhotoLoadRequest: Hashable {
+    let source: CakeDesignPhotoSource?
+    let maximumPixelSize: Int
 }

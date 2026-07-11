@@ -1022,11 +1022,17 @@ final class CoreDataRepositoryTests: XCTestCase {
         try repository.save(originalOrder)
 
         XCTAssertThrowsError(
-            try repository.savePromotedDesign(design, linking: linkedOrder, photo: invalidPhoto)
+            try repository.savePromotedDesign(
+                design,
+                linking: linkedOrder,
+                photo: invalidPhoto,
+                cleanupRelativePath: "OrderPhotos/atomic.jpg"
+            )
         )
         XCTAssertNil(try repository.fetchCakeDesign(id: design.id))
         XCTAssertNil(try repository.fetchOrder(id: originalOrder.id)?.cakeDesignId)
         XCTAssertTrue(try repository.fetchOrderPhotos(orderId: originalOrder.id).isEmpty)
+        XCTAssertTrue(try repository.fetchPendingDesignPhotoCleanupPaths().isEmpty)
     }
 
     func testChangingOrderStatusToReadyRecordsRecipeUsageAndDeductsInventory() throws {

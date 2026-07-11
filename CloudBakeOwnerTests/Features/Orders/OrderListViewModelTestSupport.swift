@@ -202,6 +202,7 @@ final class FakeOrderRepository: OrderRepository,
     var recordRecipeUsageError: Error?
     var changeOrderStatusError: Error?
     var savePromotedDesignError: Error?
+    var pendingDesignPhotoCleanupPaths: [String] = []
 
     func save(_ order: Order) throws {
         orders.removeAll { $0.id == order.id }
@@ -291,11 +292,25 @@ final class FakeOrderRepository: OrderRepository,
         cakeDesigns.append(design)
     }
 
-    func savePromotedDesign(_ design: CakeDesign, linking order: Order, photo: OrderPhoto) throws {
+    func savePromotedDesign(
+        _ design: CakeDesign,
+        linking order: Order,
+        photo: OrderPhoto,
+        cleanupRelativePath: String
+    ) throws {
         if let savePromotedDesignError { throw savePromotedDesignError }
         try save(design)
         try save(order)
         try save(photo)
+        pendingDesignPhotoCleanupPaths.append(cleanupRelativePath)
+    }
+
+    func fetchPendingDesignPhotoCleanupPaths() throws -> [String] {
+        pendingDesignPhotoCleanupPaths
+    }
+
+    func deletePendingDesignPhotoCleanupPath(_ relativePath: String) throws {
+        pendingDesignPhotoCleanupPaths.removeAll { $0 == relativePath }
     }
 
     func fetchCakeDesign(id: String) throws -> CakeDesign? {
@@ -498,6 +513,7 @@ final class FakeOrderPhotoFileStore: OrderPhotoFileStore {
 
     var savedPhotos: [SavedPhoto] = []
     var deletedRelativePaths: [String] = []
+    var deleteError: Error?
 
     func saveOrderPhoto(data: Data, orderId: String, photoId: String) throws -> String {
         savedPhotos.append(SavedPhoto(data: data, orderId: orderId, photoId: photoId))
@@ -505,6 +521,7 @@ final class FakeOrderPhotoFileStore: OrderPhotoFileStore {
     }
 
     func deleteOrderPhoto(relativePath: String) throws {
+        if let deleteError { throw deleteError }
         deletedRelativePaths.append(relativePath)
     }
 
