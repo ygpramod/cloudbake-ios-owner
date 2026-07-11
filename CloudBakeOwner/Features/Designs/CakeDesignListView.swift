@@ -418,12 +418,22 @@ private struct CustomerReferencePreviewView: View {
                 Button("Done") { dismiss() }
             }
         }
-        .alert("Edit Tags", isPresented: $isEditingTags) {
+        .cloudBakeCenteredPopup(
+            isPresented: isEditingTags,
+            title: "Edit Tags",
+            subtitle: "Separate tags with commas.",
+            systemImage: "tag",
+            cancelAccessibilityIdentifier: "designs.tags.cancel",
+            onCancel: { isEditingTags = false }
+        ) {
             TextField("Comma-separated tags", text: $tagsText)
-            Button("Cancel", role: .cancel) {}
-            Button("Save") {
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("designs.customerReference.tags.field")
+            centeredPopupButton("Save") {
                 if let updated = onUpdateTags(tagsText, reference) { apply(updated) }
+                isEditingTags = false
             }
+            .accessibilityIdentifier("designs.customerReference.tags.save")
         }
         .cloudBakeCenteredPopup(
             isPresented: isConfirmingDelete,
@@ -813,12 +823,22 @@ private struct CakeDesignPreviewView: View {
                 .accessibilityIdentifier("designs.preview.done")
             }
         }
-        .alert("Edit Tags", isPresented: $isEditingTags) {
+        .cloudBakeCenteredPopup(
+            isPresented: isEditingTags,
+            title: "Edit Tags",
+            subtitle: "Separate tags with commas.",
+            systemImage: "tag",
+            cancelAccessibilityIdentifier: "designs.tags.cancel",
+            onCancel: { isEditingTags = false }
+        ) {
             TextField("Comma-separated tags", text: $tagsText)
-            Button("Cancel", role: .cancel) {}
-            Button("Save") {
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("designs.preview.tags.field")
+            centeredPopupButton("Save") {
                 if let updated = onUpdateTags(tagsText, design) { apply(updated) }
+                isEditingTags = false
             }
+            .accessibilityIdentifier("designs.preview.tags.save")
         }
         .cloudBakeCenteredPopup(
             isPresented: isConfirmingDelete,
@@ -1037,7 +1057,7 @@ private struct ZoomableDesignPhoto: View {
 
 }
 
-private actor DesignThumbnailLoader {
+actor DesignThumbnailLoader {
     static let shared = DesignThumbnailLoader()
     private let cache: NSCache<NSString, UIImage> = {
         let cache = NSCache<NSString, UIImage>()
