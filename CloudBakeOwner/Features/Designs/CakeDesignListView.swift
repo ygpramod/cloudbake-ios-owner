@@ -20,28 +20,20 @@ struct CakeDesignListView: View {
             title: "Designs",
             selectedDestination: .designs
         ) {
-            if !viewModel.hasContent {
-                CloudBakeEmptyState(
-                    title: "No designs yet",
-                    systemImage: "photo.on.rectangle",
-                    message: "Save final cake photos as designs from an order to build a searchable inspiration board."
-                )
-            } else {
-                CloudBakeSearchField(
-                    text: $viewModel.searchText,
-                    prompt: "Search designs",
-                    accessibilityIdentifier: "designs.search",
-                    isFocused: $isSearchFocused
-                )
+            CloudBakeSearchField(
+                text: $viewModel.searchText,
+                prompt: "Search designs",
+                accessibilityIdentifier: "designs.search",
+                isFocused: $isSearchFocused
+            )
 
-                designResults
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                        TapGesture().onEnded {
-                            isSearchFocused = false
-                        }
-                    )
-            }
+            designResults
+                .contentShape(Rectangle())
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        isSearchFocused = false
+                    }
+                )
 
             if let errorMessage = viewModel.errorMessage {
                 CloudBakeErrorBanner(
@@ -88,22 +80,25 @@ struct CakeDesignListView: View {
                 message: "Try another cake name, note, tag, or photo reference."
             )
         } else {
-            if !viewModel.visibleDesigns.isEmpty {
             Text("My Designs (\(viewModel.visibleDesigns.count))")
                 .font(CloudBakeTheme.Typography.sectionTitle)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("designs.myDesigns.title")
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.adaptive(minimum: 150), spacing: 14)
-                ],
-                spacing: 14
-            ) {
-                ForEach(viewModel.visibleDesigns, id: \.id) { design in
-                    designTile(design)
+            if viewModel.visibleDesigns.isEmpty {
+                Text("No owner designs saved")
+                    .font(CloudBakeTheme.Typography.rowDetail)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 150), spacing: 14)],
+                    spacing: 14
+                ) {
+                    ForEach(viewModel.visibleDesigns, id: \.id) { design in
+                        designTile(design)
+                    }
                 }
-            }
             }
 
             Text("Customer References (\(viewModel.visibleCustomerReferences.count))")
