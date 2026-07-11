@@ -144,6 +144,8 @@ The app currently supports:
     centered, shared-style detail screen.
 115. local cross-source Designs search with tokenized AND matching while preserving My Designs,
     Customer References, and Internet Inspiration grouping.
+116. normalized design tags, represented-tag filter chips, and a private owner favourite state
+    across saved designs and customer references.
 
 ## Partially Prepared
 
