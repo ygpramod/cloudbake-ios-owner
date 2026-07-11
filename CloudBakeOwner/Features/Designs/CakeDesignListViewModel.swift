@@ -33,7 +33,7 @@ enum DesignLibraryFilter: Hashable, Identifiable {
         switch self {
         case .all: "All"
         case .favorites: "Favorites"
-        case .tag(let tag): tag
+        case .tag(let tag): "#\(tag)"
         }
     }
 }
