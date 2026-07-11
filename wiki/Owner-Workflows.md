@@ -356,9 +356,9 @@ existing design reference, clear the link, and review the linked design name, no
 reference from order detail.
 
 From Designs detail, `Use for New Order` opens the normal add-order form with the selected image
-already linked. The order remains an unsaved draft until Save is selected. Owner-made and internet
-inspiration items retain their saved-design relationship; customer references retain a separate
-originating order-photo relationship so their provenance is not changed.
+already linked. The order remains an unsaved draft until Save is selected. Owner-made items retain
+their saved-design relationship; customer references retain a separate originating order-photo
+relationship so their provenance is not changed.
 
 Design and customer-reference detail photos support pinch zoom. Labelled zoom controls provide the
 same inspection workflow without requiring a pinch gesture. Swipe horizontally to move to the next
@@ -368,6 +368,10 @@ detail screen.
 The add action beside My Designs imports completed owner work directly from the iPhone Photos
 library. A name is required; notes and comma-separated tags are optional. CloudBake stores the
 Photos asset reference and metadata only, and the design remains private by default.
+
+The order form opens a photo-first Designs grid for linking a saved owner-made design. Search works
+across names, notes, and tags, and the ribbon shows the ten most-used tags. Internet Inspiration is
+not part of the current owner workflow.
 
 Order detail also includes a Photos section for order-specific images. Customer References are for
 images the customer shares before preparation, while Final Cake Photos are for what the owner made
