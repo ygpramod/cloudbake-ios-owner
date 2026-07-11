@@ -134,6 +134,8 @@ The app currently supports:
 110. Photos-owned design images: CloudBake saves newly promoted designs to the iPhone Photos
     library and stores only the returned local asset identifier, while retaining read-only legacy
     reference compatibility.
+111. a private Customer References collection in Designs, derived from order reference photos with
+    originating customer and order context and without duplicating photo records.
 
 ## Partially Prepared
 
