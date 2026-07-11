@@ -698,6 +698,49 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftChecklistItemTitle, "")
     }
 
+    func testBeginViewingOrderExposesInternetInspirationProvenance() {
+        let repository = FakeOrderRepository()
+        let design = makeCakeDesign(
+            id: "design-internet",
+            name: "Saved inspiration",
+            sourceKind: .internetInspiration
+        )
+        let order = makeOrder(
+            id: "order-internet-design",
+            cakeDesignId: design.id,
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        repository.cakeDesigns = [design]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertEqual(viewModel.selectedOrderCakeDesign, design)
+        XCTAssertEqual(viewModel.selectedOrderDesignSourceName, "Internet Inspiration")
+    }
+
+    func testBeginViewingOrderExposesCustomerReferenceProvenance() {
+        let repository = FakeOrderRepository()
+        let photo = makeOrderPhoto(
+            id: "photo-customer-reference",
+            orderId: "order-source",
+            kind: .customerReference
+        )
+        let order = makeOrder(
+            id: "order-customer-reference",
+            customerReferencePhotoId: photo.id,
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        repository.orderPhotos = [photo]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertEqual(viewModel.selectedOrderCustomerReferencePhoto, photo)
+        XCTAssertEqual(viewModel.selectedOrderDesignSourceName, "Customer Reference")
+        XCTAssertNil(viewModel.selectedOrderCakeDesign)
+    }
+
     func testExtraIngredientCanBeAddedAndDisplayedForSelectedOrder() {
         let repository = FakeOrderRepository()
         let order = makeOrder(

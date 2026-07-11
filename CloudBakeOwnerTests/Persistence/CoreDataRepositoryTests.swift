@@ -1270,6 +1270,81 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertNotNil(try repository.fetchOrder(id: reusedOrder.id))
     }
 
+    func testOrderRejectsMissingOrFinalCakePhotoAsCustomerReference() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_100_000)
+        let sourceOrder = makeOrder(id: "order-reference-validation", dueAt: timestamp)
+        let finalPhoto = OrderPhoto(
+            id: "photo-final-not-reference",
+            orderId: sourceOrder.id,
+            kind: .finalCake,
+            localPhotoPath: "photos://final-not-reference",
+            caption: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(sourceOrder)
+        try repository.save(finalPhoto)
+
+        for photoId in [finalPhoto.id, "photo-missing"] {
+            let invalidOrder = Order(
+                id: "order-invalid-\(photoId)",
+                customerId: nil,
+                cakeDesignId: nil,
+                customerReferencePhotoId: photoId,
+                title: "Invalid reference",
+                customerName: "Amy",
+                status: .draft,
+                dueAt: timestamp,
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+
+            XCTAssertThrowsError(try repository.save(invalidOrder)) { error in
+                XCTAssertEqual(
+                    error as? OrderPersistenceError,
+                    .invalidCustomerReferencePhoto
+                )
+            }
+            XCTAssertNil(try repository.fetchOrder(id: invalidOrder.id))
+        }
+
+        let customerReference = OrderPhoto(
+            id: "photo-valid-reference",
+            orderId: sourceOrder.id,
+            kind: .customerReference,
+            localPhotoPath: "photos://valid-reference",
+            caption: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let design = makeCakeDesign(id: "design-ambiguous-reference", name: "Ambiguous")
+        try repository.save(customerReference)
+        try repository.save(design)
+        let ambiguousOrder = Order(
+            id: "order-ambiguous-reference",
+            customerId: nil,
+            cakeDesignId: design.id,
+            customerReferencePhotoId: customerReference.id,
+            title: "Ambiguous reference",
+            customerName: "Amy",
+            status: .draft,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        XCTAssertThrowsError(try repository.save(ambiguousOrder)) { error in
+            XCTAssertEqual(error as? OrderPersistenceError, .multipleDesignReferences)
+        }
+        XCTAssertNil(try repository.fetchOrder(id: ambiguousOrder.id))
+    }
+
     func testChangingOrderStatusToReadyRecordsRecipeUsageAndDeductsInventory() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)

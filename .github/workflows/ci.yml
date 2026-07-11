@@ -103,6 +103,7 @@ jobs:
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignRemovalCanBeCancelledAndConfirmed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignCanStartAnUnsavedOrderDraftWithTheDesignLinked
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerReferenceDraftShowsItsCurrentSelectedProvenance
 
     steps:
       - name: Checkout

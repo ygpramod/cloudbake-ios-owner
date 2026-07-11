@@ -102,7 +102,8 @@ func makeCakeDesign(
     id: String,
     name: String,
     notes: String? = nil,
-    photoReference: String? = nil
+    photoReference: String? = nil,
+    sourceKind: CakeDesignSourceKind = .ownerMade
 ) -> CakeDesign {
     let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
     return CakeDesign(
@@ -110,6 +111,7 @@ func makeCakeDesign(
         name: name,
         notes: notes,
         photoReference: photoReference,
+        sourceKind: sourceKind,
         createdAt: timestamp,
         updatedAt: timestamp
     )
@@ -419,6 +421,10 @@ final class FakeOrderRepository: OrderRepository,
 
                 return $0.kind.rawValue < $1.kind.rawValue
             }
+    }
+
+    func fetchOrderPhoto(id: String) throws -> OrderPhoto? {
+        orderPhotos.first { $0.id == id }
     }
 
     func fetchOrderPhotos(kind: OrderPhotoKind) throws -> [OrderPhoto] {

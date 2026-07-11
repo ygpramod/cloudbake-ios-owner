@@ -233,6 +233,16 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchOrderPhoto(id: String) throws -> OrderPhoto? {
+        try writer.read { db in
+            try Row.fetchOne(
+                db,
+                sql: "SELECT * FROM order_photos WHERE id = ?",
+                arguments: [id]
+            ).flatMap(orderPhoto)
+        }
+    }
+
     func fetchOrderPhotos(kind: OrderPhotoKind) throws -> [OrderPhoto] {
         try writer.read { db in
             try Row.fetchAll(
@@ -415,6 +425,19 @@ private extension GRDBCoreDataRepository {
     }
 
     func save(_ order: Order, in db: Database) throws {
+        guard order.cakeDesignId == nil || order.customerReferencePhotoId == nil else {
+            throw OrderPersistenceError.multipleDesignReferences
+        }
+        if let photoId = order.customerReferencePhotoId {
+            let kind = try String.fetchOne(
+                db,
+                sql: "SELECT kind FROM order_photos WHERE id = ?",
+                arguments: [photoId]
+            )
+            guard kind == OrderPhotoKind.customerReference.rawValue else {
+                throw OrderPersistenceError.invalidCustomerReferencePhoto
+            }
+        }
         try db.execute(
             sql: """
                 INSERT INTO orders
