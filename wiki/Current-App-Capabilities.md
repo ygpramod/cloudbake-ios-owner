@@ -158,6 +158,8 @@ The app currently supports:
 121. design-detail pinch zoom with accessible zoom controls, horizontal movement through adjacent
     filtered results, bounded thumbnail caching, and representative local-search performance
     coverage.
+122. a fail-closed future consumer design projection that includes only explicitly published,
+    owner-made designs with an available photo and excludes private provenance and owner metadata.
 
 ## Partially Prepared
 
