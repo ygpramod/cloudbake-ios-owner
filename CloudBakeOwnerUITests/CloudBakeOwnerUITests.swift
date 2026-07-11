@@ -341,11 +341,12 @@ final class CloudBakeOwnerUITests: XCTestCase {
             timeout: transitionTimeout
         )
         let referencePreview = app.buttons["orders.detail.photos.preview.photo-ui-fixture-reference"]
-        assertExistsAfterScrolling(referencePreview, in: app, timeout: transitionTimeout)
+        scrollToHittable(referencePreview, in: app, timeout: transitionTimeout)
         tapWhenReady(referencePreview, timeout: transitionTimeout)
-        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].label.contains("Customer sketch"))
-        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.kind"].label.contains("Reference Photo"))
+        let referenceMetadata = app.descendants(matching: .any)["orders.detail.photos.preview.screen"]
+        XCTAssertTrue(referenceMetadata.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(referenceMetadata.label.contains("Customer sketch"))
+        XCTAssertTrue(referenceMetadata.label.contains("Reference Photo"))
         tapWhenReady(app.buttons["orders.detail.photos.preview.editCaption"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Photo Caption"].waitForExistence(timeout: transitionTimeout))
         let captionField = app.textFields["orders.detail.photos.caption.text"]
@@ -353,8 +354,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
         captionField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
         captionField.typeText("Lace and pearls")
         tapWhenReady(app.buttons["orders.detail.photos.caption.save"], timeout: transitionTimeout)
-        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].label.contains("Lace and pearls"))
+        XCTAssertTrue(referenceMetadata.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(referenceMetadata.label.contains("Lace and pearls"))
         tapWhenReady(app.buttons["orders.detail.photos.preview.close"], timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.staticTexts["orders.detail.photos.item.photo-ui-fixture-reference"].label.contains("Lace and pearls"))
@@ -380,10 +381,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
             timeout: transitionTimeout
         )
         let finalPreview = app.buttons["orders.detail.photos.preview.photo-ui-fixture-final"]
-        assertExistsAfterScrolling(finalPreview, in: app, timeout: transitionTimeout)
+        scrollToHittable(finalPreview, in: app, timeout: transitionTimeout)
         tapWhenReady(finalPreview, timeout: transitionTimeout)
-        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(app.staticTexts["orders.detail.photos.preview.caption"].label.contains("Finished cake"))
+        let finalMetadata = app.descendants(matching: .any)["orders.detail.photos.preview.screen"]
+        XCTAssertTrue(finalMetadata.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(finalMetadata.label.contains("Finished cake"))
         tapWhenReady(app.buttons["orders.detail.photos.preview.promoteDesign"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Save Design"].waitForExistence(timeout: transitionTimeout))
         let designNameField = app.textFields["orders.detail.photos.design.name"]
