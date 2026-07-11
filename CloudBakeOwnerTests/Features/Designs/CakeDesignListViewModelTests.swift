@@ -53,6 +53,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         viewModel.searchText = " , / "
 
         XCTAssertEqual(viewModel.visibleDesigns, [flowers, ganache])
+        XCTAssertFalse(viewModel.hasEffectiveSearchQuery)
     }
 
     func testAccessibilityLabelCallsOutMissingPhoto() {
