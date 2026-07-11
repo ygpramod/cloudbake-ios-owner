@@ -98,7 +98,8 @@ The app currently supports:
 82. optional saved cake design link from order add/edit,
 83. simple Completed orders tab for completed and cancelled orders ordered by delivery or pickup
     date-time descending,
-84. linked design name, notes, and photo reference in order detail,
+84. linked design name, notes, tappable photo thumbnail, and full-screen photo detail in order
+    detail,
 85. completed order tab that keeps completed and cancelled orders out of active order views, with
     cancelled rows visibly marked,
 86. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment

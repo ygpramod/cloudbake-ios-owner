@@ -77,6 +77,9 @@ The experience should prioritize photographs over text and remain practical for 
 - The design detail must provide Use for New Order.
 - Use for New Order must open a new order draft with the selected design already linked.
 - The owner must review and save the order; selecting a design must not create an order silently.
+- A saved order with an available linked design or customer reference must show a compact photo
+  thumbnail in order detail; selecting it opens a centered photo detail without exposing its raw
+  Photos identifier or legacy file path.
 - The app must preserve image provenance and must not present customer images as work
   made by the owner.
 - The experience must remain local-first and usable without a backend.
