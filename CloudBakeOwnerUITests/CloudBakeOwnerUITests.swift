@@ -757,7 +757,16 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(designName, in: app, timeout: transitionTimeout)
         XCTAssertTrue(designName.label.contains("Pink Floral Cake"))
         assertExistsAfterScrolling(app.staticTexts["orders.detail.designNotes"], in: app, timeout: transitionTimeout)
-        assertExistsAfterScrolling(app.staticTexts["orders.detail.designPhotoReference"], in: app, timeout: transitionTimeout)
+        let designThumbnail = app.buttons["orders.detail.designPhotoThumbnail"]
+        scrollToHittable(designThumbnail, in: app, timeout: transitionTimeout)
+        tapWhenReady(designThumbnail, timeout: transitionTimeout)
+        XCTAssertTrue(
+            app.descendants(matching: .any)["orders.detail.designPhotoPreview"]
+                .waitForExistence(timeout: transitionTimeout)
+        )
+        XCTAssertTrue(app.navigationBars["Pink Floral Cake"].exists)
+        tapWhenReady(app.buttons["orders.detail.designPhotoPreview.done"], timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
     }
 
     func testOrderCanSelectCustomerReferenceFromPhotoFirstDesignPicker() throws {
