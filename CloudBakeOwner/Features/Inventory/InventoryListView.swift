@@ -211,34 +211,41 @@ struct InventoryListView: View {
                     isAdjustingStock = true
                 }
 
-                CloudBakeInlineActionButton(
-                    title: "Use",
-                    systemImage: "minus",
-                    tint: .cloudBakeOrange,
-                    accessibilityIdentifier: "inventory.item.consume.\(item.id)"
-                ) {
-                    viewModel.beginConsuming(item)
-                    isConsumingStock = true
-                }
+                Menu {
+                    Button {
+                        viewModel.beginConsuming(item)
+                        isConsumingStock = true
+                    } label: {
+                        Label("Use stock", systemImage: "minus")
+                    }
+                    .accessibilityIdentifier("inventory.item.consume.\(item.id)")
 
-                CloudBakeInlineActionButton(
-                    title: "History",
-                    systemImage: "clock",
-                    tint: .cloudBakeTeal,
-                    accessibilityIdentifier: "inventory.item.history.\(item.id)"
-                ) {
-                    viewModel.beginViewingHistory(item)
-                    isShowingHistory = true
-                }
+                    Button {
+                        viewModel.beginViewingHistory(item)
+                        isShowingHistory = true
+                    } label: {
+                        Label("View history", systemImage: "clock")
+                    }
+                    .accessibilityIdentifier("inventory.item.history.\(item.id)")
 
-                CloudBakeInlineActionButton(
-                    title: "Archive",
-                    systemImage: "archivebox",
-                    tint: .red,
-                    accessibilityIdentifier: "inventory.item.archive.\(item.id)"
-                ) {
-                    pendingArchiveItem = item
+                    Button(role: .destructive) {
+                        pendingArchiveItem = item
+                    } label: {
+                        Label("Archive", systemImage: "archivebox")
+                    }
+                    .accessibilityIdentifier("inventory.item.archive.\(item.id)")
+                } label: {
+                    Label("More actions", systemImage: "ellipsis.circle")
+                        .font(CloudBakeTheme.Typography.rowDetail.weight(.semibold))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.90)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, minHeight: 44)
                 }
+                .buttonStyle(.bordered)
+                .tint(.secondary)
+                .accessibilityIdentifier("inventory.item.more.\(item.id)")
             }
         }
         .padding(20)

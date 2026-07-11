@@ -43,6 +43,7 @@ extension CloudBakeOwnerUITests {
         consumeFirstInventoryItem(by: "50", in: app)
         XCTAssertTrue(app.staticTexts["Current Quantity: 300 g"].waitForExistence(timeout: 5))
 
+        openFirstInventoryItemOverflow(in: app)
         let historyButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.history.")).firstMatch
         XCTAssertTrue(historyButton.waitForExistence(timeout: 5))
         historyButton.tap()
@@ -91,6 +92,7 @@ extension CloudBakeOwnerUITests {
 
         let row = inventoryRow(named: "Cake flour", in: app)
         scrollToHittable(row, in: app, timeout: transitionTimeout)
+        openFirstInventoryItemOverflow(in: app, timeout: transitionTimeout)
         let archiveButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.archive.")).firstMatch
         scrollToHittable(archiveButton, in: app, timeout: transitionTimeout)
         tapWhenReady(archiveButton, timeout: transitionTimeout)

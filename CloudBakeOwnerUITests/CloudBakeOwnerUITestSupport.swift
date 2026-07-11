@@ -257,6 +257,7 @@ extension CloudBakeOwnerUITests {
     }
 
     func consumeFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
+        openFirstInventoryItemOverflow(in: app)
         let consumeButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.consume.")).firstMatch
         XCTAssertTrue(consumeButton.waitForExistence(timeout: 5))
         consumeButton.tap()
@@ -265,6 +266,13 @@ extension CloudBakeOwnerUITests {
         app.textFields["inventory.consume.quantity"].typeText(quantity)
         app.buttons["inventory.consume.save"].tap()
         assertScreenVisible("screen.inventory", in: app, timeout: 5)
+    }
+
+    func openFirstInventoryItemOverflow(in app: XCUIApplication, timeout: TimeInterval = 5) {
+        let moreButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.more.")).firstMatch
+        XCTAssertTrue(moreButton.waitForExistence(timeout: timeout))
+        scrollToHittable(moreButton, in: app, timeout: timeout)
+        moreButton.tap()
     }
 
     func firstEditableInventoryRow(in app: XCUIApplication) -> XCUIElement {
