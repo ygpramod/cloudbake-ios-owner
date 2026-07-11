@@ -40,7 +40,7 @@ This slice does not include:
 - Screens with several top actions may collapse them behind a compact `...` action menu.
 - Existing accessibility identifiers used by critical workflows must remain stable or be updated in
   tests with a clear reason.
-- The bottom navigation must preserve the Home, Orders, Inventory, and Designs quick links.
+- The bottom navigation must preserve the Home, Orders, Inventory, and More quick links.
 - Second-level screens must be pushed from Home with the platform right-to-left navigation
   animation.
 - Moving between second-level screens must use the same platform push animation instead of an

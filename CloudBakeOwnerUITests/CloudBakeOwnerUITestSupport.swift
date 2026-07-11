@@ -26,11 +26,14 @@ extension CloudBakeOwnerUITests {
         case "Inventory":
             identifier = "bottom.navigation.inventory"
             screenIdentifier = "screen.inventory"
+        case "More":
+            identifier = "bottom.navigation.more"
+            screenIdentifier = "screen.more"
         case "Recipes":
             identifier = "navigation.recipes"
             screenIdentifier = "screen.recipes"
         case "Designs":
-            identifier = "bottom.navigation.designs"
+            identifier = "navigation.designs"
             screenIdentifier = "screen.designs"
         case "Customers":
             identifier = "navigation.customers"
@@ -44,14 +47,10 @@ extension CloudBakeOwnerUITests {
         }
 
         let destinationButton: XCUIElement
-        if title == "Recipes" || title == "Customers" || title == "Settings" {
-            let dashboard = app.scrollViews["screen.dashboard"]
-            if title == "Recipes" {
-                dashboard.swipeUp()
-            }
-            for _ in 0..<4 where !app.buttons[identifier].exists {
-                dashboard.swipeUp()
-            }
+        if title == "Recipes" || title == "Customers" || title == "Designs" || title == "Settings" {
+            let moreTab = app.buttons["bottom.navigation.more"]
+            tapWhenReady(moreTab, timeout: timeout, file: file, line: line)
+            assertScreenVisible("screen.more", in: app, timeout: timeout, file: file, line: line)
             destinationButton = app.buttons[identifier]
         } else {
             destinationButton = app.buttons[identifier]

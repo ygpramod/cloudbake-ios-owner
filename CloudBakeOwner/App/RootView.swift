@@ -128,6 +128,8 @@ struct RootView: View {
                     repository: database.makeCoreDataRepository()
                 )
             )
+        case .more:
+            MoreView()
         case .recipes:
             RecipeListView(
                 viewModel: RecipeListViewModel(
@@ -183,6 +185,111 @@ struct RootView: View {
             repository: repository
         ).refreshReminders()
     }
+}
+
+private struct MoreView: View {
+    @Environment(\.navigateToAppDestination) private var navigate
+
+    private let sections: [MoreSection] = [
+        MoreSection(
+            title: "Bakery Library",
+            destinations: [.recipes, .designs, .customers]
+        ),
+        MoreSection(
+            title: "App",
+            destinations: [.settings]
+        )
+    ]
+
+    var body: some View {
+        CloudBakeScreenScaffold(
+            title: "More",
+            selectedDestination: .more
+        ) {
+            ForEach(sections) { section in
+                CloudBakeSection(section.title) {
+                    CloudBakeListCard {
+                        ForEach(section.destinations.indices, id: \.self) { index in
+                            let destination = section.destinations[index]
+
+                            Button {
+                                navigate(destination)
+                            } label: {
+                                HStack(spacing: CloudBakeTheme.Spacing.rowContent) {
+                                    CloudBakeRowIcon(systemImage: destination.systemImage, tint: tint(for: destination))
+
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(destination.title)
+                                            .font(CloudBakeTheme.Typography.rowTitle)
+                                            .foregroundStyle(.primary)
+
+                                        Text(detail(for: destination))
+                                            .font(CloudBakeTheme.Typography.rowDetail)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+
+                                    Spacer(minLength: 12)
+
+                                    Image(systemName: "chevron.right")
+                                        .font(CloudBakeTheme.Typography.rowTitle)
+                                        .foregroundStyle(.secondary)
+                                        .accessibilityHidden(true)
+                                }
+                                .padding(.vertical, 14)
+                                .padding(.horizontal, CloudBakeTheme.Spacing.cardPadding)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier(destination.accessibilityIdentifier)
+
+                            if index < section.destinations.count - 1 {
+                                CloudBakeCardDivider()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier(AppDestination.more.screenAccessibilityIdentifier)
+    }
+
+    private func tint(for destination: AppDestination) -> Color {
+        switch destination {
+        case .recipes:
+            CloudBakeTheme.ColorToken.recipeAccent
+        case .customers:
+            CloudBakeTheme.ColorToken.customerAccent
+        case .designs:
+            CloudBakeTheme.ColorToken.primaryAction
+        case .settings:
+            .gray
+        default:
+            CloudBakeTheme.ColorToken.secondaryAction
+        }
+    }
+
+    private func detail(for destination: AppDestination) -> String {
+        switch destination {
+        case .recipes:
+            "Ingredients, components, and saved recipe notes"
+        case .customers:
+            "Contacts, preferences, allergies, and order history"
+        case .designs:
+            "Cake photo references and design ideas"
+        case .settings:
+            "Pricing, currency, and inventory data tools"
+        default:
+            destination.title
+        }
+    }
+}
+
+private struct MoreSection: Identifiable {
+    let title: String
+    let destinations: [AppDestination]
+
+    var id: String { title }
 }
 
 #Preview {

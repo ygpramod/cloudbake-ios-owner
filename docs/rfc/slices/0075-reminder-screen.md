@@ -23,7 +23,7 @@ In scope:
 2. Show payment due reminders.
 3. Show orders due today.
 4. Show low inventory reminders.
-5. Link the Dashboard reminder row and Areas list to the Reminders screen.
+5. Link the Dashboard quick action to the Reminders screen.
 
 Out of scope:
 

@@ -4,6 +4,7 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
     case dashboard
     case orders
     case inventory
+    case more
     case recipes
     case designs
     case reminders
@@ -17,6 +18,7 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
         case .dashboard: "Dashboard"
         case .orders: "Orders"
         case .inventory: "Inventory"
+        case .more: "More"
         case .recipes: "Recipes"
         case .designs: "Designs"
         case .reminders: "Reminders"
@@ -30,6 +32,7 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
         case .dashboard: "rectangle.grid.2x2"
         case .orders: "calendar"
         case .inventory: "shippingbox"
+        case .more: "ellipsis.circle"
         case .recipes: "book"
         case .designs: "photo.on.rectangle"
         case .reminders: "bell"
@@ -44,5 +47,14 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
 
     var screenAccessibilityIdentifier: String {
         "screen.\(rawValue)"
+    }
+
+    var isGroupedUnderMore: Bool {
+        switch self {
+        case .recipes, .designs, .reminders, .customers, .settings:
+            return true
+        case .dashboard, .orders, .inventory, .more:
+            return false
+        }
     }
 }
