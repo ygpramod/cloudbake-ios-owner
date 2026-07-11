@@ -562,6 +562,20 @@ struct CloudBakeInlineActionButton: View {
     }
 }
 
+struct CloudBakeOverflowMenuLabel: View {
+    let title: String
+
+    var body: some View {
+        Image(systemName: "ellipsis")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .frame(width: 44, height: 44)
+            .background(Color.secondary.opacity(0.08), in: Circle())
+            .contentShape(Circle())
+            .accessibilityLabel(title)
+    }
+}
+
 private struct CloudBakeScreenHeader: View {
     let title: String
     let primaryAction: CloudBakeScreenAction?

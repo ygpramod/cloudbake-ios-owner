@@ -205,7 +205,8 @@ struct InventoryListView: View {
                     title: "Adjust",
                     systemImage: "plusminus",
                     tint: .cloudBakePurple,
-                    accessibilityIdentifier: "inventory.item.adjust.\(item.id)"
+                    accessibilityIdentifier: "inventory.item.adjust.\(item.id)",
+                    prominence: .prominent
                 ) {
                     viewModel.beginAdjusting(item)
                     isAdjustingStock = true
@@ -235,16 +236,8 @@ struct InventoryListView: View {
                     }
                     .accessibilityIdentifier("inventory.item.archive.\(item.id)")
                 } label: {
-                    Label("More actions", systemImage: "ellipsis.circle")
-                        .font(CloudBakeTheme.Typography.rowDetail.weight(.semibold))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                        .minimumScaleFactor(0.90)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                    CloudBakeOverflowMenuLabel(title: "More actions")
                 }
-                .buttonStyle(.bordered)
-                .tint(.secondary)
                 .accessibilityIdentifier("inventory.item.more.\(item.id)")
             }
         }
