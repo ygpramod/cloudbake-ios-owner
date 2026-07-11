@@ -86,6 +86,13 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Sift"].waitForExistence(timeout: 5))
+
+        let deleteButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.ingredient.delete.")).firstMatch
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 5))
+        deleteButton.tap()
+        XCTAssertTrue(app.buttons["recipes.ingredient.delete.confirm"].waitForExistence(timeout: 5))
+        app.buttons["recipes.ingredient.delete.confirm"].tap()
+        XCTAssertTrue(app.staticTexts["No ingredients yet"].waitForExistence(timeout: 5))
     }
 
     func testRecipeNotesCanBeEditedFromDetail() throws {

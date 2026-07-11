@@ -5,6 +5,7 @@ struct RecipeDetailView: View {
     @Binding var isPresented: Bool
     @State private var isEditingIngredient = false
     @State private var isEditingRecipe = false
+    @State private var pendingDeleteIngredientRow: RecipeIngredientRow?
 
     var body: some View {
         CloudBakeDetailScaffold(
@@ -85,7 +86,7 @@ struct RecipeDetailView: View {
                                 .accessibilityIdentifier("recipes.ingredient.view.\(row.id)")
 
                                 Button(role: .destructive) {
-                                    viewModel.deleteIngredient(row.ingredient)
+                                    pendingDeleteIngredientRow = row
                                 } label: {
                                     Image(systemName: "trash")
                                         .frame(width: 34, height: 34)
@@ -113,6 +114,22 @@ struct RecipeDetailView: View {
                 }
             }
         }
+        .cloudBakeCenteredPopup(
+            isPresented: pendingDeleteIngredientRow != nil,
+            title: "Delete Ingredient?",
+            subtitle: pendingDeleteIngredientSubtitle,
+            systemImage: "trash",
+            cancelAccessibilityIdentifier: "recipes.ingredient.delete.cancel",
+            onCancel: { pendingDeleteIngredientRow = nil }
+        ) {
+            if let pendingDeleteIngredientRow {
+                centeredPopupButton("Delete \(pendingDeleteIngredientRow.inventoryItemName)", role: .destructive) {
+                    viewModel.deleteIngredient(pendingDeleteIngredientRow.ingredient)
+                    self.pendingDeleteIngredientRow = nil
+                }
+                .accessibilityIdentifier("recipes.ingredient.delete.confirm")
+            }
+        }
         .sheet(isPresented: $isEditingRecipe, onDismiss: viewModel.cancelAddRecipe) {
             NavigationStack {
                 RecipeForm(
@@ -132,6 +149,14 @@ struct RecipeDetailView: View {
                 )
             }
         }
+    }
+
+    private var pendingDeleteIngredientSubtitle: String {
+        guard let pendingDeleteIngredientRow else {
+            return "Remove this ingredient from the recipe."
+        }
+
+        return "Remove \(pendingDeleteIngredientRow.inventoryItemName) from this recipe. This cannot be undone."
     }
 }
 
