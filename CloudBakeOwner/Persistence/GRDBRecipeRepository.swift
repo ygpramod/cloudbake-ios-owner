@@ -204,7 +204,7 @@ extension GRDBCoreDataRepository {
                 return nil
             }
 
-            return cakeDesign(from: row)
+            return try cakeDesign(from: row)
         }
     }
 
@@ -216,7 +216,7 @@ extension GRDBCoreDataRepository {
                     SELECT * FROM cake_designs
                     ORDER BY lower(name), name
                     """
-            ).map(cakeDesign)
+            ).map { try cakeDesign(from: $0) }
         }
     }
 
@@ -230,7 +230,7 @@ extension GRDBCoreDataRepository {
                     ORDER BY lower(name), name
                     """,
                 arguments: [sourceKind.rawValue]
-            ).map(cakeDesign)
+            ).map { try cakeDesign(from: $0) }
         }
     }
 

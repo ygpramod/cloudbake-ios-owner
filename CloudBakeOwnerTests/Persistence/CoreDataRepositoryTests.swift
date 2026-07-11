@@ -149,6 +149,25 @@ final class CoreDataRepositoryTests: XCTestCase {
         try repository.save(orderPhoto)
         XCTAssertEqual(try repository.fetchOrderPhotos(orderId: order.id), [orderPhoto])
 
+        let promotedDesign = CakeDesign(
+            id: design.id,
+            name: design.name,
+            notes: design.notes,
+            photoReference: design.photoReference,
+            sourceKind: .ownerMade,
+            originatingOrderPhotoId: orderPhoto.id,
+            originatingOrderId: order.id,
+            createdAt: design.createdAt,
+            updatedAt: timestamps.updatedAt
+        )
+        try repository.save(promotedDesign)
+        XCTAssertEqual(try repository.fetchCakeDesign(id: design.id), promotedDesign)
+
+        try repository.deleteOrderPhoto(id: orderPhoto.id)
+        let designAfterPhotoDeletion = try XCTUnwrap(repository.fetchCakeDesign(id: design.id))
+        XCTAssertNil(designAfterPhotoDeletion.originatingOrderPhotoId)
+        XCTAssertEqual(designAfterPhotoDeletion.originatingOrderId, order.id)
+
         let transaction = InventoryTransaction(
             id: "transaction-flour-purchase",
             inventoryItemId: inventoryItem.id,
