@@ -25,6 +25,8 @@ binary in its app container.
 7. Atomically save the design, order link, and migrated order-photo reference.
 8. After the atomic save, remove the promoted photo's former app-owned file so the order and design
    share the same Photos identifier without retaining a duplicate binary.
+9. Persist cleanup work in the same database transaction and retry it on later loads when local
+   file removal fails, while reporting the already-committed design as saved.
 
 ## Test Strategy
 
