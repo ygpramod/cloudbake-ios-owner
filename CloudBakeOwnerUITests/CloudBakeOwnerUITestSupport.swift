@@ -44,8 +44,11 @@ extension CloudBakeOwnerUITests {
         }
 
         let destinationButton: XCUIElement
-        if title == "Customers" || title == "Settings" {
+        if title == "Recipes" || title == "Customers" || title == "Settings" {
             let dashboard = app.scrollViews["screen.dashboard"]
+            if title == "Recipes" {
+                dashboard.swipeUp()
+            }
             for _ in 0..<4 where !app.buttons[identifier].exists {
                 dashboard.swipeUp()
             }
@@ -61,8 +64,8 @@ extension CloudBakeOwnerUITests {
         )
         let navigationDeadline = Date().addingTimeInterval(timeout)
         repeat {
-            scrollToVisible(destinationButton, in: app, timeout: timeout, file: file, line: line)
-            tapExisting(destinationButton, timeout: timeout, file: file, line: line)
+            scrollToHittable(destinationButton, in: app, timeout: timeout, file: file, line: line)
+            tapWhenReady(destinationButton, timeout: timeout, file: file, line: line)
 
             if app.descendants(matching: .any)[screenIdentifier].waitForExistence(timeout: 3) {
                 return

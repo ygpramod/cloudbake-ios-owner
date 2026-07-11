@@ -37,8 +37,8 @@ extension CloudBakeOwnerUITests {
 
         let recipeText = app.textFields["recipes.import.text"]
         XCTAssertTrue(recipeText.waitForExistence(timeout: 5))
-        recipeText.tap()
-        recipeText.typeText("Chocolate Fudge\nFlour 250 g\nBake until set")
+        typeText("Chocolate Fudge\nFlour 250 g\nBake until set", into: recipeText)
+        dismissKeyboard(in: app)
         app.buttons["recipes.import.createDraft"].tap()
 
         XCTAssertEqual(app.textFields["recipes.import.name"].value as? String, "Chocolate Fudge")
