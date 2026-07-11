@@ -163,7 +163,8 @@ The app currently supports:
 123. direct My Designs import from the iPhone Photos library with required name, optional notes and
     normalized tags, storing only the Photos asset reference and private owner metadata.
 124. a ten-tag, frequency-ranked Designs ribbon and a photo-first searchable Designs grid for
-    linking owner-made designs to order drafts.
+    linking owner-made designs or customer references to order drafts, while retaining historical
+    labels for retired Internet Inspiration links.
 
 ## Partially Prepared
 

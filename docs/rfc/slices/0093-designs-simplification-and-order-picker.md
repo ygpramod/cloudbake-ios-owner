@@ -15,16 +15,17 @@ Implemented
 3. Remove the broad simultaneous tap gesture that competed with vertical scrolling at the end of
    the Designs page.
 4. Limit the filter ribbon to the ten tags used by the most visible design/reference records.
-5. Replace the order design list with a photo-first, searchable, tag-filterable Designs grid.
-6. Keep order selection limited to owner-made designs while retaining the separate customer
-   reference link.
+5. Replace the order design list with a photo-first, searchable, tag-filterable Designs grid that
+   mirrors My Designs and Customer References.
+6. Preserve retired Internet Inspiration labels on historical orders without offering those records
+   as new choices.
 
 ## Test Strategy
 
 1. Unit tests cover frequency-ranked tag limits, owner-only order choices, AND-style name/tag
    search, and tag filtering.
 2. Acceptance covers scrolling to the final design and returning to search without oscillation.
-3. Acceptance covers the photo-first order picker, search, selection, and customer-reference state.
+3. Acceptance covers photo-first search and selection for owner designs and customer references.
 
 ## Documentation Decision
 
