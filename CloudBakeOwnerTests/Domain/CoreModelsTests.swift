@@ -195,13 +195,13 @@ final class CoreModelsTests: XCTestCase {
             updatedAt: timestamp
         )
 
+        let preview = try XCTUnwrap(ConsumerDesignPreview(design: design))
+        XCTAssertEqual(preview.designId, design.id)
+        XCTAssertEqual(preview.name, design.name)
+        XCTAssertEqual(preview.photoReference, "photos://public-asset")
         XCTAssertEqual(
-            try XCTUnwrap(ConsumerDesignPreview(design: design)),
-            ConsumerDesignPreview(
-                designId: design.id,
-                name: design.name,
-                photoReference: "photos://public-asset"
-            )
+            Set(Mirror(reflecting: preview).children.compactMap(\.label)),
+            Set(["designId", "name", "photoReference"])
         )
     }
 
