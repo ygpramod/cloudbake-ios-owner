@@ -27,13 +27,15 @@ context without maintaining a counter that can drift from orders.
 
 No usage count is persisted. Orders remain the authority, so linking, unlinking, or deleting design
 metadata updates derived history naturally. Repeated final-photo promotion is rejected by stable
-originating photo id before any Photos or database write.
+originating photo id before any Photos or database write. Promotions are serialized by photo id
+within the process, and a partial unique database index provides the durable persistence backstop.
 
 ## Test Strategy
 
 1. View-model tests prove linked-only counting and deterministic history order.
-2. Order photo tests prove repeated promotion creates neither a second Photos asset nor design.
-3. Existing persistence tests cover stable order/design links and unlink-on-design-removal.
+2. Order photo tests prove repeated and cross-view-model promotion creates neither a second Photos
+   asset nor design.
+3. Persistence tests cover stable order/design links, uniqueness, and unlink-on-design-removal.
 
 ## Documentation Decision
 
