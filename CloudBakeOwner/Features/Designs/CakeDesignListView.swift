@@ -117,53 +117,57 @@ struct CakeDesignListView: View {
             .accessibilityIdentifier("designs.clearSearchAndFilters")
         } else {
             LazyVGrid(columns: designGridColumns, spacing: 14) {
-                HStack {
-                    Text("My Designs (\(viewModel.visibleDesigns.count))")
+                Section {
+                    if viewModel.visibleDesigns.isEmpty {
+                        Text("No owner designs saved")
+                            .font(CloudBakeTheme.Typography.rowDetail)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .gridCellColumns(designGridColumns.count)
+                    } else {
+                        ForEach(viewModel.visibleDesigns, id: \.id) { design in
+                            designTile(design)
+                        }
+                    }
+                } header: {
+                    HStack {
+                        Text("My Designs (\(viewModel.visibleDesigns.count))")
+                            .font(CloudBakeTheme.Typography.sectionTitle)
+                            .accessibilityIdentifier("designs.myDesigns.title")
+                        Spacer()
+                        Button { isAddingOwnerDesign = true } label: {
+                            Label("Add owner design", systemImage: "plus")
+                                .labelStyle(.iconOnly)
+                                .frame(minWidth: 44, minHeight: 36)
+                        }
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.capsule)
+                        .accessibilityLabel("Add My Design")
+                        .accessibilityIdentifier("designs.myDesigns.add")
+                    }
+                    .padding(.bottom, 10)
+                }
+
+                Section {
+                    if viewModel.visibleCustomerReferences.isEmpty {
+                        Text("No customer references saved")
+                            .font(CloudBakeTheme.Typography.rowDetail)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .gridCellColumns(designGridColumns.count)
+                            .accessibilityIdentifier("designs.customerReferences.empty")
+                    } else {
+                        ForEach(viewModel.visibleCustomerReferences) { reference in
+                            customerReferenceTile(reference)
+                        }
+                    }
+                } header: {
+                    Text("Customer References (\(viewModel.visibleCustomerReferences.count))")
                         .font(CloudBakeTheme.Typography.sectionTitle)
-                        .accessibilityIdentifier("designs.myDesigns.title")
-                    Spacer()
-                    Button { isAddingOwnerDesign = true } label: {
-                        Label("Add owner design", systemImage: "plus")
-                            .labelStyle(.iconOnly)
-                            .frame(minWidth: 44, minHeight: 36)
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                    .accessibilityLabel("Add My Design")
-                    .accessibilityIdentifier("designs.myDesigns.add")
-                }
-                .gridCellColumns(designGridColumns.count)
-
-                if viewModel.visibleDesigns.isEmpty {
-                    Text("No owner designs saved")
-                        .font(CloudBakeTheme.Typography.rowDetail)
-                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .gridCellColumns(designGridColumns.count)
-                } else {
-                    ForEach(viewModel.visibleDesigns, id: \.id) { design in
-                        designTile(design)
-                    }
-                }
-
-                Text("Customer References (\(viewModel.visibleCustomerReferences.count))")
-                    .font(CloudBakeTheme.Typography.sectionTitle)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 10)
-                    .gridCellColumns(designGridColumns.count)
-                    .accessibilityIdentifier("designs.customerReferences.title")
-
-                if viewModel.visibleCustomerReferences.isEmpty {
-                    Text("No customer references saved")
-                        .font(CloudBakeTheme.Typography.rowDetail)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .gridCellColumns(designGridColumns.count)
-                        .accessibilityIdentifier("designs.customerReferences.empty")
-                } else {
-                    ForEach(viewModel.visibleCustomerReferences) { reference in
-                        customerReferenceTile(reference)
-                    }
+                        .padding(.top, 10)
+                        .padding(.bottom, 10)
+                        .accessibilityIdentifier("designs.customerReferences.title")
                 }
             }
         }
