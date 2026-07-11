@@ -38,7 +38,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         let viewModel = CakeDesignListViewModel(repository: repository)
 
         viewModel.load()
-        viewModel.searchText = "pink buttercream"
+        viewModel.searchText = "pink,buttercream"
 
         XCTAssertEqual(viewModel.visibleDesigns, [flowers])
 
@@ -49,6 +49,10 @@ final class CakeDesignListViewModelTests: XCTestCase {
         viewModel.searchText = "pink anniversary"
 
         XCTAssertTrue(viewModel.visibleDesigns.isEmpty)
+
+        viewModel.searchText = " , / "
+
+        XCTAssertEqual(viewModel.visibleDesigns, [flowers, ganache])
     }
 
     func testAccessibilityLabelCallsOutMissingPhoto() {

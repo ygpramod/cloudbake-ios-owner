@@ -77,7 +77,7 @@ struct CakeDesignListView: View {
             CloudBakeEmptyState(
                 title: "No matching designs",
                 systemImage: "magnifyingglass",
-                message: "Try another cake name, note, tag, or photo reference."
+                message: "Try another cake name, note, customer, order, or inspiration source."
             )
         } else {
             Text("My Designs (\(viewModel.visibleDesigns.count))")
