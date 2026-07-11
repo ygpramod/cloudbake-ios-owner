@@ -43,6 +43,7 @@ final class CakeDesignListViewModel: ObservableObject {
     @Published private(set) var designs: [CakeDesign] = []
     @Published private(set) var customerReferences: [CustomerReferenceDesign] = []
     @Published private(set) var internetInspirations: [CakeDesign] = []
+    @Published private(set) var orders: [Order] = []
     @Published var searchText = ""
     @Published var selectedFilter: DesignLibraryFilter = .all
     @Published var errorMessage: String?
@@ -75,8 +76,9 @@ final class CakeDesignListViewModel: ObservableObject {
             designs = try repository.fetchCakeDesigns(sourceKind: .ownerMade)
             internetInspirations = try repository.fetchCakeDesigns(sourceKind: .internetInspiration)
             if let customerReferenceRepository {
+                orders = try customerReferenceRepository.fetchOrders()
                 let ordersById = Dictionary(
-                    uniqueKeysWithValues: try customerReferenceRepository.fetchOrders().map { ($0.id, $0) }
+                    uniqueKeysWithValues: orders.map { ($0.id, $0) }
                 )
                 customerReferences = try customerReferenceRepository
                     .fetchOrderPhotos(kind: .customerReference)
@@ -85,6 +87,7 @@ final class CakeDesignListViewModel: ObservableObject {
                     }
             } else {
                 customerReferences = []
+                orders = []
             }
             if !availableFilters.contains(selectedFilter) {
                 selectedFilter = .all
@@ -96,6 +99,7 @@ final class CakeDesignListViewModel: ObservableObject {
             designs = []
             customerReferences = []
             internetInspirations = []
+            orders = []
             errorMessage = "Designs could not be loaded."
         }
     }
@@ -166,6 +170,18 @@ final class CakeDesignListViewModel: ObservableObject {
 
     var hasContent: Bool {
         !designs.isEmpty || !customerReferences.isEmpty || !internetInspirations.isEmpty
+    }
+
+    func usageOrders(for design: CakeDesign) -> [Order] {
+        orders
+            .filter { $0.cakeDesignId == design.id }
+            .sorted { lhs, rhs in
+                lhs.dueAt == rhs.dueAt ? lhs.title < rhs.title : lhs.dueAt > rhs.dueAt
+            }
+    }
+
+    func usageCount(for design: CakeDesign) -> Int {
+        usageOrders(for: design).count
     }
 
     var hasEffectiveSearchQuery: Bool {
