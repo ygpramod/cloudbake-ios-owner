@@ -70,6 +70,7 @@ struct CakeDesignListView: View {
                     design: design,
                     photoSource: viewModel.availablePhotoSource(for: design),
                     accessibilityLabel: viewModel.accessibilityLabel(for: design),
+                    usageOrders: viewModel.usageOrders(for: design),
                     onToggleFavorite: { viewModel.toggleFavorite($0) },
                     onUpdateTags: { viewModel.updateTags($0, for: $1) },
                     onDelete: { viewModel.delete($0) }
@@ -199,7 +200,8 @@ struct CakeDesignListView: View {
         } label: {
             photoTile(
                 source: viewModel.availablePhotoSource(for: reference.photo),
-                isFavorite: reference.photo.isFavorite
+                isFavorite: reference.photo.isFavorite,
+                usageCount: 1
             )
         }
         .buttonStyle(.plain)
@@ -208,6 +210,7 @@ struct CakeDesignListView: View {
         .accessibilityLabel(
             "\(reference.title), customer reference from \(reference.order.customerName)"
                 + (reference.photo.isFavorite ? ", favorite" : "")
+                + ", used in 1 order"
         )
         .accessibilityIdentifier("designs.customerReference.\(reference.id)")
     }
@@ -218,19 +221,27 @@ struct CakeDesignListView: View {
         } label: {
             photoTile(
                 source: viewModel.availablePhotoSource(for: design),
-                isFavorite: design.isFavorite
+                isFavorite: design.isFavorite,
+                usageCount: viewModel.usageCount(for: design)
             )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .cloudBakeCardStyle()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(viewModel.accessibilityLabel(for: design))
+        .accessibilityLabel(
+            viewModel.accessibilityLabel(for: design)
+                + ", used in \(viewModel.usageCount(for: design)) orders"
+        )
         .accessibilityIdentifier("designs.item.\(design.id)")
     }
 
-    private func photoTile(source: CakeDesignPhotoSource?, isFavorite: Bool) -> some View {
-        ZStack(alignment: .topTrailing) {
+    private func photoTile(
+        source: CakeDesignPhotoSource?,
+        isFavorite: Bool,
+        usageCount: Int
+    ) -> some View {
+        ZStack {
             DesignPhotoView(source: source, maximumPixelSize: 600, contentMode: .fill)
                 .aspectRatio(1, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -241,6 +252,17 @@ struct CakeDesignListView: View {
                     .background(Color.cloudBakePink, in: Capsule())
                     .padding(8)
                     .accessibilityLabel("Favorite")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            }
+            if usageCount > 0 {
+                Text("Used \(usageCount)×")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .background(.black.opacity(0.58), in: Capsule())
+                    .padding(8)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             }
         }
     }
@@ -439,6 +461,7 @@ private struct CakeDesignPreviewView: View {
     @State private var design: CakeDesign
     let photoSource: CakeDesignPhotoSource?
     let accessibilityLabel: String
+    let usageOrders: [Order]
     let onToggleFavorite: (CakeDesign) -> CakeDesign?
     let onUpdateTags: (String, CakeDesign) -> CakeDesign?
     let onDelete: (CakeDesign) -> Bool
@@ -451,6 +474,7 @@ private struct CakeDesignPreviewView: View {
         design: CakeDesign,
         photoSource: CakeDesignPhotoSource?,
         accessibilityLabel: String,
+        usageOrders: [Order],
         onToggleFavorite: @escaping (CakeDesign) -> CakeDesign?,
         onUpdateTags: @escaping (String, CakeDesign) -> CakeDesign?,
         onDelete: @escaping (CakeDesign) -> Bool
@@ -458,6 +482,7 @@ private struct CakeDesignPreviewView: View {
         _design = State(initialValue: design)
         self.photoSource = photoSource
         self.accessibilityLabel = accessibilityLabel
+        self.usageOrders = usageOrders
         self.onToggleFavorite = onToggleFavorite
         self.onUpdateTags = onUpdateTags
         self.onDelete = onDelete
@@ -511,6 +536,24 @@ private struct CakeDesignPreviewView: View {
                             Text("Unavailable")
                                 .foregroundStyle(.secondary)
                         }
+                    }
+                }
+
+                CloudBakeDetailCard {
+                    CloudBakeDetailRow("Used In") {
+                        Text(usageOrders.isEmpty ? "No linked orders" : "\(usageOrders.count) order\(usageOrders.count == 1 ? "" : "s")")
+                    }
+                    ForEach(usageOrders, id: \.id) { order in
+                        CloudBakeDetailDivider()
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(order.title)
+                                .font(.body.weight(.semibold))
+                            Text(order.dueAt.formatted(date: .abbreviated, time: .omitted))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 8)
                     }
                 }
             }

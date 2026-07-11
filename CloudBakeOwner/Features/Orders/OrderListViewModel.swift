@@ -911,6 +911,10 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = "Design name is required."
             return false
         }
+        guard !cakeDesigns.contains(where: { $0.originatingOrderPhotoId == photo.id }) else {
+            errorMessage = "This final cake photo is already saved as a design."
+            return false
+        }
         guard !isPromotingDesign else {
             errorMessage = "Design is already being saved."
             return false

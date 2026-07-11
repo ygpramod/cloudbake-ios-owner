@@ -159,6 +159,16 @@ final class OrderPhotoViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedOrderCakeDesign?.name, "Pink Pearl Cake")
         XCTAssertEqual(viewModel.cakeDesigns.first?.id, "design-finished-cake")
         XCTAssertNil(viewModel.errorMessage)
+
+        let repeatedPromotion = await viewModel.promoteFinalCakePhotoToDesign(
+            photo,
+            name: "Duplicate",
+            notes: ""
+        )
+        XCTAssertFalse(repeatedPromotion)
+        XCTAssertEqual(repository.cakeDesigns.count, 1)
+        XCTAssertEqual(designPhotoLibrary.savedFileURLs.count, 1)
+        XCTAssertEqual(viewModel.errorMessage, "This final cake photo is already saved as a design.")
     }
 
     func testPromotePhotosBackedFinalCakeReusesAssetWithoutCreatingACopy() async {

@@ -452,6 +452,40 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertNil(reloadedViewModel.errorMessage)
     }
 
+    func testUsageHistoryDerivesLinkedOrdersNewestDueDateFirst() {
+        let designRepository = FakeCakeDesignRepository()
+        let design = makeDesign(id: "design-used", name: "Used Design")
+        designRepository.designs = [design]
+        let orderRepository = FakeOrderRepository()
+        let earlier = makeOrder(
+            id: "order-earlier",
+            title: "Earlier Cake",
+            cakeDesignId: design.id,
+            dueAt: Date(timeIntervalSince1970: 1_800_100_000)
+        )
+        let later = makeOrder(
+            id: "order-later",
+            title: "Later Cake",
+            cakeDesignId: design.id,
+            dueAt: Date(timeIntervalSince1970: 1_800_200_000)
+        )
+        let unrelated = makeOrder(
+            id: "order-unrelated",
+            title: "Unrelated",
+            dueAt: Date(timeIntervalSince1970: 1_800_300_000)
+        )
+        orderRepository.orders = [earlier, unrelated, later]
+        let viewModel = CakeDesignListViewModel(
+            repository: designRepository,
+            customerReferenceRepository: orderRepository
+        )
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.usageCount(for: design), 2)
+        XCTAssertEqual(viewModel.usageOrders(for: design).map(\.id), [later.id, earlier.id])
+    }
+
     private func makeDesign(
         id: String,
         name: String,
