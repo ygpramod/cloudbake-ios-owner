@@ -19,7 +19,8 @@ Implemented
 ## Verification
 
 Closeout requires the full unit/integration scheme, all Designs acceptance tests, clean git state,
-and a final code/documentation review before the pull request is created.
+thumbnail-pipeline and persisted-search budgets, and a final code/documentation review before the
+pull request is created.
 
 ## Documentation Decision
 

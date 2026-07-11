@@ -66,7 +66,8 @@ The experience should prioritize photographs over text and remain practical for 
   - Internet Inspiration.
 - The Designs screen must show the item count for each source.
 - The screen must provide search across the saved design library.
-- Search must match name, colour, theme, occasion, and tags.
+- Search must match name and normalized tags; colour, theme, occasion, category, and flavour are
+  represented as tags rather than separate metadata models in the iPhone implementation.
 - The screen must provide horizontally scrolling filter chips.
 - Initial filters should include All, Birthday, Wedding, Kids, Cupcakes, Chocolate, Minimal,
   Vintage, and Floral when matching designs exist.
@@ -183,8 +184,8 @@ The initial suggested chips are:
 - Vintage,
 - Floral.
 
-These labels are not separate hard-coded business models. They are convenient views over structured
-occasion, theme, category, flavour, and tag metadata. The UI should avoid showing empty chips when
+These labels are not separate hard-coded business models. They are convenient views over normalized
+tags representing occasion, theme, category, flavour, and colour. The UI avoids empty chips when
 doing so would add noise.
 
 The owner can add and remove free-form tags. Normalization prevents
@@ -223,7 +224,7 @@ Opening a design presents a photo-first detail experience with:
 - design name,
 - provenance,
 - favourite state,
-- colour, theme, occasion, and free-form tags,
+- normalized tags representing colour, theme, occasion, category, flavour, and free-form labels,
 - optional owner notes,
 - source information when applicable,
 - a Used In section,
@@ -292,10 +293,8 @@ A design library item should eventually represent:
 - optional originating order id,
 - optional source URL and source name,
 - optional notes,
-- colour values,
-- themes,
-- occasions,
-- tags,
+- normalized tags representing colours, themes, occasions, categories, flavours, and free-form
+  owner labels,
 - favourite state,
 - created and updated timestamps,
 - future publication eligibility and publication state for owner-made designs only.
@@ -383,8 +382,8 @@ in the app.
 - Critical browse, search, detail, and Use for New Order workflows require focused acceptance tests.
 - Photo picker and camera system UI should use unit-level routing plus manual device testing when
   stable CI automation is not practical.
-- Performance tests should cover thumbnail-heavy scrolling and search over a representative local
-  library before the feature is considered complete.
+- Performance tests cover thumbnail-heavy loading and search over a representative local library;
+  acceptance separately covers long-grid scroll recovery.
 
 ## Relationship To Existing Features
 
@@ -413,7 +412,8 @@ iPad Designs layout was deliberately not implemented because the app target is i
 - The library is separated by image provenance.
 - The owner MVP uses My Designs, Customer References, and Internet Inspiration.
 - Search is local and metadata-based in the first implementation.
-- Search covers name, colour, theme, occasion, and tags.
+- Search covers name and normalized tags representing colour, theme, occasion, category, flavour,
+  and owner labels.
 - Filters are convenient metadata views, not separate duplicate classification systems.
 - Owner favourite is a Boolean state; public like counts are not part of the owner MVP.
 - Used count is derived from linked orders.
