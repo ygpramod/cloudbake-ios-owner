@@ -397,6 +397,14 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0026_add_design_portfolio_publication") { db in
+            try db.alter(table: "cake_designs") { table in
+                table.add(column: "is_portfolio_published", .boolean)
+                    .notNull()
+                    .defaults(to: false)
+            }
+        }
+
         return migrator
     }
 }

@@ -151,6 +151,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             sourceURL: row["source_url"],
             tags: designTags(from: row["tags_json"]),
             isFavorite: row["is_favorite"],
+            isPortfolioPublished: row["is_portfolio_published"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )

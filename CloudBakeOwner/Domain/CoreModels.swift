@@ -305,6 +305,7 @@ struct CakeDesign: Equatable {
     let sourceURL: String?
     let tags: [String]
     let isFavorite: Bool
+    let isPortfolioPublished: Bool
     let createdAt: Date
     let updatedAt: Date
 
@@ -320,6 +321,7 @@ struct CakeDesign: Equatable {
         sourceURL: String? = nil,
         tags: [String] = [],
         isFavorite: Bool = false,
+        isPortfolioPublished: Bool = false,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -334,6 +336,7 @@ struct CakeDesign: Equatable {
         self.sourceURL = sourceURL
         self.tags = DesignTags.normalized(tags)
         self.isFavorite = isFavorite
+        self.isPortfolioPublished = sourceKind == .ownerMade && isPortfolioPublished
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
