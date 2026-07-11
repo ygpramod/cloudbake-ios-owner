@@ -919,6 +919,9 @@ final class OrderListViewModel: ObservableObject {
             name: designName,
             notes: TextInputFormatting.optionalText(notes),
             photoReference: photo.localPhotoPath,
+            sourceKind: .ownerMade,
+            originatingOrderPhotoId: photo.id,
+            originatingOrderId: selectedOrder.id,
             createdAt: now,
             updatedAt: now
         )
