@@ -39,6 +39,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var draftExtraIngredientRows: [OrderExtraIngredientDraftRow] = []
     @Published var searchText = ""
     @Published var errorMessage: String?
+    @Published private(set) var isPromotingDesign = false
 
     private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & InventoryItemRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
@@ -916,6 +917,12 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = "Design name is required."
             return false
         }
+        guard !isPromotingDesign else {
+            errorMessage = "Design is already being saved."
+            return false
+        }
+        isPromotingDesign = true
+        defer { isPromotingDesign = false }
 
         let photoReference: String
         do {
