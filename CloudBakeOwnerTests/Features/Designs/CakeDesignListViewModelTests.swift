@@ -353,6 +353,54 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [design.id])
     }
 
+    func testDeletingDesignRemovesMetadataButNotPhotosAsset() {
+        let repository = FakeCakeDesignRepository()
+        let design = makeDesign(id: "design-delete", name: "Delete", photoReference: "photos://keep-me")
+        repository.designs = [design]
+        let photoLibrary = FakeDesignPhotoLibrary()
+        let viewModel = CakeDesignListViewModel(
+            repository: repository,
+            designPhotoLibrary: photoLibrary
+        )
+        viewModel.load()
+
+        XCTAssertTrue(viewModel.delete(design))
+        XCTAssertTrue(repository.designs.isEmpty)
+        XCTAssertTrue(photoLibrary.savedFileURLs.isEmpty)
+        XCTAssertTrue(photoLibrary.savedData.isEmpty)
+    }
+
+    func testDeletingPhotosBackedCustomerReferenceRemovesOnlyOrderMetadata() {
+        let designRepository = FakeCakeDesignRepository()
+        let orderRepository = FakeOrderRepository()
+        let photoFileStore = FakeOrderPhotoFileStore()
+        let order = makeOrder(id: "order-delete-reference", dueAt: Date(timeIntervalSince1970: 1_800_100_000))
+        let photo = OrderPhoto(
+            id: "photo-delete-reference",
+            orderId: order.id,
+            kind: .customerReference,
+            localPhotoPath: "photos://keep-reference",
+            caption: nil,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt
+        )
+        orderRepository.orders = [order]
+        orderRepository.orderPhotos = [photo]
+        let viewModel = CakeDesignListViewModel(
+            repository: designRepository,
+            photoFileStore: photoFileStore,
+            customerReferenceRepository: orderRepository
+        )
+        viewModel.load()
+        guard let reference = viewModel.customerReferences.first else {
+            return XCTFail("Expected customer reference")
+        }
+
+        XCTAssertTrue(viewModel.delete(reference))
+        XCTAssertTrue(orderRepository.orderPhotos.isEmpty)
+        XCTAssertTrue(photoFileStore.deletedRelativePaths.isEmpty)
+    }
+
     private func makeDesign(
         id: String,
         name: String,
@@ -383,6 +431,10 @@ private final class FakeCakeDesignRepository: CakeDesignRepository {
     func save(_ design: CakeDesign) throws {
         designs.removeAll { $0.id == design.id }
         designs.append(design)
+    }
+
+    func deleteCakeDesign(id: String) throws {
+        designs.removeAll { $0.id == id }
     }
 
     func savePromotedDesign(

@@ -1133,6 +1133,23 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertTrue(try reloadedRepository.fetchPendingDesignPhotoCleanupPaths().isEmpty)
     }
 
+    func testDeletingCakeDesignUnlinksOrderWithoutDeletingIt() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let design = makeCakeDesign(id: "design-delete", name: "Delete")
+        let order = makeOrder(
+            id: "order-design-delete",
+            cakeDesignId: design.id,
+            dueAt: Date(timeIntervalSince1970: 1_800_100_000)
+        )
+        try repository.save(design)
+        try repository.save(order)
+
+        try repository.deleteCakeDesign(id: design.id)
+
+        XCTAssertNil(try repository.fetchCakeDesign(id: design.id))
+        XCTAssertNil(try repository.fetchOrder(id: order.id)?.cakeDesignId)
+    }
+
     func testChangingOrderStatusToReadyRecordsRecipeUsageAndDeductsInventory() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)

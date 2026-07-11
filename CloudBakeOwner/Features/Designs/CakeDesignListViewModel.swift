@@ -219,6 +219,32 @@ final class CakeDesignListViewModel: ObservableObject {
         )
     }
 
+    func delete(_ design: CakeDesign) -> Bool {
+        do {
+            try repository.deleteCakeDesign(id: design.id)
+            load()
+            return true
+        } catch {
+            errorMessage = "Design could not be removed from CloudBake."
+            return false
+        }
+    }
+
+    func delete(_ reference: CustomerReferenceDesign) -> Bool {
+        guard let customerReferenceRepository else { return false }
+        do {
+            try customerReferenceRepository.deleteOrderPhoto(id: reference.photo.id)
+            if PhotoKitDesignPhotoLibrary.assetIdentifier(from: reference.photo.localPhotoPath) == nil {
+                try photoFileStore.deleteOrderPhoto(relativePath: reference.photo.localPhotoPath)
+            }
+            load()
+            return true
+        } catch {
+            errorMessage = "Customer reference could not be removed from CloudBake."
+            return false
+        }
+    }
+
     func importInternetInspiration(
         item: PhotosPickerItem,
         name: String,

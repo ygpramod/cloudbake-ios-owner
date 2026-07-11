@@ -171,6 +171,12 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func deleteCakeDesign(id: String) throws {
+        try writer.write { db in
+            try db.execute(sql: "DELETE FROM cake_designs WHERE id = ?", arguments: [id])
+        }
+    }
+
     func save(_ design: CakeDesign, in db: Database) throws {
         try db.execute(
                 sql: """

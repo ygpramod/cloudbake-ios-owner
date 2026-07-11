@@ -292,6 +292,10 @@ final class FakeOrderRepository: OrderRepository,
         cakeDesigns.append(design)
     }
 
+    func deleteCakeDesign(id: String) throws {
+        cakeDesigns.removeAll { $0.id == id }
+    }
+
     func savePromotedDesign(
         _ design: CakeDesign,
         linking order: Order,
