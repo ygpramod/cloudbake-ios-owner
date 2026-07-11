@@ -134,6 +134,10 @@ final class CakeDesignListViewModel: ObservableObject {
         !designs.isEmpty || !customerReferences.isEmpty || !internetInspirations.isEmpty
     }
 
+    var hasEffectiveSearchQuery: Bool {
+        !searchTerms.isEmpty
+    }
+
     func importInternetInspiration(
         item: PhotosPickerItem,
         name: String,

@@ -73,7 +73,7 @@ struct CakeDesignListView: View {
         if viewModel.visibleDesigns.isEmpty
             && viewModel.visibleCustomerReferences.isEmpty
             && viewModel.visibleInternetInspirations.isEmpty
-            && !viewModel.searchText.isEmpty {
+            && viewModel.hasEffectiveSearchQuery {
             CloudBakeEmptyState(
                 title: "No matching designs",
                 systemImage: "magnifyingglass",
