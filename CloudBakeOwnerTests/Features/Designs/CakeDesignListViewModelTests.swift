@@ -61,6 +61,25 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
     }
 
+    func testAccessibilityLabelCallsOutDeletedPhotoFile() {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let viewModel = CakeDesignListViewModel(
+            repository: FakeCakeDesignRepository(),
+            photoFileStore: LocalOrderPhotoFileStore(rootDirectoryURL: rootURL)
+        )
+        let design = makeDesign(
+            id: "design-deleted-photo",
+            name: "Deleted Photo",
+            photoReference: "OrderPhotos/deleted.jpg"
+        )
+
+        XCTAssertEqual(
+            viewModel.accessibilityLabel(for: design),
+            "Deleted Photo, photo unavailable"
+        )
+    }
+
     private func makeDesign(
         id: String,
         name: String,

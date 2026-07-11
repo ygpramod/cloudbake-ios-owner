@@ -1,4 +1,6 @@
+import ImageIO
 import SwiftUI
+import UIKit
 
 struct CakeDesignListView: View {
     @StateObject private var viewModel: CakeDesignListViewModel
@@ -49,7 +51,7 @@ struct CakeDesignListView: View {
             NavigationStack {
                 CakeDesignPreviewView(
                     design: design,
-                    photoURL: viewModel.photoURL(for: design),
+                    photoURL: viewModel.availablePhotoURL(for: design),
                     accessibilityLabel: viewModel.accessibilityLabel(for: design)
                 )
             }
@@ -91,7 +93,7 @@ struct CakeDesignListView: View {
             previewingDesign = design
         } label: {
             VStack(alignment: .leading, spacing: 10) {
-                designPhoto(design, contentMode: .fill)
+                DesignThumbnailView(photoURL: viewModel.availablePhotoURL(for: design))
                 .aspectRatio(1, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
@@ -118,22 +120,6 @@ struct CakeDesignListView: View {
         .accessibilityIdentifier("designs.item.\(design.id)")
     }
 
-    private func designPhoto(_ design: CakeDesign, contentMode: ContentMode) -> some View {
-        AsyncImage(url: viewModel.photoURL(for: design)) { phase in
-            if case .success(let image) = phase {
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: contentMode)
-            } else {
-                ContentUnavailableView(
-                    "Photo Unavailable",
-                    systemImage: "photo.badge.exclamationmark"
-                )
-                .foregroundStyle(Color.cloudBakePink)
-                .background(Color.cloudBakePink.opacity(0.10))
-            }
-        }
-    }
 }
 
 private struct CakeDesignPreviewView: View {
@@ -202,3 +188,67 @@ private struct CakeDesignPreviewView: View {
 }
 
 extension CakeDesign: Identifiable {}
+
+private actor DesignThumbnailLoader {
+    static let shared = DesignThumbnailLoader()
+    private let cache: NSCache<NSURL, UIImage> = {
+        let cache = NSCache<NSURL, UIImage>()
+        cache.countLimit = 80
+        cache.totalCostLimit = 24 * 1_024 * 1_024
+        return cache
+    }()
+
+    func thumbnail(for url: URL, maximumPixelSize: Int) async -> UIImage? {
+        if let cachedImage = cache.object(forKey: url as NSURL) {
+            return cachedImage
+        }
+        let image: UIImage? = await Task<UIImage?, Never>.detached(priority: .utility) {
+            guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+                  let cgImage = CGImageSourceCreateThumbnailAtIndex(
+                    source,
+                    0,
+                    [
+                        kCGImageSourceCreateThumbnailFromImageAlways: true,
+                        kCGImageSourceCreateThumbnailWithTransform: true,
+                        kCGImageSourceThumbnailMaxPixelSize: maximumPixelSize,
+                        kCGImageSourceShouldCacheImmediately: true
+                    ] as CFDictionary
+                  ) else { return nil }
+            return UIImage(cgImage: cgImage)
+        }.value
+        if let image {
+            let pixelCount = image.size.width * image.size.height * image.scale * image.scale
+            let cacheCost = Int(pixelCount * 4)
+            cache.setObject(
+                image,
+                forKey: url as NSURL,
+                cost: cacheCost
+            )
+        }
+        return image
+    }
+}
+
+private struct DesignThumbnailView: View {
+    let photoURL: URL?
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                ContentUnavailableView("Photo Unavailable", systemImage: "photo.badge.exclamationmark")
+                    .foregroundStyle(Color.cloudBakePink)
+                    .background(Color.cloudBakePink.opacity(0.10))
+            }
+        }
+        .task(id: photoURL) {
+            guard let photoURL else {
+                image = nil
+                return
+            }
+            image = await DesignThumbnailLoader.shared.thumbnail(for: photoURL, maximumPixelSize: 600)
+        }
+    }
+}
