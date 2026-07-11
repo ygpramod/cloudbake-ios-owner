@@ -28,6 +28,7 @@ while preserving the Photos-owned storage boundary.
    name validation.
 2. Focused acceptance proves the My Designs add action opens the Photos-owned import form.
 3. Photos picker hand-off remains covered through unit-level routing and physical-device validation.
+4. Save-boundary tests reject empty, legacy, URL, and otherwise non-Photos references.
 
 ## Documentation Decision
 
