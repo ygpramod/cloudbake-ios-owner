@@ -89,20 +89,24 @@ struct OrderRow: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("orders.item.\(order.id)")
 
-            HStack(spacing: 10) {
-                CloudBakeInlineActionButton(
-                    title: "Update Status",
-                    systemImage: "arrow.triangle.2.circlepath",
-                    tint: .cloudBakePurple,
-                    accessibilityIdentifier: "orders.item.status.\(order.id)",
-                    action: onChangeStatus
-                )
+            HStack(spacing: 8) {
+                if order.hasActiveReminderState {
+                    CloudBakeInlineActionButton(
+                        title: "Status",
+                        systemImage: "arrow.triangle.2.circlepath",
+                        tint: .cloudBakePurple,
+                        accessibilityIdentifier: "orders.item.status.\(order.id)",
+                        prominence: .prominent,
+                        action: onChangeStatus
+                    )
+                }
 
                 CloudBakeInlineActionButton(
                     title: "Payment",
                     systemImage: "banknote",
                     tint: .cloudBakeMint,
                     accessibilityIdentifier: "orders.item.payment.\(order.id)",
+                    prominence: .prominent,
                     action: onReceivePayment
                 )
 
@@ -112,6 +116,7 @@ struct OrderRow: View {
                         systemImage: "message",
                         tint: .cloudBakePink,
                         accessibilityIdentifier: "orders.item.message.\(order.id)",
+                        prominence: .prominent,
                         action: onSendMessage
                     )
                 }

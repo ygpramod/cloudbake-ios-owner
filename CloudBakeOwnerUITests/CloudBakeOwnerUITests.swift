@@ -702,6 +702,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let completedDueAt = Date(timeIntervalSince1970: 1_800_140_000)
         XCTAssertTrue(completedOrderRow.label.contains(completedDueAt.formatted(date: .abbreviated, time: .omitted)))
         XCTAssertFalse(completedOrderRow.label.contains(completedDueAt.formatted(date: .abbreviated, time: .shortened)))
+        XCTAssertFalse(app.buttons["orders.item.status.order-ui-fixture-completed"].exists)
+        XCTAssertTrue(app.buttons["orders.item.payment.order-ui-fixture-completed"].exists)
 
         swipeOrderScopeRightThroughEmptySpace(in: ordersScreen)
         XCTAssertTrue(app.staticTexts["No active orders"].waitForExistence(timeout: transitionTimeout))
