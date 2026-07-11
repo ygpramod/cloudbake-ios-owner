@@ -270,13 +270,44 @@ struct RecipeIngredient: Equatable {
     let updatedAt: Date
 }
 
+enum CakeDesignSourceKind: String, Equatable, CaseIterable {
+    case ownerMade
+    case customerReference
+    case internetInspiration
+}
+
 struct CakeDesign: Equatable {
     let id: String
     let name: String
     let notes: String?
     let photoReference: String?
+    let sourceKind: CakeDesignSourceKind
+    let originatingOrderPhotoId: String?
+    let originatingOrderId: String?
     let createdAt: Date
     let updatedAt: Date
+
+    init(
+        id: String,
+        name: String,
+        notes: String?,
+        photoReference: String?,
+        sourceKind: CakeDesignSourceKind = .ownerMade,
+        originatingOrderPhotoId: String? = nil,
+        originatingOrderId: String? = nil,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.name = name
+        self.notes = notes
+        self.photoReference = photoReference
+        self.sourceKind = sourceKind
+        self.originatingOrderPhotoId = originatingOrderPhotoId
+        self.originatingOrderId = originatingOrderId
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
 struct Customer: Equatable {

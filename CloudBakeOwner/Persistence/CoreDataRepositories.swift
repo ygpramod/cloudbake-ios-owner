@@ -30,6 +30,13 @@ protocol CakeDesignRepository {
     func save(_ design: CakeDesign) throws
     func fetchCakeDesign(id: String) throws -> CakeDesign?
     func fetchCakeDesigns() throws -> [CakeDesign]
+    func fetchCakeDesigns(sourceKind: CakeDesignSourceKind) throws -> [CakeDesign]
+}
+
+extension CakeDesignRepository {
+    func fetchCakeDesigns(sourceKind: CakeDesignSourceKind) throws -> [CakeDesign] {
+        try fetchCakeDesigns().filter { $0.sourceKind == sourceKind }
+    }
 }
 
 protocol CustomerRepository {

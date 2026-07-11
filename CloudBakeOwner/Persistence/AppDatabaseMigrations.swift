@@ -313,6 +313,24 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0020_add_cake_design_provenance") { db in
+            try db.alter(table: "cake_designs") { table in
+                table.add(column: "source_kind", .text)
+                    .notNull()
+                    .defaults(to: CakeDesignSourceKind.ownerMade.rawValue)
+                table.add(column: "originating_order_photo_id", .text)
+                    .references("order_photos", onDelete: .setNull)
+                table.add(column: "originating_order_id", .text)
+                    .references("orders", onDelete: .setNull)
+            }
+
+            try db.create(
+                index: "cake_designs_on_source_kind",
+                on: "cake_designs",
+                columns: ["source_kind"]
+            )
+        }
+
         return migrator
     }
 }
