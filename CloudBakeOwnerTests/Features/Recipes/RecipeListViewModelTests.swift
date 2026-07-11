@@ -51,6 +51,19 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.visibleRecipes, [vanilla])
     }
 
+    func testRecipeDraftCanSubmitOnlyWhenNameIsPresent() {
+        let repository = FakeRecipeRepository()
+        let viewModel = RecipeListViewModel(repository: repository)
+
+        viewModel.draftName = " "
+
+        XCTAssertFalse(viewModel.canSubmitRecipeDraft)
+
+        viewModel.draftName = "Vanilla Sponge"
+
+        XCTAssertTrue(viewModel.canSubmitRecipeDraft)
+    }
+
     func testAddRecipePersistsAndReloadsRecipes() {
         let repository = FakeRecipeRepository()
         let now = Date(timeIntervalSince1970: 1_800_031_000)
