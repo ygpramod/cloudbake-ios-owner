@@ -322,23 +322,8 @@ final class CakeDesignListViewModel: ObservableObject {
             return false
         }
 
-        let photoReference: String
         do {
-            if let identifier = item.itemIdentifier {
-                photoReference = try await internetInspirationPhotoReference(
-                    itemIdentifier: identifier,
-                    fallbackData: nil
-                )
-            } else {
-                let image = try await PhotoPickerImageLoader.image(from: item)
-                guard let data = image.jpegData(compressionQuality: 0.9) else {
-                    throw DesignPhotoLibraryError.assetCreationFailed
-                }
-                photoReference = try await internetInspirationPhotoReference(
-                    itemIdentifier: nil,
-                    fallbackData: data
-                )
-            }
+            let photoReference = try await photosReference(for: item)
             return saveInternetInspiration(
                 photoReference: photoReference,
                 normalizedName: normalizedName,
@@ -364,22 +349,7 @@ final class CakeDesignListViewModel: ObservableObject {
             return false
         }
         do {
-            let photoReference: String
-            if let identifier = item.itemIdentifier {
-                photoReference = try await internetInspirationPhotoReference(
-                    itemIdentifier: identifier,
-                    fallbackData: nil
-                )
-            } else {
-                let image = try await PhotoPickerImageLoader.image(from: item)
-                guard let data = image.jpegData(compressionQuality: 0.9) else {
-                    throw DesignPhotoLibraryError.assetCreationFailed
-                }
-                photoReference = try await internetInspirationPhotoReference(
-                    itemIdentifier: nil,
-                    fallbackData: data
-                )
-            }
+            let photoReference = try await photosReference(for: item)
             return saveOwnerDesign(
                 photoReference: photoReference,
                 name: normalizedName,
@@ -400,6 +370,10 @@ final class CakeDesignListViewModel: ObservableObject {
     ) -> Bool {
         guard let normalizedName = TextInputFormatting.optionalText(name) else {
             errorMessage = "Design name is required."
+            return false
+        }
+        guard Self.isValidPhotosReference(photoReference) else {
+            errorMessage = "Design photo must be stored in Photos."
             return false
         }
         do {
@@ -424,17 +398,33 @@ final class CakeDesignListViewModel: ObservableObject {
         }
     }
 
-    func internetInspirationPhotoReference(
+    func photosReference(
         itemIdentifier: String?,
         fallbackData: Data?
     ) async throws -> String {
-        if let itemIdentifier, !itemIdentifier.isEmpty {
+        if let itemIdentifier,
+           !itemIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return PhotoKitDesignPhotoLibrary.referencePrefix + itemIdentifier
         }
         guard let fallbackData, !fallbackData.isEmpty else {
             throw DesignPhotoLibraryError.assetCreationFailed
         }
-        return try await designPhotoLibrary.savePhoto(data: fallbackData)
+        let reference = try await designPhotoLibrary.savePhoto(data: fallbackData)
+        guard Self.isValidPhotosReference(reference) else {
+            throw DesignPhotoLibraryError.assetCreationFailed
+        }
+        return reference
+    }
+
+    private func photosReference(for item: PhotosPickerItem) async throws -> String {
+        if let identifier = item.itemIdentifier {
+            return try await photosReference(itemIdentifier: identifier, fallbackData: nil)
+        }
+        let image = try await PhotoPickerImageLoader.image(from: item)
+        guard let data = image.jpegData(compressionQuality: 0.9) else {
+            throw DesignPhotoLibraryError.assetCreationFailed
+        }
+        return try await photosReference(itemIdentifier: nil, fallbackData: data)
     }
 
     func saveInternetInspiration(
@@ -472,6 +462,10 @@ final class CakeDesignListViewModel: ObservableObject {
         notes: String,
         tags: String
     ) -> Bool {
+        guard Self.isValidPhotosReference(photoReference) else {
+            errorMessage = "Inspiration photo must be stored in Photos."
+            return false
+        }
         do {
             let now = dateProvider()
             try repository.save(
@@ -494,6 +488,13 @@ final class CakeDesignListViewModel: ObservableObject {
             errorMessage = "Internet inspiration could not be saved."
             return false
         }
+    }
+
+    private static func isValidPhotosReference(_ reference: String) -> Bool {
+        guard let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: reference) else {
+            return false
+        }
+        return !identifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var searchTerms: [String] {
