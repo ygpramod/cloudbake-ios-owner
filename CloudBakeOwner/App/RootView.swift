@@ -168,7 +168,11 @@ struct RootView: View {
                 )
             )
         case .designs:
-            PlaceholderScreen(destination: destination)
+            CakeDesignListView(
+                viewModel: CakeDesignListViewModel(
+                    repository: database.makeCoreDataRepository()
+                )
+            )
         }
     }
 
