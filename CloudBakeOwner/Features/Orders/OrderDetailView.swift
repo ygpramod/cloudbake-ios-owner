@@ -531,19 +531,21 @@ struct OrderDetailView: View {
 
     private var linkedDesignPreview: LinkedDesignPreview? {
         if let design = viewModel.selectedOrderCakeDesign,
-           design.photoReference != nil {
+           design.photoReference != nil,
+           let photoSource = viewModel.designPhotoSource(for: design) {
             return LinkedDesignPreview(
                 title: design.name,
                 sourceName: viewModel.selectedOrderDesignSourceName ?? "My Designs",
-                photoSource: viewModel.designPhotoSource(for: design)
+                photoSource: photoSource
             )
         }
 
-        if let photo = viewModel.selectedOrderCustomerReferencePhoto {
+        if let photo = viewModel.selectedOrderCustomerReferencePhoto,
+           let photoSource = viewModel.orderPhotoSource(photo) {
             return LinkedDesignPreview(
                 title: photo.caption ?? "Customer Reference",
                 sourceName: "Customer Reference",
-                photoSource: viewModel.orderPhotoSource(photo)
+                photoSource: photoSource
             )
         }
 
@@ -846,6 +848,7 @@ private struct LinkedDesignPhotoPreviewView: View {
                     Text(sourceName)
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("orders.detail.designPhotoPreview.source")
                 }
                 .padding(CloudBakeTheme.Spacing.screenHorizontal)
             }

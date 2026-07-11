@@ -794,6 +794,38 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(app.buttons["orders.form.design"].label.contains("Customer Reference"))
+
+        let titleField = app.textFields["orders.form.title"]
+        scrollToHittable(titleField, in: app, timeout: transitionTimeout)
+        typeText("Customer Reference Cake", into: titleField, timeout: transitionTimeout)
+        dismissKeyboard(in: app)
+        let customerNameField = app.textFields["orders.form.customerName"]
+        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
+        typeText("Beth", into: customerNameField, timeout: transitionTimeout)
+        dismissKeyboard(in: app)
+        scrollToHittable(app.buttons["orders.form.save"], in: app, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
+
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Customer Reference Cake"
+            )
+        ).firstMatch
+        scrollToHittable(orderRow, in: app, timeout: transitionTimeout)
+        tapWhenReady(orderRow, timeout: transitionTimeout)
+
+        let designThumbnail = app.buttons["orders.detail.designPhotoThumbnail"]
+        scrollToHittable(designThumbnail, in: app, timeout: transitionTimeout)
+        tapWhenReady(designThumbnail, timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Customer sketch"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertEqual(
+            app.staticTexts["orders.detail.designPhotoPreview.source"].label,
+            "Customer Reference"
+        )
+        tapWhenReady(app.buttons["orders.detail.designPhotoPreview.done"], timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
     }
 
     func testOrderCanUseLinkedRecipeToDeductInventory() throws {
