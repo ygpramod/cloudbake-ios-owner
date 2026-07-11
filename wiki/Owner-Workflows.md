@@ -360,6 +360,11 @@ already linked. The order remains an unsaved draft until Save is selected. Owner
 inspiration items retain their saved-design relationship; customer references retain a separate
 originating order-photo relationship so their provenance is not changed.
 
+Design and customer-reference detail photos support pinch zoom. Labelled zoom controls provide the
+same inspection workflow without requiring a pinch gesture. Swipe horizontally to move to the next
+or previous item in the current filtered source collection; vertical swipes continue scrolling the
+detail screen.
+
 Order detail also includes a Photos section for order-specific images. Customer References are for
 images the customer shares before preparation, while Final Cake Photos are for what the owner made
 and delivered. Each group shows compact camera and photo-library icons beside the group title. The

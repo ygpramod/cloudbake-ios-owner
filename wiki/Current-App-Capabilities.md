@@ -155,6 +155,9 @@ The app currently supports:
 120. `Use for New Order` from saved designs and customer references, opening the standard unsaved
     order draft with provenance preserved through a validated design or originating order-photo
     link and shown explicitly on saved order detail.
+121. design-detail pinch zoom with accessible zoom controls, horizontal movement through adjacent
+    filtered results, bounded thumbnail caching, and representative local-search performance
+    coverage.
 
 ## Partially Prepared
 

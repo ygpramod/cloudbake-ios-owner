@@ -94,6 +94,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0086: Design Library Removal
 - Slice RFC-0087: Design Usage History
 - Slice RFC-0088: Use Design For New Order
+- Slice RFC-0089: Design Photo Navigation And Performance
 
 ## Base RFCs
 
