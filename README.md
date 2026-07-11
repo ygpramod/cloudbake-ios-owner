@@ -96,6 +96,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0088: Use Design For New Order
 - Slice RFC-0089: Design Photo Navigation And Performance
 - Slice RFC-0090: Consumer-Safe Design Projection
+- Slice RFC-0091: Direct Owner Design Import
 
 ## Base RFCs
 

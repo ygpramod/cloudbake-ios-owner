@@ -160,6 +160,8 @@ The app currently supports:
     coverage.
 122. a fail-closed future consumer design projection that includes only explicitly published,
     owner-made designs with an available photo and excludes private provenance and owner metadata.
+123. direct My Designs import from the iPhone Photos library with required name, optional notes and
+    normalized tags, storing only the Photos asset reference and private owner metadata.
 
 ## Partially Prepared
 
