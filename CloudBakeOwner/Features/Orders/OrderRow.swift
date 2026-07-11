@@ -91,32 +91,30 @@ struct OrderRow: View {
 
             HStack(spacing: 8) {
                 if order.hasActiveReminderState {
-                    CloudBakeInlineActionButton(
+                    CloudBakeAdaptiveActionButton(
                         title: "Status",
                         systemImage: "arrow.triangle.2.circlepath",
                         tint: .cloudBakePurple,
                         accessibilityIdentifier: "orders.item.status.\(order.id)",
-                        prominence: .prominent,
                         action: onChangeStatus
                     )
+
                 }
 
-                CloudBakeInlineActionButton(
+                CloudBakeAdaptiveActionButton(
                     title: "Payment",
                     systemImage: "banknote",
                     tint: .cloudBakeMint,
                     accessibilityIdentifier: "orders.item.payment.\(order.id)",
-                    prominence: .prominent,
                     action: onReceivePayment
                 )
 
                 if let onSendMessage {
-                    CloudBakeInlineActionButton(
+                    CloudBakeAdaptiveActionButton(
                         title: "Message",
                         systemImage: "message",
                         tint: .cloudBakePink,
                         accessibilityIdentifier: "orders.item.message.\(order.id)",
-                        prominence: .prominent,
                         action: onSendMessage
                     )
                 }

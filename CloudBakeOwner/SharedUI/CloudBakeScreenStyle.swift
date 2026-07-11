@@ -562,17 +562,72 @@ struct CloudBakeInlineActionButton: View {
     }
 }
 
-struct CloudBakeOverflowMenuLabel: View {
+struct CloudBakeAdaptiveActionButton: View {
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
     let title: String
+    let systemImage: String
+    let tint: Color
+    let accessibilityIdentifier: String
+    let action: () -> Void
 
     var body: some View {
-        Image(systemName: "ellipsis")
+        Button(action: action) {
+            if verticalSizeClass == .compact {
+                Label(title, systemImage: systemImage)
+                    .font(CloudBakeTheme.Typography.rowDetail.weight(.semibold))
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .padding(.horizontal, 12)
+                    .background(tint.opacity(0.12), in: Capsule())
+            } else {
+                CloudBakeIconActionLabel(
+                    title: title,
+                    systemImage: systemImage,
+                    tint: tint
+                )
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
+struct CloudBakeIconActionButton: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let accessibilityIdentifier: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            CloudBakeIconActionLabel(
+                title: title,
+                systemImage: systemImage,
+                tint: tint
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
+private struct CloudBakeIconActionLabel: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Image(systemName: systemImage)
             .font(.body.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .frame(width: 44, height: 44)
-            .background(Color.secondary.opacity(0.08), in: Circle())
-            .contentShape(Circle())
-            .accessibilityLabel(title)
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(tint.opacity(0.12), in: Capsule())
+            .accessibilityHidden(true)
     }
 }
 

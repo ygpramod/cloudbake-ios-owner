@@ -201,44 +201,44 @@ struct InventoryListView: View {
             .accessibilityIdentifier("inventory.item.view.\(item.id)")
 
             HStack(spacing: 8) {
-                CloudBakeInlineActionButton(
+                CloudBakeIconActionButton(
                     title: "Adjust",
-                    systemImage: "plusminus",
+                    systemImage: "plus",
                     tint: .cloudBakePurple,
-                    accessibilityIdentifier: "inventory.item.adjust.\(item.id)",
-                    prominence: .prominent
+                    accessibilityIdentifier: "inventory.item.adjust.\(item.id)"
                 ) {
                     viewModel.beginAdjusting(item)
                     isAdjustingStock = true
                 }
 
-                Menu {
-                    Button {
-                        viewModel.beginConsuming(item)
-                        isConsumingStock = true
-                    } label: {
-                        Label("Use stock", systemImage: "minus")
-                    }
-                    .accessibilityIdentifier("inventory.item.consume.\(item.id)")
-
-                    Button {
-                        viewModel.beginViewingHistory(item)
-                        isShowingHistory = true
-                    } label: {
-                        Label("View history", systemImage: "clock")
-                    }
-                    .accessibilityIdentifier("inventory.item.history.\(item.id)")
-
-                    Button(role: .destructive) {
-                        pendingArchiveItem = item
-                    } label: {
-                        Label("Archive", systemImage: "archivebox")
-                    }
-                    .accessibilityIdentifier("inventory.item.archive.\(item.id)")
-                } label: {
-                    CloudBakeOverflowMenuLabel(title: "More actions")
+                CloudBakeIconActionButton(
+                    title: "Use stock",
+                    systemImage: "minus",
+                    tint: .cloudBakeOrange,
+                    accessibilityIdentifier: "inventory.item.consume.\(item.id)"
+                ) {
+                    viewModel.beginConsuming(item)
+                    isConsumingStock = true
                 }
-                .accessibilityIdentifier("inventory.item.more.\(item.id)")
+
+                CloudBakeIconActionButton(
+                    title: "View history",
+                    systemImage: "clock",
+                    tint: .secondary,
+                    accessibilityIdentifier: "inventory.item.history.\(item.id)"
+                ) {
+                    viewModel.beginViewingHistory(item)
+                    isShowingHistory = true
+                }
+
+                CloudBakeIconActionButton(
+                    title: "Archive",
+                    systemImage: "archivebox",
+                    tint: .secondary,
+                    accessibilityIdentifier: "inventory.item.archive.\(item.id)"
+                ) {
+                    pendingArchiveItem = item
+                }
             }
         }
         .padding(20)
