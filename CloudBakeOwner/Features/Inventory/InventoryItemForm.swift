@@ -130,6 +130,7 @@ struct InventoryItemForm: View {
                         isPresented = false
                     }
                 }
+                .disabled(!viewModel.canSubmitItemDraft(requiresCurrentQuantity: showsCurrentQuantity))
                 .accessibilityIdentifier("inventory.form.save")
             }
         }

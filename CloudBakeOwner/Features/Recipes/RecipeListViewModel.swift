@@ -64,6 +64,20 @@ final class RecipeListViewModel: ObservableObject {
         !TextInputFormatting.trimmed(draftName).isEmpty
     }
 
+    var canSubmitIngredientDraft: Bool {
+        guard !availableInventoryItems.isEmpty,
+              availableInventoryItems.contains(where: { $0.id == draftIngredientInventoryItemId }) else {
+            return false
+        }
+
+        guard let quantity = RecipeImportDraftValidation.parsedIngredientQuantity(from: draftIngredientQuantity),
+              quantity > 0 else {
+            return false
+        }
+
+        return true
+    }
+
     func beginViewingRecipe(_ recipe: Recipe) {
         selectedRecipe = recipe
         loadRecipeDetail()

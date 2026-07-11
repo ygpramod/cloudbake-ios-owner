@@ -64,6 +64,33 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.canSubmitRecipeDraft)
     }
 
+    func testIngredientDraftCanSubmitOnlyWhenInventoryItemAndPositiveQuantityArePresent() {
+        let repository = FakeRecipeRepository()
+        repository.inventoryItems = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake Flour",
+                unit: .kilogram,
+                currentQuantity: 1,
+                minimumQuantity: 1,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        let viewModel = RecipeListViewModel(repository: repository)
+
+        XCTAssertFalse(viewModel.canSubmitIngredientDraft)
+
+        viewModel.beginAddingIngredient()
+        XCTAssertFalse(viewModel.canSubmitIngredientDraft)
+
+        viewModel.draftIngredientQuantity = "0"
+        XCTAssertFalse(viewModel.canSubmitIngredientDraft)
+
+        viewModel.draftIngredientQuantity = "250"
+        XCTAssertTrue(viewModel.canSubmitIngredientDraft)
+    }
+
     func testAddRecipePersistsAndReloadsRecipes() {
         let repository = FakeRecipeRepository()
         let now = Date(timeIntervalSince1970: 1_800_031_000)
