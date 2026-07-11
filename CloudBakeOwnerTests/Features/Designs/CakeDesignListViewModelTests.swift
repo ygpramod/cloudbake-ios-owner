@@ -244,12 +244,80 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertEqual(photoLibrary.savedData, [data])
     }
 
+    func testTagsFiltersAndFavoritesApplyAcrossSources() {
+        let designRepository = FakeCakeDesignRepository()
+        let ownerDesign = makeDesign(
+            id: "design-floral",
+            name: "Floral Cake",
+            sourceKind: .ownerMade,
+            tags: ["Floral"],
+            isFavorite: true
+        )
+        let internetDesign = makeDesign(
+            id: "design-chocolate",
+            name: "Chocolate Cake",
+            sourceKind: .internetInspiration,
+            tags: ["Chocolate"]
+        )
+        designRepository.designs = [ownerDesign, internetDesign]
+        let orderRepository = FakeOrderRepository()
+        let order = makeOrder(id: "order-wedding", dueAt: Date(timeIntervalSince1970: 1_800_100_000))
+        orderRepository.orders = [order]
+        orderRepository.orderPhotos = [
+            OrderPhoto(
+                id: "photo-wedding",
+                orderId: order.id,
+                kind: .customerReference,
+                localPhotoPath: "photos://wedding",
+                caption: "Wedding reference",
+                tags: ["Wedding"],
+                createdAt: order.createdAt,
+                updatedAt: order.updatedAt
+            )
+        ]
+        let viewModel = CakeDesignListViewModel(
+            repository: designRepository,
+            customerReferenceRepository: orderRepository
+        )
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.availableFilters, ["All", "Favorites", "Wedding", "Chocolate", "Floral"])
+        viewModel.selectFilter("Favorites")
+        XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [ownerDesign.id])
+        XCTAssertTrue(viewModel.visibleInternetInspirations.isEmpty)
+        XCTAssertTrue(viewModel.visibleCustomerReferences.isEmpty)
+
+        viewModel.selectFilter("Wedding")
+        XCTAssertEqual(viewModel.visibleCustomerReferences.map(\.id), ["photo-wedding"])
+        XCTAssertTrue(viewModel.visibleDesigns.isEmpty)
+
+        viewModel.selectFilter("All")
+        viewModel.searchText = "floral"
+        XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [ownerDesign.id])
+    }
+
+    func testUpdatingTagsNormalizesDuplicatesAndFavoritePersists() {
+        let repository = FakeCakeDesignRepository()
+        let design = makeDesign(id: "design-metadata", name: "Metadata")
+        repository.designs = [design]
+        let viewModel = CakeDesignListViewModel(repository: repository)
+        viewModel.load()
+
+        let tagged = viewModel.updateTags(" Floral, floral,  Birthday ", for: design)
+        XCTAssertEqual(tagged?.tags, ["Floral", "Birthday"])
+        let favorite = tagged.flatMap(viewModel.toggleFavorite)
+        XCTAssertEqual(favorite?.isFavorite, true)
+        XCTAssertEqual(repository.designs.first, favorite)
+    }
+
     private func makeDesign(
         id: String,
         name: String,
         notes: String? = nil,
         photoReference: String? = "photos://asset",
-        sourceKind: CakeDesignSourceKind = .ownerMade
+        sourceKind: CakeDesignSourceKind = .ownerMade,
+        tags: [String] = [],
+        isFavorite: Bool = false
     ) -> CakeDesign {
         let timestamp = Date(timeIntervalSince1970: 1_800_080_000)
         return CakeDesign(
@@ -258,6 +326,8 @@ final class CakeDesignListViewModelTests: XCTestCase {
             notes: notes,
             photoReference: photoReference,
             sourceKind: sourceKind,
+            tags: tags,
+            isFavorite: isFavorite,
             createdAt: timestamp,
             updatedAt: timestamp
         )

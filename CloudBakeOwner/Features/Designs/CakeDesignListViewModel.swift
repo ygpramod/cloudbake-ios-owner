@@ -22,6 +22,7 @@ final class CakeDesignListViewModel: ObservableObject {
     @Published private(set) var customerReferences: [CustomerReferenceDesign] = []
     @Published private(set) var internetInspirations: [CakeDesign] = []
     @Published var searchText = ""
+    @Published var selectedFilter: String?
     @Published var errorMessage: String?
 
     private let repository: any CakeDesignRepository
@@ -102,31 +103,37 @@ final class CakeDesignListViewModel: ObservableObject {
 
     var visibleDesigns: [CakeDesign] {
         let terms = searchTerms
-        guard !terms.isEmpty else { return designs }
         return designs.filter { design in
-            matchesAllTerms(terms, values: [design.name, design.notes])
+            (terms.isEmpty || matchesAllTerms(
+                terms,
+                values: [design.name, design.notes] + design.tags.map(Optional.some)
+            ))
+                && matchesSelectedFilter(tags: design.tags, isFavorite: design.isFavorite)
         }
     }
 
     var visibleCustomerReferences: [CustomerReferenceDesign] {
         let terms = searchTerms
-        guard !terms.isEmpty else { return customerReferences }
         return customerReferences.filter { reference in
-            matchesAllTerms(
+            (terms.isEmpty || matchesAllTerms(
                 terms,
                 values: [reference.photo.caption, reference.order.title, reference.order.customerName]
+                    + reference.photo.tags.map(Optional.some)
+            )) && matchesSelectedFilter(
+                tags: reference.photo.tags,
+                isFavorite: reference.photo.isFavorite
             )
         }
     }
 
     var visibleInternetInspirations: [CakeDesign] {
         let terms = searchTerms
-        guard !terms.isEmpty else { return internetInspirations }
         return internetInspirations.filter { design in
-            matchesAllTerms(
+            (terms.isEmpty || matchesAllTerms(
                 terms,
                 values: [design.name, design.notes, design.sourceName, design.sourceURL]
-            )
+                    + design.tags.map(Optional.some)
+            )) && matchesSelectedFilter(tags: design.tags, isFavorite: design.isFavorite)
         }
     }
 
@@ -138,12 +145,59 @@ final class CakeDesignListViewModel: ObservableObject {
         !searchTerms.isEmpty
     }
 
+    var availableFilters: [String] {
+        let persistedDesigns = designs + internetInspirations
+        let allTags = DesignTags.normalized(
+            persistedDesigns.flatMap(\.tags) + customerReferences.flatMap { $0.photo.tags }
+        )
+        let suggested = ["Birthday", "Wedding", "Kids", "Cupcakes", "Chocolate", "Minimal", "Vintage", "Floral"]
+        let suggestedKeys = Set(suggested.map(TextInputFormatting.normalizedSearchKey))
+        let matchingSuggested = suggested.filter { suggestedTag in
+            allTags.contains { TextInputFormatting.normalizedSearchKey($0) == TextInputFormatting.normalizedSearchKey(suggestedTag) }
+        }
+        let custom = allTags
+            .filter { !suggestedKeys.contains(TextInputFormatting.normalizedSearchKey($0)) }
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        let hasFavorite = persistedDesigns.contains(where: \.isFavorite)
+            || customerReferences.contains { $0.photo.isFavorite }
+        return ["All"] + (hasFavorite ? ["Favorites"] : []) + matchingSuggested + custom
+    }
+
+    func selectFilter(_ filter: String) {
+        selectedFilter = filter == "All" ? nil : filter
+    }
+
+    func toggleFavorite(_ design: CakeDesign) -> CakeDesign? {
+        saveDesignCopy(design, tags: design.tags, isFavorite: !design.isFavorite)
+    }
+
+    func updateTags(_ tagsText: String, for design: CakeDesign) -> CakeDesign? {
+        saveDesignCopy(design, tags: DesignTags.parsed(tagsText), isFavorite: design.isFavorite)
+    }
+
+    func toggleFavorite(_ reference: CustomerReferenceDesign) -> CustomerReferenceDesign? {
+        saveCustomerReferenceCopy(
+            reference,
+            tags: reference.photo.tags,
+            isFavorite: !reference.photo.isFavorite
+        )
+    }
+
+    func updateTags(_ tagsText: String, for reference: CustomerReferenceDesign) -> CustomerReferenceDesign? {
+        saveCustomerReferenceCopy(
+            reference,
+            tags: DesignTags.parsed(tagsText),
+            isFavorite: reference.photo.isFavorite
+        )
+    }
+
     func importInternetInspiration(
         item: PhotosPickerItem,
         name: String,
         sourceName: String,
         sourceURL: String,
-        notes: String
+        notes: String,
+        tags: String = ""
     ) async -> Bool {
         guard let normalizedName = TextInputFormatting.optionalText(name) else {
             errorMessage = "Inspiration name is required."
@@ -177,7 +231,8 @@ final class CakeDesignListViewModel: ObservableObject {
                 normalizedName: normalizedName,
                 sourceName: sourceName,
                 sourceURL: normalizedURL,
-                notes: notes
+                notes: notes,
+                tags: tags
             )
         } catch {
             errorMessage = "Internet inspiration could not be saved."
@@ -203,7 +258,8 @@ final class CakeDesignListViewModel: ObservableObject {
         name: String,
         sourceName: String,
         sourceURL: String,
-        notes: String
+        notes: String,
+        tags: String = ""
     ) -> Bool {
         guard let normalizedName = TextInputFormatting.optionalText(name) else {
             errorMessage = "Inspiration name is required."
@@ -219,7 +275,8 @@ final class CakeDesignListViewModel: ObservableObject {
             normalizedName: normalizedName,
             sourceName: sourceName,
             sourceURL: normalizedURL,
-            notes: notes
+            notes: notes,
+            tags: tags
         )
     }
 
@@ -228,7 +285,8 @@ final class CakeDesignListViewModel: ObservableObject {
         normalizedName: String,
         sourceName: String,
         sourceURL: String?,
-        notes: String
+        notes: String,
+        tags: String
     ) -> Bool {
         do {
             let now = dateProvider()
@@ -241,6 +299,7 @@ final class CakeDesignListViewModel: ObservableObject {
                     sourceKind: .internetInspiration,
                     sourceName: TextInputFormatting.optionalText(sourceName),
                     sourceURL: sourceURL,
+                    tags: DesignTags.parsed(tags),
                     createdAt: now,
                     updatedAt: now
                 )
@@ -265,6 +324,70 @@ final class CakeDesignListViewModel: ObservableObject {
     private func matchesAllTerms(_ terms: [String], values: [String?]) -> Bool {
         let searchableValues = values.compactMap { $0 }.map(TextInputFormatting.normalizedSearchKey)
         return terms.allSatisfy { term in searchableValues.contains { $0.contains(term) } }
+    }
+
+    private func matchesSelectedFilter(tags: [String], isFavorite: Bool) -> Bool {
+        guard let selectedFilter else { return true }
+        if selectedFilter == "Favorites" { return isFavorite }
+        let selectedKey = TextInputFormatting.normalizedSearchKey(selectedFilter)
+        return tags.contains { TextInputFormatting.normalizedSearchKey($0) == selectedKey }
+    }
+
+    private func saveDesignCopy(
+        _ design: CakeDesign,
+        tags: [String],
+        isFavorite: Bool
+    ) -> CakeDesign? {
+        let updated = CakeDesign(
+            id: design.id,
+            name: design.name,
+            notes: design.notes,
+            photoReference: design.photoReference,
+            sourceKind: design.sourceKind,
+            originatingOrderPhotoId: design.originatingOrderPhotoId,
+            originatingOrderId: design.originatingOrderId,
+            sourceName: design.sourceName,
+            sourceURL: design.sourceURL,
+            tags: tags,
+            isFavorite: isFavorite,
+            createdAt: design.createdAt,
+            updatedAt: dateProvider()
+        )
+        do {
+            try repository.save(updated)
+            load()
+            return updated
+        } catch {
+            errorMessage = "Design metadata could not be saved."
+            return nil
+        }
+    }
+
+    private func saveCustomerReferenceCopy(
+        _ reference: CustomerReferenceDesign,
+        tags: [String],
+        isFavorite: Bool
+    ) -> CustomerReferenceDesign? {
+        guard let customerReferenceRepository else { return nil }
+        let photo = OrderPhoto(
+            id: reference.photo.id,
+            orderId: reference.photo.orderId,
+            kind: reference.photo.kind,
+            localPhotoPath: reference.photo.localPhotoPath,
+            caption: reference.photo.caption,
+            tags: tags,
+            isFavorite: isFavorite,
+            createdAt: reference.photo.createdAt,
+            updatedAt: dateProvider()
+        )
+        do {
+            try customerReferenceRepository.save(photo)
+            load()
+            return CustomerReferenceDesign(photo: photo, order: reference.order)
+        } catch {
+            errorMessage = "Reference metadata could not be saved."
+            return nil
+        }
     }
 
     private static func isValidWebURL(_ value: String) -> Bool {
