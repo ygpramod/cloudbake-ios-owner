@@ -228,12 +228,14 @@ final class AppDatabase {
 
         let repository = makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let photoReference = "photos/pink-floral.jpg"
+        try seedPhotoFixture(at: photoReference)
         try repository.save(
             CakeDesign(
                 id: "design-ui-fixture-floral",
                 name: "Pink Floral Cake",
                 notes: "Hand-piped buttercream flowers",
-                photoReference: "photos/pink-floral.jpg",
+                photoReference: photoReference,
                 createdAt: timestamp,
                 updatedAt: timestamp
             )
@@ -308,6 +310,9 @@ final class AppDatabase {
             updatedAt: timestamp
         )
         try repository.save(order)
+        try seedPhotoFixture(
+            at: "OrderPhotos/order-ui-fixture-photos/photo-ui-fixture-reference.jpg"
+        )
         try repository.save(
             OrderPhoto(
                 id: "photo-ui-fixture-reference",
@@ -330,6 +335,21 @@ final class AppDatabase {
                 updatedAt: timestamp.addingTimeInterval(60)
             )
         )
+    }
+
+    private func seedPhotoFixture(at relativePath: String) throws {
+        let fileStore = LocalOrderPhotoFileStore()
+        let fileURL = fileStore.fileURL(for: relativePath)
+        try FileManager.default.createDirectory(
+            at: fileURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        guard let onePixelPNG = Data(
+            base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        ) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        try onePixelPNG.write(to: fileURL, options: .atomic)
     }
 
     private static func configuration() -> Configuration {
