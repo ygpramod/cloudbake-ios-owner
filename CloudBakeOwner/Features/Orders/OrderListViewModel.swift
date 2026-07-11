@@ -917,11 +917,22 @@ final class OrderListViewModel: ObservableObject {
         defer { isPromotingDesign = false }
 
         let photoReference: String
-        do {
-            photoReference = try await designPhotoLibrary.savePhoto(at: orderPhotoURL(photo))
-        } catch {
-            errorMessage = "Design photo could not be saved to Photos."
-            return false
+        let cleanupRelativePath: String?
+        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: photo.localPhotoPath) {
+            guard designPhotoLibrary.containsAsset(identifier: identifier) else {
+                errorMessage = "Design photo is no longer available in Photos."
+                return false
+            }
+            photoReference = photo.localPhotoPath
+            cleanupRelativePath = nil
+        } else {
+            do {
+                photoReference = try await designPhotoLibrary.savePhoto(at: orderPhotoURL(photo))
+                cleanupRelativePath = photo.localPhotoPath
+            } catch {
+                errorMessage = "Design photo could not be saved to Photos."
+                return false
+            }
         }
 
         let now = dateProvider()
@@ -957,9 +968,9 @@ final class OrderListViewModel: ObservableObject {
                 design,
                 linking: updatedOrder,
                 photo: migratedPhoto,
-                cleanupRelativePath: photo.localPhotoPath
+                cleanupRelativePath: cleanupRelativePath
             )
-            let didCleanup = cleanupDesignPhoto(at: photo.localPhotoPath)
+            let didCleanup = cleanupRelativePath.map(cleanupDesignPhoto(at:)) ?? true
             refreshAfterSavingOrder(updatedOrder)
             errorMessage = didCleanup
                 ? nil

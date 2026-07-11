@@ -296,13 +296,15 @@ final class FakeOrderRepository: OrderRepository,
         _ design: CakeDesign,
         linking order: Order,
         photo: OrderPhoto,
-        cleanupRelativePath: String
+        cleanupRelativePath: String?
     ) throws {
         if let savePromotedDesignError { throw savePromotedDesignError }
         try save(design)
         try save(order)
         try save(photo)
-        pendingDesignPhotoCleanupPaths.append(cleanupRelativePath)
+        if let cleanupRelativePath {
+            pendingDesignPhotoCleanupPaths.append(cleanupRelativePath)
+        }
     }
 
     func fetchPendingDesignPhotoCleanupPaths() throws -> [String] {
@@ -540,6 +542,7 @@ final class FakeDesignPhotoLibrary: DesignPhotoLibrary {
     var savedReference = "photos://asset-design"
     var saveError: Error?
     var shouldSuspendSave = false
+    private(set) var isSaveSuspended = false
     private var saveContinuation: CheckedContinuation<String, Error>?
 
     func savePhoto(at fileURL: URL) async throws -> String {
@@ -548,6 +551,7 @@ final class FakeDesignPhotoLibrary: DesignPhotoLibrary {
         if shouldSuspendSave {
             return try await withCheckedThrowingContinuation { continuation in
                 saveContinuation = continuation
+                isSaveSuspended = true
             }
         }
         return savedReference
@@ -562,6 +566,7 @@ final class FakeDesignPhotoLibrary: DesignPhotoLibrary {
     func completeSuspendedSave() {
         saveContinuation?.resume(returning: savedReference)
         saveContinuation = nil
+        isSaveSuspended = false
     }
 
     func containsAsset(identifier: String) -> Bool {
