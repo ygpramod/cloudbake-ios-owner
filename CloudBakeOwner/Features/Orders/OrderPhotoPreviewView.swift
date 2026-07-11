@@ -117,11 +117,17 @@ struct OrderPhotoPreviewView: View {
                         .foregroundStyle(.white.opacity(0.64))
                         .accessibilityIdentifier("orders.detail.photos.preview.createdAt")
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(displayedPhoto.caption ?? displayedPhoto.kind.displayName), \(displayedPhoto.kind.displayName)")
+                .accessibilityIdentifier("orders.detail.photos.preview.metadata")
                 .padding(.bottom, 12)
             }
+            .accessibilityElement(children: .contain)
             .padding(.horizontal, 20)
             .padding(.top, 12)
         }
+        .accessibilityIdentifier("orders.detail.photos.preview.screen")
+        .accessibilityLabel("\(displayedPhoto.caption ?? displayedPhoto.kind.displayName), \(displayedPhoto.kind.displayName)")
         .sheet(isPresented: $isPromotingToDesign) {
             NavigationStack {
                 Form {
