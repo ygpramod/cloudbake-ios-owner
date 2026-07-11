@@ -4,7 +4,6 @@ struct CustomerDetailView: View {
     @ObservedObject var viewModel: CustomerListViewModel
     @Binding var isPresented: Bool
     let showsDoneButton: Bool
-    @Environment(\.navigateToAppDestination) private var navigate
     @State private var isEditingCustomer = false
     @State private var isConfirmingDelete = false
 
@@ -62,43 +61,6 @@ struct CustomerDetailView: View {
                     Text(presentation.displayPhone)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                }
-
-                CloudBakeSection("Actions") {
-                    CloudBakeDetailCard {
-                        HStack(spacing: 12) {
-                            if let phoneURL = viewModel.phoneURL(for: customer) {
-                                Link(destination: phoneURL) {
-                                    Label("Call", systemImage: "phone")
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.bordered)
-                                .tint(.cloudBakeTeal)
-                                .accessibilityIdentifier("customers.detail.call")
-                            }
-
-                            if let messageURL = viewModel.messageURL(for: customer) {
-                                Link(destination: messageURL) {
-                                    Label("Message", systemImage: "message")
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.bordered)
-                                .tint(.cloudBakePink)
-                                .accessibilityIdentifier("customers.detail.message")
-                            }
-                        }
-
-                        Button {
-                            isPresented = false
-                            navigate(.orders)
-                        } label: {
-                            Label("New Order", systemImage: "calendar.badge.plus")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.cloudBakePink)
-                        .accessibilityIdentifier("customers.detail.newOrder")
-                    }
                 }
 
                 CloudBakeSection("Contact") {

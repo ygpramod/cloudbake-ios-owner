@@ -5,6 +5,7 @@ struct OrderListView: View {
     @StateObject private var viewModel: OrderListViewModel
     @Environment(\.openURL) private var openURL
     @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
+    @EnvironmentObject private var orderNavigationRouter: OrderNavigationRouter
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
     @State private var orderScope: OrderScope = .active
@@ -44,9 +45,13 @@ struct OrderListView: View {
             viewModel.load()
             refreshWhatsAppAvailability()
             openPendingNotificationOrder()
+            openPendingNewOrder()
         }
         .onChange(of: orderNotificationRouter.pendingOrderId) { _, _ in
             openPendingNotificationOrder()
+        }
+        .onChange(of: orderNavigationRouter.pendingNewOrderCustomerId) { _, _ in
+            openPendingNewOrder()
         }
         .accessibilityIdentifier(AppDestination.orders.screenAccessibilityIdentifier)
     }
@@ -308,6 +313,17 @@ struct OrderListView: View {
 
         openOrder(order)
         orderNotificationRouter.clearPendingOrderId()
+    }
+
+    private func openPendingNewOrder() {
+        guard let customerId = orderNavigationRouter.pendingNewOrderCustomerId else {
+            return
+        }
+
+        viewModel.beginAddingOrder()
+        viewModel.selectDraftCustomer(id: customerId)
+        isAddingOrder = true
+        orderNavigationRouter.clearPendingNewOrder()
     }
 
     private var orderScopeSwipeGesture: some Gesture {

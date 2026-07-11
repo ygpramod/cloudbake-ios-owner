@@ -6,6 +6,7 @@ struct CloudBakeOwnerApp: App {
         try AppDatabase.openConfigured()
     }
     @StateObject private var orderNotificationRouter = OrderNotificationRouter()
+    @StateObject private var orderNavigationRouter = OrderNavigationRouter()
     @StateObject private var inventoryNavigationRouter = InventoryNavigationRouter()
 
     var body: some Scene {
@@ -14,6 +15,7 @@ struct CloudBakeOwnerApp: App {
             case .success(let database):
                 RootView(database: database)
                     .environmentObject(orderNotificationRouter)
+                    .environmentObject(orderNavigationRouter)
                     .environmentObject(inventoryNavigationRouter)
                     .preferredColorScheme(.light)
             case .failure:
