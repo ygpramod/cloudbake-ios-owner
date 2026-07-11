@@ -99,6 +99,10 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCanBeArchivedAndRestored
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDetailShowsStockActionsInMoreMenu
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryPurchaseBillImportShowsCameraAndManualDraftControls
+          - feature: designs
+            only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignRemovalCanBeCancelledAndConfirmed
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignCanStartAnUnsavedOrderDraftWithTheDesignLinked
 
     steps:
       - name: Checkout

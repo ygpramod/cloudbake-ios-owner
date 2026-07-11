@@ -454,6 +454,32 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftCakeDesignName(), "No Linked Design")
     }
 
+    func testCustomerReferenceSelectionPersistsOnlyWhenOrderIsSaved() {
+        let repository = FakeOrderRepository()
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: { "order-from-reference" },
+            dateProvider: { Date(timeIntervalSince1970: 1_800_140_000) }
+        )
+        viewModel.beginAddingOrder()
+
+        viewModel.selectDraftCustomerReference(photoId: "photo-customer-reference")
+
+        XCTAssertTrue(repository.orders.isEmpty)
+        XCTAssertEqual(viewModel.draftDesignReferenceName, "Customer Reference")
+        XCTAssertEqual(viewModel.draftCustomerReferencePhotoId, "photo-customer-reference")
+        XCTAssertTrue(viewModel.draftCakeDesignId.isEmpty)
+
+        viewModel.draftTitle = "Reference cake"
+        viewModel.draftCustomerName = "Amy"
+        XCTAssertTrue(viewModel.addOrder())
+        XCTAssertEqual(
+            repository.orders.first?.customerReferencePhotoId,
+            "photo-customer-reference"
+        )
+        XCTAssertNil(repository.orders.first?.cakeDesignId)
+    }
+
     func testRecipeSelectionStateUsesLoadedRecipes() {
         let repository = FakeOrderRepository()
         let vanilla = makeRecipe(id: "recipe-vanilla", name: "Vanilla sponge", notes: "Birthday base")

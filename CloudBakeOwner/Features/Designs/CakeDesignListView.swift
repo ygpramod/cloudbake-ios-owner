@@ -82,6 +82,7 @@ struct CakeDesignListView: View {
                 CustomerReferencePreviewView(
                     reference: reference,
                     photoSource: viewModel.availablePhotoSource(for: reference.photo),
+                    usageOrders: viewModel.usageOrders(for: reference),
                     onToggleFavorite: { viewModel.toggleFavorite($0) },
                     onUpdateTags: { viewModel.updateTags($0, for: $1) },
                     onDelete: { viewModel.delete($0) }
@@ -201,7 +202,7 @@ struct CakeDesignListView: View {
             photoTile(
                 source: viewModel.availablePhotoSource(for: reference.photo),
                 isFavorite: reference.photo.isFavorite,
-                usageCount: 1
+                usageCount: viewModel.usageCount(for: reference)
             )
         }
         .buttonStyle(.plain)
@@ -210,7 +211,7 @@ struct CakeDesignListView: View {
         .accessibilityLabel(
             "\(reference.title), customer reference from \(reference.order.customerName)"
                 + (reference.photo.isFavorite ? ", favorite" : "")
-                + ", used in 1 order"
+                + usageAccessibilitySuffix(count: viewModel.usageCount(for: reference))
         )
         .accessibilityIdentifier("designs.customerReference.\(reference.id)")
     }
@@ -276,10 +277,12 @@ struct CakeDesignListView: View {
 private struct CustomerReferencePreviewView: View {
     @State private var reference: CustomerReferenceDesign
     let photoSource: CakeDesignPhotoSource?
+    let usageOrders: [Order]
     let onToggleFavorite: (CustomerReferenceDesign) -> CustomerReferenceDesign?
     let onUpdateTags: (String, CustomerReferenceDesign) -> CustomerReferenceDesign?
     let onDelete: (CustomerReferenceDesign) -> Bool
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var orderNavigationRouter: OrderNavigationRouter
     @State private var isEditingTags = false
     @State private var tagsText = ""
     @State private var isConfirmingDelete = false
@@ -287,12 +290,14 @@ private struct CustomerReferencePreviewView: View {
     init(
         reference: CustomerReferenceDesign,
         photoSource: CakeDesignPhotoSource?,
+        usageOrders: [Order],
         onToggleFavorite: @escaping (CustomerReferenceDesign) -> CustomerReferenceDesign?,
         onUpdateTags: @escaping (String, CustomerReferenceDesign) -> CustomerReferenceDesign?,
         onDelete: @escaping (CustomerReferenceDesign) -> Bool
     ) {
         _reference = State(initialValue: reference)
         self.photoSource = photoSource
+        self.usageOrders = usageOrders
         self.onToggleFavorite = onToggleFavorite
         self.onUpdateTags = onUpdateTags
         self.onDelete = onDelete
@@ -322,6 +327,38 @@ private struct CustomerReferencePreviewView: View {
                         Text(reference.photo.tags.isEmpty ? "None" : reference.photo.tags.joined(separator: ", "))
                     }
                 }
+
+                CloudBakeDetailCard {
+                    CloudBakeDetailRow("Used In") {
+                        Text("\(usageOrders.count) order\(usageOrders.count == 1 ? "" : "s")")
+                    }
+                    ForEach(usageOrders, id: \.id) { order in
+                        CloudBakeDetailDivider()
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(order.title)
+                                .font(.body.weight(.semibold))
+                            Text(order.dueAt.formatted(date: .abbreviated, time: .omitted))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 8)
+                    }
+                }
+
+                Button {
+                    orderNavigationRouter.beginNewOrder(
+                        designReference: .customerReference(photoId: reference.photo.id)
+                    )
+                    dismiss()
+                } label: {
+                    Label("Use for New Order", systemImage: "calendar.badge.plus")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.cloudBakePink)
+                .controlSize(.large)
+                .accessibilityIdentifier("designs.customerReference.useForNewOrder")
             }
             .padding(CloudBakeTheme.Spacing.screenHorizontal)
         }
@@ -470,6 +507,7 @@ private struct CakeDesignPreviewView: View {
     let onUpdateTags: (String, CakeDesign) -> CakeDesign?
     let onDelete: (CakeDesign) -> Bool
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var orderNavigationRouter: OrderNavigationRouter
     @State private var isEditingTags = false
     @State private var tagsText = ""
     @State private var isConfirmingDelete = false
@@ -542,6 +580,20 @@ private struct CakeDesignPreviewView: View {
                         }
                     }
                 }
+
+                Button {
+                    orderNavigationRouter.beginNewOrder(
+                        designReference: .cakeDesign(id: design.id)
+                    )
+                    dismiss()
+                } label: {
+                    Label("Use for New Order", systemImage: "calendar.badge.plus")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.cloudBakePink)
+                .controlSize(.large)
+                .accessibilityIdentifier("designs.preview.useForNewOrder")
 
                 CloudBakeDetailCard {
                     CloudBakeDetailRow("Used In") {

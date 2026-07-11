@@ -48,6 +48,7 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftRecipeId = ""
     @Published var draftRecipeScaleMultiplier = "1"
     @Published var draftCakeDesignId = ""
+    @Published private(set) var draftCustomerReferencePhotoId = ""
     @Published var draftChecklistItemTitle = ""
     @Published var draftDueAt = Date()
     @Published var draftStatus: OrderStatus = .draft
@@ -312,10 +313,24 @@ final class OrderListViewModel: ObservableObject {
 
     func selectDraftCakeDesign(id: String) {
         draftCakeDesignId = id
+        draftCustomerReferencePhotoId = ""
     }
 
     func clearDraftCakeDesignLink() {
         draftCakeDesignId = ""
+        draftCustomerReferencePhotoId = ""
+    }
+
+    func selectDraftCustomerReference(photoId: String) {
+        draftCakeDesignId = ""
+        draftCustomerReferencePhotoId = photoId
+    }
+
+    var draftDesignReferenceName: String {
+        if !draftCustomerReferencePhotoId.isEmpty {
+            return "Customer Reference"
+        }
+        return draftCakeDesignName()
     }
 
     func draftCakeDesignName() -> String {
@@ -344,6 +359,7 @@ final class OrderListViewModel: ObservableObject {
             id: idGenerator(),
             customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
             cakeDesignId: draftCakeDesignId.isEmpty ? nil : draftCakeDesignId,
+            customerReferencePhotoId: draftCustomerReferencePhotoId.isEmpty ? nil : draftCustomerReferencePhotoId,
             recipeId: draftRecipeId.isEmpty ? nil : draftRecipeId,
             recipeScaleMultiplier: draftRecipeId.isEmpty ? 1 : draft.recipeScaleMultiplier,
             title: draft.title,
@@ -393,6 +409,7 @@ final class OrderListViewModel: ObservableObject {
         draftRecipeId = selectedOrder.recipeId ?? ""
         draftRecipeScaleMultiplier = TextInputFormatting.decimalText(selectedOrder.recipeScaleMultiplier)
         draftCakeDesignId = selectedOrder.cakeDesignId ?? ""
+        draftCustomerReferencePhotoId = selectedOrder.customerReferencePhotoId ?? ""
         draftDueAt = selectedOrder.dueAt
         draftStatus = selectedOrder.status
         draftFulfillmentType = selectedOrder.fulfillmentType
@@ -437,6 +454,7 @@ final class OrderListViewModel: ObservableObject {
             id: editingOrder.id,
             customerId: draftCustomerId.isEmpty ? nil : draftCustomerId,
             cakeDesignId: draftCakeDesignId.isEmpty ? nil : draftCakeDesignId,
+            customerReferencePhotoId: draftCustomerReferencePhotoId.isEmpty ? nil : draftCustomerReferencePhotoId,
             recipeId: draftRecipeId.isEmpty ? nil : draftRecipeId,
             recipeScaleMultiplier: draftRecipeId.isEmpty ? 1 : draft.recipeScaleMultiplier,
             title: draft.title,
@@ -461,6 +479,7 @@ final class OrderListViewModel: ObservableObject {
                     id: order.id,
                     customerId: order.customerId,
                     cakeDesignId: order.cakeDesignId,
+                    customerReferencePhotoId: order.customerReferencePhotoId,
                     recipeId: order.recipeId,
                     recipeScaleMultiplier: order.recipeScaleMultiplier,
                     title: order.title,
@@ -726,6 +745,7 @@ final class OrderListViewModel: ObservableObject {
             id: order.id,
             customerId: order.customerId,
             cakeDesignId: cakeDesignId ?? order.cakeDesignId,
+            customerReferencePhotoId: order.customerReferencePhotoId,
             recipeId: order.recipeId,
             recipeScaleMultiplier: order.recipeScaleMultiplier,
             title: order.title,
@@ -1288,6 +1308,7 @@ final class OrderListViewModel: ObservableObject {
         draftRecipeId = ""
         draftRecipeScaleMultiplier = "1"
         draftCakeDesignId = ""
+        draftCustomerReferencePhotoId = ""
         draftDueAt = dateProvider()
         draftStatus = .draft
         draftFulfillmentType = .pickup
