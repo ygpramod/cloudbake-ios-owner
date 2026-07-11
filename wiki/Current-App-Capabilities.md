@@ -148,6 +148,8 @@ The app currently supports:
     across saved designs and customer references.
 117. confirmed removal of designs and customer references from CloudBake while preserving the
     underlying iPhone Photos asset and safely unlinking affected order metadata.
+118. single-axis, compact Designs grids that preserve vertical scrolling through large Internet
+    Inspiration and Customer Reference collections.
 
 ## Partially Prepared
 
