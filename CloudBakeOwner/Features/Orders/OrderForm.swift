@@ -172,6 +172,7 @@ struct OrderForm: View {
                         isPresented = false
                     }
                 }
+                .disabled(!viewModel.canSubmitOrderDraft)
                 .accessibilityIdentifier("orders.form.save")
             }
         }

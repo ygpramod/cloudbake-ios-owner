@@ -83,6 +83,22 @@ final class OrderListViewModel: ObservableObject {
         filteredOrders(completedOrders)
     }
 
+    var canSubmitOrderDraft: Bool {
+        let input = OrderDraftValidationInput(
+            title: draftTitle,
+            customerName: draftCustomerName,
+            recipeScaleMultiplier: draftRecipeScaleMultiplier,
+            quotedPrice: draftQuotedPrice,
+            depositPaid: draftDepositPaid
+        )
+
+        guard case .success = OrderDraftValidation.validate(input) else {
+            return false
+        }
+
+        return true
+    }
+
     var overdueAlert: OrderOverdueAlert? {
         presentation.primaryOverdueAlert(from: orders)
     }
