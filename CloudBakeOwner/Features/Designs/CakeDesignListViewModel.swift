@@ -468,6 +468,7 @@ final class CakeDesignListViewModel: ObservableObject {
             sourceURL: design.sourceURL,
             tags: tags,
             isFavorite: isFavorite,
+            isPortfolioPublished: design.isPortfolioPublished,
             createdAt: design.createdAt,
             updatedAt: dateProvider()
         )

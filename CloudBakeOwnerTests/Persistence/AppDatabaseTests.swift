@@ -168,6 +168,7 @@ final class AppDatabaseTests: XCTestCase {
         XCTAssertNil(design.originatingOrderId)
         XCTAssertTrue(design.tags.isEmpty)
         XCTAssertFalse(design.isFavorite)
+        XCTAssertFalse(design.isPortfolioPublished)
         XCTAssertEqual(
             try repository.fetchOrder(id: "order-legacy-design")?.cakeDesignId,
             design.id

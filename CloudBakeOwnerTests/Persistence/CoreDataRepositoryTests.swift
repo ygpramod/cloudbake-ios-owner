@@ -163,6 +163,7 @@ final class CoreDataRepositoryTests: XCTestCase {
             sourceKind: .ownerMade,
             originatingOrderPhotoId: orderPhoto.id,
             originatingOrderId: order.id,
+            isPortfolioPublished: true,
             createdAt: design.createdAt,
             updatedAt: timestamps.updatedAt
         )

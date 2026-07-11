@@ -111,6 +111,7 @@ final class CoreModelsTests: XCTestCase {
             name: "Pink Floral Cake",
             notes: "Owner-only design correction",
             photoReference: "cloudbake://designs/pink-floral.jpg",
+            isPortfolioPublished: true,
             createdAt: timestamp,
             updatedAt: timestamp
         )
@@ -127,6 +128,69 @@ final class CoreModelsTests: XCTestCase {
                 fulfillmentType: .delivery,
                 designName: "Pink Floral Cake",
                 designPhotoReference: "cloudbake://designs/pink-floral.jpg"
+            )
+        )
+    }
+
+    func testConsumerDesignPreviewFailsClosedForPrivateOrNonOwnerDesigns() {
+        let timestamp = Date(timeIntervalSince1970: 1_800_120_000)
+        func design(
+            sourceKind: CakeDesignSourceKind,
+            isPublished: Bool,
+            photoReference: String? = "photos://asset"
+        ) -> CakeDesign {
+            CakeDesign(
+                id: "design-\(sourceKind.rawValue)-\(isPublished)",
+                name: "Private source",
+                notes: "Owner-only note",
+                photoReference: photoReference,
+                sourceKind: sourceKind,
+                sourceName: "Private creator",
+                sourceURL: "https://private.example",
+                tags: ["Floral"],
+                isFavorite: true,
+                isPortfolioPublished: isPublished,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        }
+
+        XCTAssertNil(ConsumerDesignPreview(design: design(sourceKind: .ownerMade, isPublished: false)))
+        XCTAssertNil(ConsumerDesignPreview(design: design(sourceKind: .customerReference, isPublished: true)))
+        XCTAssertNil(ConsumerDesignPreview(design: design(sourceKind: .internetInspiration, isPublished: true)))
+        XCTAssertNil(
+            ConsumerDesignPreview(
+                design: design(sourceKind: .ownerMade, isPublished: true, photoReference: nil)
+            )
+        )
+    }
+
+    func testConsumerDesignPreviewIncludesOnlyApprovedPortfolioFields() throws {
+        let timestamp = Date(timeIntervalSince1970: 1_800_120_000)
+        let design = CakeDesign(
+            id: "design-public",
+            name: "Public Floral Cake",
+            notes: "Private construction notes",
+            photoReference: "photos://public-asset",
+            sourceKind: .ownerMade,
+            originatingOrderPhotoId: "photo-private",
+            originatingOrderId: "order-private",
+            sourceName: "Private source",
+            sourceURL: "https://private.example",
+            tags: ["Floral", "Wedding"],
+            isFavorite: true,
+            isPortfolioPublished: true,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        XCTAssertEqual(
+            try XCTUnwrap(ConsumerDesignPreview(design: design)),
+            ConsumerDesignPreview(
+                designId: design.id,
+                name: design.name,
+                photoReference: "photos://public-asset",
+                tags: design.tags
             )
         )
     }
