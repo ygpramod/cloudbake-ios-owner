@@ -247,11 +247,25 @@ extension GRDBCoreDataRepository {
     }
 
     func deleteOrderPhoto(id: String) throws {
+        try deleteOrderPhoto(id: id, cleanupRelativePath: nil)
+    }
+
+    func deleteOrderPhoto(id: String, cleanupRelativePath: String?) throws {
         try writer.write { db in
             try db.execute(
                 sql: "DELETE FROM order_photos WHERE id = ?",
                 arguments: [id]
             )
+            if let cleanupRelativePath {
+                try db.execute(
+                    sql: """
+                        INSERT OR IGNORE INTO design_photo_cleanups
+                        (relative_path, created_at_unix_time)
+                        VALUES (?, ?)
+                        """,
+                    arguments: [cleanupRelativePath, Date().timeIntervalSince1970]
+                )
+            }
         }
     }
 

@@ -147,14 +147,13 @@ struct CakeDesignListView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("designs.customerReferences.empty")
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 14) {
-                        ForEach(viewModel.visibleCustomerReferences) { reference in
-                            customerReferenceTile(reference)
-                                .frame(width: 150)
-                        }
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 140), spacing: 14)],
+                    spacing: 14
+                ) {
+                    ForEach(viewModel.visibleCustomerReferences) { reference in
+                        customerReferenceTile(reference)
                     }
-                }
                 }
             }
 
@@ -182,15 +181,16 @@ struct CakeDesignListView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 14) {
-                        ForEach(viewModel.visibleInternetInspirations, id: \.id) { design in
-                            designTile(design)
-                                .frame(width: 150)
-                        }
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 140), spacing: 14)],
+                    spacing: 14
+                ) {
+                    ForEach(viewModel.visibleInternetInspirations, id: \.id) { design in
+                        designTile(design)
                     }
                 }
             }
+        }
     }
 
     private func customerReferenceTile(_ reference: CustomerReferenceDesign) -> some View {
@@ -334,13 +334,18 @@ private struct CustomerReferencePreviewView: View {
                 if let updated = onUpdateTags(tagsText, reference) { reference = updated }
             }
         }
-        .alert("Remove Customer Reference?", isPresented: $isConfirmingDelete) {
-            Button("Cancel", role: .cancel) {}
-            Button("Remove", role: .destructive) {
+        .cloudBakeCenteredPopup(
+            isPresented: isConfirmingDelete,
+            title: "Remove Customer Reference?",
+            subtitle: "Remove this reference from CloudBake and its order. The image remains in Photos.",
+            systemImage: "trash",
+            cancelAccessibilityIdentifier: "designs.customerReference.delete.cancel",
+            onCancel: { isConfirmingDelete = false }
+        ) {
+            centeredPopupButton("Remove Customer Reference", role: .destructive) {
                 if onDelete(reference) { dismiss() }
             }
-        } message: {
-            Text("This removes the reference from CloudBake and its order. The image remains in Photos.")
+            .accessibilityIdentifier("designs.customerReference.delete.confirm")
         }
     }
 }
@@ -549,13 +554,18 @@ private struct CakeDesignPreviewView: View {
                 if let updated = onUpdateTags(tagsText, design) { design = updated }
             }
         }
-        .alert("Remove Design?", isPresented: $isConfirmingDelete) {
-            Button("Cancel", role: .cancel) {}
-            Button("Remove", role: .destructive) {
+        .cloudBakeCenteredPopup(
+            isPresented: isConfirmingDelete,
+            title: "Remove Design?",
+            subtitle: "Remove this design from CloudBake. The image remains in Photos.",
+            systemImage: "trash",
+            cancelAccessibilityIdentifier: "designs.delete.cancel",
+            onCancel: { isConfirmingDelete = false }
+        ) {
+            centeredPopupButton("Remove Design", role: .destructive) {
                 if onDelete(design) { dismiss() }
             }
-        } message: {
-            Text("This removes the design from CloudBake. The image remains in Photos.")
+            .accessibilityIdentifier("designs.delete.confirm")
         }
     }
 }

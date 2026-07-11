@@ -104,6 +104,7 @@ protocol OrderPhotoRepository {
     func fetchOrderPhotos(orderId: String) throws -> [OrderPhoto]
     func fetchOrderPhotos(kind: OrderPhotoKind) throws -> [OrderPhoto]
     func deleteOrderPhoto(id: String) throws
+    func deleteOrderPhoto(id: String, cleanupRelativePath: String?) throws
 }
 
 protocol InventoryTransactionRepository {

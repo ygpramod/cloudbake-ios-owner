@@ -89,7 +89,9 @@ final class CakeDesignListViewModel: ObservableObject {
             if !availableFilters.contains(selectedFilter) {
                 selectedFilter = .all
             }
-            errorMessage = nil
+            errorMessage = retryPendingPhotoCleanups()
+                ? nil
+                : "A local photo cleanup will be retried automatically."
         } catch {
             designs = []
             customerReferences = []
@@ -232,15 +234,38 @@ final class CakeDesignListViewModel: ObservableObject {
 
     func delete(_ reference: CustomerReferenceDesign) -> Bool {
         guard let customerReferenceRepository else { return false }
+        let cleanupRelativePath = PhotoKitDesignPhotoLibrary
+            .assetIdentifier(from: reference.photo.localPhotoPath) == nil
+            ? reference.photo.localPhotoPath
+            : nil
         do {
-            try customerReferenceRepository.deleteOrderPhoto(id: reference.photo.id)
-            if PhotoKitDesignPhotoLibrary.assetIdentifier(from: reference.photo.localPhotoPath) == nil {
-                try photoFileStore.deleteOrderPhoto(relativePath: reference.photo.localPhotoPath)
-            }
+            try customerReferenceRepository.deleteOrderPhoto(
+                id: reference.photo.id,
+                cleanupRelativePath: cleanupRelativePath
+            )
+            let didCleanup = cleanupRelativePath.map(cleanupPhoto(at:)) ?? true
             load()
+            if !didCleanup {
+                errorMessage = "Reference removed. The old local photo will be cleaned up automatically."
+            }
             return true
         } catch {
             errorMessage = "Customer reference could not be removed from CloudBake."
+            return false
+        }
+    }
+
+    private func retryPendingPhotoCleanups() -> Bool {
+        guard let paths = try? repository.fetchPendingDesignPhotoCleanupPaths() else { return false }
+        return paths.reduce(true) { result, path in cleanupPhoto(at: path) && result }
+    }
+
+    private func cleanupPhoto(at relativePath: String) -> Bool {
+        do {
+            try photoFileStore.deleteOrderPhoto(relativePath: relativePath)
+            try repository.deletePendingDesignPhotoCleanupPath(relativePath)
+            return true
+        } catch {
             return false
         }
     }
