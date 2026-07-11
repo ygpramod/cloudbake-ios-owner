@@ -127,6 +127,8 @@ The app currently supports:
 105. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
 106. centered CloudBake confirmation popups for order, customer, and inventory actions,
 107. unit, integration, and feature-sharded acceptance test lanes.
+108. persisted cake-design provenance for owner-made, customer-reference, and internet-inspiration
+    records, including optional originating order and order-photo relationships.
 
 ## Partially Prepared
 
