@@ -185,9 +185,11 @@ struct RootView: View {
                 )
             )
         case .designs:
+            let repository = database.makeCoreDataRepository()
             CakeDesignListView(
                 viewModel: CakeDesignListViewModel(
-                    repository: database.makeCoreDataRepository()
+                    repository: repository,
+                    customerReferenceRepository: repository
                 )
             )
         }

@@ -101,6 +101,7 @@ protocol OrderChecklistRepository {
 protocol OrderPhotoRepository {
     func save(_ photo: OrderPhoto) throws
     func fetchOrderPhotos(orderId: String) throws -> [OrderPhoto]
+    func fetchOrderPhotos(kind: OrderPhotoKind) throws -> [OrderPhoto]
     func deleteOrderPhoto(id: String) throws
 }
 
