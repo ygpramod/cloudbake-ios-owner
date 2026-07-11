@@ -369,9 +369,10 @@ The add action beside My Designs imports completed owner work directly from the 
 library. A name is required; notes and comma-separated tags are optional. CloudBake stores the
 Photos asset reference and metadata only, and the design remains private by default.
 
-The order form opens a photo-first Designs grid for linking a saved owner-made design. Search works
-across names, notes, and tags, and the ribbon shows the ten most-used tags. Internet Inspiration is
-not part of the current owner workflow.
+The order form opens a photo-first Designs grid for linking a saved owner-made design or Customer
+Reference. Search works across names, notes, customer/order context, and tags, and the ribbon shows
+the ten most-used tags. Internet Inspiration is not offered for new links; existing historical
+links retain their label while an order is edited.
 
 Order detail also includes a Photos section for order-specific images. Customer References are for
 images the customer shares before preparation, while Final Cake Photos are for what the owner made
