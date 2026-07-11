@@ -14,7 +14,7 @@ This RFC applies to:
 
 - a visual library of cake designs and inspiration,
 - clear provenance for every saved image,
-- owner-made designs, customer references, and internet inspiration,
+- owner-made designs and customer references,
 - search, filters, tags, favourites, and usage history,
 - design detail and photo viewing,
 - starting a new order from a design,
@@ -41,8 +41,8 @@ beautiful, calm place where the owner can remember completed work, understand wh
 asked for, collect inspiration, and quickly turn an idea into a new order.
 
 The library must preserve where an image came from. A cake made by the owner is not the same as a
-customer-supplied reference or an image saved from the internet. CloudBake must never blur those
-meanings, especially when a future consumer-facing portfolio is introduced.
+customer-supplied reference. CloudBake must never blur those meanings, especially when a future
+consumer-facing portfolio is introduced.
 
 ## Product Goals
 
@@ -60,10 +60,9 @@ The experience should prioritize photographs over text and remain practical for 
 
 ## Requirements Summary
 
-- The app must provide one Designs screen with three clearly separated sources:
+- The app must provide one Designs screen with two clearly separated sources:
   - My Designs,
-  - Customer References,
-  - Internet Inspiration.
+  - Customer References.
 - The Designs screen must show the item count for each source.
 - The screen must provide search across the saved design library.
 - Search must match name and normalized tags; colour, theme, occasion, category, and flavour are
@@ -78,7 +77,7 @@ The experience should prioritize photographs over text and remain practical for 
 - The design detail must provide Use for New Order.
 - Use for New Order must open a new order draft with the selected design already linked.
 - The owner must review and save the order; selecting a design must not create an order silently.
-- The app must preserve image provenance and must not present customer or internet images as work
+- The app must preserve image provenance and must not present customer images as work
   made by the owner.
 - The experience must remain local-first and usable without a backend.
 
@@ -89,14 +88,12 @@ contains three source sections:
 
 1. `My Designs (count)`
 2. `Customer References (count)`
-3. `Internet Inspiration (count)`
 
 Each section shows a compact vertical lazy grid. One vertical scroll axis is used for the complete
-screen so large Customer Reference or Internet Inspiration collections never trap scrolling. The
+screen so large Customer Reference collections never trap scrolling. The
 screen loads bounded thumbnails and does not decode hundreds of full-resolution images.
 
-Search and filters apply across all three sources by default. When the owner enters a source
-collection, search is scoped to that source while preserving the same search and filter language.
+Search and filters apply across both visible sources by default.
 
 ## Design Sources And Provenance
 
@@ -128,22 +125,11 @@ Customer reference images:
 Deleting an order reference photo must remove it from this collection. Deleting a customer record
 must not silently delete an order or its historical reference photos.
 
-### Internet Inspiration
+### Retired Internet Inspiration Records
 
-Internet Inspiration contains third-party cake images deliberately saved by the owner. The initial
-implementation may accept an image from the photo library or share/import flow and optional source
-information. It must not crawl the internet automatically.
-
-Internet inspiration should support:
-
-- optional source URL,
-- optional source or creator name,
-- optional owner notes,
-- the same searchable design metadata as other sources.
-
-Internet images must remain private inspiration by default and must not be presented as owner work
-or published in a future consumer portfolio without an explicit, separately designed rights and
-publication workflow.
+Internet Inspiration is not shown or importable in the owner experience. Historical records retain
+their provenance in persistence so migrations remain safe, but they remain private and excluded
+from Designs, order selection, and consumer projections.
 
 ## Search
 
@@ -234,9 +220,8 @@ The Used In section lists linked orders using useful owner-facing identity, such
 due date. Raw order numbers may be shown when CloudBake has a stable owner-facing order number, but
 the relationship must use stable order ids internally.
 
-Customer reference detail should show its originating order when available. Internet inspiration
-detail should show source information when recorded. Owner-made designs may show the completed
-orders that used or produced the design.
+Customer reference detail shows its originating order when available. Owner-made designs may show
+the completed orders that used or produced the design.
 
 ## Use For New Order
 
@@ -251,8 +236,8 @@ When selected:
 5. The original design and its metadata remain unchanged.
 6. No order is persisted until the owner explicitly saves.
 
-The workflow must work for all three sources. The order must retain enough provenance to explain
-whether the linked reference was owner-made, customer-supplied, or internet inspiration.
+The workflow works for both visible sources. The order retains enough provenance to explain whether
+the linked reference was owner-made or customer-supplied.
 
 ## Visual And Interaction Direction
 
@@ -333,7 +318,7 @@ origin.
 Design provenance is a privacy and trust boundary.
 
 - Customer reference photos are private by default.
-- Internet inspiration is private by default.
+- Historical Internet Inspiration records remain private and hidden.
 - Owner notes are private by default.
 - Only owner-made designs may become public portfolio candidates.
 - A future publication workflow must require explicit owner selection.
@@ -401,7 +386,7 @@ creating a second, disconnected photo system.
 ## Implementation Slices
 
 The iPhone implementation is recorded in Slice RFCs 0079 through 0091 under `docs/rfc/slices/`:
-provenance, My Designs, Photos references, Customer References, Internet Inspiration, search,
+provenance, My Designs, Photos references, Customer References, search,
 tags/filters/favourites, removal, usage, new-order drafts, zoom/navigation/performance,
 consumer-safe projection, and direct owner import.
 
@@ -410,7 +395,7 @@ iPad Designs layout was deliberately not implemented because the app target is i
 ## Decisions
 
 - The library is separated by image provenance.
-- The owner MVP uses My Designs, Customer References, and Internet Inspiration.
+- The owner experience uses My Designs and Customer References.
 - Search is local and metadata-based in the first implementation.
 - Search covers name and normalized tags representing colour, theme, occasion, category, flavour,
   and owner labels.
@@ -418,13 +403,12 @@ iPad Designs layout was deliberately not implemented because the app target is i
 - Owner favourite is a Boolean state; public like counts are not part of the owner MVP.
 - Used count is derived from linked orders.
 - Use for New Order opens an unsaved draft with the design pre-linked.
-- Customer and internet images remain private by default.
+- Customer images and retired Internet Inspiration records remain private by default.
 - AI-assisted suggestions and automatic web search are deferred.
 
 ## Resolved Questions
 
 - Source collections use compact vertical lazy grids in one scroll axis.
-- Internet source URL remains optional.
 - Colour, theme, occasion, and category begin as normalized free-form tags.
 - Use for New Order retains a stable design link or customer-reference photo link and does not copy
   the image.

@@ -127,8 +127,8 @@ The app currently supports:
 105. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
 106. centered CloudBake confirmation popups for order, customer, and inventory actions,
 107. unit, integration, and feature-sharded acceptance test lanes.
-108. persisted cake-design provenance for owner-made, customer-reference, and internet-inspiration
-    records, including optional originating order and order-photo relationships.
+108. persisted cake-design provenance for owner-made and customer-reference workflows, with
+    historical internet-inspiration provenance retained privately for migration safety.
 109. an owner-made My Designs photo gallery and design detail view backed by referenced Photos
     assets, with explicit handling when an asset is unavailable.
 110. Photos-owned design images: CloudBake saves newly promoted designs to the iPhone Photos
@@ -138,18 +138,18 @@ The app currently supports:
     originating customer and order context and without duplicating photo records.
 112. Photos-owned order images: new customer-reference and final-cake photos are saved to Photos,
     and order metadata stores only the returned asset identifier.
-113. private Internet Inspiration import from Photos with optional source/creator, validated source
-    URL, owner notes, and explicit third-party provenance.
+113. retired Internet Inspiration records remain private and excluded from the current owner UI,
+    order selection, and future consumer projections.
 114. photo-only Designs thumbnails, with names and metadata available through accessibility and the
     centered, shared-style detail screen.
-115. local cross-source Designs search with tokenized AND matching while preserving My Designs,
-    Customer References, and Internet Inspiration grouping.
+115. local cross-source Designs search with tokenized AND matching across My Designs and Customer
+    References.
 116. normalized design tags, represented-tag filter chips, and a private owner favourite state
     across saved designs and customer references.
 117. confirmed removal of designs and customer references from CloudBake while preserving the
     underlying iPhone Photos asset and safely unlinking affected order metadata.
-118. single-axis, compact Designs grids that preserve vertical scrolling through large Internet
-    Inspiration and Customer Reference collections.
+118. single-axis, compact Designs grids that preserve vertical scrolling through large My Designs
+    and Customer Reference collections without end-of-page oscillation.
 119. derived design usage counts and linked-order history, plus duplicate final-photo promotion
     prevention based on stable originating photo identity.
 120. `Use for New Order` from saved designs and customer references, opening the standard unsaved
@@ -162,6 +162,8 @@ The app currently supports:
     owner-made designs with an available photo and excludes private provenance and owner metadata.
 123. direct My Designs import from the iPhone Photos library with required name, optional notes and
     normalized tags, storing only the Photos asset reference and private owner metadata.
+124. a ten-tag, frequency-ranked Designs ribbon and a photo-first searchable Designs grid for
+    linking owner-made designs to order drafts.
 
 ## Partially Prepared
 
