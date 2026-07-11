@@ -84,6 +84,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0075: Reminder Screen
 - Slice RFC-0077: Inventory Aliases For Bill Scanning
 - Slice RFC-0078: Inventory Type And Optional Expiry
+- Slice RFC-0079: Design Library Provenance
 
 ## Base RFCs
 
