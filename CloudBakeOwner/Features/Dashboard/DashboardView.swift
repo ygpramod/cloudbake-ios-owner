@@ -14,7 +14,7 @@ struct DashboardView: View {
             CloudBakeScreenBackground()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: CloudBakeTheme.Spacing.section) {
                     DashboardHeader()
 
                     if let overdueAlert = viewModel.overdueOrderAlert {
@@ -28,7 +28,7 @@ struct DashboardView: View {
                                 count: "\(viewModel.upcomingOrderCount)",
                                 detail: upcomingOrdersDetail,
                                 systemImage: "calendar",
-                                tint: .cloudBakePurple,
+                                tint: CloudBakeTheme.ColorToken.secondaryAction,
                                 artworkSystemImage: "birthday.cake",
                                 action: {
                                     navigate(.orders)
@@ -48,7 +48,7 @@ struct DashboardView: View {
                                 title: "Reminders",
                                 detail: "Payments, today's orders, and inventory alerts",
                                 systemImage: "bell",
-                                tint: .cloudBakeTeal
+                                tint: CloudBakeTheme.ColorToken.customerAccent
                             )
 
                             Divider()
@@ -59,7 +59,7 @@ struct DashboardView: View {
                                 title: "Recent designs",
                                 detail: "Cake photos will appear here",
                                 systemImage: "camera",
-                                tint: .cloudBakePink
+                                tint: CloudBakeTheme.ColorToken.primaryAction
                             )
                         }
                         .cloudBakeCardStyle()
@@ -67,24 +67,24 @@ struct DashboardView: View {
 
                     DashboardSection(title: "Areas") {
                         VStack(spacing: 0) {
-                            DashboardAreaRow(destination: .orders, tint: .cloudBakePurple)
+                            DashboardAreaRow(destination: .orders, tint: CloudBakeTheme.ColorToken.secondaryAction)
                             DashboardDivider()
-                            DashboardAreaRow(destination: .inventory, tint: .cloudBakeOrange)
+                            DashboardAreaRow(destination: .inventory, tint: CloudBakeTheme.ColorToken.inventoryAccent)
                             DashboardDivider()
-                            DashboardAreaRow(destination: .recipes, tint: .cloudBakeMint)
+                            DashboardAreaRow(destination: .recipes, tint: CloudBakeTheme.ColorToken.recipeAccent)
                             DashboardDivider()
-                            DashboardAreaRow(destination: .customers, tint: .cloudBakeTeal)
+                            DashboardAreaRow(destination: .customers, tint: CloudBakeTheme.ColorToken.customerAccent)
                             DashboardDivider()
-                            DashboardAreaRow(destination: .designs, tint: .cloudBakePink)
+                            DashboardAreaRow(destination: .designs, tint: CloudBakeTheme.ColorToken.primaryAction)
                             DashboardDivider()
                             DashboardAreaRow(destination: .settings, tint: .gray)
                         }
                         .cloudBakeCardStyle()
                     }
                 }
-                .padding(.horizontal, 28)
+                .padding(.horizontal, CloudBakeTheme.Spacing.screenHorizontal + 4)
                 .padding(.top, 8)
-                .padding(.bottom, 96)
+                .padding(.bottom, CloudBakeTheme.Spacing.bottomNavigationHeight - 8)
             }
         }
         .navigationTitle("")
@@ -110,10 +110,13 @@ struct DashboardView: View {
         } label: {
             Label(alert.message, systemImage: "clock.badge.exclamationmark")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.cloudBakePink)
+                .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
-                .background(Color.cloudBakePink.opacity(0.10), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .background(
+                    CloudBakeTheme.ColorToken.primaryAction.opacity(0.10),
+                    in: RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.bannerRadius, style: .continuous)
+                )
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("dashboard.overdue.banner")
@@ -125,14 +128,14 @@ private struct DashboardHeader: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("CloudBake")
-                    .font(.system(size: 28, weight: .heavy, design: .serif))
+                    .font(CloudBakeTheme.Typography.brandTitle)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
                 Text("Bake. Create. Delight.")
                     .font(.footnote.weight(.medium))
-                    .foregroundStyle(Color.cloudBakeBrown)
+                    .foregroundStyle(CloudBakeTheme.ColorToken.ownerAccent)
             }
 
             Spacer(minLength: 20)
@@ -146,7 +149,7 @@ private struct DashboardHeader: View {
                     Circle()
                         .stroke(Color.black.opacity(0.06), lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.08), radius: 10, y: 4)
+                .shadow(color: CloudBakeTheme.Elevation.softShadow, radius: 10, y: 4)
                 .accessibilityHidden(true)
         }
     }
@@ -159,7 +162,7 @@ private struct DashboardSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.headline.weight(.semibold))
+                .font(CloudBakeTheme.Typography.sectionTitle)
                 .foregroundStyle(.secondary)
 
             content
@@ -178,7 +181,7 @@ private struct LowInventoryMetricCard: View {
                 count: "!",
                 detail: errorMessage,
                 systemImage: "shippingbox",
-                tint: .cloudBakeOrange,
+                tint: CloudBakeTheme.ColorToken.inventoryAccent,
                 artworkSystemImage: "shippingbox"
             )
             .accessibilityIdentifier("dashboard.lowInventory.error")
@@ -189,7 +192,7 @@ private struct LowInventoryMetricCard: View {
                 detail: lowInventoryPrimaryDetail,
                 secondaryDetail: lowInventorySecondaryDetail,
                 systemImage: "shippingbox",
-                tint: .cloudBakeOrange,
+                tint: CloudBakeTheme.ColorToken.inventoryAccent,
                 artworkSystemImage: "shippingbox",
                 action: viewModel.lowInventoryItems.isEmpty ? nil : onTap
             )
@@ -284,19 +287,19 @@ private struct DashboardMetricCard: View {
                     .minimumScaleFactor(0.82)
 
                 Text(count)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(CloudBakeTheme.Typography.metricValue)
                     .foregroundStyle(tint)
                     .lineLimit(1)
 
                 Text(detail)
-                    .font(.footnote)
+                    .font(CloudBakeTheme.Typography.rowDetail)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
 
                 if let secondaryDetail {
                     Text(secondaryDetail)
-                        .font(.caption)
+                        .font(CloudBakeTheme.Typography.metadata)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
@@ -307,7 +310,7 @@ private struct DashboardMetricCard: View {
         .padding(16)
         .background(
             ZStack(alignment: .bottomTrailing) {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.largeCardRadius, style: .continuous)
                     .fill(tint.opacity(0.08))
 
                 Image(systemName: artworkSystemImage)
@@ -322,10 +325,10 @@ private struct DashboardMetricCard: View {
             }
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.largeCardRadius, style: .continuous)
                 .stroke(tint.opacity(0.22), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.largeCardRadius, style: .continuous))
     }
 }
 
@@ -346,11 +349,11 @@ private struct DashboardActionRow: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
-                        .font(.headline.weight(.semibold))
+                        .font(CloudBakeTheme.Typography.rowTitle)
                         .foregroundStyle(.primary)
 
                     Text(detail)
-                        .font(.footnote)
+                        .font(CloudBakeTheme.Typography.rowDetail)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
@@ -358,7 +361,7 @@ private struct DashboardActionRow: View {
                 Spacer(minLength: 12)
 
                 Image(systemName: "chevron.right")
-                    .font(.headline.weight(.semibold))
+                    .font(CloudBakeTheme.Typography.rowTitle)
                     .foregroundStyle(.secondary)
             }
             .padding(.vertical, 18)
@@ -412,7 +415,7 @@ private struct DashboardIcon: View {
             .foregroundStyle(.white)
             .frame(width: 50, height: 50)
             .background(
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.iconRadius, style: .continuous)
                     .fill(tint.gradient)
             )
     }

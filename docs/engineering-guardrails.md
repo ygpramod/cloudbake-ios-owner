@@ -53,6 +53,8 @@ A slice is done only when:
 ## UI Consistency
 
 - Reuse the established CloudBake visual language before adding new styling.
+- Use `CloudBakeTheme` semantic tokens for repeated colors, typography, spacing, corner radii,
+  elevation, and app chrome. Do not add raw feature-local styling values when a shared token exists.
 - Second-level screens should use `CloudBakeScreenScaffold` unless a slice explicitly changes the
   screen system.
 - Detail and settings rows should prefer `CloudBakeDetailCard`, `CloudBakeDetailRow`, and
