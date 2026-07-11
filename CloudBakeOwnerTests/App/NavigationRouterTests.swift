@@ -52,10 +52,43 @@ final class NavigationRouterTests: XCTestCase {
 
         router.beginNewOrder(customerId: "customer-amy")
 
-        XCTAssertEqual(router.pendingNewOrderCustomerId, "customer-amy")
+        XCTAssertEqual(
+            router.pendingNewOrderRequest,
+            NewOrderRequest(customerId: "customer-amy", designReference: nil)
+        )
 
         router.clearPendingNewOrder()
 
-        XCTAssertNil(router.pendingNewOrderCustomerId)
+        XCTAssertNil(router.pendingNewOrderRequest)
+    }
+
+    func testOrderNavigationRouterCarriesDesignIntoNewOrderRequest() {
+        let router = OrderNavigationRouter()
+
+        router.beginNewOrder(designReference: .cakeDesign(id: "design-floral"))
+
+        XCTAssertEqual(
+            router.pendingNewOrderRequest,
+            NewOrderRequest(
+                customerId: nil,
+                designReference: .cakeDesign(id: "design-floral")
+            )
+        )
+    }
+
+    func testOrderNavigationRouterCarriesCustomerReferenceIntoNewOrderRequest() {
+        let router = OrderNavigationRouter()
+
+        router.beginNewOrder(
+            designReference: .customerReference(photoId: "photo-reference")
+        )
+
+        XCTAssertEqual(
+            router.pendingNewOrderRequest,
+            NewOrderRequest(
+                customerId: nil,
+                designReference: .customerReference(photoId: "photo-reference")
+            )
+        )
     }
 }

@@ -175,20 +175,35 @@ final class CakeDesignListViewModel: ObservableObject {
     func usageOrders(for design: CakeDesign) -> [Order] {
         orders
             .filter { $0.cakeDesignId == design.id }
-            .sorted { lhs, rhs in
-                guard lhs.dueAt == rhs.dueAt else { return lhs.dueAt > rhs.dueAt }
-                let titleOrder = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
-                guard titleOrder == .orderedSame else { return titleOrder == .orderedAscending }
-                return lhs.id < rhs.id
-            }
+            .sorted(by: usageOrderSort)
     }
 
     func usageCount(for design: CakeDesign) -> Int {
         usageOrders(for: design).count
     }
 
+    func usageOrders(for reference: CustomerReferenceDesign) -> [Order] {
+        orders
+            .filter {
+                $0.id == reference.order.id
+                    || $0.customerReferencePhotoId == reference.photo.id
+            }
+            .sorted(by: usageOrderSort)
+    }
+
+    func usageCount(for reference: CustomerReferenceDesign) -> Int {
+        usageOrders(for: reference).count
+    }
+
     var hasEffectiveSearchQuery: Bool {
         !searchTerms.isEmpty
+    }
+
+    private func usageOrderSort(_ lhs: Order, _ rhs: Order) -> Bool {
+        guard lhs.dueAt == rhs.dueAt else { return lhs.dueAt > rhs.dueAt }
+        let titleOrder = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
+        guard titleOrder == .orderedSame else { return titleOrder == .orderedAscending }
+        return lhs.id < rhs.id
     }
 
     var availableFilters: [DesignLibraryFilter] {

@@ -45,8 +45,8 @@ struct RootView: View {
 
             navigateToOrdersWhenNotificationIsPending()
         }
-        .onChange(of: orderNavigationRouter.pendingNewOrderCustomerId) { _, customerId in
-            guard customerId != nil else {
+        .onChange(of: orderNavigationRouter.pendingNewOrderRequest) { _, request in
+            guard request != nil else {
                 return
             }
 
@@ -104,7 +104,7 @@ struct RootView: View {
     }
 
     private func navigateToOrdersWhenNewOrderIsPending() {
-        guard orderNavigationRouter.pendingNewOrderCustomerId != nil else {
+        guard orderNavigationRouter.pendingNewOrderRequest != nil else {
             return
         }
 

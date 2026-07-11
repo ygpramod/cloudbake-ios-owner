@@ -67,12 +67,12 @@ struct OrderForm: View {
                 }
             }
 
-            if !viewModel.cakeDesigns.isEmpty {
+            if !viewModel.cakeDesigns.isEmpty || !viewModel.draftCustomerReferencePhotoId.isEmpty {
                 Section("Design") {
                     Button {
                         isSelectingDesign = true
                     } label: {
-                        LabeledContent("Linked Design", value: viewModel.draftCakeDesignName())
+                        LabeledContent("Linked Design", value: viewModel.draftDesignReferenceName)
                     }
                     .accessibilityIdentifier("orders.form.design")
                     .sheet(isPresented: $isSelectingDesign) {

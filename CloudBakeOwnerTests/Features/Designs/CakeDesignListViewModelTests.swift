@@ -173,6 +173,43 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.visibleCustomerReferences.isEmpty)
     }
 
+    func testCustomerReferenceUsageIncludesOriginAndNewOrdersUsingTheReference() throws {
+        let designRepository = FakeCakeDesignRepository()
+        let orderRepository = FakeOrderRepository()
+        let sourceOrder = makeOrder(
+            id: "order-reference-source",
+            dueAt: Date(timeIntervalSince1970: 1_800_090_000)
+        )
+        let reference = OrderPhoto(
+            id: "photo-reused-reference",
+            orderId: sourceOrder.id,
+            kind: .customerReference,
+            localPhotoPath: "photos://reused-reference",
+            caption: "Blue flowers",
+            createdAt: sourceOrder.createdAt,
+            updatedAt: sourceOrder.updatedAt
+        )
+        let reusedOrder = makeOrder(
+            id: "order-reference-reuse",
+            customerReferencePhotoId: reference.id,
+            dueAt: Date(timeIntervalSince1970: 1_800_100_000)
+        )
+        orderRepository.orders = [sourceOrder, reusedOrder]
+        orderRepository.orderPhotos = [reference]
+        let viewModel = CakeDesignListViewModel(
+            repository: designRepository,
+            customerReferenceRepository: orderRepository
+        )
+        viewModel.load()
+        let item = try XCTUnwrap(viewModel.customerReferences.first)
+
+        XCTAssertEqual(viewModel.usageCount(for: item), 2)
+        XCTAssertEqual(
+            viewModel.usageOrders(for: item).map(\.id),
+            [reusedOrder.id, sourceOrder.id]
+        )
+    }
+
     func testSaveInternetInspirationPersistsPrivateSourceMetadata() {
         let repository = FakeCakeDesignRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_100_000)

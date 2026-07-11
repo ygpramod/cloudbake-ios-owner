@@ -50,7 +50,7 @@ struct OrderListView: View {
         .onChange(of: orderNotificationRouter.pendingOrderId) { _, _ in
             openPendingNotificationOrder()
         }
-        .onChange(of: orderNavigationRouter.pendingNewOrderCustomerId) { _, _ in
+        .onChange(of: orderNavigationRouter.pendingNewOrderRequest) { _, _ in
             openPendingNewOrder()
         }
         .accessibilityIdentifier(AppDestination.orders.screenAccessibilityIdentifier)
@@ -316,12 +316,22 @@ struct OrderListView: View {
     }
 
     private func openPendingNewOrder() {
-        guard let customerId = orderNavigationRouter.pendingNewOrderCustomerId else {
+        guard let request = orderNavigationRouter.pendingNewOrderRequest else {
             return
         }
 
         viewModel.beginAddingOrder()
-        viewModel.selectDraftCustomer(id: customerId)
+        if let customerId = request.customerId {
+            viewModel.selectDraftCustomer(id: customerId)
+        }
+        switch request.designReference {
+        case .cakeDesign(let id):
+            viewModel.selectDraftCakeDesign(id: id)
+        case .customerReference(let photoId):
+            viewModel.selectDraftCustomerReference(photoId: photoId)
+        case nil:
+            break
+        }
         isAddingOrder = true
         orderNavigationRouter.clearPendingNewOrder()
     }

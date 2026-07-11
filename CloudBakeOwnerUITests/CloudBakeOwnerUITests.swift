@@ -64,6 +64,27 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["No owner designs saved"].waitForExistence(timeout: 5))
     }
 
+    func testDesignCanStartAnUnsavedOrderDraftWithTheDesignLinked() throws {
+        let app = makeApp(initialDestination: "designs")
+        app.launchEnvironment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] = "1"
+        app.launch()
+
+        let design = app.buttons["designs.item.design-ui-fixture-floral"]
+        XCTAssertTrue(design.waitForExistence(timeout: 10))
+        tapWhenReady(design)
+        let useForNewOrder = app.buttons["designs.preview.useForNewOrder"]
+        XCTAssertTrue(useForNewOrder.waitForExistence(timeout: 5))
+        tapWhenReady(useForNewOrder)
+
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 10))
+        let linkedDesign = app.buttons["orders.form.design"]
+        XCTAssertTrue(linkedDesign.waitForExistence(timeout: 5))
+        XCTAssertTrue(linkedDesign.label.contains("Pink Floral Cake"))
+        tapWhenReady(app.buttons["orders.form.cancel"])
+
+        XCTAssertTrue(app.staticTexts["No orders yet"].waitForExistence(timeout: 5))
+    }
+
     func testSettingsShowsInventoryCSVActions() throws {
         let app = makeApp()
         app.launch()
