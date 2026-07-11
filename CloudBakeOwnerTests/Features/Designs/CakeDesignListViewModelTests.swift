@@ -323,6 +323,24 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, "Design name is required.")
     }
 
+    func testSaveOwnerDesignRejectsNonPhotosReferences() {
+        for reference in ["", "photos://", "photos://   ", "OrderPhotos/legacy.jpg", "https://example.com/cake.jpg"] {
+            let repository = FakeCakeDesignRepository()
+            let viewModel = CakeDesignListViewModel(repository: repository)
+
+            XCTAssertFalse(
+                viewModel.saveOwnerDesign(
+                    photoReference: reference,
+                    name: "Owner Cake",
+                    notes: "",
+                    tags: ""
+                )
+            )
+            XCTAssertTrue(repository.designs.isEmpty)
+            XCTAssertEqual(viewModel.errorMessage, "Design photo must be stored in Photos.")
+        }
+    }
+
     func testSaveInternetInspirationRejectsInvalidSourceURL() {
         let repository = FakeCakeDesignRepository()
         let viewModel = CakeDesignListViewModel(repository: repository)
@@ -347,7 +365,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
             designPhotoLibrary: photoLibrary
         )
 
-        let reference = try await viewModel.internetInspirationPhotoReference(
+        let reference = try await viewModel.photosReference(
             itemIdentifier: "picker-selected-asset",
             fallbackData: Data([0xCA, 0xFE])
         )
@@ -364,7 +382,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
         let data = Data([0xCA, 0xFE])
 
-        let reference = try await viewModel.internetInspirationPhotoReference(
+        let reference = try await viewModel.photosReference(
             itemIdentifier: nil,
             fallbackData: data
         )
