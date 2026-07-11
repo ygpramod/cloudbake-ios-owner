@@ -57,6 +57,7 @@ enum OrderPaymentUpdate {
             id: order.id,
             customerId: order.customerId,
             cakeDesignId: order.cakeDesignId,
+            customerReferencePhotoId: order.customerReferencePhotoId,
             recipeId: order.recipeId,
             recipeScaleMultiplier: order.recipeScaleMultiplier,
             title: order.title,

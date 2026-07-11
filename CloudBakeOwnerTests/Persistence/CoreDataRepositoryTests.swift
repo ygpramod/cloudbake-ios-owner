@@ -1225,6 +1225,51 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertNil(try repository.fetchOrder(id: order.id)?.cakeDesignId)
     }
 
+    func testOrderPersistsCustomerReferencePhotoLinkAndClearsItWhenPhotoIsRemoved() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_100_000)
+        let sourceOrder = makeOrder(id: "order-reference-source", dueAt: timestamp)
+        let referencePhoto = OrderPhoto(
+            id: "photo-order-reference",
+            orderId: sourceOrder.id,
+            kind: .customerReference,
+            localPhotoPath: "photos://order-reference",
+            caption: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let reusedOrder = Order(
+            id: "order-reference-reuse",
+            customerId: nil,
+            cakeDesignId: nil,
+            customerReferencePhotoId: referencePhoto.id,
+            title: "Reused reference",
+            customerName: "Amy",
+            status: .draft,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(sourceOrder)
+        try repository.save(referencePhoto)
+        try repository.save(reusedOrder)
+
+        XCTAssertEqual(
+            try repository.fetchOrder(id: reusedOrder.id)?.customerReferencePhotoId,
+            referencePhoto.id
+        )
+
+        try repository.deleteOrderPhoto(id: referencePhoto.id)
+
+        XCTAssertNil(
+            try repository.fetchOrder(id: reusedOrder.id)?.customerReferencePhotoId
+        )
+        XCTAssertNotNil(try repository.fetchOrder(id: reusedOrder.id))
+    }
+
     func testChangingOrderStatusToReadyRecordsRecipeUsageAndDeductsInventory() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
