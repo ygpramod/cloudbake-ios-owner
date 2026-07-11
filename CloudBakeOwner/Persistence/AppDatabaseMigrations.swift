@@ -338,6 +338,13 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0022_add_design_source_metadata") { db in
+            try db.alter(table: "cake_designs") { table in
+                table.add(column: "source_name", .text)
+                table.add(column: "source_url", .text)
+            }
+        }
+
         return migrator
     }
 }
