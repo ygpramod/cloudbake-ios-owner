@@ -179,6 +179,19 @@ final class CloudBakeOwnerUITests: XCTestCase {
         scrollToHittable(bottomDesign, in: app, timeout: 10)
         XCTAssertTrue(bottomDesign.isHittable)
 
+        Thread.sleep(forTimeInterval: 1)
+        let settledPositions = (0..<8).map { _ in
+            let position = bottomDesign.frame.minY
+            Thread.sleep(forTimeInterval: 0.1)
+            return position
+        }
+        let verticalMovement = (settledPositions.max() ?? 0) - (settledPositions.min() ?? 0)
+        XCTAssertLessThan(
+            verticalMovement,
+            2,
+            "Designs screen continued moving after the bottom scroll gesture ended."
+        )
+
         for _ in 0..<4 { app.swipeDown() }
 
         let search = app.descendants(matching: .any)["designs.search"]

@@ -5,6 +5,11 @@ import SwiftUI
 import UIKit
 
 struct CakeDesignListView: View {
+    private let designGridColumns = [
+        GridItem(.flexible(), spacing: 14),
+        GridItem(.flexible(), spacing: 14)
+    ]
+
     @StateObject private var viewModel: CakeDesignListViewModel
     @State private var previewingDesign: CakeDesign?
     @State private var previewingCustomerReference: CustomerReferenceDesign?
@@ -111,54 +116,51 @@ struct CakeDesignListView: View {
             .tint(Color.cloudBakePink)
             .accessibilityIdentifier("designs.clearSearchAndFilters")
         } else {
-            HStack {
-                Text("My Designs (\(viewModel.visibleDesigns.count))")
-                    .font(CloudBakeTheme.Typography.sectionTitle)
-                    .accessibilityIdentifier("designs.myDesigns.title")
-                Spacer()
-                Button { isAddingOwnerDesign = true } label: {
-                    Label("Add owner design", systemImage: "plus")
-                        .labelStyle(.iconOnly)
-                        .frame(minWidth: 44, minHeight: 36)
+            LazyVGrid(columns: designGridColumns, spacing: 14) {
+                HStack {
+                    Text("My Designs (\(viewModel.visibleDesigns.count))")
+                        .font(CloudBakeTheme.Typography.sectionTitle)
+                        .accessibilityIdentifier("designs.myDesigns.title")
+                    Spacer()
+                    Button { isAddingOwnerDesign = true } label: {
+                        Label("Add owner design", systemImage: "plus")
+                            .labelStyle(.iconOnly)
+                            .frame(minWidth: 44, minHeight: 36)
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    .accessibilityLabel("Add My Design")
+                    .accessibilityIdentifier("designs.myDesigns.add")
                 }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.capsule)
-                .accessibilityLabel("Add My Design")
-                .accessibilityIdentifier("designs.myDesigns.add")
-            }
+                .gridCellColumns(designGridColumns.count)
 
-            if viewModel.visibleDesigns.isEmpty {
-                Text("No owner designs saved")
-                    .font(CloudBakeTheme.Typography.rowDetail)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 150), spacing: 14)],
-                    spacing: 14
-                ) {
+                if viewModel.visibleDesigns.isEmpty {
+                    Text("No owner designs saved")
+                        .font(CloudBakeTheme.Typography.rowDetail)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .gridCellColumns(designGridColumns.count)
+                } else {
                     ForEach(viewModel.visibleDesigns, id: \.id) { design in
                         designTile(design)
                     }
                 }
-            }
 
-            Text("Customer References (\(viewModel.visibleCustomerReferences.count))")
+                Text("Customer References (\(viewModel.visibleCustomerReferences.count))")
                     .font(CloudBakeTheme.Typography.sectionTitle)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 10)
+                    .gridCellColumns(designGridColumns.count)
                     .accessibilityIdentifier("designs.customerReferences.title")
 
-            if viewModel.visibleCustomerReferences.isEmpty {
-                Text("No customer references saved")
-                    .font(CloudBakeTheme.Typography.rowDetail)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityIdentifier("designs.customerReferences.empty")
-            } else {
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 140), spacing: 14)],
-                    spacing: 14
-                ) {
+                if viewModel.visibleCustomerReferences.isEmpty {
+                    Text("No customer references saved")
+                        .font(CloudBakeTheme.Typography.rowDetail)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .gridCellColumns(designGridColumns.count)
+                        .accessibilityIdentifier("designs.customerReferences.empty")
+                } else {
                     ForEach(viewModel.visibleCustomerReferences) { reference in
                         customerReferenceTile(reference)
                     }
