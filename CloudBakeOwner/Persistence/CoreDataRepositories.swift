@@ -38,8 +38,13 @@ protocol CakeDesignRepository {
     func fetchPendingDesignPhotoCleanupPaths() throws -> [String]
     func deletePendingDesignPhotoCleanupPath(_ relativePath: String) throws
     func fetchCakeDesign(id: String) throws -> CakeDesign?
+    func fetchCakeDesign(originatingOrderPhotoId: String) throws -> CakeDesign?
     func fetchCakeDesigns() throws -> [CakeDesign]
     func fetchCakeDesigns(sourceKind: CakeDesignSourceKind) throws -> [CakeDesign]
+}
+
+enum CakeDesignPromotionError: Error, Equatable {
+    case originatingPhotoAlreadyPromoted
 }
 
 extension CakeDesignRepository {

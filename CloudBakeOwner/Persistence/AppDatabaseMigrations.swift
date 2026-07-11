@@ -356,6 +356,35 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0024_unique_design_origin_photo") { db in
+            try db.execute(
+                sql: """
+                    UPDATE cake_designs AS duplicate
+                    SET originating_order_photo_id = NULL
+                    WHERE originating_order_photo_id IS NOT NULL
+                      AND EXISTS (
+                        SELECT 1
+                        FROM cake_designs AS keeper
+                        WHERE keeper.originating_order_photo_id = duplicate.originating_order_photo_id
+                          AND (
+                            keeper.created_at_unix_time < duplicate.created_at_unix_time
+                            OR (
+                              keeper.created_at_unix_time = duplicate.created_at_unix_time
+                              AND keeper.id < duplicate.id
+                            )
+                          )
+                      )
+                    """
+            )
+            try db.execute(
+                sql: """
+                    CREATE UNIQUE INDEX cake_designs_on_originating_order_photo_id
+                    ON cake_designs(originating_order_photo_id)
+                    WHERE originating_order_photo_id IS NOT NULL
+                    """
+            )
+        }
+
         return migrator
     }
 }

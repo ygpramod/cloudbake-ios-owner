@@ -231,9 +231,13 @@ struct CakeDesignListView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             viewModel.accessibilityLabel(for: design)
-                + ", used in \(viewModel.usageCount(for: design)) orders"
+                + usageAccessibilitySuffix(count: viewModel.usageCount(for: design))
         )
         .accessibilityIdentifier("designs.item.\(design.id)")
+    }
+
+    private func usageAccessibilitySuffix(count: Int) -> String {
+        ", used in \(count) \(count == 1 ? "order" : "orders")"
     }
 
     private func photoTile(

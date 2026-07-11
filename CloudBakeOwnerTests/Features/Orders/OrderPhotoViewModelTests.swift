@@ -348,6 +348,49 @@ final class OrderPhotoViewModelTests: XCTestCase {
         XCTAssertEqual(repository.cakeDesigns.map(\.name), ["First"])
     }
 
+    func testPromoteFinalCakePhotoSerializesAcrossViewModelsBeforeSavingToPhotos() async {
+        let repository = FakeOrderRepository()
+        let designPhotoLibrary = FakeDesignPhotoLibrary()
+        designPhotoLibrary.shouldSuspendSave = true
+        let order = makeOrder(id: "order-shared", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        repository.orders = [order]
+        let photo = makeOrderPhoto(id: "photo-shared", orderId: order.id, kind: .finalCake)
+        let firstViewModel = OrderListViewModel(
+            repository: repository,
+            designPhotoLibrary: designPhotoLibrary
+        )
+        let secondViewModel = OrderListViewModel(
+            repository: repository,
+            designPhotoLibrary: designPhotoLibrary
+        )
+        firstViewModel.beginViewingOrder(order)
+        secondViewModel.beginViewingOrder(order)
+
+        let firstPromotion = Task {
+            await firstViewModel.promoteFinalCakePhotoToDesign(photo, name: "First", notes: "")
+        }
+        while !designPhotoLibrary.isSaveSuspended {
+            await Task.yield()
+        }
+        let secondPromotion = Task {
+            await secondViewModel.promoteFinalCakePhotoToDesign(photo, name: "Second", notes: "")
+        }
+        await Task.yield()
+
+        designPhotoLibrary.completeSuspendedSave()
+
+        let firstResult = await firstPromotion.value
+        let secondResult = await secondPromotion.value
+        XCTAssertTrue(firstResult)
+        XCTAssertFalse(secondResult)
+        XCTAssertEqual(designPhotoLibrary.savedFileURLs.count, 1)
+        XCTAssertEqual(repository.cakeDesigns.map(\.name), ["First"])
+        XCTAssertEqual(
+            secondViewModel.errorMessage,
+            "This final cake photo is already saved as a design."
+        )
+    }
+
     func testDeleteOrderPhotoRemovesMetadataAndStoredFile() {
         let repository = FakeOrderRepository()
         let photoFileStore = FakeOrderPhotoFileStore()

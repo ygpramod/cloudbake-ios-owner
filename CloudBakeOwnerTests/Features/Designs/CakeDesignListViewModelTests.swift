@@ -465,16 +465,22 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
         let later = makeOrder(
             id: "order-later",
-            title: "Later Cake",
+            title: "Same Cake",
             cakeDesignId: design.id,
             dueAt: Date(timeIntervalSince1970: 1_800_200_000)
+        )
+        let sameDateAndTitle = makeOrder(
+            id: "order-after-later",
+            title: "Same Cake",
+            cakeDesignId: design.id,
+            dueAt: later.dueAt
         )
         let unrelated = makeOrder(
             id: "order-unrelated",
             title: "Unrelated",
             dueAt: Date(timeIntervalSince1970: 1_800_300_000)
         )
-        orderRepository.orders = [earlier, unrelated, later]
+        orderRepository.orders = [earlier, sameDateAndTitle, unrelated, later]
         let viewModel = CakeDesignListViewModel(
             repository: designRepository,
             customerReferenceRepository: orderRepository
@@ -482,8 +488,11 @@ final class CakeDesignListViewModelTests: XCTestCase {
 
         viewModel.load()
 
-        XCTAssertEqual(viewModel.usageCount(for: design), 2)
-        XCTAssertEqual(viewModel.usageOrders(for: design).map(\.id), [later.id, earlier.id])
+        XCTAssertEqual(viewModel.usageCount(for: design), 3)
+        XCTAssertEqual(
+            viewModel.usageOrders(for: design).map(\.id),
+            [sameDateAndTitle.id, later.id, earlier.id]
+        )
     }
 
     private func makeDesign(
@@ -536,6 +545,10 @@ private final class FakeCakeDesignRepository: CakeDesignRepository {
 
     func fetchCakeDesign(id: String) throws -> CakeDesign? {
         designs.first { $0.id == id }
+    }
+
+    func fetchCakeDesign(originatingOrderPhotoId: String) throws -> CakeDesign? {
+        designs.first { $0.originatingOrderPhotoId == originatingOrderPhotoId }
     }
 
     func fetchCakeDesigns() throws -> [CakeDesign] {

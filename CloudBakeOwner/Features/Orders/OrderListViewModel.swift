@@ -1,5 +1,31 @@
 import Foundation
 
+private actor DesignPromotionCoordinator {
+    static let shared = DesignPromotionCoordinator()
+    private var lockedPhotoIds: Set<String> = []
+    private var waiters: [String: [CheckedContinuation<Void, Never>]] = [:]
+
+    func acquire(photoId: String) async {
+        guard lockedPhotoIds.contains(photoId) else {
+            lockedPhotoIds.insert(photoId)
+            return
+        }
+        await withCheckedContinuation { continuation in
+            waiters[photoId, default: []].append(continuation)
+        }
+    }
+
+    func release(photoId: String) {
+        if var queued = waiters[photoId], !queued.isEmpty {
+            let next = queued.removeFirst()
+            waiters[photoId] = queued.isEmpty ? nil : queued
+            next.resume()
+        } else {
+            lockedPhotoIds.remove(photoId)
+        }
+    }
+}
+
 @MainActor
 final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
@@ -921,6 +947,19 @@ final class OrderListViewModel: ObservableObject {
         }
         isPromotingDesign = true
         defer { isPromotingDesign = false }
+        await DesignPromotionCoordinator.shared.acquire(photoId: photo.id)
+        defer {
+            Task { await DesignPromotionCoordinator.shared.release(photoId: photo.id) }
+        }
+        do {
+            if try repository.fetchCakeDesign(originatingOrderPhotoId: photo.id) != nil {
+                errorMessage = "This final cake photo is already saved as a design."
+                return false
+            }
+        } catch {
+            errorMessage = "Design history could not be checked."
+            return false
+        }
 
         let photoReference: String
         let cleanupRelativePath: String?
@@ -984,6 +1023,9 @@ final class OrderListViewModel: ObservableObject {
                 ? nil
                 : "Design saved. The old local photo copy will be removed automatically."
             return true
+        } catch CakeDesignPromotionError.originatingPhotoAlreadyPromoted {
+            errorMessage = "This final cake photo is already saved as a design."
+            return false
         } catch {
             errorMessage = "Design could not be saved."
             return false
