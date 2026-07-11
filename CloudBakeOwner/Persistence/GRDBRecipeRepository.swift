@@ -227,6 +227,17 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchCakeDesign(originatingOrderPhotoId: String) throws -> CakeDesign? {
+        try writer.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: "SELECT * FROM cake_designs WHERE originating_order_photo_id = ?",
+                arguments: [originatingOrderPhotoId]
+            ) else { return nil }
+            return try cakeDesign(from: row)
+        }
+    }
+
     func fetchCakeDesigns() throws -> [CakeDesign] {
         try writer.read { db in
             try Row.fetchAll(

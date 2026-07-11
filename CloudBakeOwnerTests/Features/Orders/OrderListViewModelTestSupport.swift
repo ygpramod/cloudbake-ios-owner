@@ -323,6 +323,10 @@ final class FakeOrderRepository: OrderRepository,
         cakeDesigns.first { $0.id == id }
     }
 
+    func fetchCakeDesign(originatingOrderPhotoId: String) throws -> CakeDesign? {
+        cakeDesigns.first { $0.originatingOrderPhotoId == originatingOrderPhotoId }
+    }
+
     func fetchCakeDesigns() throws -> [CakeDesign] {
         cakeDesigns.sorted { lhs, rhs in
             lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending

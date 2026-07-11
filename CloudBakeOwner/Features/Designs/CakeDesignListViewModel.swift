@@ -176,7 +176,10 @@ final class CakeDesignListViewModel: ObservableObject {
         orders
             .filter { $0.cakeDesignId == design.id }
             .sorted { lhs, rhs in
-                lhs.dueAt == rhs.dueAt ? lhs.title < rhs.title : lhs.dueAt > rhs.dueAt
+                guard lhs.dueAt == rhs.dueAt else { return lhs.dueAt > rhs.dueAt }
+                let titleOrder = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
+                guard titleOrder == .orderedSame else { return titleOrder == .orderedAscending }
+                return lhs.id < rhs.id
             }
     }
 

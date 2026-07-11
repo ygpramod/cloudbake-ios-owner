@@ -1143,6 +1143,71 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertTrue(try reloadedRepository.fetchPendingDesignPhotoCleanupPaths().isEmpty)
     }
 
+    func testPromotedDesignRejectsASecondDesignForTheSameOriginPhoto() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let order = makeOrder(id: "order-unique-origin", dueAt: timestamp)
+        let photo = OrderPhoto(
+            id: "photo-unique-origin",
+            orderId: order.id,
+            kind: .finalCake,
+            localPhotoPath: "photos://unique-origin",
+            caption: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let firstDesign = CakeDesign(
+            id: "design-first-origin",
+            name: "First",
+            notes: nil,
+            photoReference: photo.localPhotoPath,
+            sourceKind: .ownerMade,
+            originatingOrderPhotoId: photo.id,
+            originatingOrderId: order.id,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let secondDesign = CakeDesign(
+            id: "design-second-origin",
+            name: "Second",
+            notes: nil,
+            photoReference: photo.localPhotoPath,
+            sourceKind: .ownerMade,
+            originatingOrderPhotoId: photo.id,
+            originatingOrderId: order.id,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(order)
+        try repository.save(photo)
+        try repository.savePromotedDesign(
+            firstDesign,
+            linking: makeOrder(id: order.id, cakeDesignId: firstDesign.id, dueAt: timestamp),
+            photo: photo,
+            cleanupRelativePath: nil
+        )
+
+        XCTAssertThrowsError(
+            try repository.savePromotedDesign(
+                secondDesign,
+                linking: makeOrder(id: order.id, cakeDesignId: secondDesign.id, dueAt: timestamp),
+                photo: photo,
+                cleanupRelativePath: nil
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? CakeDesignPromotionError,
+                .originatingPhotoAlreadyPromoted
+            )
+        }
+        XCTAssertEqual(
+            try repository.fetchCakeDesign(originatingOrderPhotoId: photo.id)?.id,
+            firstDesign.id
+        )
+        XCTAssertNil(try repository.fetchCakeDesign(id: secondDesign.id))
+        XCTAssertEqual(try repository.fetchOrder(id: order.id)?.cakeDesignId, firstDesign.id)
+    }
+
     func testDeletingCakeDesignUnlinksOrderWithoutDeletingIt() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let design = makeCakeDesign(id: "design-delete", name: "Delete")

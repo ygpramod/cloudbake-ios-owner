@@ -276,6 +276,19 @@ extension GRDBCoreDataRepository {
         cleanupRelativePath: String?
     ) throws {
         try writer.write { db in
+            if let originatingPhotoId = design.originatingOrderPhotoId {
+                let existingCount = try Int.fetchOne(
+                    db,
+                    sql: """
+                        SELECT COUNT(*) FROM cake_designs
+                        WHERE originating_order_photo_id = ? AND id != ?
+                        """,
+                    arguments: [originatingPhotoId, design.id]
+                ) ?? 0
+                if existingCount > 0 {
+                    throw CakeDesignPromotionError.originatingPhotoAlreadyPromoted
+                }
+            }
             try save(design, in: db)
             try save(order, in: db)
             try save(photo, in: db)
