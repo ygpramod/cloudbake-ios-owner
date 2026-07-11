@@ -169,15 +169,28 @@ extension GRDBCoreDataRepository {
         try writer.write { db in
             try db.execute(
                 sql: """
-                    INSERT OR REPLACE INTO cake_designs
-                    (id, name, notes, photo_reference, created_at_unix_time, updated_at_unix_time)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO cake_designs
+                    (id, name, notes, photo_reference, source_kind, originating_order_photo_id,
+                     originating_order_id, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        name = excluded.name,
+                        notes = excluded.notes,
+                        photo_reference = excluded.photo_reference,
+                        source_kind = excluded.source_kind,
+                        originating_order_photo_id = excluded.originating_order_photo_id,
+                        originating_order_id = excluded.originating_order_id,
+                        created_at_unix_time = excluded.created_at_unix_time,
+                        updated_at_unix_time = excluded.updated_at_unix_time
                     """,
                 arguments: arguments([
                     design.id,
                     design.name,
                     design.notes,
                     design.photoReference,
+                    design.sourceKind.rawValue,
+                    design.originatingOrderPhotoId,
+                    design.originatingOrderId,
                     design.createdAt.timeIntervalSince1970,
                     design.updatedAt.timeIntervalSince1970
                 ])
@@ -203,6 +216,20 @@ extension GRDBCoreDataRepository {
                     SELECT * FROM cake_designs
                     ORDER BY lower(name), name
                     """
+            ).map(cakeDesign)
+        }
+    }
+
+    func fetchCakeDesigns(sourceKind: CakeDesignSourceKind) throws -> [CakeDesign] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM cake_designs
+                    WHERE source_kind = ?
+                    ORDER BY lower(name), name
+                    """,
+                arguments: [sourceKind.rawValue]
             ).map(cakeDesign)
         }
     }

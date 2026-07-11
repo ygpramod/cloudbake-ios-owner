@@ -122,6 +122,9 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             name: row["name"],
             notes: row["notes"],
             photoReference: row["photo_reference"],
+            sourceKind: CakeDesignSourceKind(rawValue: row["source_kind"]) ?? .ownerMade,
+            originatingOrderPhotoId: row["originating_order_photo_id"],
+            originatingOrderId: row["originating_order_id"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )

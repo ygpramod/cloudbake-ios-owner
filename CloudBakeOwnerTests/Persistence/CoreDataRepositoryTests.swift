@@ -64,12 +64,15 @@ final class CoreDataRepositoryTests: XCTestCase {
             name: "Rose garden",
             notes: "Hand-piped flowers",
             photoReference: "photos/rose-garden.jpg",
+            sourceKind: .internetInspiration,
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt
         )
         try repository.save(design)
         XCTAssertEqual(try repository.fetchCakeDesign(id: design.id), design)
         XCTAssertEqual(try repository.fetchCakeDesigns(), [design])
+        XCTAssertEqual(try repository.fetchCakeDesigns(sourceKind: .internetInspiration), [design])
+        XCTAssertTrue(try repository.fetchCakeDesigns(sourceKind: .ownerMade).isEmpty)
 
         let customer = Customer(
             id: "customer-amy",

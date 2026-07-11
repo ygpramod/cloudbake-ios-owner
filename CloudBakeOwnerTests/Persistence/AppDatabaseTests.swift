@@ -85,4 +85,37 @@ final class AppDatabaseTests: XCTestCase {
             ]
         )
     }
+
+    func testCakeDesignProvenanceMigrationClassifiesExistingDesignsAsOwnerMade() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0019_add_inventory_type")
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO cake_designs
+                    (id, name, notes, photo_reference, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "design-legacy",
+                    "Legacy floral cake",
+                    "Promoted before provenance",
+                    "photos/legacy-floral.jpg",
+                    1_800_030_000,
+                    1_800_030_100
+                ]
+            )
+        }
+
+        try migrator.migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let design = try XCTUnwrap(repository.fetchCakeDesign(id: "design-legacy"))
+
+        XCTAssertEqual(design.sourceKind, .ownerMade)
+        XCTAssertEqual(design.photoReference, "photos/legacy-floral.jpg")
+        XCTAssertNil(design.originatingOrderPhotoId)
+        XCTAssertNil(design.originatingOrderId)
+    }
 }
