@@ -150,6 +150,8 @@ The app currently supports:
     underlying iPhone Photos asset and safely unlinking affected order metadata.
 118. single-axis, compact Designs grids that preserve vertical scrolling through large Internet
     Inspiration and Customer Reference collections.
+119. derived design usage counts and linked-order history, plus duplicate final-photo promotion
+    prevention based on stable originating photo identity.
 
 ## Partially Prepared
 
