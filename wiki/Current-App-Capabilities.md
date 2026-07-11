@@ -129,8 +129,11 @@ The app currently supports:
 107. unit, integration, and feature-sharded acceptance test lanes.
 108. persisted cake-design provenance for owner-made, customer-reference, and internet-inspiration
     records, including optional originating order and order-photo relationships.
-109. an owner-made My Designs photo gallery and design detail view backed by locally stored final
-    cake photos, with explicit handling when a stored photo is unavailable.
+109. an owner-made My Designs photo gallery and design detail view backed by referenced Photos
+    assets, with explicit handling when an asset is unavailable.
+110. Photos-owned design images: CloudBake saves newly promoted designs to the iPhone Photos
+    library and stores only the returned local asset identifier, while retaining read-only legacy
+    reference compatibility.
 
 ## Partially Prepared
 
