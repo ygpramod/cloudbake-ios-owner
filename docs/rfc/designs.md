@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Implemented for iPhone. iPad remains explicitly deferred and is not a supported device family.
 
 ## Authority And Scope
 
@@ -71,7 +71,8 @@ The experience should prioritize photographs over text and remain practical for 
 - Initial filters should include All, Birthday, Wedding, Kids, Cupcakes, Chocolate, Minimal,
   Vintage, and Floral when matching designs exist.
 - Design results must use a photo-first grid with minimal supporting text.
-- Each design card must show its name, owner favourite state, and derived order usage count.
+- Design thumbnails remain photo-only while exposing name through accessibility; favourite state
+  and derived order usage may appear as compact overlays.
 - Opening a design must show a large photo, design name, tags, and linked order usage.
 - The design detail must provide Use for New Order.
 - Use for New Order must open a new order draft with the selected design already linked.
@@ -89,9 +90,9 @@ contains three source sections:
 2. `Customer References (count)`
 3. `Internet Inspiration (count)`
 
-Each section shows a horizontally scrollable preview row or compact grid of recent images. Tapping
-the section title or a See All action opens the complete collection for that source. The initial
-screen should not attempt to render hundreds of full-resolution images at once.
+Each section shows a compact vertical lazy grid. One vertical scroll axis is used for the complete
+screen so large Customer Reference or Internet Inspiration collections never trap scrolling. The
+screen loads bounded thumbnails and does not decode hundreds of full-resolution images.
 
 Search and filters apply across all three sources by default. When the owner enters a source
 collection, search is scoped to that source while preserving the same search and filter language.
@@ -186,7 +187,7 @@ These labels are not separate hard-coded business models. They are convenient vi
 occasion, theme, category, flavour, and tag metadata. The UI should avoid showing empty chips when
 doing so would add noise.
 
-The owner must eventually be able to add and remove free-form tags. Normalization should prevent
+The owner can add and remove free-form tags. Normalization prevents
 case-only duplicates such as `Floral` and `floral` while preserving a consistent display value.
 
 The first filtering slice may support one selected chip at a time. Multi-filter composition can be
@@ -216,7 +217,7 @@ The photo area should keep a stable aspect ratio so image loading does not move 
 
 Opening a design presents a photo-first detail experience with:
 
-- a large edge-to-edge photo,
+- a large centered photo,
 - smooth pinch-to-zoom,
 - swipe navigation to adjacent designs in the current result set,
 - design name,
@@ -273,9 +274,8 @@ The intended direction is:
 This direction does not permit deeply nested cards, unstable custom navigation, unreadable text,
 or loading full-resolution images into every grid cell.
 
-On iPhone, the grid should optimize for browsing with one hand. On iPad, the library may use more
-columns and a list/detail or gallery/detail presentation while preserving the same source and
-search model.
+The grid optimizes for one-handed iPhone browsing. iPad layout work is deferred until a future RFC
+explicitly reintroduces iPad as a supported device family.
 
 ## Domain Model Direction
 
@@ -399,35 +399,14 @@ The current app already provides foundations that this RFC must preserve:
 The Designs implementation should extend these foundations into a coherent library instead of
 creating a second, disconnected photo system.
 
-## Recommended Implementation Slices
+## Implementation Slices
 
-1. Design Library Data Model And Provenance Migration
-2. My Designs Gallery And Design Detail
-3. Customer References Collection
-4. Internet Inspiration Import And Source Metadata
-5. Design Search
-6. Design Tags, Filters, And Favourites
-7. Design Usage History
-8. Use Design For New Order
-9. Design Photo Zoom, Swipe, And Thumbnail Performance
-10. iPad Designs Gallery And Detail Layout
-11. Future Consumer-Safe Design Projection
+The iPhone implementation is recorded in Slice RFCs 0079 through 0091 under `docs/rfc/slices/`:
+provenance, My Designs, Photos references, Customer References, Internet Inspiration, search,
+tags/filters/favourites, removal, usage, new-order drafts, zoom/navigation/performance,
+consumer-safe projection, and direct owner import.
 
-Each implementation slice must have a focused RFC under `docs/rfc/slices/`, meaningful unit and
-integration tests, impacted acceptance coverage, and wiki updates when owner workflow truth changes.
-
-## First Slice Recommendation
-
-The first slice should establish provenance safely before building the full gallery:
-
-- extend the existing `CakeDesign` model with source kind,
-- migrate existing promoted final-photo designs as owner-made,
-- preserve existing order links and photo references,
-- define repository queries by source,
-- add unit and persistence integration tests,
-- avoid changing the visible placeholder Designs screen until the model is trustworthy.
-
-The second slice can then build My Designs browsing and detail on top of stable data.
+iPad Designs layout was deliberately not implemented because the app target is iPhone-only.
 
 ## Decisions
 
@@ -442,13 +421,12 @@ The second slice can then build My Designs browsing and detail on top of stable 
 - Customer and internet images remain private by default.
 - AI-assisted suggestions and automatic web search are deferred.
 
-## Open Questions
+## Resolved Questions
 
-- Should the Designs landing screen show only a short recent preview for each source, or allow each
-  source section to expand inline?
-- When importing internet inspiration, should source URL be optional or required when the image is
-  shared from a browser?
-- Should colour metadata begin as free-form tags or a controlled colour picker with optional custom
-  names?
-- Should Use for New Order preserve the source design as the only linked reference, or also copy a
-  snapshot into the new order to protect historical appearance if the design is edited later?
+- Source collections use compact vertical lazy grids in one scroll axis.
+- Internet source URL remains optional.
+- Colour, theme, occasion, and category begin as normalized free-form tags.
+- Use for New Order retains a stable design link or customer-reference photo link and does not copy
+  the image.
+- Design thumbnails do not show names; names remain in detail and accessibility.
+- Photos owns image binaries; CloudBake stores references and metadata only.
