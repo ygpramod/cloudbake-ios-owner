@@ -34,6 +34,8 @@
 	<string>CloudBake lets you choose a contact to prefill editable customer details.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>CloudBake lets you choose purchase bill, recipe, and order photos from the photo library.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>CloudBake saves design-library photos to your Photos library while keeping only a reference in the app.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

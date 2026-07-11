@@ -80,6 +80,26 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
     }
 
+    func testPhotosAssetReferenceIsAvailableWithoutAnAppOwnedFile() {
+        let photoLibrary = FakeDesignPhotoLibrary()
+        photoLibrary.savedReference = "photos://library-asset"
+        let viewModel = CakeDesignListViewModel(
+            repository: FakeCakeDesignRepository(),
+            designPhotoLibrary: photoLibrary
+        )
+        let design = makeDesign(
+            id: "design-photos-asset",
+            name: "Photos Cake",
+            photoReference: photoLibrary.savedReference
+        )
+
+        XCTAssertEqual(
+            viewModel.availablePhotoSource(for: design),
+            .photosAsset("library-asset")
+        )
+        XCTAssertEqual(viewModel.accessibilityLabel(for: design), "Photos Cake, design photo")
+    }
+
     private func makeDesign(
         id: String,
         name: String,

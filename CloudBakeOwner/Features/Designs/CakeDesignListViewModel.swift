@@ -1,5 +1,10 @@
 import Foundation
 
+enum CakeDesignPhotoSource: Hashable {
+    case photosAsset(String)
+    case legacyFile(URL)
+}
+
 @MainActor
 final class CakeDesignListViewModel: ObservableObject {
     @Published private(set) var designs: [CakeDesign] = []
@@ -8,13 +13,16 @@ final class CakeDesignListViewModel: ObservableObject {
 
     private let repository: any CakeDesignRepository
     private let photoFileStore: OrderPhotoFileStore
+    private let designPhotoLibrary: DesignPhotoLibrary
 
     init(
         repository: any CakeDesignRepository,
-        photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore()
+        photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
+        designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary()
     ) {
         self.repository = repository
         self.photoFileStore = photoFileStore
+        self.designPhotoLibrary = designPhotoLibrary
     }
 
     func load() {
@@ -39,6 +47,14 @@ final class CakeDesignListViewModel: ObservableObject {
         return photoURL
     }
 
+    func availablePhotoSource(for design: CakeDesign) -> CakeDesignPhotoSource? {
+        guard let reference = design.photoReference else { return nil }
+        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: reference) {
+            return designPhotoLibrary.containsAsset(identifier: identifier) ? .photosAsset(identifier) : nil
+        }
+        return availablePhotoURL(for: design).map(CakeDesignPhotoSource.legacyFile)
+    }
+
     var visibleDesigns: [CakeDesign] {
         let query = TextInputFormatting.normalizedSearchKey(searchText)
         guard !query.isEmpty else {
@@ -61,7 +77,7 @@ final class CakeDesignListViewModel: ObservableObject {
         if design.photoReference == nil {
             return "\(design.name), design without a linked photo"
         }
-        if availablePhotoURL(for: design) == nil {
+        if availablePhotoSource(for: design) == nil {
             return "\(design.name), photo unavailable"
         }
 

@@ -42,6 +42,7 @@ final class OrderListViewModel: ObservableObject {
 
     private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & InventoryItemRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
+    private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let presentation: OrderListPresentation
@@ -49,12 +50,14 @@ final class OrderListViewModel: ObservableObject {
     init(
         repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & InventoryItemRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
+        designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
     ) {
         self.repository = repository
         self.photoFileStore = photoFileStore
+        self.designPhotoLibrary = designPhotoLibrary
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
         self.presentation = OrderListPresentation(
@@ -898,7 +901,7 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
-    func promoteFinalCakePhotoToDesign(_ photo: OrderPhoto, name: String, notes: String) -> Bool {
+    func promoteFinalCakePhotoToDesign(_ photo: OrderPhoto, name: String, notes: String) async -> Bool {
         guard let selectedOrder, selectedOrder.id == photo.orderId else {
             errorMessage = "Order could not be found."
             return false
@@ -912,13 +915,21 @@ final class OrderListViewModel: ObservableObject {
             return false
         }
 
+        let photoReference: String
+        do {
+            photoReference = try await designPhotoLibrary.savePhoto(at: orderPhotoURL(photo))
+        } catch {
+            errorMessage = "Design photo could not be saved to Photos."
+            return false
+        }
+
         let now = dateProvider()
         let designId = idGenerator()
         let design = CakeDesign(
             id: designId,
             name: designName,
             notes: TextInputFormatting.optionalText(notes),
-            photoReference: photo.localPhotoPath,
+            photoReference: photoReference,
             sourceKind: .ownerMade,
             originatingOrderPhotoId: photo.id,
             originatingOrderId: selectedOrder.id,

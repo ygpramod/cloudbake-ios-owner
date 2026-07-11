@@ -246,7 +246,7 @@ struct OrderDetailView: View {
                         return updatedPhoto
                     },
                     onPromoteToDesign: { name, notes in
-                        if viewModel.promoteFinalCakePhotoToDesign(previewingPhoto, name: name, notes: notes) {
+                        if await viewModel.promoteFinalCakePhotoToDesign(previewingPhoto, name: name, notes: notes) {
                             self.previewingPhoto = nil
                             return true
                         }
