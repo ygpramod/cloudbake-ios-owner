@@ -104,6 +104,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignRemovalCanBeCancelledAndConfirmed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignCanStartAnUnsavedOrderDraftWithTheDesignLinked
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerReferenceDraftShowsItsCurrentSelectedProvenance
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignDetailSupportsZoomControlsAndAdjacentSwipe
 
     steps:
       - name: Checkout

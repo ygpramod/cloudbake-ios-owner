@@ -532,6 +532,27 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
     }
 
+    func testSearchPerformanceAcrossSeveralHundredDesigns() {
+        let repository = FakeCakeDesignRepository()
+        repository.designs = (0..<600).map { index in
+            makeDesign(
+                id: "design-\(index)",
+                name: "Birthday design \(index)",
+                notes: index.isMultiple(of: 2) ? "Blue floral buttercream" : "Pink minimal cake",
+                tags: [index.isMultiple(of: 3) ? "Wedding" : "Birthday"]
+            )
+        }
+        let viewModel = CakeDesignListViewModel(repository: repository)
+        viewModel.load()
+
+        measure {
+            viewModel.searchText = "blue floral"
+            _ = viewModel.visibleDesigns
+            viewModel.searchText = "pink minimal"
+            _ = viewModel.visibleDesigns
+        }
+    }
+
     private func makeDesign(
         id: String,
         name: String,
