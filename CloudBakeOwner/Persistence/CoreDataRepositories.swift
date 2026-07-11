@@ -28,6 +28,7 @@ protocol RecipeIngredientRepository {
 
 protocol CakeDesignRepository {
     func save(_ design: CakeDesign) throws
+    func deleteCakeDesign(id: String) throws
     func savePromotedDesign(
         _ design: CakeDesign,
         linking order: Order,

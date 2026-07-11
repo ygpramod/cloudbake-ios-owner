@@ -71,7 +71,8 @@ struct CakeDesignListView: View {
                     photoSource: viewModel.availablePhotoSource(for: design),
                     accessibilityLabel: viewModel.accessibilityLabel(for: design),
                     onToggleFavorite: { viewModel.toggleFavorite($0) },
-                    onUpdateTags: { viewModel.updateTags($0, for: $1) }
+                    onUpdateTags: { viewModel.updateTags($0, for: $1) },
+                    onDelete: { viewModel.delete($0) }
                 )
             }
         }
@@ -81,7 +82,8 @@ struct CakeDesignListView: View {
                     reference: reference,
                     photoSource: viewModel.availablePhotoSource(for: reference.photo),
                     onToggleFavorite: { viewModel.toggleFavorite($0) },
-                    onUpdateTags: { viewModel.updateTags($0, for: $1) }
+                    onUpdateTags: { viewModel.updateTags($0, for: $1) },
+                    onDelete: { viewModel.delete($0) }
                 )
             }
         }
@@ -250,20 +252,24 @@ private struct CustomerReferencePreviewView: View {
     let photoSource: CakeDesignPhotoSource?
     let onToggleFavorite: (CustomerReferenceDesign) -> CustomerReferenceDesign?
     let onUpdateTags: (String, CustomerReferenceDesign) -> CustomerReferenceDesign?
+    let onDelete: (CustomerReferenceDesign) -> Bool
     @Environment(\.dismiss) private var dismiss
     @State private var isEditingTags = false
     @State private var tagsText = ""
+    @State private var isConfirmingDelete = false
 
     init(
         reference: CustomerReferenceDesign,
         photoSource: CakeDesignPhotoSource?,
         onToggleFavorite: @escaping (CustomerReferenceDesign) -> CustomerReferenceDesign?,
-        onUpdateTags: @escaping (String, CustomerReferenceDesign) -> CustomerReferenceDesign?
+        onUpdateTags: @escaping (String, CustomerReferenceDesign) -> CustomerReferenceDesign?,
+        onDelete: @escaping (CustomerReferenceDesign) -> Bool
     ) {
         _reference = State(initialValue: reference)
         self.photoSource = photoSource
         self.onToggleFavorite = onToggleFavorite
         self.onUpdateTags = onUpdateTags
+        self.onDelete = onDelete
     }
 
     var body: some View {
@@ -311,6 +317,12 @@ private struct CustomerReferencePreviewView: View {
                     isEditingTags = true
                 }
             }
+            ToolbarItem(placement: .primaryAction) {
+                Button(role: .destructive) { isConfirmingDelete = true } label: {
+                    Image(systemName: "trash")
+                }
+                .accessibilityLabel("Remove Customer Reference")
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
             }
@@ -321,6 +333,14 @@ private struct CustomerReferencePreviewView: View {
             Button("Save") {
                 if let updated = onUpdateTags(tagsText, reference) { reference = updated }
             }
+        }
+        .alert("Remove Customer Reference?", isPresented: $isConfirmingDelete) {
+            Button("Cancel", role: .cancel) {}
+            Button("Remove", role: .destructive) {
+                if onDelete(reference) { dismiss() }
+            }
+        } message: {
+            Text("This removes the reference from CloudBake and its order. The image remains in Photos.")
         }
     }
 }
@@ -416,22 +436,26 @@ private struct CakeDesignPreviewView: View {
     let accessibilityLabel: String
     let onToggleFavorite: (CakeDesign) -> CakeDesign?
     let onUpdateTags: (String, CakeDesign) -> CakeDesign?
+    let onDelete: (CakeDesign) -> Bool
     @Environment(\.dismiss) private var dismiss
     @State private var isEditingTags = false
     @State private var tagsText = ""
+    @State private var isConfirmingDelete = false
 
     init(
         design: CakeDesign,
         photoSource: CakeDesignPhotoSource?,
         accessibilityLabel: String,
         onToggleFavorite: @escaping (CakeDesign) -> CakeDesign?,
-        onUpdateTags: @escaping (String, CakeDesign) -> CakeDesign?
+        onUpdateTags: @escaping (String, CakeDesign) -> CakeDesign?,
+        onDelete: @escaping (CakeDesign) -> Bool
     ) {
         _design = State(initialValue: design)
         self.photoSource = photoSource
         self.accessibilityLabel = accessibilityLabel
         self.onToggleFavorite = onToggleFavorite
         self.onUpdateTags = onUpdateTags
+        self.onDelete = onDelete
     }
 
     var body: some View {
@@ -505,6 +529,12 @@ private struct CakeDesignPreviewView: View {
                     isEditingTags = true
                 }
             }
+            ToolbarItem(placement: .primaryAction) {
+                Button(role: .destructive) { isConfirmingDelete = true } label: {
+                    Image(systemName: "trash")
+                }
+                .accessibilityLabel("Remove Design")
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
                     dismiss()
@@ -518,6 +548,14 @@ private struct CakeDesignPreviewView: View {
             Button("Save") {
                 if let updated = onUpdateTags(tagsText, design) { design = updated }
             }
+        }
+        .alert("Remove Design?", isPresented: $isConfirmingDelete) {
+            Button("Cancel", role: .cancel) {}
+            Button("Remove", role: .destructive) {
+                if onDelete(design) { dismiss() }
+            }
+        } message: {
+            Text("This removes the design from CloudBake. The image remains in Photos.")
         }
     }
 }
