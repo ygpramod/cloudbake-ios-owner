@@ -86,6 +86,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0078: Inventory Type And Optional Expiry
 - Slice RFC-0079: Design Library Provenance
 - Slice RFC-0080: My Designs Gallery And Detail
+- Slice RFC-0081: Design Photos Library References
 
 ## Base RFCs
 

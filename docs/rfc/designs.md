@@ -309,7 +309,16 @@ origin.
 ## Photo Storage And Lifecycle
 
 - Image binaries must not be stored in SQLite.
-- The database should store stable metadata and app-relative paths or Photos asset identifiers.
+- The iPhone Photos library is the canonical image store for the Designs library.
+- The database stores only a stable Photos local asset identifier and design metadata; the app must
+  not retain a second app-owned copy of a design image.
+- Camera, share, and file imports must first save the chosen image to Photos with owner consent,
+  then persist only the returned asset identifier.
+- Removing a design record must not delete the corresponding Photos asset. The owner controls that
+  asset from Photos.
+- Legacy app-relative references may remain readable during migration, but all new design-library
+  references must use Photos asset identifiers and legacy references should be migrated when the
+  owner confirms the Photos save.
 - Grid views must use generated or cached thumbnails rather than decoding full-resolution images.
 - Detail views may load a larger representation on demand.
 - Missing, moved, or deleted photo assets must show a recoverable placeholder rather than crash.
@@ -436,8 +445,6 @@ The second slice can then build My Designs browsing and detail on top of stable 
   source section to expand inline?
 - When importing internet inspiration, should source URL be optional or required when the image is
   shared from a browser?
-- Should deleting an internet inspiration item remove its app-owned image immediately or move it to
-  a short recovery period?
 - Should colour metadata begin as free-form tags or a controlled colour picker with optional custom
   names?
 - Should Use for New Order preserve the source design as the only linked reference, or also copy a
