@@ -18,9 +18,9 @@ This slice includes:
 
 - a warmer custom CloudBake home header,
 - compact Today cards for upcoming orders and low inventory,
-- Soon rows for reminders and recent designs,
-- an Areas card for all owner work areas,
-- bottom quick navigation for Home, Orders, Inventory, and Designs,
+- Needs attention rows for low inventory and overdue orders,
+- Quick actions for reminders and secondary tools,
+- bottom quick navigation for Home, Orders, Inventory, and More,
 - acceptance-test navigation updates for repeated home labels.
 
 This slice does not include:

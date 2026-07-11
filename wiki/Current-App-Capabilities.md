@@ -7,8 +7,9 @@ This page lists what the app currently supports. It should stay factual and prod
 The app currently supports:
 
 1. native iPhone app shell,
-2. visual dashboard home screen with Today cards, Soon rows, Areas navigation, clickable upcoming
-   order and low-inventory cards, and bottom quick navigation,
+2. visual dashboard home screen with Today, Needs attention, and Quick actions sections, clickable
+   upcoming order and attention rows, and bottom quick navigation for Home, Orders, Inventory, and
+   More,
 3. inventory navigation,
 4. local SQLite persistence,
 5. inventory item creation,

@@ -18,7 +18,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let destinations = [
             ("Orders", "screen.orders"),
             ("Inventory", "screen.inventory"),
+            ("More", "screen.more"),
             ("Recipes", "screen.recipes"),
+            ("Customers", "screen.customers"),
             ("Designs", "screen.designs")
         ]
 

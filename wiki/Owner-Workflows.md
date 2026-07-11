@@ -251,19 +251,18 @@ CloudBake asks for confirmation before archiving. Archived items can be restored
 
 ## Dashboard Workflow
 
-Use the dashboard home screen to quickly orient the day, see inventory that needs attention, and
-move into the main owner work areas.
+Use the dashboard home screen to quickly orient the day, see work that needs attention, and move
+into the main owner work areas.
 
 Dashboard low inventory includes items below minimum quantity, items with expired remaining stock,
 and items with remaining stock expiring within one month.
 
-The home screen shows compact Today cards, Soon rows for reminders and recent designs, an Areas
-section for all owner workflows, and bottom quick navigation for Home, Orders, Inventory, and
-Designs.
+The home screen shows Today, Needs attention, and Quick actions. More holds secondary areas such as
+Recipes, Customers, Designs, and Settings so Home does not become a long directory.
 
 Second-level owner screens use the same CloudBake visual language: warm light background, compact
 screen title, circular top actions in the header, card-based lists, and bottom quick navigation for
-Home, Orders, Inventory, and Designs. These screens do not repeat the CloudBake logo; screens with
+Home, Orders, Inventory, and More. These screens do not repeat the CloudBake logo; screens with
 several actions, such as Inventory, can group those actions behind a compact `...` menu. Opening a
 second-level screen from Home, or moving from one second-level screen to another, uses the native
 iOS push animation. The left-edge back gesture returns to the previous screen without a visible

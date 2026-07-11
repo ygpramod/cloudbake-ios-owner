@@ -17,67 +17,73 @@ struct DashboardView: View {
                 VStack(alignment: .leading, spacing: CloudBakeTheme.Spacing.section) {
                     DashboardHeader()
 
-                    if let overdueAlert = viewModel.overdueOrderAlert {
-                        overdueBanner(overdueAlert)
+                    DashboardSection(title: "Today") {
+                        DashboardMetricCard(
+                            title: "Upcoming orders",
+                            count: "\(viewModel.upcomingOrderCount)",
+                            detail: upcomingOrdersDetail,
+                            systemImage: "calendar",
+                            tint: CloudBakeTheme.ColorToken.secondaryAction,
+                            artworkSystemImage: "birthday.cake",
+                            action: {
+                                navigate(.orders)
+                            }
+                        )
                     }
 
-                    DashboardSection(title: "Today") {
-                        HStack(spacing: 16) {
-                            DashboardMetricCard(
-                                title: "Upcoming orders",
-                                count: "\(viewModel.upcomingOrderCount)",
-                                detail: upcomingOrdersDetail,
-                                systemImage: "calendar",
-                                tint: CloudBakeTheme.ColorToken.secondaryAction,
-                                artworkSystemImage: "birthday.cake",
+                    DashboardSection(title: "Needs attention") {
+                        VStack(spacing: 0) {
+                            DashboardAttentionRow(
+                                accessibilityIdentifier: "dashboard.attention.lowInventory",
+                                title: "Low inventory",
+                                detail: lowInventoryAttentionDetail,
+                                systemImage: "shippingbox",
+                                tint: CloudBakeTheme.ColorToken.inventoryAccent,
+                                isActionable: !viewModel.lowInventoryItems.isEmpty || viewModel.errorMessage != nil,
                                 action: {
-                                    navigate(.orders)
+                                    navigate(.inventory)
                                 }
                             )
 
-                            LowInventoryMetricCard(viewModel: viewModel) {
-                                navigate(.inventory)
+                            if let overdueAlert = viewModel.overdueOrderAlert {
+                                DashboardDivider()
+
+                                DashboardAttentionRow(
+                                    accessibilityIdentifier: "dashboard.attention.overdueOrder",
+                                    title: "Overdue order",
+                                    detail: overdueAlert.message,
+                                    systemImage: "clock.badge.exclamationmark",
+                                    tint: CloudBakeTheme.ColorToken.primaryAction,
+                                    isActionable: true,
+                                    action: {
+                                        orderNotificationRouter.openOrder(id: overdueAlert.order.id)
+                                        navigate(.orders)
+                                    }
+                                )
                             }
                         }
+                        .cloudBakeCardStyle()
                     }
 
-                    DashboardSection(title: "Soon") {
+                    DashboardSection(title: "Quick actions") {
                         VStack(spacing: 0) {
                             DashboardActionRow(
                                 destination: .reminders,
-                                title: "Reminders",
+                                title: "Review reminders",
                                 detail: "Payments, today's orders, and inventory alerts",
                                 systemImage: "bell",
                                 tint: CloudBakeTheme.ColorToken.customerAccent
                             )
 
-                            Divider()
-                                .padding(.leading, 92)
+                            DashboardDivider()
 
                             DashboardActionRow(
-                                destination: .designs,
-                                title: "Recent designs",
-                                detail: "Cake photos will appear here",
-                                systemImage: "camera",
+                                destination: .more,
+                                title: "Open more tools",
+                                detail: "Recipes, customers, designs, and settings",
+                                systemImage: "ellipsis.circle",
                                 tint: CloudBakeTheme.ColorToken.primaryAction
                             )
-                        }
-                        .cloudBakeCardStyle()
-                    }
-
-                    DashboardSection(title: "Areas") {
-                        VStack(spacing: 0) {
-                            DashboardAreaRow(destination: .orders, tint: CloudBakeTheme.ColorToken.secondaryAction)
-                            DashboardDivider()
-                            DashboardAreaRow(destination: .inventory, tint: CloudBakeTheme.ColorToken.inventoryAccent)
-                            DashboardDivider()
-                            DashboardAreaRow(destination: .recipes, tint: CloudBakeTheme.ColorToken.recipeAccent)
-                            DashboardDivider()
-                            DashboardAreaRow(destination: .customers, tint: CloudBakeTheme.ColorToken.customerAccent)
-                            DashboardDivider()
-                            DashboardAreaRow(destination: .designs, tint: CloudBakeTheme.ColorToken.primaryAction)
-                            DashboardDivider()
-                            DashboardAreaRow(destination: .settings, tint: .gray)
                         }
                         .cloudBakeCardStyle()
                     }
@@ -103,23 +109,24 @@ struct DashboardView: View {
         return "No orders yet"
     }
 
-    private func overdueBanner(_ alert: OrderOverdueAlert) -> some View {
-        Button {
-            orderNotificationRouter.openOrder(id: alert.order.id)
-            navigate(.orders)
-        } label: {
-            Label(alert.message, systemImage: "clock.badge.exclamationmark")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .background(
-                    CloudBakeTheme.ColorToken.primaryAction.opacity(0.10),
-                    in: RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.bannerRadius, style: .continuous)
-                )
+    private var lowInventoryAttentionDetail: String {
+        if let errorMessage = viewModel.errorMessage {
+            return errorMessage
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("dashboard.overdue.banner")
+
+        guard let firstItem = viewModel.displayedLowInventoryItems.first else {
+            return "No stock alerts"
+        }
+
+        if viewModel.additionalLowInventoryCount > 0 {
+            return "\(firstItem.name) + \(viewModel.additionalLowInventoryCount) more"
+        }
+
+        if viewModel.displayedLowInventoryItems.count > 1 {
+            return "\(firstItem.name) and more"
+        }
+
+        return firstItem.lowInventoryDetail
     }
 }
 
@@ -170,61 +177,55 @@ private struct DashboardSection<Content: View>: View {
     }
 }
 
-private struct LowInventoryMetricCard: View {
-    @ObservedObject var viewModel: DashboardViewModel
-    let onTap: () -> Void
+private struct DashboardAttentionRow: View {
+    let accessibilityIdentifier: String
+    let title: String
+    let detail: String
+    let systemImage: String
+    let tint: Color
+    let isActionable: Bool
+    let action: () -> Void
 
     var body: some View {
-        if let errorMessage = viewModel.errorMessage {
-            DashboardMetricCard(
-                title: "Low inventory",
-                count: "!",
-                detail: errorMessage,
-                systemImage: "shippingbox",
-                tint: CloudBakeTheme.ColorToken.inventoryAccent,
-                artworkSystemImage: "shippingbox"
-            )
-            .accessibilityIdentifier("dashboard.lowInventory.error")
-        } else {
-            DashboardMetricCard(
-                title: "Low inventory",
-                count: "\(viewModel.lowInventoryItems.count)",
-                detail: lowInventoryPrimaryDetail,
-                secondaryDetail: lowInventorySecondaryDetail,
-                systemImage: "shippingbox",
-                tint: CloudBakeTheme.ColorToken.inventoryAccent,
-                artworkSystemImage: "shippingbox",
-                action: viewModel.lowInventoryItems.isEmpty ? nil : onTap
-            )
-            .accessibilityIdentifier(viewModel.lowInventoryItems.isEmpty ? "dashboard.lowInventory.empty" : "dashboard.lowInventory.alerts")
+        Button {
+            action()
+        } label: {
+            HStack(spacing: CloudBakeTheme.Spacing.rowContent) {
+                DashboardIcon(systemImage: systemImage, tint: tint)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Text(title)
+                            .font(CloudBakeTheme.Typography.rowTitle)
+                            .foregroundStyle(.primary)
+
+                        if !isActionable {
+                            CloudBakeStatusBadge("OK", systemImage: "checkmark", tint: CloudBakeTheme.ColorToken.success)
+                        }
+                    }
+
+                    Text(detail)
+                        .font(CloudBakeTheme.Typography.rowDetail)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 12)
+
+                if isActionable {
+                    Image(systemName: "chevron.right")
+                        .font(CloudBakeTheme.Typography.rowTitle)
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(.vertical, 14)
+            .padding(.horizontal, CloudBakeTheme.Spacing.cardPadding)
+            .contentShape(Rectangle())
         }
-    }
-
-    private var lowInventoryPrimaryDetail: String {
-        guard let firstItem = viewModel.displayedLowInventoryItems.first else {
-            return "No alerts yet"
-        }
-
-        if viewModel.additionalLowInventoryCount > 0 {
-            return "\(firstItem.name) + \(viewModel.additionalLowInventoryCount) more"
-        }
-
-        if viewModel.displayedLowInventoryItems.count > 1 {
-            return "\(firstItem.name) and more"
-        }
-
-        return firstItem.name
-    }
-
-    private var lowInventorySecondaryDetail: String? {
-        guard viewModel.additionalLowInventoryCount == 0,
-              viewModel.displayedLowInventoryItems.count == 1,
-              let firstItem = viewModel.displayedLowInventoryItems.first
-        else {
-            return nil
-        }
-
-        return firstItem.lowInventoryDetail
+        .buttonStyle(.plain)
+        .disabled(!isActionable)
+        .accessibilityIdentifier(isActionable ? accessibilityIdentifier : "\(accessibilityIdentifier).empty")
     }
 }
 
@@ -369,39 +370,7 @@ private struct DashboardActionRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("dashboard.soon.\(destination.rawValue)")
-    }
-}
-
-private struct DashboardAreaRow: View {
-    let destination: AppDestination
-    let tint: Color
-    @Environment(\.navigateToAppDestination) private var navigate
-
-    var body: some View {
-        Button {
-            navigate(destination)
-        } label: {
-            HStack(spacing: 18) {
-                DashboardIcon(systemImage: destination.systemImage, tint: tint)
-
-                Text(destination.title)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.primary)
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.vertical, 14)
-            .padding(.horizontal, 18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(destination.accessibilityIdentifier)
+        .accessibilityIdentifier("dashboard.quickAction.\(destination.rawValue)")
     }
 }
 

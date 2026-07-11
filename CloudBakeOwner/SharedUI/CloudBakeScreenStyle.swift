@@ -729,7 +729,7 @@ struct CloudBakeBottomNavigation: View {
         .dashboard,
         .orders,
         .inventory,
-        .designs
+        .more
     ]
 
     var body: some View {
@@ -737,7 +737,8 @@ struct CloudBakeBottomNavigation: View {
             ForEach(destinations) { destination in
                 CloudBakeBottomNavigationItem(
                     destination: destination,
-                    isSelected: destination == selectedDestination,
+                    isSelected: destination == selectedDestination
+                        || (destination == .more && selectedDestination.isGroupedUnderMore),
                     onSelect: onSelect
                 )
             }
