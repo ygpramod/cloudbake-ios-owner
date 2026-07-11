@@ -353,6 +353,77 @@ final class CakeDesignListViewModel: ObservableObject {
         }
     }
 
+    func importOwnerDesign(
+        item: PhotosPickerItem,
+        name: String,
+        notes: String,
+        tags: String = ""
+    ) async -> Bool {
+        guard let normalizedName = TextInputFormatting.optionalText(name) else {
+            errorMessage = "Design name is required."
+            return false
+        }
+        do {
+            let photoReference: String
+            if let identifier = item.itemIdentifier {
+                photoReference = try await internetInspirationPhotoReference(
+                    itemIdentifier: identifier,
+                    fallbackData: nil
+                )
+            } else {
+                let image = try await PhotoPickerImageLoader.image(from: item)
+                guard let data = image.jpegData(compressionQuality: 0.9) else {
+                    throw DesignPhotoLibraryError.assetCreationFailed
+                }
+                photoReference = try await internetInspirationPhotoReference(
+                    itemIdentifier: nil,
+                    fallbackData: data
+                )
+            }
+            return saveOwnerDesign(
+                photoReference: photoReference,
+                name: normalizedName,
+                notes: notes,
+                tags: tags
+            )
+        } catch {
+            errorMessage = "Design photo could not be saved."
+            return false
+        }
+    }
+
+    func saveOwnerDesign(
+        photoReference: String,
+        name: String,
+        notes: String,
+        tags: String = ""
+    ) -> Bool {
+        guard let normalizedName = TextInputFormatting.optionalText(name) else {
+            errorMessage = "Design name is required."
+            return false
+        }
+        do {
+            let now = dateProvider()
+            try repository.save(
+                CakeDesign(
+                    id: idGenerator(),
+                    name: normalizedName,
+                    notes: TextInputFormatting.optionalText(notes),
+                    photoReference: photoReference,
+                    sourceKind: .ownerMade,
+                    tags: DesignTags.parsed(tags),
+                    createdAt: now,
+                    updatedAt: now
+                )
+            )
+            load()
+            return true
+        } catch {
+            errorMessage = "Design could not be saved."
+            return false
+        }
+    }
+
     func internetInspirationPhotoReference(
         itemIdentifier: String?,
         fallbackData: Data?

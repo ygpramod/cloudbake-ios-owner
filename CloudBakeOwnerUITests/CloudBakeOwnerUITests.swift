@@ -186,6 +186,21 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(search.isHittable)
     }
 
+    func testMyDesignsAddActionOpensPhotosOwnedImportForm() throws {
+        let app = makeApp(initialDestination: "designs")
+        app.launch()
+
+        let add = app.buttons["designs.myDesigns.add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        tapWhenReady(add)
+
+        XCTAssertTrue(app.navigationBars["Add My Design"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["designs.ownerDesign.photo"].exists)
+        XCTAssertTrue(app.textFields["designs.ownerDesign.name"].exists)
+        XCTAssertTrue(app.textFields["designs.ownerDesign.tags"].exists)
+        XCTAssertTrue(app.buttons["designs.ownerDesign.save"].exists)
+    }
+
     func testSettingsShowsInventoryCSVActions() throws {
         let app = makeApp()
         app.launch()

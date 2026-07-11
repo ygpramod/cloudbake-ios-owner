@@ -106,6 +106,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerReferenceDraftShowsItsCurrentSelectedProvenance
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignDetailSupportsZoomControlsAndAdjacentSwipe
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDesignLandingCanScrollFromBottomBackToTop
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testMyDesignsAddActionOpensPhotosOwnedImportForm
 
     steps:
       - name: Checkout

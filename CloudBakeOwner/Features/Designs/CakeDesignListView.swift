@@ -8,6 +8,7 @@ struct CakeDesignListView: View {
     @StateObject private var viewModel: CakeDesignListViewModel
     @State private var previewingDesign: CakeDesign?
     @State private var previewingCustomerReference: CustomerReferenceDesign?
+    @State private var isAddingOwnerDesign = false
     @State private var isImportingInternetInspiration = false
     @FocusState private var isSearchFocused: Bool
 
@@ -96,6 +97,9 @@ struct CakeDesignListView: View {
         .sheet(isPresented: $isImportingInternetInspiration) {
             InternetInspirationImportView(viewModel: viewModel)
         }
+        .sheet(isPresented: $isAddingOwnerDesign) {
+            OwnerDesignImportView(viewModel: viewModel)
+        }
         .onAppear {
             viewModel.load()
         }
@@ -120,10 +124,21 @@ struct CakeDesignListView: View {
             .tint(Color.cloudBakePink)
             .accessibilityIdentifier("designs.clearSearchAndFilters")
         } else {
-            Text("My Designs (\(viewModel.visibleDesigns.count))")
-                .font(CloudBakeTheme.Typography.sectionTitle)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityIdentifier("designs.myDesigns.title")
+            HStack {
+                Text("My Designs (\(viewModel.visibleDesigns.count))")
+                    .font(CloudBakeTheme.Typography.sectionTitle)
+                    .accessibilityIdentifier("designs.myDesigns.title")
+                Spacer()
+                Button { isAddingOwnerDesign = true } label: {
+                    Label("Add owner design", systemImage: "plus")
+                        .labelStyle(.iconOnly)
+                        .frame(minWidth: 44, minHeight: 36)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .accessibilityLabel("Add My Design")
+                .accessibilityIdentifier("designs.myDesigns.add")
+            }
 
             if viewModel.visibleDesigns.isEmpty {
                 Text("No owner designs saved")
@@ -482,6 +497,78 @@ private struct CustomerReferencePreviewView: View {
         reference = updated
         guard let index = references.firstIndex(where: { $0.id == updated.id }) else { return }
         references[index] = updated
+    }
+}
+
+private struct OwnerDesignImportView: View {
+    @ObservedObject var viewModel: CakeDesignListViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var name = ""
+    @State private var notes = ""
+    @State private var tags = ""
+    @State private var isSaving = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Photo") {
+                    PhotosPicker(selection: $selectedItem, matching: .images) {
+                        Label(
+                            selectedItem == nil ? "Choose from Photos" : "Photo selected",
+                            systemImage: selectedItem == nil ? "photo.on.rectangle" : "checkmark.circle.fill"
+                        )
+                    }
+                    .accessibilityIdentifier("designs.ownerDesign.photo")
+                }
+
+                Section("My Design") {
+                    TextField("Name", text: $name)
+                        .textInputAutocapitalization(.words)
+                        .accessibilityIdentifier("designs.ownerDesign.name")
+                    TextField("Notes (optional)", text: $notes, axis: .vertical)
+                        .lineLimit(2...5)
+                        .accessibilityIdentifier("designs.ownerDesign.notes")
+                    TextField("Tags, comma-separated (optional)", text: $tags)
+                        .accessibilityIdentifier("designs.ownerDesign.tags")
+                }
+
+                if let errorMessage = viewModel.errorMessage {
+                    Section { Text(errorMessage).foregroundStyle(.red) }
+                }
+            }
+            .cloudBakeFormScreenStyle()
+            .navigationTitle("Add My Design")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.disabled(isSaving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        guard let selectedItem, !isSaving else {
+                            if self.selectedItem == nil {
+                                viewModel.errorMessage = "Design photo is required."
+                            }
+                            return
+                        }
+                        isSaving = true
+                        Task {
+                            if await viewModel.importOwnerDesign(
+                                item: selectedItem,
+                                name: name,
+                                notes: notes,
+                                tags: tags
+                            ) {
+                                dismiss()
+                            }
+                            isSaving = false
+                        }
+                    }
+                    .disabled(isSaving)
+                    .accessibilityIdentifier("designs.ownerDesign.save")
+                }
+            }
+        }
     }
 }
 

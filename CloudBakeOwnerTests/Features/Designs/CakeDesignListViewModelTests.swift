@@ -271,6 +271,58 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.visibleInternetInspirations.map(\.id), ["design-internet"])
     }
 
+    func testSaveOwnerDesignPersistsPhotosReferenceAndNormalizedMetadata() {
+        let repository = FakeCakeDesignRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_100_000)
+        let viewModel = CakeDesignListViewModel(
+            repository: repository,
+            idGenerator: { "design-owner-direct" },
+            dateProvider: { timestamp }
+        )
+
+        XCTAssertTrue(
+            viewModel.saveOwnerDesign(
+                photoReference: "photos://owner-direct-asset",
+                name: "  Blue Birthday Cake  ",
+                notes: "  First birthday  ",
+                tags: "Blue, Birthday, blue"
+            )
+        )
+
+        XCTAssertEqual(
+            repository.designs,
+            [
+                CakeDesign(
+                    id: "design-owner-direct",
+                    name: "Blue Birthday Cake",
+                    notes: "First birthday",
+                    photoReference: "photos://owner-direct-asset",
+                    sourceKind: .ownerMade,
+                    tags: ["Blue", "Birthday"],
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            ]
+        )
+        XCTAssertEqual(viewModel.designs, repository.designs)
+    }
+
+    func testSaveOwnerDesignRequiresNameBeforePersisting() {
+        let repository = FakeCakeDesignRepository()
+        let viewModel = CakeDesignListViewModel(repository: repository)
+
+        XCTAssertFalse(
+            viewModel.saveOwnerDesign(
+                photoReference: "photos://owner-direct-asset",
+                name: "  ",
+                notes: "",
+                tags: ""
+            )
+        )
+        XCTAssertTrue(repository.designs.isEmpty)
+        XCTAssertEqual(viewModel.errorMessage, "Design name is required.")
+    }
+
     func testSaveInternetInspirationRejectsInvalidSourceURL() {
         let repository = FakeCakeDesignRepository()
         let viewModel = CakeDesignListViewModel(repository: repository)
