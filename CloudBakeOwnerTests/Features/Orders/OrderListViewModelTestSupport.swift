@@ -534,11 +534,23 @@ final class FakeDesignPhotoLibrary: DesignPhotoLibrary {
     var savedFileURLs: [URL] = []
     var savedReference = "photos://asset-design"
     var saveError: Error?
+    var shouldSuspendSave = false
+    private var saveContinuation: CheckedContinuation<String, Error>?
 
     func savePhoto(at fileURL: URL) async throws -> String {
         savedFileURLs.append(fileURL)
         if let saveError { throw saveError }
+        if shouldSuspendSave {
+            return try await withCheckedThrowingContinuation { continuation in
+                saveContinuation = continuation
+            }
+        }
         return savedReference
+    }
+
+    func completeSuspendedSave() {
+        saveContinuation?.resume(returning: savedReference)
+        saveContinuation = nil
     }
 
     func containsAsset(identifier: String) -> Bool {

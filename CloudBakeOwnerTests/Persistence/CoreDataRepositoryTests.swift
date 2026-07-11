@@ -1035,6 +1035,93 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertTrue(try repository.fetchPendingDesignPhotoCleanupPaths().isEmpty)
     }
 
+    func testPromotedDesignTransactionPersistsAndClearsCleanupWork() throws {
+        let database = try AppDatabase.makeInMemory()
+        let repository = database.makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let originalOrder = Order(
+            id: "order-cleanup-lifecycle",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Cleanup lifecycle",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let originalPhoto = OrderPhoto(
+            id: "photo-cleanup-lifecycle",
+            orderId: originalOrder.id,
+            kind: .finalCake,
+            localPhotoPath: "OrderPhotos/cleanup-lifecycle.jpg",
+            caption: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let design = CakeDesign(
+            id: "design-cleanup-lifecycle",
+            name: "Cleanup design",
+            notes: nil,
+            photoReference: "photos://cleanup-asset",
+            sourceKind: .ownerMade,
+            originatingOrderPhotoId: originalPhoto.id,
+            originatingOrderId: originalOrder.id,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let linkedOrder = Order(
+            id: originalOrder.id,
+            customerId: nil,
+            cakeDesignId: design.id,
+            title: originalOrder.title,
+            customerName: originalOrder.customerName,
+            status: originalOrder.status,
+            dueAt: originalOrder.dueAt,
+            fulfillmentType: originalOrder.fulfillmentType,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let migratedPhoto = OrderPhoto(
+            id: originalPhoto.id,
+            orderId: originalPhoto.orderId,
+            kind: originalPhoto.kind,
+            localPhotoPath: design.photoReference ?? "",
+            caption: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(originalOrder)
+        try repository.save(originalPhoto)
+
+        try repository.savePromotedDesign(
+            design,
+            linking: linkedOrder,
+            photo: migratedPhoto,
+            cleanupRelativePath: originalPhoto.localPhotoPath
+        )
+
+        let reloadedRepository = database.makeCoreDataRepository()
+        XCTAssertEqual(try reloadedRepository.fetchCakeDesign(id: design.id), design)
+        XCTAssertEqual(try reloadedRepository.fetchOrder(id: originalOrder.id)?.cakeDesignId, design.id)
+        XCTAssertEqual(
+            try reloadedRepository.fetchOrderPhotos(orderId: originalOrder.id),
+            [migratedPhoto]
+        )
+        XCTAssertEqual(
+            try reloadedRepository.fetchPendingDesignPhotoCleanupPaths(),
+            [originalPhoto.localPhotoPath]
+        )
+
+        try reloadedRepository.deletePendingDesignPhotoCleanupPath(originalPhoto.localPhotoPath)
+        XCTAssertTrue(try reloadedRepository.fetchPendingDesignPhotoCleanupPaths().isEmpty)
+    }
+
     func testChangingOrderStatusToReadyRecordsRecipeUsageAndDeductsInventory() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)

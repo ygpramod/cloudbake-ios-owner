@@ -12,6 +12,7 @@ struct OrderPhotoPreviewView: View {
     @State private var draftDesignName = ""
     @State private var draftDesignNotes = ""
     @State private var isPromotingToDesign = false
+    @State private var isSavingDesign = false
 
     init(
         photo: OrderPhoto,
@@ -133,17 +134,22 @@ struct OrderPhotoPreviewView: View {
                         Button("Cancel") {
                             isPromotingToDesign = false
                         }
+                        .disabled(isSavingDesign)
                         .accessibilityIdentifier("orders.detail.photos.design.cancel")
                     }
 
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Save") {
+                            guard !isSavingDesign else { return }
+                            isSavingDesign = true
                             Task {
                                 if await onPromoteToDesign(draftDesignName, draftDesignNotes) {
                                     isPromotingToDesign = false
                                 }
+                                isSavingDesign = false
                             }
                         }
+                        .disabled(isSavingDesign)
                         .accessibilityIdentifier("orders.detail.photos.design.save")
                     }
                 }

@@ -274,6 +274,41 @@ final class OrderPhotoViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testPromoteFinalCakePhotoRejectsConcurrentSubmission() async {
+        let repository = FakeOrderRepository()
+        let designPhotoLibrary = FakeDesignPhotoLibrary()
+        designPhotoLibrary.shouldSuspendSave = true
+        let order = makeOrder(id: "order-concurrent", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        repository.orders = [order]
+        let photo = makeOrderPhoto(id: "photo-final", orderId: order.id, kind: .finalCake)
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            designPhotoLibrary: designPhotoLibrary
+        )
+        viewModel.beginViewingOrder(order)
+
+        let firstPromotion = Task {
+            await viewModel.promoteFinalCakePhotoToDesign(photo, name: "First", notes: "")
+        }
+        while designPhotoLibrary.savedFileURLs.isEmpty {
+            await Task.yield()
+        }
+
+        let secondResult = await viewModel.promoteFinalCakePhotoToDesign(
+            photo,
+            name: "Second",
+            notes: ""
+        )
+        XCTAssertFalse(secondResult)
+        XCTAssertEqual(viewModel.errorMessage, "Design is already being saved.")
+
+        designPhotoLibrary.completeSuspendedSave()
+        let firstResult = await firstPromotion.value
+        XCTAssertTrue(firstResult)
+        XCTAssertEqual(designPhotoLibrary.savedFileURLs.count, 1)
+        XCTAssertEqual(repository.cakeDesigns.map(\.name), ["First"])
+    }
+
     func testDeleteOrderPhotoRemovesMetadataAndStoredFile() {
         let repository = FakeOrderRepository()
         let photoFileStore = FakeOrderPhotoFileStore()
