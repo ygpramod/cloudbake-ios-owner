@@ -4,27 +4,33 @@ struct ConsumerDesignPreview: Equatable {
     let designId: String
     let name: String
     let photoReference: String
-    let tags: [String]
 
-    init(designId: String, name: String, photoReference: String, tags: [String]) {
+    init(designId: String, name: String, photoReference: String) {
         self.designId = designId
         self.name = name
         self.photoReference = photoReference
-        self.tags = tags
     }
 
     init?(design: CakeDesign) {
         guard design.sourceKind == .ownerMade,
               design.isPortfolioPublished,
-              let photoReference = design.photoReference else {
+              let photoReference = design.photoReference,
+              Self.isPhotosReference(photoReference) else {
             return nil
         }
         self.init(
             designId: design.id,
             name: design.name,
-            photoReference: photoReference,
-            tags: design.tags
+            photoReference: photoReference
         )
+    }
+
+    private static func isPhotosReference(_ reference: String) -> Bool {
+        let prefix = "photos://"
+        guard reference.hasPrefix(prefix) else { return false }
+        return !reference.dropFirst(prefix.count)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty
     }
 }
 
@@ -65,7 +71,9 @@ struct ConsumerOrderPreview: Equatable {
     }
 
     init(order: Order, cakeDesign: CakeDesign? = nil) {
-        let safeDesign = cakeDesign.flatMap(ConsumerDesignPreview.init)
+        let safeDesign = cakeDesign.flatMap { design in
+            order.cakeDesignId == design.id ? ConsumerDesignPreview(design: design) : nil
+        }
         self.orderId = order.id
         cakeName = order.title
         status = ConsumerOrderPreviewStatus(orderStatus: order.status)
