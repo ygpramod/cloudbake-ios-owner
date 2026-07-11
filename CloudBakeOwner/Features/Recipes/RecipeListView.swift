@@ -44,6 +44,17 @@ struct RecipeListView: View {
                     isFocused: $isSearchFocused
                 )
 
+                Picker("Recipe filter", selection: $viewModel.recipeFilter) {
+                    ForEach(RecipeFilter.allCases) { filter in
+                        Text(filter.title).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(6)
+                .background(.white.opacity(0.90), in: Capsule())
+                .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
+                .accessibilityIdentifier("recipes.filter")
+
                 recipeResults
                     .contentShape(Rectangle())
                     .simultaneousGesture(
@@ -91,7 +102,9 @@ struct RecipeListView: View {
             CloudBakeEmptyState(
                 title: "No matching recipes",
                 systemImage: "magnifyingglass",
-                message: "Try another cake name, ingredient note, or recipe note."
+                message: viewModel.searchText.isEmpty
+                    ? "Try another recipe filter."
+                    : "Try another cake name, ingredient, or recipe note."
             )
         } else {
             CloudBakeSection("Recipes") {
@@ -124,6 +137,10 @@ struct RecipeListView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
+
+                    Text(viewModel.recipeSummaries[recipe.id]?.ingredientCountText ?? "0 ingredients")
+                        .font(CloudBakeTheme.Typography.metadata.weight(.semibold))
+                        .foregroundStyle(Color.cloudBakeMint)
                 }
 
                 Spacer(minLength: 8)
