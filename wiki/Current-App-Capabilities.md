@@ -146,6 +146,8 @@ The app currently supports:
     Customer References, and Internet Inspiration grouping.
 116. normalized design tags, represented-tag filter chips, and a private owner favourite state
     across saved designs and customer references.
+117. confirmed removal of designs and customer references from CloudBake while preserving the
+    underlying iPhone Photos asset and safely unlinking affected order metadata.
 
 ## Partially Prepared
 
