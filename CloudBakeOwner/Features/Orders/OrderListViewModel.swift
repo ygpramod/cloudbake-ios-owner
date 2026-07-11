@@ -184,7 +184,9 @@ final class OrderListViewModel: ObservableObject {
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
             cakeDesigns = try repository.fetchCakeDesigns()
-            errorMessage = nil
+            errorMessage = retryPendingDesignPhotoCleanups()
+                ? nil
+                : "A previous design photo cleanup will be retried automatically."
         } catch {
             errorMessage = "Orders could not be loaded."
         }
@@ -952,10 +954,17 @@ final class OrderListViewModel: ObservableObject {
         )
 
         do {
-            try repository.savePromotedDesign(design, linking: updatedOrder, photo: migratedPhoto)
-            try photoFileStore.deleteOrderPhoto(relativePath: photo.localPhotoPath)
+            try repository.savePromotedDesign(
+                design,
+                linking: updatedOrder,
+                photo: migratedPhoto,
+                cleanupRelativePath: photo.localPhotoPath
+            )
+            let didCleanup = cleanupDesignPhoto(at: photo.localPhotoPath)
             refreshAfterSavingOrder(updatedOrder)
-            errorMessage = nil
+            errorMessage = didCleanup
+                ? nil
+                : "Design saved. The old local photo copy will be removed automatically."
             return true
         } catch {
             errorMessage = "Design could not be saved."
@@ -973,6 +982,25 @@ final class OrderListViewModel: ObservableObject {
         }
         let url = orderPhotoURL(photo)
         return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
+    }
+
+    private func retryPendingDesignPhotoCleanups() -> Bool {
+        guard let paths = try? repository.fetchPendingDesignPhotoCleanupPaths() else {
+            return false
+        }
+        return paths.reduce(true) { result, path in
+            cleanupDesignPhoto(at: path) && result
+        }
+    }
+
+    private func cleanupDesignPhoto(at relativePath: String) -> Bool {
+        do {
+            try photoFileStore.deleteOrderPhoto(relativePath: relativePath)
+            try repository.deletePendingDesignPhotoCleanupPath(relativePath)
+            return true
+        } catch {
+            return false
+        }
     }
 
     func cancelEditingOrder() {

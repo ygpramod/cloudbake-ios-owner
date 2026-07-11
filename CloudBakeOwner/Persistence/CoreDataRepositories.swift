@@ -28,7 +28,14 @@ protocol RecipeIngredientRepository {
 
 protocol CakeDesignRepository {
     func save(_ design: CakeDesign) throws
-    func savePromotedDesign(_ design: CakeDesign, linking order: Order, photo: OrderPhoto) throws
+    func savePromotedDesign(
+        _ design: CakeDesign,
+        linking order: Order,
+        photo: OrderPhoto,
+        cleanupRelativePath: String
+    ) throws
+    func fetchPendingDesignPhotoCleanupPaths() throws -> [String]
+    func deletePendingDesignPhotoCleanupPath(_ relativePath: String) throws
     func fetchCakeDesign(id: String) throws -> CakeDesign?
     func fetchCakeDesigns() throws -> [CakeDesign]
     func fetchCakeDesigns(sourceKind: CakeDesignSourceKind) throws -> [CakeDesign]

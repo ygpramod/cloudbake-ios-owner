@@ -128,9 +128,17 @@ private final class FakeCakeDesignRepository: CakeDesignRepository {
         designs.append(design)
     }
 
-    func savePromotedDesign(_ design: CakeDesign, linking order: Order, photo: OrderPhoto) throws {
+    func savePromotedDesign(
+        _ design: CakeDesign,
+        linking order: Order,
+        photo: OrderPhoto,
+        cleanupRelativePath: String
+    ) throws {
         try save(design)
     }
+
+    func fetchPendingDesignPhotoCleanupPaths() throws -> [String] { [] }
+    func deletePendingDesignPhotoCleanupPath(_ relativePath: String) throws {}
 
     func fetchCakeDesign(id: String) throws -> CakeDesign? {
         designs.first { $0.id == id }
