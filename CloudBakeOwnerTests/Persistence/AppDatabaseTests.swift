@@ -184,10 +184,58 @@ final class AppDatabaseTests: XCTestCase {
                 updatedAt: timestamp
             )
         }
-        try repository.save(order)
-        try repository.save(photo)
-        try repository.save(design(id: "design-b"))
-        try repository.save(design(id: "design-a"))
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    order.id,
+                    order.title,
+                    order.status.rawValue,
+                    order.dueAt.timeIntervalSince1970,
+                    order.createdAt.timeIntervalSince1970,
+                    order.updatedAt.timeIntervalSince1970
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_photos
+                    (id, order_id, kind, local_photo_path, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    photo.id,
+                    photo.orderId,
+                    photo.kind.rawValue,
+                    photo.localPhotoPath,
+                    photo.createdAt.timeIntervalSince1970,
+                    photo.updatedAt.timeIntervalSince1970
+                ]
+            )
+            for designId in ["design-b", "design-a"] {
+                try db.execute(
+                    sql: """
+                        INSERT INTO cake_designs
+                        (id, name, photo_reference, source_kind, originating_order_photo_id,
+                         originating_order_id, created_at_unix_time, updated_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        designId,
+                        designId,
+                        photo.localPhotoPath,
+                        CakeDesignSourceKind.ownerMade.rawValue,
+                        photo.id,
+                        order.id,
+                        timestamp.timeIntervalSince1970,
+                        timestamp.timeIntervalSince1970
+                    ]
+                )
+            }
+        }
 
         try migrator.migrate(queue)
 

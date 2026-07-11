@@ -381,6 +381,7 @@ struct Order: Equatable {
     let id: String
     let customerId: String?
     let cakeDesignId: String?
+    let customerReferencePhotoId: String?
     let recipeId: String?
     let recipeScaleMultiplier: Decimal
     let title: String
@@ -426,6 +427,7 @@ struct Order: Equatable {
         id: String,
         customerId: String?,
         cakeDesignId: String?,
+        customerReferencePhotoId: String? = nil,
         recipeId: String? = nil,
         recipeScaleMultiplier: Decimal = 1,
         title: String,
@@ -445,6 +447,7 @@ struct Order: Equatable {
         self.id = id
         self.customerId = customerId
         self.cakeDesignId = cakeDesignId
+        self.customerReferencePhotoId = customerReferencePhotoId
         self.recipeId = recipeId
         self.recipeScaleMultiplier = recipeScaleMultiplier
         self.title = title

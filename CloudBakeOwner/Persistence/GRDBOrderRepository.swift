@@ -42,6 +42,7 @@ extension GRDBCoreDataRepository {
             id: order.id,
             customerId: order.customerId,
             cakeDesignId: order.cakeDesignId,
+            customerReferencePhotoId: order.customerReferencePhotoId,
             recipeId: order.recipeId,
             recipeScaleMultiplier: order.recipeScaleMultiplier,
             title: order.title,
@@ -421,6 +422,7 @@ private extension GRDBCoreDataRepository {
                     id,
                     customer_id,
                     cake_design_id,
+                    customer_reference_photo_id,
                     recipe_id,
                     recipe_scale_multiplier_decimal,
                     title,
@@ -437,10 +439,11 @@ private extension GRDBCoreDataRepository {
                     created_at_unix_time,
                     updated_at_unix_time
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                 customer_id = excluded.customer_id,
                 cake_design_id = excluded.cake_design_id,
+                customer_reference_photo_id = excluded.customer_reference_photo_id,
                 recipe_id = excluded.recipe_id,
                 recipe_scale_multiplier_decimal = excluded.recipe_scale_multiplier_decimal,
                 title = excluded.title,
@@ -461,6 +464,7 @@ private extension GRDBCoreDataRepository {
                 order.id,
                 order.customerId,
                 order.cakeDesignId,
+                order.customerReferencePhotoId,
                 order.recipeId,
                 decimalString(order.recipeScaleMultiplier),
                 order.title,

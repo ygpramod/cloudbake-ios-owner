@@ -385,6 +385,18 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0025_add_order_customer_reference") { db in
+            try db.alter(table: "orders") { table in
+                table.add(column: "customer_reference_photo_id", .text)
+                    .references("order_photos", onDelete: .setNull)
+            }
+            try db.create(
+                index: "orders_on_customer_reference_photo_id",
+                on: "orders",
+                columns: ["customer_reference_photo_id"]
+            )
+        }
+
         return migrator
     }
 }
