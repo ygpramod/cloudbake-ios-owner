@@ -284,6 +284,8 @@ struct CakeDesign: Equatable {
     let sourceKind: CakeDesignSourceKind
     let originatingOrderPhotoId: String?
     let originatingOrderId: String?
+    let sourceName: String?
+    let sourceURL: String?
     let createdAt: Date
     let updatedAt: Date
 
@@ -295,6 +297,8 @@ struct CakeDesign: Equatable {
         sourceKind: CakeDesignSourceKind = .ownerMade,
         originatingOrderPhotoId: String? = nil,
         originatingOrderId: String? = nil,
+        sourceName: String? = nil,
+        sourceURL: String? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -305,6 +309,8 @@ struct CakeDesign: Equatable {
         self.sourceKind = sourceKind
         self.originatingOrderPhotoId = originatingOrderPhotoId
         self.originatingOrderId = originatingOrderId
+        self.sourceName = sourceName
+        self.sourceURL = sourceURL
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

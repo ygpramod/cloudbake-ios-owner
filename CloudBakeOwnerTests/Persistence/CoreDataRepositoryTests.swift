@@ -65,6 +65,8 @@ final class CoreDataRepositoryTests: XCTestCase {
             notes: "Hand-piped flowers",
             photoReference: "photos/rose-garden.jpg",
             sourceKind: .internetInspiration,
+            sourceName: "Cake Artist",
+            sourceURL: "https://example.com/rose-garden",
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt
         )

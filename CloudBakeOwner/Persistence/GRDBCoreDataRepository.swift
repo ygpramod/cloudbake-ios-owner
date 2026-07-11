@@ -134,6 +134,8 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             sourceKind: sourceKind,
             originatingOrderPhotoId: row["originating_order_photo_id"],
             originatingOrderId: row["originating_order_id"],
+            sourceName: row["source_name"],
+            sourceURL: row["source_url"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )
