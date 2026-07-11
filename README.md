@@ -89,6 +89,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0081: Design Photos Library References
 - Slice RFC-0082: Customer References Collection
 - Slice RFC-0083: Internet Inspiration Import
+- Slice RFC-0084: Design Library Search
 
 ## Base RFCs
 
