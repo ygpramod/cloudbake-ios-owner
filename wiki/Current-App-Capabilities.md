@@ -153,7 +153,8 @@ The app currently supports:
 119. derived design usage counts and linked-order history, plus duplicate final-photo promotion
     prevention based on stable originating photo identity.
 120. `Use for New Order` from saved designs and customer references, opening the standard unsaved
-    order draft with provenance preserved through a design or originating order-photo link.
+    order draft with provenance preserved through a validated design or originating order-photo
+    link and shown explicitly on saved order detail.
 
 ## Partially Prepared
 
