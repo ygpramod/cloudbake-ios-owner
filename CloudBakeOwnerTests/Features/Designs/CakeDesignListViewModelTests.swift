@@ -34,7 +34,8 @@ final class CakeDesignListViewModelTests: XCTestCase {
         let inspiration = makeDesign(
             id: "design-inspiration",
             name: "Saved Inspiration",
-            sourceKind: .internetInspiration
+            sourceKind: .internetInspiration,
+            tags: ["Hidden Internet Tag"]
         )
         repository.designs = [design, inspiration]
         let viewModel = CakeDesignListViewModel(repository: repository)
@@ -42,6 +43,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         viewModel.load()
 
         XCTAssertEqual(viewModel.designs, [design])
+        XCTAssertEqual(viewModel.availableFilters, [.all])
         XCTAssertNil(viewModel.errorMessage)
     }
 
@@ -231,46 +233,6 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
     }
 
-    func testSaveInternetInspirationPersistsPrivateSourceMetadata() {
-        let repository = FakeCakeDesignRepository()
-        let timestamp = Date(timeIntervalSince1970: 1_800_100_000)
-        let viewModel = CakeDesignListViewModel(
-            repository: repository,
-            idGenerator: { "design-internet" },
-            dateProvider: { timestamp }
-        )
-
-        XCTAssertTrue(
-            viewModel.saveInternetInspiration(
-                photoReference: "photos://internet-asset",
-                name: "  Blue Lambeth  ",
-                sourceName: "  Cake Artist  ",
-                sourceURL: " https://example.com/cake ",
-                notes: "  Piping reference  "
-            )
-        )
-
-        XCTAssertEqual(
-            repository.designs,
-            [
-                CakeDesign(
-                    id: "design-internet",
-                    name: "Blue Lambeth",
-                    notes: "Piping reference",
-                    photoReference: "photos://internet-asset",
-                    sourceKind: .internetInspiration,
-                    sourceName: "Cake Artist",
-                    sourceURL: "https://example.com/cake",
-                    createdAt: timestamp,
-                    updatedAt: timestamp
-                )
-            ]
-        )
-        XCTAssertEqual(viewModel.internetInspirations, repository.designs)
-        viewModel.searchText = "artist piping"
-        XCTAssertEqual(viewModel.visibleInternetInspirations.map(\.id), ["design-internet"])
-    }
-
     func testSaveOwnerDesignPersistsPhotosReferenceAndNormalizedMetadata() {
         let repository = FakeCakeDesignRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_100_000)
@@ -341,24 +303,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         }
     }
 
-    func testSaveInternetInspirationRejectsInvalidSourceURL() {
-        let repository = FakeCakeDesignRepository()
-        let viewModel = CakeDesignListViewModel(repository: repository)
-
-        XCTAssertFalse(
-            viewModel.saveInternetInspiration(
-                photoReference: "photos://internet-asset",
-                name: "Inspiration",
-                sourceName: "",
-                sourceURL: "example.com/no-scheme",
-                notes: ""
-            )
-        )
-        XCTAssertTrue(repository.designs.isEmpty)
-        XCTAssertEqual(viewModel.errorMessage, "Source URL must be a valid http or https address.")
-    }
-
-    func testInternetInspirationReusesPickerIdentifierWithoutSavingACopy() async throws {
+    func testDesignImportReusesPickerIdentifierWithoutSavingACopy() async throws {
         let photoLibrary = FakeDesignPhotoLibrary()
         let viewModel = CakeDesignListViewModel(
             repository: FakeCakeDesignRepository(),
@@ -374,7 +319,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertTrue(photoLibrary.savedData.isEmpty)
     }
 
-    func testInternetInspirationSavesFallbackDataWhenPickerHasNoIdentifier() async throws {
+    func testDesignImportSavesFallbackDataWhenPickerHasNoIdentifier() async throws {
         let photoLibrary = FakeDesignPhotoLibrary()
         let viewModel = CakeDesignListViewModel(
             repository: FakeCakeDesignRepository(),
@@ -391,7 +336,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertEqual(photoLibrary.savedData, [data])
     }
 
-    func testTagsFiltersAndFavoritesApplyAcrossSources() {
+    func testTagsFiltersAndFavoritesApplyAcrossVisibleSources() {
         let designRepository = FakeCakeDesignRepository()
         let ownerDesign = makeDesign(
             id: "design-floral",
@@ -400,13 +345,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
             tags: ["Floral"],
             isFavorite: true
         )
-        let internetDesign = makeDesign(
-            id: "design-chocolate",
-            name: "Chocolate Cake",
-            sourceKind: .internetInspiration,
-            tags: ["Chocolate"]
-        )
-        designRepository.designs = [ownerDesign, internetDesign]
+        designRepository.designs = [ownerDesign]
         let orderRepository = FakeOrderRepository()
         let order = makeOrder(id: "order-wedding", dueAt: Date(timeIntervalSince1970: 1_800_100_000))
         orderRepository.orders = [order]
@@ -430,11 +369,10 @@ final class CakeDesignListViewModelTests: XCTestCase {
 
         XCTAssertEqual(
             viewModel.availableFilters,
-            [.all, .favorites, .tag("Wedding"), .tag("Chocolate"), .tag("Floral")]
+            [.all, .favorites, .tag("Floral"), .tag("Wedding")]
         )
         viewModel.selectFilter(.favorites)
         XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [ownerDesign.id])
-        XCTAssertTrue(viewModel.visibleInternetInspirations.isEmpty)
         XCTAssertTrue(viewModel.visibleCustomerReferences.isEmpty)
 
         viewModel.selectFilter(.tag("Wedding"))
@@ -444,6 +382,30 @@ final class CakeDesignListViewModelTests: XCTestCase {
         viewModel.selectFilter(.all)
         viewModel.searchText = "floral"
         XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [ownerDesign.id])
+    }
+
+    func testFilterRibbonShowsOnlyTenMostUsedTags() {
+        let repository = FakeCakeDesignRepository()
+        repository.designs = (0..<12).map { index in
+            makeDesign(
+                id: "design-tag-\(index)",
+                name: "Tagged \(index)",
+                tags: ["Tag \(index)"] + (index < 3 ? ["Popular"] : [])
+            )
+        }
+        let viewModel = CakeDesignListViewModel(repository: repository)
+
+        viewModel.load()
+
+        let visibleTags = viewModel.availableFilters.compactMap { filter -> String? in
+            guard case .tag(let tag) = filter else { return nil }
+            return tag
+        }
+        XCTAssertEqual(visibleTags.count, 10)
+        XCTAssertEqual(visibleTags.first, "Popular")
+        XCTAssertFalse(visibleTags.contains("Tag 9"))
+        XCTAssertFalse(visibleTags.contains("Tag 8"))
+        XCTAssertFalse(visibleTags.contains("Tag 7"))
     }
 
     func testUpdatingTagsNormalizesDuplicatesAndFavoritePersists() {
