@@ -22,6 +22,9 @@ binary in its app container.
 4. Keep bounded thumbnail decoding and explicit missing-asset accessibility states.
 5. Preserve read-only compatibility for existing app-relative design references.
 6. Never delete a Photos asset when a design record is removed.
+7. Atomically save the design, order link, and migrated order-photo reference.
+8. After the atomic save, remove the promoted photo's former app-owned file so the order and design
+   share the same Photos identifier without retaining a duplicate binary.
 
 ## Test Strategy
 
