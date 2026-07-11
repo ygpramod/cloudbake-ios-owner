@@ -15,6 +15,7 @@ final class RecipeListViewModel: ObservableObject {
     @Published var draftIngredientUnit: InventoryUnit = .gram
     @Published var draftIngredientNote = ""
     @Published var importIngredientDrafts: [RecipeImportIngredientDraftRow] = []
+    @Published var searchText = ""
     @Published var errorMessage: String?
     @Published private(set) var isRecognizingRecipeScan = false
     @Published private(set) var editingIngredient: RecipeIngredient?
@@ -39,6 +40,23 @@ final class RecipeListViewModel: ObservableObject {
             errorMessage = nil
         } catch {
             errorMessage = "Recipes could not be loaded."
+        }
+    }
+
+    var visibleRecipes: [Recipe] {
+        let query = TextInputFormatting.normalizedSearchKey(searchText)
+        guard !query.isEmpty else {
+            return recipes
+        }
+
+        return recipes.filter { recipe in
+            [
+                recipe.name,
+                recipe.notes
+            ]
+            .compactMap { $0 }
+            .map(TextInputFormatting.normalizedSearchKey)
+            .contains { $0.contains(query) }
         }
     }
 

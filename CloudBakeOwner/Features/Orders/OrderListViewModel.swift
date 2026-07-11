@@ -37,6 +37,7 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftExtraIngredientUnit: InventoryUnit = .gram
     @Published var draftExtraIngredientNote = ""
     @Published private(set) var draftExtraIngredientRows: [OrderExtraIngredientDraftRow] = []
+    @Published var searchText = ""
     @Published var errorMessage: String?
 
     private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & CakeDesignRepository & InventoryItemRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository
@@ -63,7 +64,7 @@ final class OrderListViewModel: ObservableObject {
     }
 
     var calendarDays: [OrderCalendarDay] {
-        presentation.calendarDays(for: orders)
+        presentation.calendarDays(for: visibleActiveOrders)
     }
 
     var activeOrders: [Order] {
@@ -74,12 +75,43 @@ final class OrderListViewModel: ObservableObject {
         presentation.completedOrders(from: orders)
     }
 
+    var visibleActiveOrders: [Order] {
+        filteredOrders(activeOrders)
+    }
+
+    var visibleCompletedOrders: [Order] {
+        filteredOrders(completedOrders)
+    }
+
     var overdueAlert: OrderOverdueAlert? {
         presentation.primaryOverdueAlert(from: orders)
     }
 
     func order(id: String) -> Order? {
         orders.first { $0.id == id }
+    }
+
+    private func filteredOrders(_ source: [Order]) -> [Order] {
+        let query = TextInputFormatting.normalizedSearchKey(searchText)
+        guard !query.isEmpty else {
+            return source
+        }
+
+        return source.filter { order in
+            [
+                order.title,
+                order.customerName,
+                order.status.displayName,
+                order.fulfillmentType.displayName,
+                order.deliveryAddress,
+                order.cakeNotes,
+                order.cakeMessage,
+                order.paymentNotes
+            ]
+            .compactMap { $0 }
+            .map(TextInputFormatting.normalizedSearchKey)
+            .contains { $0.contains(query) }
+        }
     }
 
     func whatsappMessageURL(for order: Order) -> URL? {

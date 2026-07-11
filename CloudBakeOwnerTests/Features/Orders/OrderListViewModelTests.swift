@@ -117,6 +117,67 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.completedOrders, [laterCompleted, earlierCompleted, cancelled])
     }
 
+    func testVisibleOrdersFilterActiveAndCompletedScopes() {
+        let repository = FakeOrderRepository()
+        let earlierDueAt = Date(timeIntervalSince1970: 1_800_120_000)
+        let laterDueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let birthday = makeOrder(
+            id: "order-birthday",
+            title: "Birthday Cake",
+            status: .confirmed,
+            dueAt: earlierDueAt
+        )
+        let wedding = makeOrder(
+            id: "order-wedding",
+            title: "Wedding Cake",
+            status: .ready,
+            dueAt: laterDueAt
+        )
+        let completed = makeOrder(
+            id: "order-completed",
+            title: "Completed Cake",
+            status: .completed,
+            dueAt: laterDueAt
+        )
+        repository.orders = [wedding, completed, birthday]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.load()
+        viewModel.searchText = "wedding"
+
+        XCTAssertEqual(viewModel.visibleActiveOrders, [wedding])
+        XCTAssertEqual(viewModel.visibleCompletedOrders, [])
+
+        viewModel.searchText = "completed"
+
+        XCTAssertEqual(viewModel.visibleActiveOrders, [])
+        XCTAssertEqual(viewModel.visibleCompletedOrders, [completed])
+    }
+
+    func testCalendarDaysUseFilteredActiveOrders() {
+        let repository = FakeOrderRepository()
+        let calendar = utcCalendar()
+        let birthdayDueAt = Date(timeIntervalSince1970: 1_800_057_600)
+        let weddingDueAt = Date(timeIntervalSince1970: 1_800_144_000)
+        let birthday = makeOrder(id: "order-birthday", title: "Birthday Cake", dueAt: birthdayDueAt)
+        let wedding = makeOrder(id: "order-wedding", title: "Wedding Cake", dueAt: weddingDueAt)
+        repository.orders = [birthday, wedding]
+        let viewModel = OrderListViewModel(repository: repository, calendar: calendar)
+
+        viewModel.load()
+        viewModel.searchText = "wedding"
+
+        XCTAssertEqual(
+            viewModel.calendarDays,
+            [
+                OrderCalendarDay(
+                    day: calendar.startOfDay(for: weddingDueAt),
+                    orders: [wedding]
+                )
+            ]
+        )
+    }
+
     func testReminderPlanUsesThreeTwoAndOneDaysBeforeDueDate() {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()

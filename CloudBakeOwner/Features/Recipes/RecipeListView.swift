@@ -5,6 +5,7 @@ struct RecipeListView: View {
     @State private var isAddingRecipe = false
     @State private var isImportingRecipe = false
     @State private var isViewingRecipe = false
+    @FocusState private var isSearchFocused: Bool
 
     init(viewModel: RecipeListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -36,47 +37,20 @@ struct RecipeListView: View {
                     message: "Add trusted cake recipes before ingredients and recipe-book conversion arrive."
                 )
             } else {
-                CloudBakeSection("Recipes") {
-                    VStack(spacing: 16) {
-                    ForEach(viewModel.recipes, id: \.id) { recipe in
-                        Button {
-                            viewModel.beginViewingRecipe(recipe)
-                            isViewingRecipe = true
-                        } label: {
-                            HStack(spacing: 18) {
-                                CloudBakeRowIcon(systemImage: "book", tint: .cloudBakeMint)
+                CloudBakeSearchField(
+                    text: $viewModel.searchText,
+                    prompt: "Search recipes",
+                    accessibilityIdentifier: "recipes.search",
+                    isFocused: $isSearchFocused
+                )
 
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(recipe.name)
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(2)
-
-                                    if let notes = recipe.notes {
-                                        Text(notes)
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(2)
-                                    }
-                                }
-
-                                Spacer(minLength: 8)
-
-                                Image(systemName: "chevron.right")
-                                    .font(.headline.weight(.semibold))
-                                    .foregroundStyle(Color.cloudBakePink.opacity(0.72))
-                                    .accessibilityHidden(true)
-                            }
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+                recipeResults
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            isSearchFocused = false
                         }
-                        .buttonStyle(.plain)
-                        .cloudBakeCardStyle()
-                        .accessibilityIdentifier("recipes.item.\(recipe.id)")
-                    }
-                    }
-                }
+                    )
             }
         }
         .sheet(isPresented: $isAddingRecipe, onDismiss: viewModel.cancelAddRecipe) {
@@ -109,6 +83,63 @@ struct RecipeListView: View {
             viewModel.load()
         }
         .accessibilityIdentifier(AppDestination.recipes.screenAccessibilityIdentifier)
+    }
+
+    @ViewBuilder
+    private var recipeResults: some View {
+        if viewModel.visibleRecipes.isEmpty {
+            CloudBakeEmptyState(
+                title: "No matching recipes",
+                systemImage: "magnifyingglass",
+                message: "Try another cake name, ingredient note, or recipe note."
+            )
+        } else {
+            CloudBakeSection("Recipes") {
+                VStack(spacing: 16) {
+                    ForEach(viewModel.visibleRecipes, id: \.id) { recipe in
+                        recipeCard(recipe)
+                    }
+                }
+            }
+        }
+    }
+
+    private func recipeCard(_ recipe: Recipe) -> some View {
+        Button {
+            viewModel.beginViewingRecipe(recipe)
+            isViewingRecipe = true
+        } label: {
+            HStack(spacing: 18) {
+                CloudBakeRowIcon(systemImage: "book", tint: .cloudBakeMint)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(recipe.name)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+
+                    if let notes = recipe.notes {
+                        Text(notes)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(Color.cloudBakePink.opacity(0.72))
+                    .accessibilityHidden(true)
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .cloudBakeCardStyle()
+        .accessibilityIdentifier("recipes.item.\(recipe.id)")
     }
 }
 
