@@ -137,6 +137,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(String(describing: photo.value).contains("150 percent"))
         tapWhenReady(app.buttons["Reset Zoom"])
 
+        photo.swipeLeft()
+        XCTAssertTrue(app.navigationBars["Second Gallery Cake"].waitForExistence(timeout: 5))
+        app.descendants(matching: .any)["designs.preview.photo"].swipeRight()
+        XCTAssertTrue(app.navigationBars["First Gallery Cake"].waitForExistence(timeout: 5))
+
         XCTAssertFalse(app.buttons["Previous Design"].isEnabled)
         tapWhenReady(app.buttons["Add Favorite"])
         tapWhenReady(app.buttons["Next Design"])
