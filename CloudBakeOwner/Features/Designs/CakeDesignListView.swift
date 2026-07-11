@@ -27,6 +27,29 @@ struct CakeDesignListView: View {
                 isFocused: $isSearchFocused
             )
 
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(viewModel.availableFilters, id: \.self) { filter in
+                        Button(filter) { viewModel.selectFilter(filter) }
+                            .buttonStyle(.bordered)
+                            .buttonBorderShape(.capsule)
+                            .tint(
+                                (filter == "All" && viewModel.selectedFilter == nil)
+                                    || viewModel.selectedFilter == filter
+                                    ? Color.cloudBakePink
+                                    : Color.secondary
+                            )
+                            .accessibilityAddTraits(
+                                (filter == "All" && viewModel.selectedFilter == nil)
+                                    || viewModel.selectedFilter == filter
+                                    ? .isSelected
+                                    : []
+                            )
+                    }
+                }
+            }
+            .accessibilityIdentifier("designs.filters")
+
             designResults
                 .contentShape(Rectangle())
                 .simultaneousGesture(
@@ -48,7 +71,9 @@ struct CakeDesignListView: View {
                 CakeDesignPreviewView(
                     design: design,
                     photoSource: viewModel.availablePhotoSource(for: design),
-                    accessibilityLabel: viewModel.accessibilityLabel(for: design)
+                    accessibilityLabel: viewModel.accessibilityLabel(for: design),
+                    onToggleFavorite: { viewModel.toggleFavorite($0) },
+                    onUpdateTags: { viewModel.updateTags($0, for: $1) }
                 )
             }
         }
@@ -56,7 +81,9 @@ struct CakeDesignListView: View {
             NavigationStack {
                 CustomerReferencePreviewView(
                     reference: reference,
-                    photoSource: viewModel.availablePhotoSource(for: reference.photo)
+                    photoSource: viewModel.availablePhotoSource(for: reference.photo),
+                    onToggleFavorite: { viewModel.toggleFavorite($0) },
+                    onUpdateTags: { viewModel.updateTags($0, for: $1) }
                 )
             }
         }
@@ -163,13 +190,10 @@ struct CakeDesignListView: View {
         Button {
             previewingCustomerReference = reference
         } label: {
-            DesignPhotoView(
+            photoTile(
                 source: viewModel.availablePhotoSource(for: reference.photo),
-                maximumPixelSize: 600,
-                contentMode: .fill
+                isFavorite: reference.photo.isFavorite
             )
-            .aspectRatio(1, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
         .buttonStyle(.plain)
         .cloudBakeCardStyle()
@@ -182,13 +206,10 @@ struct CakeDesignListView: View {
         Button {
             previewingDesign = design
         } label: {
-            DesignPhotoView(
+            photoTile(
                 source: viewModel.availablePhotoSource(for: design),
-                maximumPixelSize: 600,
-                contentMode: .fill
+                isFavorite: design.isFavorite
             )
-            .aspectRatio(1, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -198,12 +219,44 @@ struct CakeDesignListView: View {
         .accessibilityIdentifier("designs.item.\(design.id)")
     }
 
+    private func photoTile(source: CakeDesignPhotoSource?, isFavorite: Bool) -> some View {
+        ZStack(alignment: .topTrailing) {
+            DesignPhotoView(source: source, maximumPixelSize: 600, contentMode: .fill)
+                .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            if isFavorite {
+                Image(systemName: "heart.fill")
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .background(Color.cloudBakePink, in: Capsule())
+                    .padding(8)
+                    .accessibilityLabel("Favorite")
+            }
+        }
+    }
+
 }
 
 private struct CustomerReferencePreviewView: View {
-    let reference: CustomerReferenceDesign
+    @State private var reference: CustomerReferenceDesign
     let photoSource: CakeDesignPhotoSource?
+    let onToggleFavorite: (CustomerReferenceDesign) -> CustomerReferenceDesign?
+    let onUpdateTags: (String, CustomerReferenceDesign) -> CustomerReferenceDesign?
     @Environment(\.dismiss) private var dismiss
+    @State private var isEditingTags = false
+    @State private var tagsText = ""
+
+    init(
+        reference: CustomerReferenceDesign,
+        photoSource: CakeDesignPhotoSource?,
+        onToggleFavorite: @escaping (CustomerReferenceDesign) -> CustomerReferenceDesign?,
+        onUpdateTags: @escaping (String, CustomerReferenceDesign) -> CustomerReferenceDesign?
+    ) {
+        _reference = State(initialValue: reference)
+        self.photoSource = photoSource
+        self.onToggleFavorite = onToggleFavorite
+        self.onUpdateTags = onUpdateTags
+    }
 
     var body: some View {
         ScrollView {
@@ -224,6 +277,10 @@ private struct CustomerReferencePreviewView: View {
                         CloudBakeDetailDivider()
                         CloudBakeDetailRow("Caption") { Text(caption) }
                     }
+                    CloudBakeDetailDivider()
+                    CloudBakeDetailRow("Tags") {
+                        Text(reference.photo.tags.isEmpty ? "None" : reference.photo.tags.joined(separator: ", "))
+                    }
                 }
             }
             .padding(CloudBakeTheme.Spacing.screenHorizontal)
@@ -232,8 +289,29 @@ private struct CustomerReferencePreviewView: View {
         .navigationTitle(reference.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    if let updated = onToggleFavorite(reference) { reference = updated }
+                } label: {
+                    Image(systemName: reference.photo.isFavorite ? "heart.fill" : "heart")
+                }
+                .accessibilityLabel(reference.photo.isFavorite ? "Remove Favorite" : "Add Favorite")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button("Tags") {
+                    tagsText = reference.photo.tags.joined(separator: ", ")
+                    isEditingTags = true
+                }
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
+            }
+        }
+        .alert("Edit Tags", isPresented: $isEditingTags) {
+            TextField("Comma-separated tags", text: $tagsText)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                if let updated = onUpdateTags(tagsText, reference) { reference = updated }
             }
         }
     }
@@ -247,6 +325,7 @@ private struct InternetInspirationImportView: View {
     @State private var sourceName = ""
     @State private var sourceURL = ""
     @State private var notes = ""
+    @State private var tags = ""
     @State private var isSaving = false
 
     var body: some View {
@@ -275,6 +354,8 @@ private struct InternetInspirationImportView: View {
                     TextField("Notes (optional)", text: $notes, axis: .vertical)
                         .lineLimit(2...5)
                         .accessibilityIdentifier("designs.internetInspiration.notes")
+                    TextField("Tags, comma-separated (optional)", text: $tags)
+                        .accessibilityIdentifier("designs.internetInspiration.tags")
                 }
 
                 if let errorMessage = viewModel.errorMessage {
@@ -305,7 +386,8 @@ private struct InternetInspirationImportView: View {
                                 name: name,
                                 sourceName: sourceName,
                                 sourceURL: sourceURL,
-                                notes: notes
+                                notes: notes,
+                                tags: tags
                             ) {
                                 dismiss()
                             }
@@ -321,10 +403,28 @@ private struct InternetInspirationImportView: View {
 }
 
 private struct CakeDesignPreviewView: View {
-    let design: CakeDesign
+    @State private var design: CakeDesign
     let photoSource: CakeDesignPhotoSource?
     let accessibilityLabel: String
+    let onToggleFavorite: (CakeDesign) -> CakeDesign?
+    let onUpdateTags: (String, CakeDesign) -> CakeDesign?
     @Environment(\.dismiss) private var dismiss
+    @State private var isEditingTags = false
+    @State private var tagsText = ""
+
+    init(
+        design: CakeDesign,
+        photoSource: CakeDesignPhotoSource?,
+        accessibilityLabel: String,
+        onToggleFavorite: @escaping (CakeDesign) -> CakeDesign?,
+        onUpdateTags: @escaping (String, CakeDesign) -> CakeDesign?
+    ) {
+        _design = State(initialValue: design)
+        self.photoSource = photoSource
+        self.accessibilityLabel = accessibilityLabel
+        self.onToggleFavorite = onToggleFavorite
+        self.onUpdateTags = onUpdateTags
+    }
 
     var body: some View {
         ScrollView {
@@ -363,6 +463,11 @@ private struct CakeDesignPreviewView: View {
                         }
                     }
 
+                    CloudBakeDetailDivider()
+                    CloudBakeDetailRow("Tags") {
+                        Text(design.tags.isEmpty ? "None" : design.tags.joined(separator: ", "))
+                    }
+
                     if design.photoReference == nil {
                         CloudBakeDetailDivider()
                         CloudBakeDetailRow("Photo") {
@@ -378,11 +483,32 @@ private struct CakeDesignPreviewView: View {
         .navigationTitle(design.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    if let updated = onToggleFavorite(design) { design = updated }
+                } label: {
+                    Image(systemName: design.isFavorite ? "heart.fill" : "heart")
+                }
+                .accessibilityLabel(design.isFavorite ? "Remove Favorite" : "Add Favorite")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button("Tags") {
+                    tagsText = design.tags.joined(separator: ", ")
+                    isEditingTags = true
+                }
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
                     dismiss()
                 }
                 .accessibilityIdentifier("designs.preview.done")
+            }
+        }
+        .alert("Edit Tags", isPresented: $isEditingTags) {
+            TextField("Comma-separated tags", text: $tagsText)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                if let updated = onUpdateTags(tagsText, design) { design = updated }
             }
         }
     }
