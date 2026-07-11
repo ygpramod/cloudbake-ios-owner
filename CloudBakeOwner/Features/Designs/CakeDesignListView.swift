@@ -29,19 +29,17 @@ struct CakeDesignListView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(viewModel.availableFilters, id: \.self) { filter in
-                        Button(filter) { viewModel.selectFilter(filter) }
+                    ForEach(viewModel.availableFilters) { filter in
+                        Button(filter.label) { viewModel.selectFilter(filter) }
                             .buttonStyle(.bordered)
                             .buttonBorderShape(.capsule)
                             .tint(
-                                (filter == "All" && viewModel.selectedFilter == nil)
-                                    || viewModel.selectedFilter == filter
+                                viewModel.selectedFilter == filter
                                     ? Color.cloudBakePink
                                     : Color.secondary
                             )
                             .accessibilityAddTraits(
-                                (filter == "All" && viewModel.selectedFilter == nil)
-                                    || viewModel.selectedFilter == filter
+                                viewModel.selectedFilter == filter
                                     ? .isSelected
                                     : []
                             )
@@ -100,12 +98,19 @@ struct CakeDesignListView: View {
         if viewModel.visibleDesigns.isEmpty
             && viewModel.visibleCustomerReferences.isEmpty
             && viewModel.visibleInternetInspirations.isEmpty
-            && viewModel.hasEffectiveSearchQuery {
+            && (viewModel.hasEffectiveSearchQuery || viewModel.selectedFilter != .all) {
             CloudBakeEmptyState(
                 title: "No matching designs",
                 systemImage: "magnifyingglass",
                 message: "Try another cake name, note, customer, order, or inspiration source."
             )
+            Button("Clear Search and Filters") {
+                viewModel.searchText = ""
+                viewModel.selectFilter(.all)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color.cloudBakePink)
+            .accessibilityIdentifier("designs.clearSearchAndFilters")
         } else {
             Text("My Designs (\(viewModel.visibleDesigns.count))")
                 .font(CloudBakeTheme.Typography.sectionTitle)
@@ -198,7 +203,10 @@ struct CakeDesignListView: View {
         .buttonStyle(.plain)
         .cloudBakeCardStyle()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(reference.title), customer reference from \(reference.order.customerName)")
+        .accessibilityLabel(
+            "\(reference.title), customer reference from \(reference.order.customerName)"
+                + (reference.photo.isFavorite ? ", favorite" : "")
+        )
         .accessibilityIdentifier("designs.customerReference.\(reference.id)")
     }
 
