@@ -6,7 +6,7 @@ This page lists what the app currently supports. It should stay factual and prod
 
 The app currently supports:
 
-1. native iPhone and iPad app shell,
+1. native iPhone app shell,
 2. visual dashboard home screen with Today cards, Soon rows, Areas navigation, clickable upcoming
    order and low-inventory cards, and bottom quick navigation,
 3. inventory navigation,
@@ -69,7 +69,7 @@ The app currently supports:
 58. Contacts import into editable customer drafts,
 59. customer detail order history for linked orders,
 60. customer deletion from detail after confirmation,
-61. regular-width iPad customer list/detail split view,
+61. deferred iPad customer layout,
 62. orders list,
 63. order creation,
 64. order detail view,
@@ -93,7 +93,7 @@ The app currently supports:
     deduction during recipe usage,
 80. order detail checklist item add, edit, complete/incomplete toggle, entry-order display, and
     deletion,
-81. regular-width iPad order list/detail split view,
+81. deferred iPad order layout,
 82. optional saved cake design link from order add/edit,
 83. simple Completed orders tab for completed and cancelled orders ordered by delivery or pickup
     date-time descending,

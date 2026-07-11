@@ -2,7 +2,6 @@ import SwiftUI
 
 struct CustomerListView: View {
     @StateObject private var viewModel: CustomerListViewModel
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isAddingCustomer = false
     @State private var isViewingCustomer = false
     @State private var isChoosingAddMode = false
@@ -13,30 +12,7 @@ struct CustomerListView: View {
     }
 
     var body: some View {
-        Group {
-            if horizontalSizeClass == .regular {
-                NavigationSplitView {
-                    customerList
-                } detail: {
-                    if viewModel.selectedCustomer == nil {
-                        ContentUnavailableView(
-                            "Select a customer",
-                            systemImage: "person.crop.circle",
-                            description: Text("Choose a customer to view contact details, preferences, and order history.")
-                        )
-                        .accessibilityIdentifier("customers.detail.empty")
-                    } else {
-                        CustomerDetailView(
-                            viewModel: viewModel,
-                            isPresented: .constant(true),
-                            showsDoneButton: false
-                        )
-                    }
-                }
-            } else {
-                customerList
-            }
-        }
+        customerList
         .accessibilityIdentifier(AppDestination.customers.screenAccessibilityIdentifier)
         .cloudBakeCenteredPopup(
             isPresented: isChoosingAddMode,
@@ -167,8 +143,6 @@ struct CustomerListView: View {
 
     private func openCustomer(_ customer: Customer) {
         viewModel.beginViewingCustomer(customer)
-        if horizontalSizeClass != .regular {
-            isViewingCustomer = true
-        }
+        isViewingCustomer = true
     }
 }

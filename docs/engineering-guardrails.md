@@ -134,8 +134,8 @@ enum ScreenState {
 - Navigation should be explicit and testable.
 - Accessibility identifiers are required for acceptance-testable navigation and critical workflows.
 - Support Dynamic Type, VoiceOver-friendly labels, and sufficient contrast for critical information.
-- iPhone-first layouts must not block iPad adaptation.
-- Avoid fixed-size layouts that break on smaller iPhones, larger iPads, split view, or large text settings.
+- Optimize layouts for supported iPhone sizes without speculative iPad-specific abstractions.
+- Avoid fixed-size layouts that break on smaller iPhones, landscape orientation, or large text settings.
 - Use previews for important screens and states when practical, including empty, loading, error, and populated states.
 
 ## Testing Guardrails

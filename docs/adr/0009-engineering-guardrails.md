@@ -6,7 +6,10 @@ Accepted
 
 ## Context
 
-The CloudBake owner app is one implementation repository within the larger CloudBake system. It needs local engineering expectations that match the foundation guardrails while being specific enough for SwiftUI, iPhone/iPad layouts, accessibility, testing, privacy, and future sync/API behavior.
+The CloudBake owner app is one implementation repository within the larger CloudBake system. It
+needs local engineering expectations that match the foundation guardrails while being specific
+enough for SwiftUI, supported iPhone layouts, accessibility, testing, privacy, and future sync/API
+behavior.
 
 ## Decision
 

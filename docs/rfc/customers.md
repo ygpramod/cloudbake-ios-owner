@@ -75,7 +75,7 @@ The app should make customer memory useful without becoming a heavy CRM.
 - Private customer details must not leak into future customer-facing surfaces.
 - Customer persistence must be migration-friendly.
 - Tests are required for customer business rules, persistence, and critical owner workflows.
-- The UI must work well on iPhone and remain extendable for iPad.
+- The UI must work well on supported iPhone sizes.
 - Future backend communication must carry correlation IDs for end-to-end traceability.
 
 ## Contacts Import
@@ -161,8 +161,7 @@ Customer order history in customer detail is implemented in
 `docs/rfc/slices/0041-customer-order-history.md`.
 Searchable customer record selection from the order form is implemented in
 `docs/rfc/slices/0042-order-customer-search-selection.md`.
-Regular-width iPad customer list/detail layout is implemented in
-`docs/rfc/slices/0043-ipad-customer-layout.md`.
+iPad customer list/detail layout is deferred until iPad support is reintroduced by a future RFC.
 A customer-safe profile projection for future consumer-facing surfaces is implemented through
 `docs/rfc/slices/0067-future-consumer-customer-profile-model.md`.
 Customer creation from order linking and customer deletion are implemented in
@@ -202,7 +201,7 @@ Recommended customer slices:
 4. Customer Search And Selection From Orders
 5. Customer Preferences And Allergy Alerts In Orders
 6. Customer Order History
-7. iPad Customer Layout
+7. Deferred iPad Customer Layout
 8. Future Consumer Profile Model
 
 Each slice must include its own RFC under `docs/rfc/slices/`, focused tests, and wiki updates when
@@ -227,8 +226,8 @@ The first implementation slice should create the minimum useful customer foundat
 Contacts import is implemented as an editable draft flow. Customer selection for orders is done
 through the searchable selection flow, and creating a customer from that order selection flow offers
 the same Contacts import or manual entry choices as the main Customers screen. Customer detail now
-shows linked order history once orders reference a customer record. iPad customer navigation now
-uses a regular-width split layout.
+shows linked order history once orders reference a customer record. iPad customer navigation is
+deferred while the initial owner app targets iPhone only.
 The customer domain now includes a conservative consumer profile projection that exposes only safe
 profile contact fields and excludes owner-only preferences, allergies, dietary notes, internal
 notes, address, timestamps, and order history.

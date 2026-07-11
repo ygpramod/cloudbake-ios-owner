@@ -65,7 +65,7 @@ Run:
 2. Avoid custom controls for standard data-entry behavior.
 3. Keep the shared styling primitive small and readable.
 4. Do not introduce business logic into SwiftUI styling.
-5. Keep iPhone and iPad form behavior compatible with native iOS expectations.
+5. Keep form behavior compatible with native iOS expectations on supported iPhones.
 
 ## Open Questions
 

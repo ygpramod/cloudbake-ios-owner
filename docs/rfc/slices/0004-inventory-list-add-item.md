@@ -39,7 +39,7 @@ Add the first usable owner inventory workflow: view inventory items and add a ne
 - SwiftUI views must not access GRDB directly.
 - Inventory items must be loaded from and saved to local persistence.
 - Add-item validation must prevent blank names and negative minimum quantities.
-- The workflow must remain usable on iPhone and iPad layouts.
+- The workflow must remain usable on supported iPhone layouts.
 - Tests must cover the view model, repository list query, and UI add flow.
 
 ## Design

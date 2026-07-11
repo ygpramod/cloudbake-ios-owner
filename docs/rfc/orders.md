@@ -84,7 +84,7 @@ notes, and changing customer requests without forcing the owner into a rigid ret
 - Order persistence must be migration-friendly.
 - Tests are required for business rules and critical owner workflows.
 - Acceptance tests should cover only impacted workflows during local development; CI remains the broader safety net.
-- The UI must work well on iPhone and remain extendable for iPad.
+- The UI must work well on supported iPhone sizes.
 - Allergy and customer preference details must be visible where they can affect cake preparation.
 - Private owner information must not be designed in a way that leaks into future customer-facing surfaces.
 - Future backend communication must carry correlation IDs for end-to-end traceability.
@@ -167,8 +167,7 @@ ingredients from inventory through
 `docs/rfc/slices/0047-order-recipe-usage-inventory-deduction.md`.
 Order detail can now store simple preparation checklist items through
 `docs/rfc/slices/0048-order-checklist.md`.
-Regular-width iPad layouts now show Orders as a list/detail split view through
-`docs/rfc/slices/0049-ipad-order-layout.md`.
+iPad order list/detail layout is deferred until iPad support is reintroduced by a future RFC.
 A customer-safe order preview model for future consumer-facing surfaces is implemented through
 `docs/rfc/slices/0050-future-consumer-order-preview-model.md`.
 Order add/edit can link one existing cake design reference, and order detail can show the linked
@@ -289,7 +288,7 @@ Recommended order slices:
 6. Recipe Link From Order
 7. Order Recipe Usage And Inventory Deduction
 8. Order Checklist
-9. iPad Order Layout
+9. Deferred iPad Order Layout
 10. Future Consumer Order Preview Model
 11. Order Design References And Photos
 12. Order Workflow Polish
@@ -346,8 +345,8 @@ pricing, and recipe links.
 - Orders can now store owner checklist items in order detail. Checklist items remain in entry order
   and support add, edit, complete/incomplete toggle, and deletion; reorder, templates, and
   checklist-driven status changes remain future work.
-- Orders now use a regular-width iPad split view so the list and calendar can remain
-  visible while reviewing selected order detail. Compact iPhone layouts keep the modal detail flow.
+- iPad order split view is deferred while the initial owner app targets iPhone only. Orders keep the
+  modal detail flow on supported iPhones.
 - Orders now expose only Active and Completed tabs. Active work is always shown as due-day groups
   ordered by delivery/pickup time ascending. Completed and cancelled work is an ungrouped history
   list ordered by delivery/pickup date-time descending, with cancelled rows visibly marked. The

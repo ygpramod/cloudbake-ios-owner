@@ -1,8 +1,9 @@
 # CloudBake Owner App
 
-Native iPhone and iPad owner app for CloudBake.
+Native iPhone owner app for CloudBake.
 
-This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone-first, supports iPad, and follows the CloudBake foundation RFCs and ADRs.
+This repository implements the owner-facing Swift/SwiftUI app. The app supports iPhone for the
+initial owner release; iPad is deferred until a future RFC explicitly reintroduces it.
 
 ## Current Slice
 
@@ -48,13 +49,13 @@ This repository implements the owner-facing Swift/SwiftUI app. The app is iPhone
 - Slice RFC-0040: Order Customer Preferences
 - Slice RFC-0041: Customer Order History
 - Slice RFC-0042: Order Customer Search Selection
-- Slice RFC-0043: iPad Customer Layout
+- Slice RFC-0043: Deferred iPad Customer Layout
 - Slice RFC-0044: Order Reminders
 - Slice RFC-0045: Parallel Acceptance CI Shards
 - Slice RFC-0046: Order Recipe Link
 - Slice RFC-0047: Order Recipe Usage And Inventory Deduction
 - Slice RFC-0048: Order Checklist
-- Slice RFC-0049: iPad Order Layout
+- Slice RFC-0049: Deferred iPad Order Layout
 - Slice RFC-0050: Future Consumer Order Preview Model
 - Slice RFC-0051: Order Design Reference
 - Slice RFC-0052: Order Workflow Polish

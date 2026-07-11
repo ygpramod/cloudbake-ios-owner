@@ -80,8 +80,7 @@ detail content or controls instead.
 2. Keep business behavior outside SwiftUI styling helpers.
 3. Keep existing accessibility identifiers where workflows depend on them.
 4. Avoid hidden swipe-only actions inside custom scroll-view cards.
-5. Preserve iPad split-view detail behavior by hiding the dismiss control when the detail pane is
-   not presented as a sheet.
+5. Keep detail views optimized for the supported iPhone sheet flow.
 
 ## Open Questions
 
