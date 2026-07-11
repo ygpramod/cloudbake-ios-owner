@@ -343,6 +343,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
             viewModel.availableFilters,
             [.all, .tag("All"), .tag("Favorites")]
         )
+        XCTAssertEqual(viewModel.availableFilters.map(\.label), ["All", "#All", "#Favorites"])
         viewModel.selectFilter(.tag("Favorites"))
         XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [design.id])
 
