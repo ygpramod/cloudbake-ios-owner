@@ -256,6 +256,7 @@ final class AppDatabase {
                     name: name,
                     notes: nil,
                     photoReference: nil,
+                    tags: ["Floral"],
                     createdAt: timestamp,
                     updatedAt: timestamp
                 )

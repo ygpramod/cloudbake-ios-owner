@@ -116,6 +116,10 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_SEED_DESIGN_GALLERY_FIXTURE"] = "1"
         app.launch()
 
+        let floralFilter = app.buttons["#Floral"]
+        XCTAssertTrue(floralFilter.waitForExistence(timeout: 10))
+        tapWhenReady(floralFilter)
+
         let firstDesign = app.buttons["designs.item.design-ui-gallery-first"]
         XCTAssertTrue(firstDesign.waitForExistence(timeout: 10))
         tapWhenReady(firstDesign)
@@ -128,9 +132,35 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         let photo = app.descendants(matching: .any)["designs.preview.photo"]
         XCTAssertTrue(photo.waitForExistence(timeout: 5))
-        photo.swipeLeft()
+        XCTAssertTrue(String(describing: photo.value).contains("100 percent"))
+        tapWhenReady(app.buttons["Zoom In"])
+        XCTAssertTrue(String(describing: photo.value).contains("150 percent"))
+        tapWhenReady(app.buttons["Reset Zoom"])
+
+        XCTAssertFalse(app.buttons["Previous Design"].isEnabled)
+        tapWhenReady(app.buttons["Next Design"])
 
         XCTAssertTrue(app.navigationBars["Second Gallery Cake"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Next Design"].isEnabled)
+        tapWhenReady(app.buttons["Previous Design"])
+        XCTAssertTrue(app.navigationBars["First Gallery Cake"].waitForExistence(timeout: 5))
+    }
+
+    func testDesignLandingCanScrollFromBottomBackToTop() throws {
+        let app = makeApp(initialDestination: "designs")
+        app.launchEnvironment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] = "1"
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] = "1"
+        app.launch()
+
+        let internetSection = app.staticTexts["designs.internetInspiration.title"]
+        scrollToHittable(internetSection, in: app, timeout: 10)
+        XCTAssertTrue(internetSection.isHittable)
+
+        for _ in 0..<4 { app.swipeDown() }
+
+        let search = app.descendants(matching: .any)["designs.search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        XCTAssertTrue(search.isHittable)
     }
 
     func testSettingsShowsInventoryCSVActions() throws {

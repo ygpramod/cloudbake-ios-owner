@@ -3,6 +3,38 @@ import GRDB
 @testable import CloudBakeOwner
 
 final class AppDatabaseTests: XCTestCase {
+    @MainActor
+    func testPersistedDesignLibrarySearchCompletesWithinBudget() throws {
+        let database = try AppDatabase.makeInMemory()
+        let repository = database.makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_050_000)
+        for index in 0..<600 {
+            try repository.save(
+                CakeDesign(
+                    id: "design-performance-\(index)",
+                    name: "Birthday design \(index)",
+                    notes: index.isMultiple(of: 2)
+                        ? "Blue floral buttercream"
+                        : "Pink minimal cake",
+                    photoReference: nil,
+                    tags: [index.isMultiple(of: 3) ? "Wedding" : "Birthday"],
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            )
+        }
+        let viewModel = CakeDesignListViewModel(repository: repository)
+
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        viewModel.load()
+        viewModel.searchText = "blue floral"
+        let results = viewModel.visibleDesigns
+        let elapsed = ProcessInfo.processInfo.systemUptime - startedAt
+
+        XCTAssertEqual(results.count, 300)
+        XCTAssertLessThan(elapsed, 1, "Persisted 600-item design search exceeded one second")
+    }
+
     func testInMemoryDatabaseRunsMigrationsFromScratch() throws {
         let database = try AppDatabase.makeInMemory()
         let repository = database.makeHealthCheckRepository()

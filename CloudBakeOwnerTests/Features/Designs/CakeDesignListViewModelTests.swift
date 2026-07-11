@@ -7,6 +7,27 @@ private enum TestDesignRepositoryError: Error {
 
 @MainActor
 final class CakeDesignListViewModelTests: XCTestCase {
+    func testPhotoZoomClampsScaleAndPanToVisibleBounds() {
+        XCTAssertEqual(DesignPhotoZoom.clampedScale(0.5), 1)
+        XCTAssertEqual(DesignPhotoZoom.clampedScale(5), 4)
+        XCTAssertEqual(
+            DesignPhotoZoom.clampedOffset(
+                CGSize(width: 500, height: -500),
+                scale: 2,
+                in: CGSize(width: 300, height: 200)
+            ),
+            CGSize(width: 150, height: -100)
+        )
+        XCTAssertEqual(
+            DesignPhotoZoom.clampedOffset(
+                CGSize(width: 50, height: 50),
+                scale: 1,
+                in: CGSize(width: 300, height: 200)
+            ),
+            .zero
+        )
+    }
+
     func testLoadFetchesDesigns() {
         let repository = FakeCakeDesignRepository()
         let design = makeDesign(id: "design-flowers", name: "Pink Flowers")
@@ -532,26 +553,6 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
     }
 
-    func testSearchPerformanceAcrossSeveralHundredDesigns() {
-        let repository = FakeCakeDesignRepository()
-        repository.designs = (0..<600).map { index in
-            makeDesign(
-                id: "design-\(index)",
-                name: "Birthday design \(index)",
-                notes: index.isMultiple(of: 2) ? "Blue floral buttercream" : "Pink minimal cake",
-                tags: [index.isMultiple(of: 3) ? "Wedding" : "Birthday"]
-            )
-        }
-        let viewModel = CakeDesignListViewModel(repository: repository)
-        viewModel.load()
-
-        measure {
-            viewModel.searchText = "blue floral"
-            _ = viewModel.visibleDesigns
-            viewModel.searchText = "pink minimal"
-            _ = viewModel.visibleDesigns
-        }
-    }
 
     private func makeDesign(
         id: String,
