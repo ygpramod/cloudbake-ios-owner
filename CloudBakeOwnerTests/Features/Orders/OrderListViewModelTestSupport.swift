@@ -536,6 +536,7 @@ final class FakeOrderPhotoFileStore: OrderPhotoFileStore {
 
 final class FakeDesignPhotoLibrary: DesignPhotoLibrary {
     var savedFileURLs: [URL] = []
+    var savedData: [Data] = []
     var savedReference = "photos://asset-design"
     var saveError: Error?
     var shouldSuspendSave = false
@@ -549,6 +550,12 @@ final class FakeDesignPhotoLibrary: DesignPhotoLibrary {
                 saveContinuation = continuation
             }
         }
+        return savedReference
+    }
+
+    func savePhoto(data: Data) async throws -> String {
+        savedData.append(data)
+        if let saveError { throw saveError }
         return savedReference
     }
 

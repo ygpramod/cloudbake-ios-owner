@@ -822,7 +822,7 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
-    func addOrderPhoto(kind: OrderPhotoKind, imageData: Data, caption: String? = nil) -> Bool {
+    func addOrderPhoto(kind: OrderPhotoKind, imageData: Data, caption: String? = nil) async -> Bool {
         guard let selectedOrder else {
             errorMessage = "Order could not be found."
             return false
@@ -834,20 +834,13 @@ final class OrderListViewModel: ObservableObject {
 
         let photoId = idGenerator()
         let now = dateProvider()
-        var savedRelativePath: String?
-
         do {
-            let relativePath = try photoFileStore.saveOrderPhoto(
-                data: imageData,
-                orderId: selectedOrder.id,
-                photoId: photoId
-            )
-            savedRelativePath = relativePath
+            let photoReference = try await designPhotoLibrary.savePhoto(data: imageData)
             let photo = OrderPhoto(
                 id: photoId,
                 orderId: selectedOrder.id,
                 kind: kind,
-                localPhotoPath: relativePath,
+                localPhotoPath: photoReference,
                 caption: TextInputFormatting.optionalText(caption ?? ""),
                 createdAt: now,
                 updatedAt: now
@@ -857,9 +850,6 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = nil
             return true
         } catch {
-            if let savedRelativePath {
-                try? photoFileStore.deleteOrderPhoto(relativePath: savedRelativePath)
-            }
             errorMessage = "Order photo could not be saved."
             return false
         }
@@ -868,7 +858,9 @@ final class OrderListViewModel: ObservableObject {
     func deleteOrderPhoto(_ photo: OrderPhoto) -> Bool {
         do {
             try repository.deleteOrderPhoto(id: photo.id)
-            try photoFileStore.deleteOrderPhoto(relativePath: photo.localPhotoPath)
+            if PhotoKitDesignPhotoLibrary.assetIdentifier(from: photo.localPhotoPath) == nil {
+                try photoFileStore.deleteOrderPhoto(relativePath: photo.localPhotoPath)
+            }
             if let selectedOrder {
                 loadSelectedOrderPhotos(for: selectedOrder)
             }

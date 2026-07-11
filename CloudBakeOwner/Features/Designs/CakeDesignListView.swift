@@ -98,12 +98,18 @@ struct CakeDesignListView: View {
             }
             }
 
-            if !viewModel.visibleCustomerReferences.isEmpty {
-                Text("Customer References (\(viewModel.visibleCustomerReferences.count))")
+            Text("Customer References (\(viewModel.visibleCustomerReferences.count))")
                     .font(CloudBakeTheme.Typography.sectionTitle)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("designs.customerReferences.title")
 
+            if viewModel.visibleCustomerReferences.isEmpty {
+                Text("No customer references saved")
+                    .font(CloudBakeTheme.Typography.rowDetail)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("designs.customerReferences.empty")
+            } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 14) {
                         ForEach(viewModel.visibleCustomerReferences) { reference in
@@ -112,8 +118,8 @@ struct CakeDesignListView: View {
                         }
                     }
                 }
+                }
             }
-        }
     }
 
     private func customerReferenceTile(_ reference: CustomerReferenceDesign) -> some View {

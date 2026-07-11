@@ -139,7 +139,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
             viewModel.customerReferences,
             [CustomerReferenceDesign(photo: reference, order: order)]
         )
-        viewModel.searchText = "blue"
+        viewModel.searchText = "blue amy"
         XCTAssertEqual(viewModel.visibleCustomerReferences.map(\.id), [reference.id])
         viewModel.searchText = "unknown"
         XCTAssertTrue(viewModel.visibleCustomerReferences.isEmpty)
