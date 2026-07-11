@@ -67,7 +67,9 @@ struct OrderForm: View {
                 }
             }
 
-            if !viewModel.cakeDesigns.isEmpty || !viewModel.draftCustomerReferencePhotoId.isEmpty {
+            if !viewModel.cakeDesigns.isEmpty
+                || !viewModel.designCustomerReferences.isEmpty
+                || !viewModel.draftCustomerReferencePhotoId.isEmpty {
                 Section("Design") {
                     Button {
                         isSelectingDesign = true

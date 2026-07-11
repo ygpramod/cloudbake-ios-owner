@@ -488,6 +488,58 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(repository.orders.first?.cakeDesignId)
     }
 
+    func testOrderDesignPickerLoadsAndSearchesCustomerReferences() {
+        let repository = FakeOrderRepository()
+        let sourceOrder = makeOrder(
+            id: "order-reference-source",
+            title: "Blue wedding cake",
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        let photo = makeOrderPhoto(
+            id: "photo-reference-picker",
+            orderId: sourceOrder.id,
+            kind: .customerReference,
+            caption: "Floral sketch",
+            tags: ["Wedding", "Blue"]
+        )
+        repository.orders = [sourceOrder]
+        repository.orderPhotos = [photo]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginAddingOrder()
+
+        XCTAssertEqual(viewModel.designCustomerReferences.map(\.id), [photo.id])
+        XCTAssertEqual(
+            viewModel.customerReferences(matching: "blue floral", tag: "Wedding").map(\.id),
+            [photo.id]
+        )
+        XCTAssertEqual(viewModel.mostUsedDesignTags, ["Blue", "Wedding"])
+    }
+
+    func testEditingOrderRetainsHiddenHistoricalDesignLabelWithoutOfferingItAsChoice() {
+        let repository = FakeOrderRepository()
+        let historicalDesign = makeCakeDesign(
+            id: "design-retired-internet",
+            name: "Retired inspiration",
+            sourceKind: .internetInspiration
+        )
+        let order = makeOrder(
+            id: "order-historical-design",
+            cakeDesignId: historicalDesign.id,
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        repository.orders = [order]
+        repository.cakeDesigns = [historicalDesign]
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.beginViewingOrder(order)
+
+        viewModel.beginEditingOrder()
+
+        XCTAssertEqual(viewModel.draftCakeDesignName(), "Retired inspiration")
+        XCTAssertEqual(viewModel.draftCakeDesignId, historicalDesign.id)
+        XCTAssertTrue(viewModel.cakeDesigns(matching: "", tag: nil).isEmpty)
+    }
+
     func testRecipeSelectionStateUsesLoadedRecipes() {
         let repository = FakeOrderRepository()
         let vanilla = makeRecipe(id: "recipe-vanilla", name: "Vanilla sponge", notes: "Birthday base")

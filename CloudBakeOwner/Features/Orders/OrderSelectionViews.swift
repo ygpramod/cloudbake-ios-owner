@@ -36,20 +36,41 @@ struct DesignSelectionView: View {
                             .accessibilityIdentifier("orders.designSelection.customerReference")
                     }
 
-                    if matchingDesigns.isEmpty {
+                    if matchingDesigns.isEmpty && matchingCustomerReferences.isEmpty {
                         CloudBakeEmptyState(
                             title: "No matching designs",
                             systemImage: "photo.on.rectangle.angled",
                             message: "Try another name or tag."
                         )
                         .accessibilityIdentifier("orders.designSelection.empty")
-                    } else {
+                    }
+
+                    Text("My Designs (\(matchingDesigns.count))")
+                        .font(CloudBakeTheme.Typography.sectionTitle)
+                        .accessibilityIdentifier("orders.designSelection.myDesigns.title")
+
+                    if !matchingDesigns.isEmpty {
                         LazyVGrid(
                             columns: [GridItem(.adaptive(minimum: 140), spacing: 14)],
                             spacing: 14
                         ) {
                             ForEach(matchingDesigns, id: \.id) { design in
                                 designTile(design)
+                            }
+                        }
+                    }
+
+                    Text("Customer References (\(matchingCustomerReferences.count))")
+                        .font(CloudBakeTheme.Typography.sectionTitle)
+                        .accessibilityIdentifier("orders.designSelection.customerReferences.title")
+
+                    if !matchingCustomerReferences.isEmpty {
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: 140), spacing: 14)],
+                            spacing: 14
+                        ) {
+                            ForEach(matchingCustomerReferences) { reference in
+                                customerReferenceTile(reference)
                             }
                         }
                     }
@@ -84,6 +105,10 @@ struct DesignSelectionView: View {
 
     private var matchingDesigns: [CakeDesign] {
         viewModel.cakeDesigns(matching: searchText, tag: selectedTag)
+    }
+
+    private var matchingCustomerReferences: [CustomerReferenceDesign] {
+        viewModel.customerReferences(matching: searchText, tag: selectedTag)
     }
 
     private func filterButton(_ title: String, tag: String?) -> some View {
@@ -134,6 +159,52 @@ struct DesignSelectionView: View {
             viewModel.draftCakeDesignId == design.id ? .isSelected : []
         )
         .accessibilityIdentifier("orders.designSelection.design.\(design.id)")
+    }
+
+    private func customerReferenceTile(_ reference: CustomerReferenceDesign) -> some View {
+        Button {
+            viewModel.selectDraftCustomerReference(photoId: reference.photo.id)
+            isPresented = false
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                DesignPhotoView(
+                    source: viewModel.designPhotoSource(for: reference),
+                    maximumPixelSize: 600,
+                    contentMode: .fill
+                )
+                .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+                if viewModel.draftCustomerReferencePhotoId == reference.photo.id {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(8)
+                        .background(Color.cloudBakePink, in: Capsule())
+                        .padding(8)
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(
+                        viewModel.draftCustomerReferencePhotoId == reference.photo.id
+                            ? Color.cloudBakePink
+                            : Color.clear,
+                        lineWidth: 3
+                    )
+            }
+        }
+        .buttonStyle(.plain)
+        .cloudBakeCardStyle()
+        .accessibilityLabel(
+            "\(reference.title), customer reference from \(reference.order.customerName)"
+        )
+        .accessibilityAddTraits(
+            viewModel.draftCustomerReferencePhotoId == reference.photo.id ? .isSelected : []
+        )
+        .accessibilityIdentifier(
+            "orders.designSelection.customerReference.\(reference.photo.id)"
+        )
     }
 }
 
