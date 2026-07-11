@@ -104,6 +104,14 @@ struct InventoryStockConsumptionForm: View {
                     .accessibilityIdentifier("inventory.consume.note")
             }
 
+            if let preview = viewModel.stockConsumptionPreview {
+                InventoryStockMutationPreviewSection(
+                    title: "Stock Impact",
+                    preview: preview,
+                    accessibilityIdentifier: "inventory.consume.preview"
+                )
+            }
+
             if let errorMessage = viewModel.errorMessage {
                 Section {
                     Text(errorMessage)
@@ -179,6 +187,14 @@ struct InventoryStockAdjustmentForm: View {
                     .accessibilityIdentifier("inventory.adjust.note")
             }
 
+            if let preview = viewModel.stockAdjustmentPreview {
+                InventoryStockMutationPreviewSection(
+                    title: "Stock Impact",
+                    preview: preview,
+                    accessibilityIdentifier: "inventory.adjust.preview"
+                )
+            }
+
             if let errorMessage = viewModel.errorMessage {
                 Section {
                     Text(errorMessage)
@@ -206,5 +222,20 @@ struct InventoryStockAdjustmentForm: View {
                 .accessibilityIdentifier("inventory.adjust.save")
             }
         }
+    }
+}
+
+private struct InventoryStockMutationPreviewSection: View {
+    let title: String
+    let preview: InventoryStockMutationPreview
+    let accessibilityIdentifier: String
+
+    var body: some View {
+        Section(title) {
+            LabeledContent("Current", value: preview.currentQuantityText)
+            LabeledContent("Change", value: preview.quantityChangeText)
+            LabeledContent("After Save", value: preview.resultingQuantityText)
+        }
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }

@@ -1,6 +1,26 @@
 import CoreGraphics
 import Foundation
 
+struct InventoryStockMutationPreview: Equatable {
+    let currentQuantity: Double
+    let quantityChange: Double
+    let resultingQuantity: Double
+    let unit: InventoryUnit
+
+    var currentQuantityText: String {
+        "\(currentQuantity.formatted()) \(unit.displayName)"
+    }
+
+    var quantityChangeText: String {
+        let sign = quantityChange >= 0 ? "+" : "-"
+        return "\(sign)\(abs(quantityChange).formatted()) \(unit.displayName)"
+    }
+
+    var resultingQuantityText: String {
+        "\(resultingQuantity.formatted()) \(unit.displayName)"
+    }
+}
+
 @MainActor
 final class InventoryListViewModel: ObservableObject {
     @Published private(set) var items: [InventoryItem] = []
@@ -75,6 +95,60 @@ final class InventoryListViewModel: ObservableObject {
                     .contains { $0.contains(query) }
             )
         }
+    }
+
+    var stockAdjustmentPreview: InventoryStockMutationPreview? {
+        guard let adjustingItem else {
+            return nil
+        }
+
+        let planResult = InventoryStockOperation.adjustmentPlan(
+            item: adjustingItem,
+            quantityText: draftAdjustmentQuantity,
+            unit: draftAdjustmentUnit,
+            expiresAt: draftAdjustmentHasExpiryDate ? draftAdjustmentExpiryDate : nil,
+            amountText: draftAdjustmentAmount,
+            note: draftAdjustmentNote,
+            now: dateProvider(),
+            itemIdProvider: { "preview" }
+        )
+
+        guard case .success(let plan) = planResult else {
+            return nil
+        }
+
+        return InventoryStockMutationPreview(
+            currentQuantity: adjustingItem.currentQuantity,
+            quantityChange: plan.transaction.quantity,
+            resultingQuantity: plan.updatedItem.currentQuantity,
+            unit: adjustingItem.unit
+        )
+    }
+
+    var stockConsumptionPreview: InventoryStockMutationPreview? {
+        guard let consumingItem else {
+            return nil
+        }
+
+        let planResult = InventoryStockOperation.consumptionPlan(
+            item: consumingItem,
+            quantityText: draftConsumptionQuantity,
+            unit: draftConsumptionUnit,
+            note: draftConsumptionNote,
+            now: dateProvider(),
+            itemIdProvider: { "preview" }
+        )
+
+        guard case .success(let plan) = planResult else {
+            return nil
+        }
+
+        return InventoryStockMutationPreview(
+            currentQuantity: consumingItem.currentQuantity,
+            quantityChange: -plan.transaction.quantity,
+            resultingQuantity: plan.updatedItem.currentQuantity,
+            unit: consumingItem.unit
+        )
     }
 
     func item(id: String) -> InventoryItem? {
