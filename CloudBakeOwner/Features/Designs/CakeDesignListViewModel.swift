@@ -250,7 +250,9 @@ final class CakeDesignListViewModel: ObservableObject {
     }
 
     private var searchTerms: [String] {
-        searchText.split(whereSeparator: \.isWhitespace)
+        searchText.split { character in
+            !character.isLetter && !character.isNumber
+        }
             .map(String.init)
             .map(TextInputFormatting.normalizedSearchKey)
             .filter { !$0.isEmpty }
