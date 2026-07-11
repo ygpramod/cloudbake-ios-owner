@@ -58,6 +58,7 @@ struct RecipeForm: View {
                         isPresented = false
                     }
                 }
+                .disabled(!viewModel.canSubmitRecipeDraft)
                 .accessibilityIdentifier("recipes.form.save")
             }
         }

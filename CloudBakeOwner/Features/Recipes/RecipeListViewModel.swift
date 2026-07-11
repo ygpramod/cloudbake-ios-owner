@@ -60,6 +60,10 @@ final class RecipeListViewModel: ObservableObject {
         }
     }
 
+    var canSubmitRecipeDraft: Bool {
+        !TextInputFormatting.trimmed(draftName).isEmpty
+    }
+
     func beginViewingRecipe(_ recipe: Recipe) {
         selectedRecipe = recipe
         loadRecipeDetail()
