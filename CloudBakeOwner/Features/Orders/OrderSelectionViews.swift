@@ -4,87 +4,75 @@ struct DesignSelectionView: View {
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
     @State private var searchText = ""
+    @State private var selectedTag: String?
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
-        List {
-            Section {
-                Button {
-                    viewModel.clearDraftCakeDesignLink()
-                    isPresented = false
-                } label: {
-                    HStack {
-                        Text("No Linked Design")
-                        Spacer()
-                        if viewModel.draftCakeDesignId.isEmpty
-                            && viewModel.draftCustomerReferencePhotoId.isEmpty {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(.tint)
-                        }
-                    }
-                }
-                .accessibilityIdentifier("orders.designSelection.none")
-            }
+        ZStack {
+            CloudBakeScreenBackground().ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    CloudBakeSearchField(
+                        text: $searchText,
+                        prompt: "Search designs",
+                        accessibilityIdentifier: "orders.designSelection.search",
+                        isFocused: $isSearchFocused
+                    )
 
-            if !viewModel.draftCustomerReferencePhotoId.isEmpty {
-                Section("Current Reference") {
-                    HStack {
-                        Text("Customer Reference")
-                        Spacer()
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(.tint)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityAddTraits(.isSelected)
-                    .accessibilityIdentifier("orders.designSelection.customerReference")
-                }
-            }
-
-            Section("Designs") {
-                let matchingDesigns = viewModel.cakeDesigns(matching: searchText)
-                if matchingDesigns.isEmpty {
-                    Text("No matching designs")
-                        .foregroundStyle(.secondary)
-                        .accessibilityIdentifier("orders.designSelection.empty")
-                } else {
-                    ForEach(matchingDesigns, id: \.id) { design in
-                        Button {
-                            viewModel.selectDraftCakeDesign(id: design.id)
-                            isPresented = false
-                        } label: {
-                            HStack(alignment: .top, spacing: 12) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(design.name)
-                                        .font(.headline)
-                                    if let notes = design.notes {
-                                        Text(notes)
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(2)
-                                    }
-                                    if let photoReference = design.photoReference {
-                                        Label(photoReference, systemImage: "photo")
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                }
-
-                                Spacer()
-
-                                if viewModel.draftCakeDesignId == design.id {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.tint)
-                                }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            filterButton("All", tag: nil)
+                            ForEach(viewModel.mostUsedDesignTags, id: \.self) { tag in
+                                filterButton("#\(tag)", tag: tag)
                             }
                         }
-                        .accessibilityIdentifier("orders.designSelection.design.\(design.id)")
+                    }
+                    .accessibilityIdentifier("orders.designSelection.filters")
+
+                    if !viewModel.draftCustomerReferencePhotoId.isEmpty {
+                        Label("Customer Reference is linked", systemImage: "person.crop.rectangle")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.cloudBakePink)
+                            .accessibilityIdentifier("orders.designSelection.customerReference")
+                    }
+
+                    if matchingDesigns.isEmpty {
+                        CloudBakeEmptyState(
+                            title: "No matching designs",
+                            systemImage: "photo.on.rectangle.angled",
+                            message: "Try another name or tag."
+                        )
+                        .accessibilityIdentifier("orders.designSelection.empty")
+                    } else {
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: 140), spacing: 14)],
+                            spacing: 14
+                        ) {
+                            ForEach(matchingDesigns, id: \.id) { design in
+                                designTile(design)
+                            }
+                        }
                     }
                 }
+                .padding(CloudBakeTheme.Spacing.screenHorizontal)
+                .padding(.bottom, 32)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
-        .navigationTitle("Design")
-        .searchable(text: $searchText, prompt: "Search Designs")
+        .navigationTitle("Choose Design")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Clear Link") {
+                    viewModel.clearDraftCakeDesignLink()
+                    isPresented = false
+                }
+                .disabled(
+                    viewModel.draftCakeDesignId.isEmpty
+                        && viewModel.draftCustomerReferencePhotoId.isEmpty
+                )
+                .accessibilityIdentifier("orders.designSelection.none")
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
                     isPresented = false
@@ -92,6 +80,60 @@ struct DesignSelectionView: View {
                 .accessibilityIdentifier("orders.designSelection.done")
             }
         }
+    }
+
+    private var matchingDesigns: [CakeDesign] {
+        viewModel.cakeDesigns(matching: searchText, tag: selectedTag)
+    }
+
+    private func filterButton(_ title: String, tag: String?) -> some View {
+        Button(title) { selectedTag = tag }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .tint(selectedTag == tag ? Color.cloudBakePink : Color.secondary)
+            .accessibilityAddTraits(selectedTag == tag ? .isSelected : [])
+    }
+
+    private func designTile(_ design: CakeDesign) -> some View {
+        Button {
+            viewModel.selectDraftCakeDesign(id: design.id)
+            isPresented = false
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                DesignPhotoView(
+                    source: viewModel.designPhotoSource(for: design),
+                    maximumPixelSize: 600,
+                    contentMode: .fill
+                )
+                .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+                if viewModel.draftCakeDesignId == design.id {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(8)
+                        .background(Color.cloudBakePink, in: Capsule())
+                        .padding(8)
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(
+                        viewModel.draftCakeDesignId == design.id
+                            ? Color.cloudBakePink
+                            : Color.clear,
+                        lineWidth: 3
+                    )
+            }
+        }
+        .buttonStyle(.plain)
+        .cloudBakeCardStyle()
+        .accessibilityLabel("\(design.name), design")
+        .accessibilityAddTraits(
+            viewModel.draftCakeDesignId == design.id ? .isSelected : []
+        )
+        .accessibilityIdentifier("orders.designSelection.design.\(design.id)")
     }
 }
 

@@ -212,7 +212,7 @@ final class OrderListViewModel: ObservableObject {
             orders = try repository.fetchOrders()
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
-            cakeDesigns = try repository.fetchCakeDesigns()
+            cakeDesigns = try repository.fetchCakeDesigns(sourceKind: .ownerMade)
             errorMessage = retryPendingDesignPhotoCleanups()
                 ? nil
                 : "A previous design photo cleanup will be retried automatically."
@@ -361,6 +361,31 @@ final class OrderListViewModel: ObservableObject {
 
     func cakeDesigns(matching searchText: String) -> [CakeDesign] {
         OrderReferenceSelection.cakeDesigns(cakeDesigns, matching: searchText)
+    }
+
+    func cakeDesigns(matching searchText: String, tag: String?) -> [CakeDesign] {
+        cakeDesigns(matching: searchText).filter { design in
+            guard let tag else { return true }
+            let selectedKey = TextInputFormatting.normalizedSearchKey(tag)
+            return design.tags.contains {
+                TextInputFormatting.normalizedSearchKey($0) == selectedKey
+            }
+        }
+    }
+
+    var mostUsedDesignTags: [String] {
+        DesignTagRanking.mostUsed(in: cakeDesigns.map(\.tags))
+    }
+
+    func designPhotoSource(for design: CakeDesign) -> CakeDesignPhotoSource? {
+        guard let reference = design.photoReference else { return nil }
+        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: reference) {
+            return designPhotoLibrary.containsAsset(identifier: identifier)
+                ? .photosAsset(identifier)
+                : nil
+        }
+        let url = photoFileStore.fileURL(for: reference)
+        return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
     }
 
     func addOrder() -> Bool {
@@ -1109,7 +1134,7 @@ final class OrderListViewModel: ObservableObject {
         do {
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
-            cakeDesigns = try repository.fetchCakeDesigns()
+            cakeDesigns = try repository.fetchCakeDesigns(sourceKind: .ownerMade)
             availableInventoryItems = try repository.fetchInventoryItems()
         } catch {
             customers = []

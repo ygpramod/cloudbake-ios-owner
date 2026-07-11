@@ -103,7 +103,8 @@ func makeCakeDesign(
     name: String,
     notes: String? = nil,
     photoReference: String? = nil,
-    sourceKind: CakeDesignSourceKind = .ownerMade
+    sourceKind: CakeDesignSourceKind = .ownerMade,
+    tags: [String] = []
 ) -> CakeDesign {
     let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
     return CakeDesign(
@@ -112,6 +113,7 @@ func makeCakeDesign(
         notes: notes,
         photoReference: photoReference,
         sourceKind: sourceKind,
+        tags: tags,
         createdAt: timestamp,
         updatedAt: timestamp
     )
