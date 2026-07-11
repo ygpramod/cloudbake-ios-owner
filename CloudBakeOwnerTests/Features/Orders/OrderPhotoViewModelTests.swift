@@ -30,36 +30,28 @@ final class OrderPhotoViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedFinalCakePhotos, [finalPhoto])
     }
 
-    func testAddOrderPhotoStoresImageAndPersistsPhotoMetadata() {
+    func testAddOrderPhotoStoresImageAndPersistsPhotoMetadata() async {
         let repository = FakeOrderRepository()
-        let photoFileStore = FakeOrderPhotoFileStore()
+        let designPhotoLibrary = FakeDesignPhotoLibrary()
         let now = Date(timeIntervalSince1970: 1_800_080_000)
         let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
         let imageData = Data([0xCA, 0xFE])
         let viewModel = OrderListViewModel(
             repository: repository,
-            photoFileStore: photoFileStore,
+            designPhotoLibrary: designPhotoLibrary,
             idGenerator: { "photo-reference" },
             dateProvider: { now }
         )
 
         viewModel.beginViewingOrder(order)
 
-        XCTAssertTrue(viewModel.addOrderPhoto(
+        let didAdd = await viewModel.addOrderPhoto(
             kind: .customerReference,
             imageData: imageData,
             caption: " Customer sketch "
-        ))
-        XCTAssertEqual(
-            photoFileStore.savedPhotos,
-            [
-                FakeOrderPhotoFileStore.SavedPhoto(
-                    data: imageData,
-                    orderId: order.id,
-                    photoId: "photo-reference"
-                )
-            ]
         )
+        XCTAssertTrue(didAdd)
+        XCTAssertEqual(designPhotoLibrary.savedData, [imageData])
         XCTAssertEqual(
             repository.orderPhotos,
             [
@@ -67,7 +59,7 @@ final class OrderPhotoViewModelTests: XCTestCase {
                     id: "photo-reference",
                     orderId: order.id,
                     kind: .customerReference,
-                    localPhotoPath: "OrderPhotos/order-vanilla/photo-reference.jpg",
+                    localPhotoPath: designPhotoLibrary.savedReference,
                     caption: "Customer sketch",
                     createdAt: now,
                     updatedAt: now
@@ -78,14 +70,15 @@ final class OrderPhotoViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testAddOrderPhotoRejectsEmptyImageData() {
+    func testAddOrderPhotoRejectsEmptyImageData() async {
         let repository = FakeOrderRepository()
         let order = makeOrder(id: "order-vanilla", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.beginViewingOrder(order)
 
-        XCTAssertFalse(viewModel.addOrderPhoto(kind: .finalCake, imageData: Data()))
+        let didAdd = await viewModel.addOrderPhoto(kind: .finalCake, imageData: Data())
+        XCTAssertFalse(didAdd)
         XCTAssertTrue(repository.orderPhotos.isEmpty)
         XCTAssertEqual(viewModel.errorMessage, "Order photo is required.")
     }

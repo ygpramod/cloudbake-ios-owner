@@ -714,7 +714,9 @@ struct OrderDetailView: View {
             return
         }
 
-        _ = viewModel.addOrderPhoto(kind: kind, imageData: imageData)
+        Task {
+            _ = await viewModel.addOrderPhoto(kind: kind, imageData: imageData)
+        }
     }
 
     private func importOrderPhoto(_ item: PhotosPickerItem?, kind: OrderPhotoKind) async {
@@ -729,7 +731,7 @@ struct OrderDetailView: View {
                 return
             }
 
-            _ = viewModel.addOrderPhoto(
+            _ = await viewModel.addOrderPhoto(
                 kind: kind,
                 imageData: imageData
             )

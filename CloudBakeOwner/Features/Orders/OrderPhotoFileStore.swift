@@ -1,5 +1,6 @@
 import Foundation
 import Photos
+import UIKit
 
 protocol OrderPhotoFileStore {
     func saveOrderPhoto(data: Data, orderId: String, photoId: String) throws -> String
@@ -9,6 +10,7 @@ protocol OrderPhotoFileStore {
 
 protocol DesignPhotoLibrary {
     func savePhoto(at fileURL: URL) async throws -> String
+    func savePhoto(data: Data) async throws -> String
     func containsAsset(identifier: String) -> Bool
 }
 
@@ -21,15 +23,30 @@ final class PhotoKitDesignPhotoLibrary: DesignPhotoLibrary {
     static let referencePrefix = "photos://"
 
     func savePhoto(at fileURL: URL) async throws -> String {
-        let authorization = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
-        guard authorization == .authorized || authorization == .limited else {
-            throw DesignPhotoLibraryError.accessDenied
-        }
+        try await requireReadWriteAccess()
 
         var localIdentifier: String?
         try await PHPhotoLibrary.shared().performChanges {
             localIdentifier = PHAssetChangeRequest
                 .creationRequestForAssetFromImage(atFileURL: fileURL)?
+                .placeholderForCreatedAsset?
+                .localIdentifier
+        }
+        guard let localIdentifier else {
+            throw DesignPhotoLibraryError.assetCreationFailed
+        }
+        return Self.referencePrefix + localIdentifier
+    }
+
+    func savePhoto(data: Data) async throws -> String {
+        guard let image = UIImage(data: data) else {
+            throw DesignPhotoLibraryError.assetCreationFailed
+        }
+        try await requireReadWriteAccess()
+        var localIdentifier: String?
+        try await PHPhotoLibrary.shared().performChanges {
+            localIdentifier = PHAssetChangeRequest
+                .creationRequestForAsset(from: image)
                 .placeholderForCreatedAsset?
                 .localIdentifier
         }
@@ -46,6 +63,14 @@ final class PhotoKitDesignPhotoLibrary: DesignPhotoLibrary {
     static func assetIdentifier(from reference: String) -> String? {
         guard reference.hasPrefix(referencePrefix) else { return nil }
         return String(reference.dropFirst(referencePrefix.count))
+    }
+
+
+    private func requireReadWriteAccess() async throws {
+        let authorization = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        guard authorization == .authorized || authorization == .limited else {
+            throw DesignPhotoLibraryError.accessDenied
+        }
     }
 }
 

@@ -107,13 +107,19 @@ final class CakeDesignListViewModel: ObservableObject {
     }
 
     var visibleCustomerReferences: [CustomerReferenceDesign] {
-        let query = TextInputFormatting.normalizedSearchKey(searchText)
-        guard !query.isEmpty else { return customerReferences }
+        let terms = searchText
+            .split(whereSeparator: \.isWhitespace)
+            .map(String.init)
+            .map(TextInputFormatting.normalizedSearchKey)
+            .filter { !$0.isEmpty }
+        guard !terms.isEmpty else { return customerReferences }
         return customerReferences.filter { reference in
-            [reference.photo.caption, reference.order.title, reference.order.customerName]
+            let searchableValues = [reference.photo.caption, reference.order.title, reference.order.customerName]
                 .compactMap { $0 }
                 .map(TextInputFormatting.normalizedSearchKey)
-                .contains { $0.contains(query) }
+            return terms.allSatisfy { term in
+                searchableValues.contains { $0.contains(term) }
+            }
         }
     }
 
