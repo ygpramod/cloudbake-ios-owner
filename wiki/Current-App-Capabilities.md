@@ -142,6 +142,8 @@ The app currently supports:
     URL, owner notes, and explicit third-party provenance.
 114. photo-only Designs thumbnails, with names and metadata available through accessibility and the
     centered, shared-style detail screen.
+115. local cross-source Designs search with tokenized AND matching while preserving My Designs,
+    Customer References, and Internet Inspiration grouping.
 
 ## Partially Prepared
 
