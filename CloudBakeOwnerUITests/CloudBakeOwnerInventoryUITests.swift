@@ -57,9 +57,11 @@ extension CloudBakeOwnerUITests {
         returnToDashboard(in: app)
 
         assertDashboardVisible(in: app, timeout: 5)
-        XCTAssertTrue(app.staticTexts["Low inventory"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Expiring soon"].waitForExistence(timeout: 5))
+        let lowInventoryAlert = app.descendants(matching: .any)["dashboard.attention.lowInventory"]
+        XCTAssertTrue(lowInventoryAlert.waitForExistence(timeout: 5))
+        XCTAssertTrue(lowInventoryAlert.label.contains("Low inventory"))
+        XCTAssertTrue(lowInventoryAlert.label.contains("Cake flour"))
+        XCTAssertTrue(lowInventoryAlert.label.contains("Expiring soon"))
     }
 
     private func makeInventoryFixtureApp() -> XCUIApplication {
