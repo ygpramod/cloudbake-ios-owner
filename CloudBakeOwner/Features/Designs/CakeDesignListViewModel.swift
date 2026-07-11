@@ -7,19 +7,28 @@ final class CakeDesignListViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let repository: any CakeDesignRepository
+    private let photoFileStore: OrderPhotoFileStore
 
-    init(repository: any CakeDesignRepository) {
+    init(
+        repository: any CakeDesignRepository,
+        photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore()
+    ) {
         self.repository = repository
+        self.photoFileStore = photoFileStore
     }
 
     func load() {
         do {
-            designs = try repository.fetchCakeDesigns()
+            designs = try repository.fetchCakeDesigns(sourceKind: .ownerMade)
             errorMessage = nil
         } catch {
             designs = []
             errorMessage = "Designs could not be loaded."
         }
+    }
+
+    func photoURL(for design: CakeDesign) -> URL? {
+        design.photoReference.map(photoFileStore.fileURL(for:))
     }
 
     var visibleDesigns: [CakeDesign] {

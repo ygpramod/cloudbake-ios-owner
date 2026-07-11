@@ -6,7 +6,12 @@ final class CakeDesignListViewModelTests: XCTestCase {
     func testLoadFetchesDesigns() {
         let repository = FakeCakeDesignRepository()
         let design = makeDesign(id: "design-flowers", name: "Pink Flowers")
-        repository.designs = [design]
+        let inspiration = makeDesign(
+            id: "design-inspiration",
+            name: "Saved Inspiration",
+            sourceKind: .internetInspiration
+        )
+        repository.designs = [design, inspiration]
         let viewModel = CakeDesignListViewModel(repository: repository)
 
         viewModel.load()
@@ -60,7 +65,8 @@ final class CakeDesignListViewModelTests: XCTestCase {
         id: String,
         name: String,
         notes: String? = nil,
-        photoReference: String? = "photos://asset"
+        photoReference: String? = "photos://asset",
+        sourceKind: CakeDesignSourceKind = .ownerMade
     ) -> CakeDesign {
         let timestamp = Date(timeIntervalSince1970: 1_800_080_000)
         return CakeDesign(
@@ -68,6 +74,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
             name: name,
             notes: notes,
             photoReference: photoReference,
+            sourceKind: sourceKind,
             createdAt: timestamp,
             updatedAt: timestamp
         )

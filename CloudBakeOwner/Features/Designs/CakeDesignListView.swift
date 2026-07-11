@@ -49,6 +49,7 @@ struct CakeDesignListView: View {
             NavigationStack {
                 CakeDesignPreviewView(
                     design: design,
+                    photoURL: viewModel.photoURL(for: design),
                     accessibilityLabel: viewModel.accessibilityLabel(for: design)
                 )
             }
@@ -67,6 +68,11 @@ struct CakeDesignListView: View {
                 message: "Try another cake name, note, tag, or photo reference."
             )
         } else {
+            Text("My Designs (\(viewModel.visibleDesigns.count))")
+                .font(CloudBakeTheme.Typography.sectionTitle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("designs.myDesigns.title")
+
             LazyVGrid(
                 columns: [
                     GridItem(.adaptive(minimum: 150), spacing: 14)
@@ -85,32 +91,9 @@ struct CakeDesignListView: View {
             previewingDesign = design
         } label: {
             VStack(alignment: .leading, spacing: 10) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.cloudBakePink.opacity(0.16),
-                                    Color.cloudBakeMint.opacity(0.20)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-
-                    VStack(spacing: 8) {
-                        Image(systemName: design.photoReference == nil ? "photo.badge.exclamationmark" : "photo")
-                            .font(.system(size: 36, weight: .semibold))
-                            .foregroundStyle(Color.cloudBakePink)
-
-                        Text(design.photoReference == nil ? "No photo" : "Photo reference")
-                            .font(CloudBakeTheme.Typography.metadata.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .multilineTextAlignment(.center)
-                    .padding(12)
-                }
+                designPhoto(design, contentMode: .fill)
                 .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
                 Text(design.name)
                     .font(CloudBakeTheme.Typography.rowTitle)
@@ -134,47 +117,56 @@ struct CakeDesignListView: View {
         .accessibilityLabel(viewModel.accessibilityLabel(for: design))
         .accessibilityIdentifier("designs.item.\(design.id)")
     }
+
+    private func designPhoto(_ design: CakeDesign, contentMode: ContentMode) -> some View {
+        AsyncImage(url: viewModel.photoURL(for: design)) { phase in
+            if case .success(let image) = phase {
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+            } else {
+                ContentUnavailableView(
+                    "Photo Unavailable",
+                    systemImage: "photo.badge.exclamationmark"
+                )
+                .foregroundStyle(Color.cloudBakePink)
+                .background(Color.cloudBakePink.opacity(0.10))
+            }
+        }
+    }
 }
 
 private struct CakeDesignPreviewView: View {
     let design: CakeDesign
+    let photoURL: URL?
     let accessibilityLabel: String
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.cloudBakePink.opacity(0.18),
-                                    Color.cloudBakePurple.opacity(0.16),
-                                    Color.cloudBakeMint.opacity(0.20)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-
-                    VStack(spacing: 12) {
-                        Image(systemName: design.photoReference == nil ? "photo.badge.exclamationmark" : "photo.on.rectangle.angled")
-                            .font(.system(size: 58, weight: .semibold))
+                AsyncImage(url: photoURL) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFit()
+                    } else {
+                        ContentUnavailableView("Photo Unavailable", systemImage: "photo.badge.exclamationmark")
                             .foregroundStyle(Color.cloudBakePink)
-
-                        Text(design.photoReference == nil ? "Photo unavailable" : "Referenced Photos asset")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
+                            .background(Color.cloudBakePink.opacity(0.10))
                     }
                 }
                 .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .accessibilityLabel(accessibilityLabel)
                 .accessibilityIdentifier("designs.preview.photo")
 
                 CloudBakeDetailCard {
                     CloudBakeDetailRow("Name") {
                         Text(design.name)
+                    }
+
+                    CloudBakeDetailDivider()
+                    CloudBakeDetailRow("Collection") {
+                        Text("My Designs")
                     }
 
                     if let notes = design.notes {
