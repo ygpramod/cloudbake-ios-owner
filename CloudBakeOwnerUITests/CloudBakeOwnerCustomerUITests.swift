@@ -12,15 +12,19 @@ extension CloudBakeOwnerUITests {
 
         assertScreenVisible("screen.customers", in: app, timeout: 5)
         XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["5550101"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["555-0101"].waitForExistence(timeout: 5))
         app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "customers.item."))
             .firstMatch
             .tap()
 
         XCTAssertTrue(app.buttons["customers.detail.done"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Name"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["customers.detail.call"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["customers.detail.message"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["customers.detail.newOrder"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Phone"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["555-0101"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Birthday"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Allergies & Dietary"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Nuts"].waitForExistence(timeout: 5))
     }
 
