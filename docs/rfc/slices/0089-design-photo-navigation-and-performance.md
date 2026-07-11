@@ -31,7 +31,8 @@ The detail view owns zoom state per stable item identity, so navigating resets t
 1×. Pan is bounded to the scaled photo and adjacent navigation is suppressed while zoomed.
 Previous and Next controls provide an accessible alternative to horizontal swipes, and VoiceOver
 receives the current zoom percentage. Adjacent navigation retains the filtered collection snapshot
-that opened detail, so changing a favourite or tag does not strand the current item. Thumbnail
+that opened detail and synchronizes successful favourite/tag edits into that snapshot, so changing
+metadata does not strand or restore stale state for the current item. Thumbnail
 loading remains actor-isolated with count and memory-cost limits; detail requests a larger
 representation on demand.
 
@@ -40,8 +41,8 @@ representation on demand.
 1. Focused acceptance proves zoom controls are exposed and a swipe opens the adjacent result.
 2. A GRDB-backed performance budget loads and searches 600 persisted records using a multi-term
    query in under one second.
-3. Acceptance covers zoom state, navigation boundaries, filtered adjacency, and scrolling from the
-   bottom of Designs back to search.
+3. Acceptance covers zoom state, navigation boundaries, filtered adjacency, edit/navigation state,
+   and scrolling from an Internet Inspiration grid bottom back to search.
 
 ## Documentation Decision
 
