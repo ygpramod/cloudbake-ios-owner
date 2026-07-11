@@ -6,6 +6,7 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var items: [InventoryItem] = []
     @Published private(set) var archivedItems: [InventoryItem] = []
     @Published var searchText = ""
+    @Published var itemFilter: InventoryItemFilter = .all
     @Published var draftName = ""
     @Published var draftAliases = ""
     @Published var draftType: InventoryItemType = .standard
@@ -62,18 +63,17 @@ final class InventoryListViewModel: ObservableObject {
 
     var visibleItems: [InventoryItem] {
         let query = TextInputFormatting.normalizedSearchKey(searchText)
-        guard !query.isEmpty else {
-            return items
-        }
-
         return items.filter { item in
-            [
-                item.name,
-                item.unit.displayName,
-                InventoryAliases.displayText(item.aliases)
-            ]
-                .map(TextInputFormatting.normalizedSearchKey)
-                .contains { $0.contains(query) }
+            itemFilter.includes(item) && (
+                query.isEmpty ||
+                [
+                    item.name,
+                    item.unit.displayName,
+                    InventoryAliases.displayText(item.aliases)
+                ]
+                    .map(TextInputFormatting.normalizedSearchKey)
+                    .contains { $0.contains(query) }
+            )
         }
     }
 
@@ -1007,6 +1007,38 @@ final class InventoryListViewModel: ObservableObject {
             return Calendar.current.isDate(left, inSameDayAs: right)
         case (.none, .some), (.some, .none):
             return false
+        }
+    }
+}
+
+enum InventoryItemFilter: String, CaseIterable, Identifiable {
+    case all
+    case lowStock
+    case expiringSoon
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .all:
+            return "All"
+        case .lowStock:
+            return "Low stock"
+        case .expiringSoon:
+            return "Expiring soon"
+        }
+    }
+
+    func includes(_ item: InventoryItem) -> Bool {
+        switch self {
+        case .all:
+            return true
+        case .lowStock:
+            return item.currentQuantity < item.minimumQuantity
+        case .expiringSoon:
+            return item.hasExpiredStock || item.hasExpiringSoonStock
         }
     }
 }
