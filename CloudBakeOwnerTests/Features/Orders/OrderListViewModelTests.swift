@@ -154,6 +154,37 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.visibleCompletedOrders, [completed])
     }
 
+    func testOrderDraftCanSubmitOnlyWhenRequiredFieldsAreValid() {
+        let viewModel = OrderListViewModel(repository: FakeOrderRepository())
+
+        XCTAssertFalse(viewModel.canSubmitOrderDraft)
+
+        viewModel.draftTitle = "Chocolate birthday cake"
+        XCTAssertFalse(viewModel.canSubmitOrderDraft)
+
+        viewModel.draftCustomerName = "Amy"
+        XCTAssertTrue(viewModel.canSubmitOrderDraft)
+
+        viewModel.draftTitle = "   "
+        XCTAssertFalse(viewModel.canSubmitOrderDraft)
+    }
+
+    func testOrderDraftCannotSubmitWithInvalidPaymentValues() {
+        let viewModel = OrderListViewModel(repository: FakeOrderRepository())
+        viewModel.draftTitle = "Chocolate birthday cake"
+        viewModel.draftCustomerName = "Amy"
+
+        viewModel.draftQuotedPrice = "40"
+        viewModel.draftDepositPaid = "45"
+        XCTAssertFalse(viewModel.canSubmitOrderDraft)
+
+        viewModel.draftDepositPaid = "20"
+        XCTAssertTrue(viewModel.canSubmitOrderDraft)
+
+        viewModel.draftRecipeScaleMultiplier = "0"
+        XCTAssertFalse(viewModel.canSubmitOrderDraft)
+    }
+
     func testCalendarDaysUseFilteredActiveOrders() {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()
