@@ -36,6 +36,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var selectedOrderCustomer: Customer?
     @Published private(set) var selectedOrderRecipe: Recipe?
     @Published private(set) var selectedOrderCakeDesign: CakeDesign?
+    @Published private(set) var selectedOrderCustomerReferencePhoto: OrderPhoto?
     @Published private(set) var selectedOrderRecipeUsage: OrderRecipeUsage?
     @Published private(set) var selectedOrderExtraIngredients: [OrderExtraIngredientRow] = []
     @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
@@ -261,6 +262,7 @@ final class OrderListViewModel: ObservableObject {
         selectedOrderCustomer = nil
         selectedOrderRecipe = nil
         selectedOrderCakeDesign = nil
+        selectedOrderCustomerReferencePhoto = nil
         selectedOrderRecipeUsage = nil
         selectedOrderExtraIngredients = []
         selectedOrderChecklistItems = []
@@ -335,6 +337,18 @@ final class OrderListViewModel: ObservableObject {
 
     func draftCakeDesignName() -> String {
         OrderReferenceSelection.cakeDesignName(for: draftCakeDesignId, cakeDesigns: cakeDesigns)
+    }
+
+    var selectedOrderDesignSourceName: String? {
+        if selectedOrderCustomerReferencePhoto != nil {
+            return "Customer Reference"
+        }
+        switch selectedOrderCakeDesign?.sourceKind {
+        case .ownerMade: return "My Designs"
+        case .internetInspiration: return "Internet Inspiration"
+        case .customerReference: return "Customer Reference"
+        case nil: return nil
+        }
     }
 
     func customers(matching searchText: String) -> [Customer] {
@@ -1176,6 +1190,16 @@ final class OrderListViewModel: ObservableObject {
     }
 
     private func loadSelectedOrderCakeDesign(for order: Order) {
+        if let photoId = order.customerReferencePhotoId {
+            do {
+                selectedOrderCustomerReferencePhoto = try repository.fetchOrderPhoto(id: photoId)
+            } catch {
+                selectedOrderCustomerReferencePhoto = nil
+                errorMessage = "Customer reference could not be loaded."
+            }
+        } else {
+            selectedOrderCustomerReferencePhoto = nil
+        }
         guard let cakeDesignId = order.cakeDesignId else {
             selectedOrderCakeDesign = nil
             return

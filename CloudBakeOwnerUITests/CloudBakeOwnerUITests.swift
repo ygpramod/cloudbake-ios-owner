@@ -85,6 +85,32 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["No orders yet"].waitForExistence(timeout: 5))
     }
 
+    func testCustomerReferenceDraftShowsItsCurrentSelectedProvenance() throws {
+        let app = makeApp(initialDestination: "designs")
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] = "1"
+        app.launch()
+
+        let reference = app.buttons["designs.customerReference.photo-ui-fixture-reference"]
+        XCTAssertTrue(reference.waitForExistence(timeout: 10))
+        tapWhenReady(reference)
+        let useForNewOrder = app.buttons["designs.customerReference.useForNewOrder"]
+        XCTAssertTrue(useForNewOrder.waitForExistence(timeout: 5))
+        tapWhenReady(useForNewOrder)
+
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 10))
+        let designField = app.buttons["orders.form.design"]
+        XCTAssertTrue(designField.waitForExistence(timeout: 5))
+        XCTAssertTrue(designField.label.contains("Customer Reference"))
+        tapWhenReady(designField)
+
+        let currentReference = app.descendants(matching: .any)[
+            "orders.designSelection.customerReference"
+        ]
+        XCTAssertTrue(currentReference.waitForExistence(timeout: 5))
+        XCTAssertTrue(currentReference.isSelected)
+        XCTAssertFalse(app.buttons["orders.designSelection.none"].isSelected)
+    }
+
     func testSettingsShowsInventoryCSVActions() throws {
         let app = makeApp()
         app.launch()

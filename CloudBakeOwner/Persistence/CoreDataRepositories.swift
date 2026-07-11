@@ -47,6 +47,11 @@ enum CakeDesignPromotionError: Error, Equatable {
     case originatingPhotoAlreadyPromoted
 }
 
+enum OrderPersistenceError: Error, Equatable {
+    case invalidCustomerReferencePhoto
+    case multipleDesignReferences
+}
+
 extension CakeDesignRepository {
     func fetchCakeDesigns(sourceKind: CakeDesignSourceKind) throws -> [CakeDesign] {
         try fetchCakeDesigns().filter { $0.sourceKind == sourceKind }
@@ -106,6 +111,7 @@ protocol OrderChecklistRepository {
 
 protocol OrderPhotoRepository {
     func save(_ photo: OrderPhoto) throws
+    func fetchOrderPhoto(id: String) throws -> OrderPhoto?
     func fetchOrderPhotos(orderId: String) throws -> [OrderPhoto]
     func fetchOrderPhotos(kind: OrderPhotoKind) throws -> [OrderPhoto]
     func deleteOrderPhoto(id: String) throws

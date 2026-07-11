@@ -460,11 +460,21 @@ struct OrderDetailView: View {
 
     @ViewBuilder
     private func designSection(order: Order) -> some View {
-        if order.cakeDesignId != nil {
+        if order.cakeDesignId != nil || order.customerReferencePhotoId != nil {
             CloudBakeSection("Design") {
                 CloudBakeDetailCard {
+                    CloudBakeDetailRow("Source") {
+                        Text(viewModel.selectedOrderDesignSourceName ?? "Reference unavailable")
+                            .accessibilityIdentifier("orders.detail.designSource")
+                    }
+
+                    CloudBakeDetailDivider()
                     CloudBakeDetailRow("Reference") {
-                        Text(viewModel.selectedOrderCakeDesign?.name ?? "Design unavailable")
+                        Text(
+                            viewModel.selectedOrderCakeDesign?.name
+                                ?? viewModel.selectedOrderCustomerReferencePhoto?.caption
+                                ?? "Customer Reference"
+                        )
                             .accessibilityIdentifier("orders.detail.designName")
                     }
 
@@ -476,7 +486,8 @@ struct OrderDetailView: View {
                         }
                     }
 
-                    if let photoReference = viewModel.selectedOrderCakeDesign?.photoReference {
+                    if let photoReference = viewModel.selectedOrderCakeDesign?.photoReference
+                        ?? viewModel.selectedOrderCustomerReferencePhoto?.localPhotoPath {
                         CloudBakeDetailDivider()
                         CloudBakeDetailRow("Photo") {
                             Text(photoReference)

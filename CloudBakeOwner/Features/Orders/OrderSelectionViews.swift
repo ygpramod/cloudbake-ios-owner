@@ -15,13 +15,28 @@ struct DesignSelectionView: View {
                     HStack {
                         Text("No Linked Design")
                         Spacer()
-                        if viewModel.draftCakeDesignId.isEmpty {
+                        if viewModel.draftCakeDesignId.isEmpty
+                            && viewModel.draftCustomerReferencePhotoId.isEmpty {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(.tint)
                         }
                     }
                 }
                 .accessibilityIdentifier("orders.designSelection.none")
+            }
+
+            if !viewModel.draftCustomerReferencePhotoId.isEmpty {
+                Section("Current Reference") {
+                    HStack {
+                        Text("Customer Reference")
+                        Spacer()
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.tint)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isSelected)
+                    .accessibilityIdentifier("orders.designSelection.customerReference")
+                }
             }
 
             Section("Designs") {
