@@ -7,7 +7,7 @@ struct OrderDetailPhotosSection: View {
     let finalCakePhotos: [OrderPhoto]
     @Binding var selectedCustomerReferencePhotoItem: PhotosPickerItem?
     @Binding var selectedFinalCakePhotoItem: PhotosPickerItem?
-    let photoURL: (OrderPhoto) -> URL
+    let photoSource: (OrderPhoto) -> CakeDesignPhotoSource?
     let onPreviewPhoto: (OrderPhoto) -> Void
     let onDeletePhoto: (OrderPhoto) -> Void
     let onTakePhoto: (OrderPhotoKind) -> Void
@@ -124,19 +124,11 @@ struct OrderDetailPhotosSection: View {
             onPreviewPhoto(photo)
         } label: {
             HStack(spacing: 12) {
-                AsyncImage(url: photoURL(photo)) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    default:
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(.quaternary)
-                    }
-                }
+                DesignPhotoView(
+                    source: photoSource(photo),
+                    maximumPixelSize: 240,
+                    contentMode: .fill
+                )
                 .frame(width: 56, height: 56)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 

@@ -183,7 +183,12 @@ extension GRDBCoreDataRepository {
 
     func save(_ photo: OrderPhoto) throws {
         try writer.write { db in
-            try db.execute(
+            try save(photo, in: db)
+        }
+    }
+
+    func save(_ photo: OrderPhoto, in db: Database) throws {
+        try db.execute(
                 sql: """
                     INSERT INTO order_photos
                     (id, order_id, kind, local_photo_path, caption, created_at_unix_time, updated_at_unix_time)
@@ -205,8 +210,7 @@ extension GRDBCoreDataRepository {
                     photo.createdAt.timeIntervalSince1970,
                     photo.updatedAt.timeIntervalSince1970
                 ])
-            )
-        }
+        )
     }
 
     func fetchOrderPhotos(orderId: String) throws -> [OrderPhoto] {
@@ -229,6 +233,14 @@ extension GRDBCoreDataRepository {
                 sql: "DELETE FROM order_photos WHERE id = ?",
                 arguments: [id]
             )
+        }
+    }
+
+    func savePromotedDesign(_ design: CakeDesign, linking order: Order, photo: OrderPhoto) throws {
+        try writer.write { db in
+            try save(design, in: db)
+            try save(order, in: db)
+            try save(photo, in: db)
         }
     }
 }

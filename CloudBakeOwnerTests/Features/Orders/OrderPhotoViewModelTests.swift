@@ -1,6 +1,10 @@
 import XCTest
 @testable import CloudBakeOwner
 
+private enum TestRepositoryError: Error {
+    case forcedFailure
+}
+
 @MainActor
 final class OrderPhotoViewModelTests: XCTestCase {
     func testBeginViewingOrderLoadsOrderPhotosGroupedByKind() {
@@ -150,6 +154,8 @@ final class OrderPhotoViewModelTests: XCTestCase {
             designPhotoLibrary.savedFileURLs,
             [photoFileStore.fileURL(for: photo.localPhotoPath)]
         )
+        XCTAssertEqual(photoFileStore.deletedRelativePaths, [photo.localPhotoPath])
+        XCTAssertEqual(repository.orderPhotos.first?.localPhotoPath, designPhotoLibrary.savedReference)
         XCTAssertEqual(repository.cakeDesigns.first?.sourceKind, .ownerMade)
         XCTAssertEqual(repository.cakeDesigns.first?.originatingOrderPhotoId, photo.id)
         XCTAssertEqual(repository.cakeDesigns.first?.originatingOrderId, order.id)
@@ -203,6 +209,31 @@ final class OrderPhotoViewModelTests: XCTestCase {
         XCTAssertTrue(repository.cakeDesigns.isEmpty)
         XCTAssertNil(repository.orders.first?.cakeDesignId)
         XCTAssertEqual(viewModel.errorMessage, "Design photo could not be saved to Photos.")
+    }
+
+    func testPromoteFinalCakePhotoDoesNotPartiallyPersistWhenDatabaseSaveFails() async {
+        let repository = FakeOrderRepository()
+        repository.savePromotedDesignError = TestRepositoryError.forcedFailure
+        let designPhotoLibrary = FakeDesignPhotoLibrary()
+        let order = makeOrder(id: "order-db-failure", dueAt: Date(timeIntervalSince1970: 1_800_140_000))
+        repository.orders = [order]
+        let photo = makeOrderPhoto(id: "photo-final", orderId: order.id, kind: .finalCake)
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            designPhotoLibrary: designPhotoLibrary
+        )
+        viewModel.beginViewingOrder(order)
+
+        let didPromote = await viewModel.promoteFinalCakePhotoToDesign(
+            photo,
+            name: "Atomic Design",
+            notes: ""
+        )
+
+        XCTAssertFalse(didPromote)
+        XCTAssertTrue(repository.cakeDesigns.isEmpty)
+        XCTAssertNil(repository.orders.first?.cakeDesignId)
+        XCTAssertTrue(repository.orderPhotos.isEmpty)
     }
 
     func testDeleteOrderPhotoRemovesMetadataAndStoredFile() {

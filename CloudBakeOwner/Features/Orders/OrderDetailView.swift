@@ -235,7 +235,7 @@ struct OrderDetailView: View {
             if let previewingPhoto {
                 OrderPhotoPreviewView(
                     photo: previewingPhoto,
-                    photoURL: viewModel.orderPhotoURL(previewingPhoto),
+                    photoSource: viewModel.orderPhotoSource(previewingPhoto),
                     onSaveCaption: { caption in
                         guard viewModel.updateOrderPhotoCaption(previewingPhoto, caption: caption),
                               let updatedPhoto = viewModel.selectedOrderPhotos.first(where: { $0.id == previewingPhoto.id }) else {
@@ -495,7 +495,7 @@ struct OrderDetailView: View {
             finalCakePhotos: viewModel.selectedFinalCakePhotos,
             selectedCustomerReferencePhotoItem: $selectedCustomerReferencePhotoItem,
             selectedFinalCakePhotoItem: $selectedFinalCakePhotoItem,
-            photoURL: viewModel.orderPhotoURL,
+            photoSource: viewModel.orderPhotoSource,
             onPreviewPhoto: { photo in
                 previewingPhoto = photo
             },

@@ -971,6 +971,64 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchOrder(id: order.id), order)
     }
 
+    func testPromotedDesignTransactionRollsBackWhenPhotoUpdateFails() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let originalOrder = Order(
+            id: "order-atomic-promotion",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Atomic promotion",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let design = CakeDesign(
+            id: "design-atomic-promotion",
+            name: "Atomic design",
+            notes: nil,
+            photoReference: "photos://atomic-asset",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let linkedOrder = Order(
+            id: originalOrder.id,
+            customerId: nil,
+            cakeDesignId: design.id,
+            title: originalOrder.title,
+            customerName: originalOrder.customerName,
+            status: originalOrder.status,
+            dueAt: originalOrder.dueAt,
+            fulfillmentType: originalOrder.fulfillmentType,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let invalidPhoto = OrderPhoto(
+            id: "photo-invalid-order",
+            orderId: "missing-order",
+            kind: .finalCake,
+            localPhotoPath: design.photoReference ?? "",
+            caption: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(originalOrder)
+
+        XCTAssertThrowsError(
+            try repository.savePromotedDesign(design, linking: linkedOrder, photo: invalidPhoto)
+        )
+        XCTAssertNil(try repository.fetchCakeDesign(id: design.id))
+        XCTAssertNil(try repository.fetchOrder(id: originalOrder.id)?.cakeDesignId)
+        XCTAssertTrue(try repository.fetchOrderPhotos(orderId: originalOrder.id).isEmpty)
+    }
+
     func testChangingOrderStatusToReadyRecordsRecipeUsageAndDeductsInventory() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)

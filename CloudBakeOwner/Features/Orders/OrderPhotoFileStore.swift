@@ -21,7 +21,7 @@ final class PhotoKitDesignPhotoLibrary: DesignPhotoLibrary {
     static let referencePrefix = "photos://"
 
     func savePhoto(at fileURL: URL) async throws -> String {
-        let authorization = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        let authorization = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
         guard authorization == .authorized || authorization == .limited else {
             throw DesignPhotoLibraryError.accessDenied
         }

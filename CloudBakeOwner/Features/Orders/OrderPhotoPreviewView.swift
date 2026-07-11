@@ -2,7 +2,7 @@ import SwiftUI
 
 struct OrderPhotoPreviewView: View {
     let photo: OrderPhoto
-    let photoURL: URL
+    let photoSource: CakeDesignPhotoSource?
     let onSaveCaption: (String) -> OrderPhoto?
     let onPromoteToDesign: (String, String) async -> Bool
     let onClose: () -> Void
@@ -15,13 +15,13 @@ struct OrderPhotoPreviewView: View {
 
     init(
         photo: OrderPhoto,
-        photoURL: URL,
+        photoSource: CakeDesignPhotoSource?,
         onSaveCaption: @escaping (String) -> OrderPhoto?,
         onPromoteToDesign: @escaping (String, String) async -> Bool,
         onClose: @escaping () -> Void
     ) {
         self.photo = photo
-        self.photoURL = photoURL
+        self.photoSource = photoSource
         self.onSaveCaption = onSaveCaption
         self.onPromoteToDesign = onPromoteToDesign
         self.onClose = onClose
@@ -81,21 +81,7 @@ struct OrderPhotoPreviewView: View {
 
                 Spacer(minLength: 0)
 
-                AsyncImage(url: photoURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                    default:
-                        ContentUnavailableView(
-                            "Photo Unavailable",
-                            systemImage: "photo",
-                            description: Text("The saved image could not be opened.")
-                        )
-                        .foregroundStyle(.white)
-                    }
-                }
+                DesignPhotoView(source: photoSource, maximumPixelSize: 2_400, contentMode: .fit)
                 .accessibilityIdentifier("orders.detail.photos.preview.image")
 
                 Spacer(minLength: 0)

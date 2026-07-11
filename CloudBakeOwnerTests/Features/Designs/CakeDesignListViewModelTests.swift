@@ -128,6 +128,10 @@ private final class FakeCakeDesignRepository: CakeDesignRepository {
         designs.append(design)
     }
 
+    func savePromotedDesign(_ design: CakeDesign, linking order: Order, photo: OrderPhoto) throws {
+        try save(design)
+    }
+
     func fetchCakeDesign(id: String) throws -> CakeDesign? {
         designs.first { $0.id == id }
     }
