@@ -4,6 +4,7 @@ struct CustomerDetailView: View {
     @ObservedObject var viewModel: CustomerListViewModel
     @Binding var isPresented: Bool
     let showsDoneButton: Bool
+    @Environment(\.navigateToAppDestination) private var navigate
     @State private var isEditingCustomer = false
     @State private var isConfirmingDelete = false
 
@@ -46,6 +47,8 @@ struct CustomerDetailView: View {
             }
         ) {
             if let customer = viewModel.selectedCustomer {
+                let presentation = viewModel.presentation(for: customer)
+
                 CloudBakeHeroCard(systemImage: "person.crop.circle", tint: .cloudBakeTeal) {
                     Text("Customer")
                         .font(.caption.weight(.bold))
@@ -56,19 +59,52 @@ struct CustomerDetailView: View {
                         .font(.title3.weight(.bold))
                         .foregroundStyle(.primary)
 
-                    Text(customer.phone)
+                    Text(presentation.displayPhone)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
 
+                CloudBakeSection("Actions") {
+                    CloudBakeDetailCard {
+                        HStack(spacing: 12) {
+                            if let phoneURL = viewModel.phoneURL(for: customer) {
+                                Link(destination: phoneURL) {
+                                    Label("Call", systemImage: "phone")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.cloudBakeTeal)
+                                .accessibilityIdentifier("customers.detail.call")
+                            }
+
+                            if let messageURL = viewModel.messageURL(for: customer) {
+                                Link(destination: messageURL) {
+                                    Label("Message", systemImage: "message")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.cloudBakePink)
+                                .accessibilityIdentifier("customers.detail.message")
+                            }
+                        }
+
+                        Button {
+                            isPresented = false
+                            navigate(.orders)
+                        } label: {
+                            Label("New Order", systemImage: "calendar.badge.plus")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.cloudBakePink)
+                        .accessibilityIdentifier("customers.detail.newOrder")
+                    }
+                }
+
                 CloudBakeSection("Contact") {
                     CloudBakeDetailCard {
-                        CloudBakeDetailRow("Name") {
-                            Text(customer.name)
-                        }
-                        CloudBakeDetailDivider()
                         CloudBakeDetailRow("Phone") {
-                            Text(customer.phone)
+                            Text(presentation.displayPhone)
                         }
                         if let email = customer.email {
                             CloudBakeDetailDivider()
@@ -80,6 +116,24 @@ struct CustomerDetailView: View {
                             CloudBakeDetailDivider()
                             CloudBakeDetailRow("Address") {
                                 Text(address)
+                            }
+                        }
+                    }
+                }
+
+                if customer.hasSafetyNotes {
+                    CloudBakeSection("Allergies & Dietary") {
+                        CloudBakeDetailCard {
+                            if let allergies = customer.allergies {
+                                safetyRow("Allergies", value: allergies, systemImage: "exclamationmark.triangle.fill")
+                            }
+
+                            if customer.allergies != nil, customer.dietaryRestrictions != nil {
+                                CloudBakeDetailDivider()
+                            }
+
+                            if let dietaryRestrictions = customer.dietaryRestrictions {
+                                safetyRow("Dietary Restrictions", value: dietaryRestrictions, systemImage: "fork.knife.circle.fill")
                             }
                         }
                     }
@@ -105,8 +159,6 @@ struct CustomerDetailView: View {
                         CloudBakeDetailCard {
                             customerPreferenceRow("Likes", value: customer.likes)
                             customerPreferenceRow("Dislikes", value: customer.dislikes)
-                            customerPreferenceRow("Allergies", value: customer.allergies, tint: .red)
-                            customerPreferenceRow("Dietary Restrictions", value: customer.dietaryRestrictions)
                             customerPreferenceRow("Notes", value: customer.notes)
                         }
                     }
@@ -206,11 +258,47 @@ struct CustomerDetailView: View {
             }
         }
     }
+
+    private func safetyRow(_ title: String, value: String, systemImage: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.headline)
+                .foregroundStyle(Color.orange)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(CloudBakeTheme.Typography.metadata.weight(.bold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.orange)
+
+                Text(value)
+                    .font(CloudBakeTheme.Typography.rowTitle)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 12)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("customers.detail.safety.\(title)")
+    }
 }
 
 private extension Customer {
     var hasDetailPreferences: Bool {
-        [likes, dislikes, allergies, dietaryRestrictions, notes]
+        [likes, dislikes, notes].contains { value in
+            guard let value else {
+                return false
+            }
+
+            return !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    var hasSafetyNotes: Bool {
+        [allergies, dietaryRestrictions]
             .contains { value in
                 guard let value else {
                     return false

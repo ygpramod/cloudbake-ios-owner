@@ -28,6 +28,82 @@ final class CustomerListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testVisibleCustomersSearchesIdentityContactAndSafetyFields() {
+        let repository = FakeCustomerRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let amy = Customer(
+            id: "customer-amy",
+            name: "Amy",
+            phone: "+65 9123 4567",
+            email: "amy@example.com",
+            address: "10 Cake Street",
+            likes: "Vanilla",
+            dislikes: nil,
+            allergies: "Nuts",
+            dietaryRestrictions: nil,
+            notes: "Prefers less sweet",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let zoe = Customer(
+            id: "customer-zoe",
+            name: "Zoe",
+            phone: "5550102",
+            email: nil,
+            address: nil,
+            likes: nil,
+            dislikes: nil,
+            allergies: nil,
+            dietaryRestrictions: "Eggless",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.customers = [amy, zoe]
+        let viewModel = CustomerListViewModel(repository: repository)
+
+        viewModel.load()
+        viewModel.searchText = "9123"
+
+        XCTAssertEqual(viewModel.visibleCustomers, [amy])
+
+        viewModel.searchText = "eggless"
+
+        XCTAssertEqual(viewModel.visibleCustomers, [zoe])
+    }
+
+    func testCustomerPresentationFormatsPhoneAndContactActionAvailability() {
+        let repository = FakeCustomerRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let customer = Customer(
+            id: "customer-amy",
+            name: "Amy",
+            phone: "+65 9123 4567",
+            email: nil,
+            address: nil,
+            likes: nil,
+            dislikes: nil,
+            allergies: "Nuts",
+            dietaryRestrictions: "Eggless",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let viewModel = CustomerListViewModel(repository: repository)
+
+        XCTAssertEqual(
+            viewModel.presentation(for: customer),
+            CustomerPresentation(
+                customer: customer,
+                displayPhone: "+65 9123 4567",
+                canCall: true,
+                canMessage: true
+            )
+        )
+        XCTAssertEqual(viewModel.phoneURL(for: customer)?.absoluteString, "tel://+6591234567")
+        XCTAssertEqual(viewModel.messageURL(for: customer)?.absoluteString, "sms:+6591234567")
+    }
+
     func testAddCustomerPersistsRequiredAndOptionalFields() {
         let repository = FakeCustomerRepository()
         let now = Date(timeIntervalSince1970: 1_800_060_000)

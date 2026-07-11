@@ -1,5 +1,16 @@
 import Foundation
 
+struct CustomerPresentation: Equatable {
+    let customer: Customer
+    let displayPhone: String
+    let canCall: Bool
+    let canMessage: Bool
+
+    var hasSafetyNotes: Bool {
+        customer.allergies?.isEmpty == false || customer.dietaryRestrictions?.isEmpty == false
+    }
+}
+
 @MainActor
 final class CustomerListViewModel: ObservableObject {
     @Published private(set) var customers: [Customer] = []
@@ -19,6 +30,7 @@ final class CustomerListViewModel: ObservableObject {
     @Published var draftNotes = ""
     @Published var draftImportantDateLabel = ""
     @Published var draftImportantDate = Date()
+    @Published var searchText = ""
     @Published var errorMessage: String?
     @Published var duplicateWarningMessage: String?
 
@@ -44,6 +56,56 @@ final class CustomerListViewModel: ObservableObject {
         } catch {
             errorMessage = "Customers could not be loaded."
         }
+    }
+
+    var visibleCustomers: [Customer] {
+        let query = TextInputFormatting.normalizedSearchKey(searchText)
+        guard !query.isEmpty else {
+            return customers
+        }
+
+        return customers.filter { customer in
+            [
+                customer.name,
+                customer.phone,
+                Self.formattedPhone(customer.phone),
+                customer.email,
+                customer.address,
+                customer.likes,
+                customer.dislikes,
+                customer.allergies,
+                customer.dietaryRestrictions,
+                customer.notes
+            ]
+            .compactMap { $0 }
+            .map(TextInputFormatting.normalizedSearchKey)
+            .contains { $0.contains(query) }
+        }
+    }
+
+    func presentation(for customer: Customer) -> CustomerPresentation {
+        CustomerPresentation(
+            customer: customer,
+            displayPhone: Self.formattedPhone(customer.phone),
+            canCall: Self.isSupportedPhone(customer.phone),
+            canMessage: Self.isSupportedPhone(customer.phone)
+        )
+    }
+
+    func phoneURL(for customer: Customer) -> URL? {
+        guard Self.isSupportedPhone(customer.phone) else {
+            return nil
+        }
+
+        return URL(string: "tel://\(Self.callablePhone(customer.phone))")
+    }
+
+    func messageURL(for customer: Customer) -> URL? {
+        guard Self.isSupportedPhone(customer.phone) else {
+            return nil
+        }
+
+        return URL(string: "sms:\(Self.callablePhone(customer.phone))")
     }
 
     func beginViewingCustomer(_ customer: Customer) {
@@ -327,6 +389,46 @@ final class CustomerListViewModel: ObservableObject {
         errorMessage = nil
         duplicateWarningMessage = nil
         acknowledgedDuplicateKey = nil
+    }
+
+    private static func formattedPhone(_ phone: String) -> String {
+        let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+        let digits = TextInputFormatting.digitsOnly(trimmed)
+
+        guard !digits.isEmpty else {
+            return trimmed
+        }
+
+        if trimmed.hasPrefix("+"), digits.count >= 9 {
+            let countryCodeLength = max(1, digits.count - 8)
+            let countryCode = digits.prefix(countryCodeLength)
+            let local = digits.suffix(8)
+            return "+\(countryCode) \(local.prefix(4)) \(local.suffix(4))"
+        }
+
+        switch digits.count {
+        case 7:
+            return "\(digits.prefix(3))-\(digits.suffix(4))"
+        case 8:
+            return "\(digits.prefix(4)) \(digits.suffix(4))"
+        case 10:
+            let area = digits.prefix(3)
+            let middleStart = digits.index(digits.startIndex, offsetBy: 3)
+            let middleEnd = digits.index(middleStart, offsetBy: 3)
+            return "(\(area)) \(digits[middleStart..<middleEnd])-\(digits.suffix(4))"
+        default:
+            return trimmed
+        }
+    }
+
+    private static func isSupportedPhone(_ phone: String) -> Bool {
+        TextInputFormatting.digitsOnly(phone).count >= 7
+    }
+
+    private static func callablePhone(_ phone: String) -> String {
+        let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+        let digits = TextInputFormatting.digitsOnly(trimmed)
+        return trimmed.hasPrefix("+") ? "+\(digits)" : digits
     }
 
 }

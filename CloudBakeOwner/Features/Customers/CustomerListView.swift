@@ -6,6 +6,7 @@ struct CustomerListView: View {
     @State private var isViewingCustomer = false
     @State private var isChoosingAddMode = false
     @State private var isImportingContact = false
+    @FocusState private var isSearchFocused: Bool
 
     init(viewModel: CustomerListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -86,50 +87,20 @@ struct CustomerListView: View {
                     message: "Add customers before linking preferences and allergy notes to orders."
                 )
             } else {
-                CloudBakeSection("Customers") {
-                    VStack(spacing: 16) {
-                    ForEach(viewModel.customers, id: \.id) { customer in
-                        Button {
-                            openCustomer(customer)
-                        } label: {
-                            HStack(spacing: 18) {
-                                CloudBakeRowIcon(systemImage: "person.crop.circle", tint: .cloudBakeTeal)
+                CloudBakeSearchField(
+                    text: $viewModel.searchText,
+                    prompt: "Search customers",
+                    accessibilityIdentifier: "customers.search",
+                    isFocused: $isSearchFocused
+                )
 
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(customer.name)
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(2)
-
-                                    Text(customer.phone)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-
-                                    if let allergies = customer.allergies {
-                                        Label(allergies, systemImage: "exclamationmark.triangle")
-                                            .font(.footnote)
-                                            .foregroundStyle(.orange)
-                                            .lineLimit(1)
-                                    }
-                                }
-
-                                Spacer(minLength: 8)
-
-                                Image(systemName: "chevron.right")
-                                    .font(.headline.weight(.semibold))
-                                    .foregroundStyle(Color.cloudBakePink.opacity(0.72))
-                                    .accessibilityHidden(true)
-                            }
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+                customerResults
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            isSearchFocused = false
                         }
-                        .buttonStyle(.plain)
-                        .cloudBakeCardStyle()
-                        .accessibilityIdentifier("customers.item.\(customer.id)")
-                    }
-                    }
-                }
+                    )
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -139,6 +110,67 @@ struct CustomerListView: View {
                 )
             }
         }
+    }
+
+    @ViewBuilder
+    private var customerResults: some View {
+        if viewModel.visibleCustomers.isEmpty {
+            CloudBakeEmptyState(
+                title: "No matching customers",
+                systemImage: "magnifyingglass",
+                message: "Try another name, phone number, preference, allergy, or note."
+            )
+        } else {
+            CloudBakeSection("Customers") {
+                VStack(spacing: 16) {
+                    ForEach(viewModel.visibleCustomers, id: \.id) { customer in
+                        customerCard(customer)
+                    }
+                }
+            }
+        }
+    }
+
+    private func customerCard(_ customer: Customer) -> some View {
+        let presentation = viewModel.presentation(for: customer)
+        return Button {
+            openCustomer(customer)
+        } label: {
+            HStack(spacing: 18) {
+                CloudBakeRowIcon(systemImage: "person.crop.circle", tint: .cloudBakeTeal)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(customer.name)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+
+                    Text(presentation.displayPhone)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    if let allergies = customer.allergies {
+                        Label(allergies, systemImage: "exclamationmark.triangle")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.orange)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(Color.cloudBakePink.opacity(0.72))
+                    .accessibilityHidden(true)
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .cloudBakeCardStyle()
+        .accessibilityIdentifier("customers.item.\(customer.id)")
     }
 
     private func openCustomer(_ customer: Customer) {
