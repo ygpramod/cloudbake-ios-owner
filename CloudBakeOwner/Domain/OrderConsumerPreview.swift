@@ -5,7 +5,7 @@ struct ConsumerDesignPreview: Equatable {
     let name: String
     let photoReference: String
 
-    init(designId: String, name: String, photoReference: String) {
+    private init(designId: String, name: String, photoReference: String) {
         self.designId = designId
         self.name = name
         self.photoReference = photoReference
