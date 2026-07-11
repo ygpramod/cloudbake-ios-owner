@@ -20,7 +20,7 @@ final class SettingsViewModel: ObservableObject {
     func exportInventoryDocument() -> InventoryCSVDocument? {
         do {
             let text = try csvService.exportCSV(repository: repository)
-            statusMessage = "Inventory export is ready."
+            statusMessage = "Inventory export is ready. Choose a location to save the CSV."
             errorMessage = nil
             return InventoryCSVDocument(text: text)
         } catch {
@@ -41,12 +41,17 @@ final class SettingsViewModel: ObservableObject {
         do {
             let text = try String(contentsOf: url, encoding: .utf8)
             let summary = try csvService.importCSV(text, repository: repository)
-            statusMessage = "Imported \(summary.importedItemCount) inventory items."
+            statusMessage = "Imported \(summary.importedItemCount) inventory items and \(summary.importedBatchCount) stock batches."
             errorMessage = nil
         } catch {
             statusMessage = nil
             errorMessage = "Inventory CSV could not be imported."
         }
+    }
+
+    func markExportFailed() {
+        statusMessage = nil
+        errorMessage = "Inventory CSV could not be exported."
     }
 }
 
@@ -56,6 +61,7 @@ struct SettingsView: View {
     @State private var isSelectingCurrency = false
     @State private var isImportingInventory = false
     @State private var isExportingInventory = false
+    @State private var pendingDataOperation: SettingsDataOperation?
     @State private var exportDocument = InventoryCSVDocument()
 
     init(viewModel: SettingsViewModel) {
@@ -86,29 +92,26 @@ struct SettingsView: View {
                 }
             }
 
-            CloudBakeSection("Inventory Data") {
+            CloudBakeSection("Data Management") {
                 CloudBakeDetailCard {
                     settingsAction(
                         title: "Import Inventory CSV",
-                        detail: "Create or update inventory from a CSV file.",
+                        detail: "Review merge behavior before choosing a CSV file.",
                         systemImage: "square.and.arrow.down",
                         accessibilityIdentifier: "settings.inventory.import"
                     ) {
-                        isImportingInventory = true
+                        pendingDataOperation = .importInventory
                     }
 
                     CloudBakeDetailDivider()
 
                     settingsAction(
                         title: "Export Inventory CSV",
-                        detail: "Save active inventory and stock batches to a CSV file.",
+                        detail: "Review export contents before choosing where to save.",
                         systemImage: "square.and.arrow.up",
                         accessibilityIdentifier: "settings.inventory.export"
                     ) {
-                        if let document = viewModel.exportInventoryDocument() {
-                            exportDocument = document
-                            isExportingInventory = true
-                        }
+                        pendingDataOperation = .exportInventory
                     }
                 }
             }
@@ -126,23 +129,28 @@ struct SettingsView: View {
             }
         }
         .accessibilityIdentifier(AppDestination.settings.screenAccessibilityIdentifier)
-        .cloudBakeCenteredPopup(
-            isPresented: isSelectingCurrency,
-            title: "Currency",
-            subtitle: "Choose money display",
-            systemImage: "banknote",
-            cancelAccessibilityIdentifier: "settings.currency.cancel",
-            onCancel: { isSelectingCurrency = false }
-        ) {
-            ForEach(AppCurrency.allCases, id: \.rawValue) { currency in
-                centeredPopupSelectionButton(
-                    currency.displayName,
-                    isSelected: selectedCurrency == currency
-                ) {
+        .sheet(isPresented: $isSelectingCurrency) {
+            CurrencySelectionView(
+                selectedCurrency: selectedCurrency,
+                onSelect: { currency in
                     selectedCurrencySymbol = currency.symbol
                     isSelectingCurrency = false
                 }
-                .accessibilityIdentifier("settings.currency.option.\(currency.symbol)")
+            )
+        }
+        .cloudBakeCenteredPopup(
+            isPresented: pendingDataOperation != nil,
+            title: pendingDataOperation?.title ?? "Inventory CSV",
+            subtitle: pendingDataOperation?.explanation ?? "",
+            systemImage: pendingDataOperation?.systemImage ?? "tablecells",
+            cancelAccessibilityIdentifier: "settings.data.cancel",
+            onCancel: { pendingDataOperation = nil }
+        ) {
+            if let pendingDataOperation {
+                centeredPopupButton(pendingDataOperation.primaryActionTitle) {
+                    continueDataOperation(pendingDataOperation)
+                }
+                .accessibilityIdentifier(pendingDataOperation.primaryAccessibilityIdentifier)
             }
         }
         .fileImporter(
@@ -162,7 +170,11 @@ struct SettingsView: View {
             document: exportDocument,
             contentType: .commaSeparatedText,
             defaultFilename: "cloudbake-inventory.csv"
-        ) { _ in }
+        ) { result in
+            if case .failure = result {
+                viewModel.markExportFailed()
+            }
+        }
     }
 
     private func settingsAction(
@@ -211,5 +223,119 @@ struct SettingsView: View {
 
     private var selectedCurrency: AppCurrency {
         AppCurrency(rawValue: selectedCurrencySymbol) ?? AppCurrency.defaultCurrency
+    }
+
+    private func continueDataOperation(_ operation: SettingsDataOperation) {
+        pendingDataOperation = nil
+        switch operation {
+        case .importInventory:
+            isImportingInventory = true
+        case .exportInventory:
+            if let document = viewModel.exportInventoryDocument() {
+                exportDocument = document
+                isExportingInventory = true
+            }
+        }
+    }
+}
+
+private enum SettingsDataOperation: Identifiable {
+    case importInventory
+    case exportInventory
+
+    var id: String {
+        switch self {
+        case .importInventory:
+            return "importInventory"
+        case .exportInventory:
+            return "exportInventory"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .importInventory:
+            return "Import Inventory CSV?"
+        case .exportInventory:
+            return "Export Inventory CSV?"
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .importInventory:
+            return "CloudBake will merge rows by item name and unit. Matching items are updated, and their stock batches are replaced by the CSV rows."
+        case .exportInventory:
+            return "CloudBake will export active inventory items and stock batches. Archived items are not included."
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .importInventory:
+            return "square.and.arrow.down"
+        case .exportInventory:
+            return "square.and.arrow.up"
+        }
+    }
+
+    var primaryActionTitle: String {
+        switch self {
+        case .importInventory:
+            return "Choose CSV File"
+        case .exportInventory:
+            return "Create Export"
+        }
+    }
+
+    var primaryAccessibilityIdentifier: String {
+        switch self {
+        case .importInventory:
+            return "settings.inventory.import.continue"
+        case .exportInventory:
+            return "settings.inventory.export.continue"
+        }
+    }
+}
+
+private struct CurrencySelectionView: View {
+    let selectedCurrency: AppCurrency
+    let onSelect: (AppCurrency) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(AppCurrency.allCases, id: \.rawValue) { currency in
+                    Button {
+                        onSelect(currency)
+                    } label: {
+                        HStack {
+                            Text(currency.displayName)
+                            Spacer()
+                            if selectedCurrency == currency {
+                                Image(systemName: "checkmark")
+                                    .font(.headline.weight(.semibold))
+                                    .foregroundStyle(Color.cloudBakePink)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    .accessibilityValue(selectedCurrency == currency ? "Selected" : "")
+                    .accessibilityIdentifier("settings.currency.option.\(currency.symbol)")
+                }
+            }
+            .navigationTitle("Currency")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .accessibilityIdentifier("settings.currency.cancel")
+                }
+            }
+        }
     }
 }
