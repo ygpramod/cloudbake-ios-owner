@@ -175,13 +175,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_SEED_DESIGN_SCROLL_FIXTURE"] = "1"
         app.launch()
 
-        let bottomDesign = app.buttons["designs.item.design-ui-scroll-7"]
-        scrollToHittable(bottomDesign, in: app, timeout: 10)
-        XCTAssertTrue(bottomDesign.isHittable)
+        let finalReference = app.buttons["designs.customerReference.photo-ui-fixture-reference"]
+        scrollToHittable(finalReference, in: app, timeout: 10)
+        XCTAssertTrue(finalReference.isHittable)
+
+        for _ in 0..<3 { app.swipeUp() }
 
         Thread.sleep(forTimeInterval: 1)
         let settledPositions = (0..<8).map { _ in
-            let position = bottomDesign.frame.minY
+            let position = finalReference.frame.minY
             Thread.sleep(forTimeInterval: 0.1)
             return position
         }
