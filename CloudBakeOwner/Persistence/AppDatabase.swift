@@ -18,7 +18,7 @@ final class AppDatabase {
             try database.seedInventoryFixtureIfRequested()
             try database.seedCakeDesignFixtureIfRequested()
             try database.seedDesignGalleryFixtureIfRequested()
-            try database.seedInternetInspirationFixtureIfRequested()
+            try database.seedDesignScrollFixtureIfRequested()
             try database.seedOrderPhotoFixtureIfRequested()
             return database
         }
@@ -265,8 +265,8 @@ final class AppDatabase {
         }
     }
 
-    private func seedInternetInspirationFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_INTERNET_INSPIRATION_FIXTURE"] == "1" else {
+    private func seedDesignScrollFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_DESIGN_SCROLL_FIXTURE"] == "1" else {
             return
         }
 
@@ -275,12 +275,10 @@ final class AppDatabase {
         for index in 0..<8 {
             try repository.save(
                 CakeDesign(
-                    id: "design-ui-internet-\(index)",
-                    name: "Internet Inspiration \(index)",
+                    id: "design-ui-scroll-\(index)",
+                    name: "Scroll Design \(index)",
                     notes: nil,
                     photoReference: nil,
-                    sourceKind: .internetInspiration,
-                    sourceName: "Fixture Artist",
                     createdAt: timestamp,
                     updatedAt: timestamp
                 )

@@ -38,11 +38,35 @@ enum DesignLibraryFilter: Hashable, Identifiable {
     }
 }
 
+enum DesignTagRanking {
+    static func mostUsed(in tagCollections: [[String]], limit: Int = 10) -> [String] {
+        guard limit > 0 else { return [] }
+        var labelsByKey: [String: String] = [:]
+        var countsByKey: [String: Int] = [:]
+        for tags in tagCollections {
+            for tag in DesignTags.normalized(tags) {
+                let key = TextInputFormatting.normalizedSearchKey(tag)
+                labelsByKey[key] = labelsByKey[key] ?? tag
+                countsByKey[key, default: 0] += 1
+            }
+        }
+        return countsByKey.keys.sorted { lhs, rhs in
+            let lhsCount = countsByKey[lhs, default: 0]
+            let rhsCount = countsByKey[rhs, default: 0]
+            if lhsCount != rhsCount { return lhsCount > rhsCount }
+            return (labelsByKey[lhs] ?? lhs).localizedCaseInsensitiveCompare(
+                labelsByKey[rhs] ?? rhs
+            ) == .orderedAscending
+        }
+        .prefix(limit)
+        .compactMap { labelsByKey[$0] }
+    }
+}
+
 @MainActor
 final class CakeDesignListViewModel: ObservableObject {
     @Published private(set) var designs: [CakeDesign] = []
     @Published private(set) var customerReferences: [CustomerReferenceDesign] = []
-    @Published private(set) var internetInspirations: [CakeDesign] = []
     @Published private(set) var orders: [Order] = []
     @Published var searchText = ""
     @Published var selectedFilter: DesignLibraryFilter = .all
@@ -74,7 +98,6 @@ final class CakeDesignListViewModel: ObservableObject {
     func load() {
         do {
             designs = try repository.fetchCakeDesigns(sourceKind: .ownerMade)
-            internetInspirations = try repository.fetchCakeDesigns(sourceKind: .internetInspiration)
             if let customerReferenceRepository {
                 orders = try customerReferenceRepository.fetchOrders()
                 let ordersById = Dictionary(
@@ -98,7 +121,6 @@ final class CakeDesignListViewModel: ObservableObject {
         } catch {
             designs = []
             customerReferences = []
-            internetInspirations = []
             orders = []
             errorMessage = "Designs could not be loaded."
         }
@@ -157,19 +179,8 @@ final class CakeDesignListViewModel: ObservableObject {
         }
     }
 
-    var visibleInternetInspirations: [CakeDesign] {
-        let terms = searchTerms
-        return internetInspirations.filter { design in
-            (terms.isEmpty || matchesAllTerms(
-                terms,
-                values: [design.name, design.notes, design.sourceName, design.sourceURL]
-                    + design.tags.map(Optional.some)
-            )) && matchesSelectedFilter(tags: design.tags, isFavorite: design.isFavorite)
-        }
-    }
-
     var hasContent: Bool {
-        !designs.isEmpty || !customerReferences.isEmpty || !internetInspirations.isEmpty
+        !designs.isEmpty || !customerReferences.isEmpty
     }
 
     func usageOrders(for design: CakeDesign) -> [Order] {
@@ -207,24 +218,15 @@ final class CakeDesignListViewModel: ObservableObject {
     }
 
     var availableFilters: [DesignLibraryFilter] {
-        let persistedDesigns = designs + internetInspirations
-        let allTags = DesignTags.normalized(
-            persistedDesigns.flatMap(\.tags) + customerReferences.flatMap { $0.photo.tags }
+        let persistedDesigns = designs
+        let topTags = DesignTagRanking.mostUsed(
+            in: persistedDesigns.map(\.tags) + customerReferences.map { $0.photo.tags }
         )
-        let suggested = ["Birthday", "Wedding", "Kids", "Cupcakes", "Chocolate", "Minimal", "Vintage", "Floral"]
-        let suggestedKeys = Set(suggested.map(TextInputFormatting.normalizedSearchKey))
-        let matchingSuggested = suggested.filter { suggestedTag in
-            allTags.contains { TextInputFormatting.normalizedSearchKey($0) == TextInputFormatting.normalizedSearchKey(suggestedTag) }
-        }
-        let custom = allTags
-            .filter { !suggestedKeys.contains(TextInputFormatting.normalizedSearchKey($0)) }
-            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         let hasFavorite = persistedDesigns.contains(where: \.isFavorite)
             || customerReferences.contains { $0.photo.isFavorite }
         return [.all]
             + (hasFavorite ? [.favorites] : [])
-            + matchingSuggested.map(DesignLibraryFilter.tag)
-            + custom.map(DesignLibraryFilter.tag)
+            + topTags.map(DesignLibraryFilter.tag)
     }
 
     func selectFilter(_ filter: DesignLibraryFilter) {
@@ -300,40 +302,6 @@ final class CakeDesignListViewModel: ObservableObject {
             try repository.deletePendingDesignPhotoCleanupPath(relativePath)
             return true
         } catch {
-            return false
-        }
-    }
-
-    func importInternetInspiration(
-        item: PhotosPickerItem,
-        name: String,
-        sourceName: String,
-        sourceURL: String,
-        notes: String,
-        tags: String = ""
-    ) async -> Bool {
-        guard let normalizedName = TextInputFormatting.optionalText(name) else {
-            errorMessage = "Inspiration name is required."
-            return false
-        }
-        let normalizedURL = TextInputFormatting.optionalText(sourceURL)
-        if let normalizedURL, !Self.isValidWebURL(normalizedURL) {
-            errorMessage = "Source URL must be a valid http or https address."
-            return false
-        }
-
-        do {
-            let photoReference = try await photosReference(for: item)
-            return saveInternetInspiration(
-                photoReference: photoReference,
-                normalizedName: normalizedName,
-                sourceName: sourceName,
-                sourceURL: normalizedURL,
-                notes: notes,
-                tags: tags
-            )
-        } catch {
-            errorMessage = "Internet inspiration could not be saved."
             return false
         }
     }
@@ -427,69 +395,6 @@ final class CakeDesignListViewModel: ObservableObject {
         return try await photosReference(itemIdentifier: nil, fallbackData: data)
     }
 
-    func saveInternetInspiration(
-        photoReference: String,
-        name: String,
-        sourceName: String,
-        sourceURL: String,
-        notes: String,
-        tags: String = ""
-    ) -> Bool {
-        guard let normalizedName = TextInputFormatting.optionalText(name) else {
-            errorMessage = "Inspiration name is required."
-            return false
-        }
-        let normalizedURL = TextInputFormatting.optionalText(sourceURL)
-        if let normalizedURL, !Self.isValidWebURL(normalizedURL) {
-            errorMessage = "Source URL must be a valid http or https address."
-            return false
-        }
-        return saveInternetInspiration(
-            photoReference: photoReference,
-            normalizedName: normalizedName,
-            sourceName: sourceName,
-            sourceURL: normalizedURL,
-            notes: notes,
-            tags: tags
-        )
-    }
-
-    private func saveInternetInspiration(
-        photoReference: String,
-        normalizedName: String,
-        sourceName: String,
-        sourceURL: String?,
-        notes: String,
-        tags: String
-    ) -> Bool {
-        guard Self.isValidPhotosReference(photoReference) else {
-            errorMessage = "Inspiration photo must be stored in Photos."
-            return false
-        }
-        do {
-            let now = dateProvider()
-            try repository.save(
-                CakeDesign(
-                    id: idGenerator(),
-                    name: normalizedName,
-                    notes: TextInputFormatting.optionalText(notes),
-                    photoReference: photoReference,
-                    sourceKind: .internetInspiration,
-                    sourceName: TextInputFormatting.optionalText(sourceName),
-                    sourceURL: sourceURL,
-                    tags: DesignTags.parsed(tags),
-                    createdAt: now,
-                    updatedAt: now
-                )
-            )
-            load()
-            return true
-        } catch {
-            errorMessage = "Internet inspiration could not be saved."
-            return false
-        }
-    }
-
     private static func isValidPhotosReference(_ reference: String) -> Bool {
         guard let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: reference) else {
             return false
@@ -579,13 +484,6 @@ final class CakeDesignListViewModel: ObservableObject {
             errorMessage = "Reference metadata could not be saved."
             return nil
         }
-    }
-
-    private static func isValidWebURL(_ value: String) -> Bool {
-        guard let components = URLComponents(string: value),
-              let scheme = components.scheme?.lowercased(),
-              ["http", "https"].contains(scheme) else { return false }
-        return components.host?.isEmpty == false
     }
 
     func accessibilityLabel(for design: CakeDesign) -> String {

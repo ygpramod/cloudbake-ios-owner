@@ -9,7 +9,6 @@ struct CakeDesignListView: View {
     @State private var previewingDesign: CakeDesign?
     @State private var previewingCustomerReference: CustomerReferenceDesign?
     @State private var isAddingOwnerDesign = false
-    @State private var isImportingInternetInspiration = false
     @FocusState private var isSearchFocused: Bool
 
     init(viewModel: CakeDesignListViewModel) {
@@ -50,12 +49,6 @@ struct CakeDesignListView: View {
             .accessibilityIdentifier("designs.filters")
 
             designResults
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        isSearchFocused = false
-                    }
-                )
 
             if let errorMessage = viewModel.errorMessage {
                 CloudBakeErrorBanner(
@@ -69,9 +62,7 @@ struct CakeDesignListView: View {
             NavigationStack {
                 CakeDesignPreviewView(
                     design: design,
-                    designs: design.sourceKind == .internetInspiration
-                        ? viewModel.visibleInternetInspirations
-                        : viewModel.visibleDesigns,
+                    designs: viewModel.visibleDesigns,
                     photoSource: viewModel.availablePhotoSource,
                     accessibilityLabel: viewModel.accessibilityLabel,
                     usageOrders: viewModel.usageOrders,
@@ -94,9 +85,6 @@ struct CakeDesignListView: View {
                 )
             }
         }
-        .sheet(isPresented: $isImportingInternetInspiration) {
-            InternetInspirationImportView(viewModel: viewModel)
-        }
         .sheet(isPresented: $isAddingOwnerDesign) {
             OwnerDesignImportView(viewModel: viewModel)
         }
@@ -109,12 +97,11 @@ struct CakeDesignListView: View {
     private var designResults: some View {
         if viewModel.visibleDesigns.isEmpty
             && viewModel.visibleCustomerReferences.isEmpty
-            && viewModel.visibleInternetInspirations.isEmpty
             && (viewModel.hasEffectiveSearchQuery || viewModel.selectedFilter != .all) {
             CloudBakeEmptyState(
                 title: "No matching designs",
                 systemImage: "magnifyingglass",
-                message: "Try another cake name, note, customer, order, or inspiration source."
+                message: "Try another cake name, note, customer, order, or tag."
             )
             Button("Clear Search and Filters") {
                 viewModel.searchText = ""
@@ -174,40 +161,6 @@ struct CakeDesignListView: View {
                 ) {
                     ForEach(viewModel.visibleCustomerReferences) { reference in
                         customerReferenceTile(reference)
-                    }
-                }
-            }
-
-            HStack {
-                Text("Internet Inspiration (\(viewModel.visibleInternetInspirations.count))")
-                    .font(CloudBakeTheme.Typography.sectionTitle)
-                    .accessibilityIdentifier("designs.internetInspiration.title")
-                Spacer()
-                Button {
-                    isImportingInternetInspiration = true
-                } label: {
-                    Label("Add inspiration", systemImage: "plus")
-                        .labelStyle(.iconOnly)
-                        .frame(minWidth: 44, minHeight: 36)
-                }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.capsule)
-                .accessibilityLabel("Add Internet Inspiration")
-                .accessibilityIdentifier("designs.internetInspiration.add")
-            }
-
-            if viewModel.visibleInternetInspirations.isEmpty {
-                Text("No internet inspiration saved")
-                    .font(CloudBakeTheme.Typography.rowDetail)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 140), spacing: 14)],
-                    spacing: 14
-                ) {
-                    ForEach(viewModel.visibleInternetInspirations, id: \.id) { design in
-                        designTile(design)
                     }
                 }
             }
@@ -582,91 +535,6 @@ private struct OwnerDesignImportView: View {
     }
 }
 
-private struct InternetInspirationImportView: View {
-    @ObservedObject var viewModel: CakeDesignListViewModel
-    @Environment(\.dismiss) private var dismiss
-    @State private var selectedItem: PhotosPickerItem?
-    @State private var name = ""
-    @State private var sourceName = ""
-    @State private var sourceURL = ""
-    @State private var notes = ""
-    @State private var tags = ""
-    @State private var isSaving = false
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Photo") {
-                    PhotosPicker(selection: $selectedItem, matching: .images) {
-                        Label(
-                            selectedItem == nil ? "Choose from Photos" : "Photo selected",
-                            systemImage: selectedItem == nil ? "photo.on.rectangle" : "checkmark.circle.fill"
-                        )
-                    }
-                    .accessibilityIdentifier("designs.internetInspiration.photo")
-                }
-
-                Section("Inspiration") {
-                    TextField("Name", text: $name)
-                        .textInputAutocapitalization(.words)
-                        .accessibilityIdentifier("designs.internetInspiration.name")
-                    TextField("Source or creator (optional)", text: $sourceName)
-                        .accessibilityIdentifier("designs.internetInspiration.sourceName")
-                    TextField("Source URL (optional)", text: $sourceURL)
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.URL)
-                        .accessibilityIdentifier("designs.internetInspiration.sourceURL")
-                    TextField("Notes (optional)", text: $notes, axis: .vertical)
-                        .lineLimit(2...5)
-                        .accessibilityIdentifier("designs.internetInspiration.notes")
-                    TextField("Tags, comma-separated (optional)", text: $tags)
-                        .accessibilityIdentifier("designs.internetInspiration.tags")
-                }
-
-                if let errorMessage = viewModel.errorMessage {
-                    Section {
-                        Text(errorMessage).foregroundStyle(.red)
-                    }
-                }
-            }
-            .cloudBakeFormScreenStyle()
-            .navigationTitle("Add Inspiration")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .disabled(isSaving)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        guard let selectedItem, !isSaving else {
-                            if self.selectedItem == nil {
-                                viewModel.errorMessage = "Inspiration photo is required."
-                            }
-                            return
-                        }
-                        isSaving = true
-                        Task {
-                            if await viewModel.importInternetInspiration(
-                                item: selectedItem,
-                                name: name,
-                                sourceName: sourceName,
-                                sourceURL: sourceURL,
-                                notes: notes,
-                                tags: tags
-                            ) {
-                                dismiss()
-                            }
-                            isSaving = false
-                        }
-                    }
-                    .disabled(isSaving)
-                    .accessibilityIdentifier("designs.internetInspiration.save")
-                }
-            }
-        }
-    }
-}
-
 private struct CakeDesignPreviewView: View {
     @State private var design: CakeDesign
     @State private var designs: [CakeDesign]
@@ -723,7 +591,7 @@ private struct CakeDesignPreviewView: View {
 
                     CloudBakeDetailDivider()
                     CloudBakeDetailRow("Collection") {
-                        Text(design.sourceKind == .internetInspiration ? "Internet Inspiration" : "My Designs")
+                        Text("My Designs")
                     }
 
                     if let sourceName = design.sourceName {
