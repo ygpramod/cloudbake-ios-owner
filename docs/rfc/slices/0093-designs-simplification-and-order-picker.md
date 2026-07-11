@@ -19,6 +19,8 @@ Implemented
    mirrors My Designs and Customer References.
 6. Preserve retired Internet Inspiration labels on historical orders without offering those records
    as new choices.
+7. Show a compact linked-design thumbnail in order detail and open a centered, full-screen photo
+   detail when the owner selects it.
 
 ## Test Strategy
 
@@ -26,6 +28,7 @@ Implemented
    search, and tag filtering.
 2. Acceptance covers scrolling to the final design and returning to search without oscillation.
 3. Acceptance covers photo-first search and selection for owner designs and customer references.
+4. Acceptance covers opening and closing the linked-design photo detail from its order thumbnail.
 
 ## Documentation Decision
 

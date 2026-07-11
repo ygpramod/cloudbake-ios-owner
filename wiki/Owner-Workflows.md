@@ -352,8 +352,9 @@ Recipe selection opens from the order form when saved recipes exist. The owner c
 recipe, clear the link, and review the linked recipe from order detail.
 
 Design selection opens from the order form when saved cake designs exist. The owner can link one
-existing design reference, clear the link, and review the linked design name, notes, and photo
-reference from order detail.
+existing design reference, clear the link, and review the linked design name, notes, and compact
+photo thumbnail from order detail. Selecting the thumbnail opens the linked photo in a centered,
+full-screen detail view.
 
 From Designs detail, `Use for New Order` opens the normal add-order form with the selected image
 already linked. The order remains an unsaved draft until Save is selected. Owner-made items retain
