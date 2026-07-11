@@ -879,6 +879,8 @@ final class OrderListViewModel: ObservableObject {
             kind: photo.kind,
             localPhotoPath: photo.localPhotoPath,
             caption: TextInputFormatting.optionalText(caption),
+            tags: photo.tags,
+            isFavorite: photo.isFavorite,
             createdAt: photo.createdAt,
             updatedAt: dateProvider()
         )
@@ -959,6 +961,8 @@ final class OrderListViewModel: ObservableObject {
             kind: photo.kind,
             localPhotoPath: photoReference,
             caption: photo.caption,
+            tags: photo.tags,
+            isFavorite: photo.isFavorite,
             createdAt: photo.createdAt,
             updatedAt: now
         )

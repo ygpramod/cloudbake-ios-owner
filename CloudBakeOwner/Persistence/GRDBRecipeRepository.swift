@@ -176,9 +176,9 @@ extension GRDBCoreDataRepository {
                 sql: """
                     INSERT INTO cake_designs
                     (id, name, notes, photo_reference, source_kind, originating_order_photo_id,
-                    originating_order_id, source_name, source_url, created_at_unix_time,
+                    originating_order_id, source_name, source_url, tags_json, is_favorite, created_at_unix_time,
                     updated_at_unix_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
                         name = excluded.name,
                         notes = excluded.notes,
@@ -188,6 +188,8 @@ extension GRDBCoreDataRepository {
                         originating_order_id = excluded.originating_order_id,
                         source_name = excluded.source_name,
                         source_url = excluded.source_url,
+                        tags_json = excluded.tags_json,
+                        is_favorite = excluded.is_favorite,
                         created_at_unix_time = excluded.created_at_unix_time,
                         updated_at_unix_time = excluded.updated_at_unix_time
                     """,
@@ -201,6 +203,8 @@ extension GRDBCoreDataRepository {
                     design.originatingOrderId,
                     design.sourceName,
                     design.sourceURL,
+                    designTagsJSON(design.tags),
+                    design.isFavorite,
                     design.createdAt.timeIntervalSince1970,
                     design.updatedAt.timeIntervalSince1970
                 ])

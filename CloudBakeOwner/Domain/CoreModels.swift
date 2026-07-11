@@ -276,6 +276,23 @@ enum CakeDesignSourceKind: String, Equatable, CaseIterable {
     case internetInspiration
 }
 
+enum DesignTags {
+    static func normalized(_ values: [String]) -> [String] {
+        var seen: Set<String> = []
+        return values.compactMap { value in
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return nil }
+            let key = trimmed.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            guard seen.insert(key).inserted else { return nil }
+            return trimmed
+        }
+    }
+
+    static func parsed(_ text: String) -> [String] {
+        normalized(text.split(separator: ",").map(String.init))
+    }
+}
+
 struct CakeDesign: Equatable {
     let id: String
     let name: String
@@ -286,6 +303,8 @@ struct CakeDesign: Equatable {
     let originatingOrderId: String?
     let sourceName: String?
     let sourceURL: String?
+    let tags: [String]
+    let isFavorite: Bool
     let createdAt: Date
     let updatedAt: Date
 
@@ -299,6 +318,8 @@ struct CakeDesign: Equatable {
         originatingOrderId: String? = nil,
         sourceName: String? = nil,
         sourceURL: String? = nil,
+        tags: [String] = [],
+        isFavorite: Bool = false,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -311,6 +332,8 @@ struct CakeDesign: Equatable {
         self.originatingOrderId = originatingOrderId
         self.sourceName = sourceName
         self.sourceURL = sourceURL
+        self.tags = DesignTags.normalized(tags)
+        self.isFavorite = isFavorite
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -500,8 +523,32 @@ struct OrderPhoto: Equatable {
     let kind: OrderPhotoKind
     let localPhotoPath: String
     let caption: String?
+    let tags: [String]
+    let isFavorite: Bool
     let createdAt: Date
     let updatedAt: Date
+
+    init(
+        id: String,
+        orderId: String,
+        kind: OrderPhotoKind,
+        localPhotoPath: String,
+        caption: String?,
+        tags: [String] = [],
+        isFavorite: Bool = false,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.orderId = orderId
+        self.kind = kind
+        self.localPhotoPath = localPhotoPath
+        self.caption = caption
+        self.tags = DesignTags.normalized(tags)
+        self.isFavorite = isFavorite
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
 enum OrderRecipeUsageError: Error, Equatable {

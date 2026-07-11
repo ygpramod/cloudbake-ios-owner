@@ -67,6 +67,8 @@ final class CoreDataRepositoryTests: XCTestCase {
             sourceKind: .internetInspiration,
             sourceName: "Cake Artist",
             sourceURL: "https://example.com/rose-garden",
+            tags: ["Floral", "Birthday"],
+            isFavorite: true,
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt
         )
@@ -145,6 +147,8 @@ final class CoreDataRepositoryTests: XCTestCase {
             kind: .customerReference,
             localPhotoPath: "OrderPhotos/order-rose-garden/reference.jpg",
             caption: "Customer sketch",
+            tags: ["Floral"],
+            isFavorite: true,
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt
         )

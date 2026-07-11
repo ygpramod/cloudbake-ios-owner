@@ -191,13 +191,16 @@ extension GRDBCoreDataRepository {
         try db.execute(
                 sql: """
                     INSERT INTO order_photos
-                    (id, order_id, kind, local_photo_path, caption, created_at_unix_time, updated_at_unix_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (id, order_id, kind, local_photo_path, caption, tags_json, is_favorite,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
                     order_id = excluded.order_id,
                     kind = excluded.kind,
                     local_photo_path = excluded.local_photo_path,
                     caption = excluded.caption,
+                    tags_json = excluded.tags_json,
+                    is_favorite = excluded.is_favorite,
                     created_at_unix_time = excluded.created_at_unix_time,
                     updated_at_unix_time = excluded.updated_at_unix_time
                     """,
@@ -207,6 +210,8 @@ extension GRDBCoreDataRepository {
                     photo.kind.rawValue,
                     photo.localPhotoPath,
                     photo.caption,
+                    designTagsJSON(photo.tags),
+                    photo.isFavorite,
                     photo.createdAt.timeIntervalSince1970,
                     photo.updatedAt.timeIntervalSince1970
                 ])

@@ -69,6 +69,19 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         return json
     }
 
+    func designTags(from json: String?) -> [String] {
+        guard let json,
+              let data = json.data(using: .utf8),
+              let tags = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+        return DesignTags.normalized(tags)
+    }
+
+    func designTagsJSON(_ tags: [String]) -> String {
+        guard let data = try? JSONEncoder().encode(DesignTags.normalized(tags)),
+              let json = String(data: data, encoding: .utf8) else { return "[]" }
+        return json
+    }
+
     func recipe(from row: Row) -> Recipe {
         Recipe(
             id: row["id"],
@@ -136,6 +149,8 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             originatingOrderId: row["originating_order_id"],
             sourceName: row["source_name"],
             sourceURL: row["source_url"],
+            tags: designTags(from: row["tags_json"]),
+            isFavorite: row["is_favorite"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )
@@ -226,6 +241,8 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             kind: kind,
             localPhotoPath: row["local_photo_path"],
             caption: row["caption"],
+            tags: designTags(from: row["tags_json"]),
+            isFavorite: row["is_favorite"],
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )
