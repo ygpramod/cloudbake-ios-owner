@@ -435,10 +435,16 @@ final class OrderListViewModelTests: XCTestCase {
             id: "design-floral",
             name: "Pink florals",
             notes: "Palette knife flowers",
-            photoReference: "photos/floral.jpg"
+            photoReference: "photos/floral.jpg",
+            tags: ["Birthday", "Floral"]
         )
         let minimalist = makeCakeDesign(id: "design-minimal", name: "Minimal buttercream")
-        repository.cakeDesigns = [minimalist, floral]
+        let hiddenInternet = makeCakeDesign(
+            id: "design-internet-hidden",
+            name: "Internet inspiration",
+            sourceKind: .internetInspiration
+        )
+        repository.cakeDesigns = [minimalist, floral, hiddenInternet]
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.load()
@@ -446,8 +452,10 @@ final class OrderListViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.draftCakeDesignId, "design-floral")
         XCTAssertEqual(viewModel.draftCakeDesignName(), "Pink florals")
+        XCTAssertEqual(viewModel.cakeDesigns, [minimalist, floral])
         XCTAssertEqual(viewModel.cakeDesigns(matching: "palette"), [floral])
-        XCTAssertEqual(viewModel.cakeDesigns(matching: "photos"), [floral])
+        XCTAssertEqual(viewModel.cakeDesigns(matching: "pink birthday"), [floral])
+        XCTAssertEqual(viewModel.cakeDesigns(matching: "", tag: "Floral"), [floral])
         XCTAssertEqual(viewModel.cakeDesigns(matching: "minimal"), [minimalist])
         viewModel.clearDraftCakeDesignLink()
         XCTAssertEqual(viewModel.draftCakeDesignId, "")

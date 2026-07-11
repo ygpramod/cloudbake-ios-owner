@@ -41,8 +41,18 @@ enum OrderReferenceSelection {
     }
 
     static func cakeDesigns(_ cakeDesigns: [CakeDesign], matching searchText: String) -> [CakeDesign] {
-        matching(searchText, in: cakeDesigns) { design in
-            [design.name, design.notes, design.photoReference]
+        let terms = searchText.split { !$0.isLetter && !$0.isNumber }
+            .map(String.init)
+            .map(normalizedSearchText)
+            .filter { !$0.isEmpty }
+        guard !terms.isEmpty else { return cakeDesigns }
+        return cakeDesigns.filter { design in
+            let fields = ([design.name, design.notes] + design.tags.map(Optional.some))
+                .compactMap { $0 }
+                .map(normalizedSearchText)
+            return terms.allSatisfy { term in
+                fields.contains { $0.contains(term) }
+            }
         }
     }
 

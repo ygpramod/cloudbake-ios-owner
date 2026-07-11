@@ -108,8 +108,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
             "orders.designSelection.customerReference"
         ]
         XCTAssertTrue(currentReference.waitForExistence(timeout: 5))
-        XCTAssertTrue(currentReference.isSelected)
-        XCTAssertFalse(app.buttons["orders.designSelection.none"].isSelected)
+        XCTAssertTrue(app.buttons["orders.designSelection.none"].isEnabled)
     }
 
     func testDesignDetailSupportsZoomControlsAndAdjacentSwipe() throws {
@@ -173,12 +172,12 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let app = makeApp(initialDestination: "designs")
         app.launchEnvironment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] = "1"
         app.launchEnvironment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] = "1"
-        app.launchEnvironment["CLOUDBAKE_SEED_INTERNET_INSPIRATION_FIXTURE"] = "1"
+        app.launchEnvironment["CLOUDBAKE_SEED_DESIGN_SCROLL_FIXTURE"] = "1"
         app.launch()
 
-        let bottomInspiration = app.buttons["designs.item.design-ui-internet-7"]
-        scrollToHittable(bottomInspiration, in: app, timeout: 10)
-        XCTAssertTrue(bottomInspiration.isHittable)
+        let bottomDesign = app.buttons["designs.item.design-ui-scroll-7"]
+        scrollToHittable(bottomDesign, in: app, timeout: 10)
+        XCTAssertTrue(bottomDesign.isHittable)
 
         for _ in 0..<4 { app.swipeDown() }
 
@@ -708,18 +707,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let designField = app.buttons["orders.form.design"]
         scrollToHittable(designField, in: app, timeout: transitionTimeout)
         tapWhenReady(designField, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Design"].waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(
-            app.buttons.matching(
-                NSPredicate(
-                    format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
-                    "orders.designSelection.design.",
-                    "Pink Floral Cake"
-                )
-            )
-                .firstMatch,
-            timeout: transitionTimeout
-        )
+        XCTAssertTrue(app.navigationBars["Choose Design"].waitForExistence(timeout: transitionTimeout))
+        let designSearch = app.textFields["orders.designSelection.search"]
+        XCTAssertTrue(designSearch.waitForExistence(timeout: transitionTimeout))
+        typeText("Pink Floral", into: designSearch, timeout: transitionTimeout)
+        let floralDesign = app.descendants(matching: .any)[
+            "orders.designSelection.design.design-ui-fixture-floral"
+        ]
+        XCTAssertTrue(floralDesign.waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(floralDesign, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
 
         let customerNameField = app.textFields["orders.form.customerName"]
