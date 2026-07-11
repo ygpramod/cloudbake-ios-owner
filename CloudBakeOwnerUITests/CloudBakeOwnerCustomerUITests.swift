@@ -36,7 +36,9 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(newOrderButton.waitForExistence(timeout: 5))
         newOrderButton.tap()
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: 5))
+        let customerRecord = app.buttons["orders.form.customerRecord"]
+        XCTAssertTrue(customerRecord.waitForExistence(timeout: 5))
+        XCTAssertTrue(customerRecord.label.contains("Amy"))
     }
 
     func testCustomerAddOffersContactsImportAndManualEntry() throws {

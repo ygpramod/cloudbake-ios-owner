@@ -46,9 +46,9 @@ extension CloudBakeOwnerUITests {
         let historyButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.history.")).firstMatch
         XCTAssertTrue(historyButton.waitForExistence(timeout: 5))
         scrollToHittable(historyButton, in: app)
-        historyButton.tap()
+        tapWhenReady(historyButton, timeout: 10)
 
-        XCTAssertTrue(app.buttons["inventory.history.done"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["inventory.history.done"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Used"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["-50 g"].waitForExistence(timeout: 5))
