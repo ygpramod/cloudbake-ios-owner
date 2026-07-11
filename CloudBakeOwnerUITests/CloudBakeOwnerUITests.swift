@@ -48,6 +48,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(remove)
         let cancel = app.buttons["designs.delete.cancel"]
         XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS %@", "image remains in Photos")
+            ).firstMatch.exists
+        )
         tapWhenReady(cancel)
         XCTAssertTrue(app.buttons["designs.preview.done"].exists)
 

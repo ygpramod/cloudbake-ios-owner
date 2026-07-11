@@ -15,6 +15,8 @@ extension View {
             if isPresented {
                 CloudBakeCenteredPopup(
                     title: title,
+                    subtitle: subtitle,
+                    systemImage: systemImage,
                     showsCancelButton: showsCancelButton,
                     cancelAccessibilityIdentifier: cancelAccessibilityIdentifier,
                     onCancel: onCancel,
@@ -47,6 +49,8 @@ extension View {
 
 private struct CloudBakeCenteredPopup<Content: View>: View {
     let title: String
+    let subtitle: String
+    let systemImage: String
     let showsCancelButton: Bool
     let cancelAccessibilityIdentifier: String
     let onCancel: () -> Void
@@ -60,10 +64,26 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
                     .onTapGesture(perform: onCancel)
 
                 VStack(spacing: 0) {
-                    Text(title)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(.primary)
+                    VStack(spacing: 10) {
+                        Image(systemName: systemImage)
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(Color.cloudBakePink)
+                            .accessibilityHidden(true)
+
+                        Text(title)
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(.primary)
+
+                        if !subtitle.isEmpty {
+                            Text(subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .accessibilityIdentifier("cloudBake.popup.subtitle")
+                        }
+                    }
                         .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.horizontal, 24)
                         .padding(.top, 28)
                         .padding(.bottom, 24)
 
