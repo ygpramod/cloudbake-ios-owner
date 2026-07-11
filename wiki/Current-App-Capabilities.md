@@ -138,6 +138,10 @@ The app currently supports:
     originating customer and order context and without duplicating photo records.
 112. Photos-owned order images: new customer-reference and final-cake photos are saved to Photos,
     and order metadata stores only the returned asset identifier.
+113. private Internet Inspiration import from Photos with optional source/creator, validated source
+    URL, owner notes, and explicit third-party provenance.
+114. photo-only Designs thumbnails, with names and metadata available through accessibility and the
+    centered, shared-style detail screen.
 
 ## Partially Prepared
 
