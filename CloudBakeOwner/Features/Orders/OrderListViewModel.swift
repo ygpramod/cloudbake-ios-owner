@@ -941,10 +941,19 @@ final class OrderListViewModel: ObservableObject {
             cakeDesignId: designId,
             updatedAt: now
         )
+        let migratedPhoto = OrderPhoto(
+            id: photo.id,
+            orderId: photo.orderId,
+            kind: photo.kind,
+            localPhotoPath: photoReference,
+            caption: photo.caption,
+            createdAt: photo.createdAt,
+            updatedAt: now
+        )
 
         do {
-            try repository.save(design)
-            try repository.save(updatedOrder)
+            try repository.savePromotedDesign(design, linking: updatedOrder, photo: migratedPhoto)
+            try photoFileStore.deleteOrderPhoto(relativePath: photo.localPhotoPath)
             refreshAfterSavingOrder(updatedOrder)
             errorMessage = nil
             return true
@@ -956,6 +965,14 @@ final class OrderListViewModel: ObservableObject {
 
     func orderPhotoURL(_ photo: OrderPhoto) -> URL {
         photoFileStore.fileURL(for: photo.localPhotoPath)
+    }
+
+    func orderPhotoSource(_ photo: OrderPhoto) -> CakeDesignPhotoSource? {
+        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: photo.localPhotoPath) {
+            return designPhotoLibrary.containsAsset(identifier: identifier) ? .photosAsset(identifier) : nil
+        }
+        let url = orderPhotoURL(photo)
+        return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
     }
 
     func cancelEditingOrder() {

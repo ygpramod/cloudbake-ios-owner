@@ -201,6 +201,7 @@ final class FakeOrderRepository: OrderRepository,
     var recordedTransactionIds: [String] = []
     var recordRecipeUsageError: Error?
     var changeOrderStatusError: Error?
+    var savePromotedDesignError: Error?
 
     func save(_ order: Order) throws {
         orders.removeAll { $0.id == order.id }
@@ -288,6 +289,13 @@ final class FakeOrderRepository: OrderRepository,
     func save(_ design: CakeDesign) throws {
         cakeDesigns.removeAll { $0.id == design.id }
         cakeDesigns.append(design)
+    }
+
+    func savePromotedDesign(_ design: CakeDesign, linking order: Order, photo: OrderPhoto) throws {
+        if let savePromotedDesignError { throw savePromotedDesignError }
+        try save(design)
+        try save(order)
+        try save(photo)
     }
 
     func fetchCakeDesign(id: String) throws -> CakeDesign? {

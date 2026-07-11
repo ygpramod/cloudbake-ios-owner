@@ -167,7 +167,12 @@ extension GRDBCoreDataRepository {
 
     func save(_ design: CakeDesign) throws {
         try writer.write { db in
-            try db.execute(
+            try save(design, in: db)
+        }
+    }
+
+    func save(_ design: CakeDesign, in db: Database) throws {
+        try db.execute(
                 sql: """
                     INSERT INTO cake_designs
                     (id, name, notes, photo_reference, source_kind, originating_order_photo_id,
@@ -194,8 +199,7 @@ extension GRDBCoreDataRepository {
                     design.createdAt.timeIntervalSince1970,
                     design.updatedAt.timeIntervalSince1970
                 ])
-            )
-        }
+        )
     }
 
     func fetchCakeDesign(id: String) throws -> CakeDesign? {

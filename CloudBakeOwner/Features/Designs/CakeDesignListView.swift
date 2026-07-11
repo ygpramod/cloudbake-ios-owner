@@ -196,7 +196,7 @@ private actor DesignThumbnailLoader {
     }()
 
     func image(for source: CakeDesignPhotoSource, maximumPixelSize: Int) async -> UIImage? {
-        let cacheKey = NSString(string: String(describing: source))
+        let cacheKey = NSString(string: "\(String(describing: source))@\(maximumPixelSize)")
         if let cachedImage = cache.object(forKey: cacheKey) {
             return cachedImage
         }
@@ -258,7 +258,7 @@ private actor DesignThumbnailLoader {
     }
 }
 
-private struct DesignPhotoView: View {
+struct DesignPhotoView: View {
     let source: CakeDesignPhotoSource?
     let maximumPixelSize: Int
     let contentMode: ContentMode
