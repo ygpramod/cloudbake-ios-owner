@@ -107,6 +107,55 @@ final class InventoryCSVServiceTests: XCTestCase {
         XCTAssertEqual(repository.batches.map(\.remainingQuantity).sorted(), [125, 175])
     }
 
+    @MainActor
+    func testSettingsViewModelReportsExportReadyState() throws {
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake flour",
+                unit: .gram,
+                currentQuantity: 250,
+                minimumQuantity: 500,
+                createdAt: Date(timeIntervalSince1970: 1_800_000_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_000_000)
+            )
+        ]
+        let viewModel = SettingsViewModel(repository: repository)
+
+        let document = try XCTUnwrap(viewModel.exportInventoryDocument())
+
+        XCTAssertTrue(document.text.contains("Cake flour"))
+        XCTAssertEqual(viewModel.statusMessage, "Inventory export is ready. Choose a location to save the CSV.")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    @MainActor
+    func testSettingsViewModelReportsImportedItemsAndBatches() throws {
+        let temporaryURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("csv")
+        try """
+        name,unit,current_quantity,minimum_quantity,batch_quantity,amount,expiry_date
+        Cake flour,g,250,500,250,2.50,2026-08-15
+        """.write(to: temporaryURL, atomically: true, encoding: .utf8)
+        defer {
+            try? FileManager.default.removeItem(at: temporaryURL)
+        }
+        let viewModel = SettingsViewModel(
+            repository: FakeInventoryItemRepository(),
+            csvService: InventoryCSVService(
+                idGenerator: makeIncrementingIdGenerator(prefix: "generated"),
+                dateProvider: { Date(timeIntervalSince1970: 1_800_000_000) }
+            )
+        )
+
+        viewModel.importInventoryCSV(from: temporaryURL)
+
+        XCTAssertEqual(viewModel.statusMessage, "Imported 1 inventory items and 1 stock batches.")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
