@@ -111,6 +111,28 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertFalse(app.buttons["orders.designSelection.none"].isSelected)
     }
 
+    func testDesignDetailSupportsZoomControlsAndAdjacentSwipe() throws {
+        let app = makeApp(initialDestination: "designs")
+        app.launchEnvironment["CLOUDBAKE_SEED_DESIGN_GALLERY_FIXTURE"] = "1"
+        app.launch()
+
+        let firstDesign = app.buttons["designs.item.design-ui-gallery-first"]
+        XCTAssertTrue(firstDesign.waitForExistence(timeout: 10))
+        tapWhenReady(firstDesign)
+
+        let zoomControls = app.descendants(matching: .any)["designs.preview.zoomControls"]
+        XCTAssertTrue(zoomControls.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Zoom In"].exists)
+        XCTAssertTrue(app.buttons["Zoom Out"].exists)
+        XCTAssertTrue(app.buttons["Reset Zoom"].exists)
+
+        let photo = app.descendants(matching: .any)["designs.preview.photo"]
+        XCTAssertTrue(photo.waitForExistence(timeout: 5))
+        photo.swipeLeft()
+
+        XCTAssertTrue(app.navigationBars["Second Gallery Cake"].waitForExistence(timeout: 5))
+    }
+
     func testSettingsShowsInventoryCSVActions() throws {
         let app = makeApp()
         app.launch()

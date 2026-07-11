@@ -68,9 +68,12 @@ struct CakeDesignListView: View {
             NavigationStack {
                 CakeDesignPreviewView(
                     design: design,
-                    photoSource: viewModel.availablePhotoSource(for: design),
-                    accessibilityLabel: viewModel.accessibilityLabel(for: design),
-                    usageOrders: viewModel.usageOrders(for: design),
+                    designs: design.sourceKind == .internetInspiration
+                        ? viewModel.visibleInternetInspirations
+                        : viewModel.visibleDesigns,
+                    photoSource: viewModel.availablePhotoSource,
+                    accessibilityLabel: viewModel.accessibilityLabel,
+                    usageOrders: viewModel.usageOrders,
                     onToggleFavorite: { viewModel.toggleFavorite($0) },
                     onUpdateTags: { viewModel.updateTags($0, for: $1) },
                     onDelete: { viewModel.delete($0) }
@@ -81,8 +84,9 @@ struct CakeDesignListView: View {
             NavigationStack {
                 CustomerReferencePreviewView(
                     reference: reference,
-                    photoSource: viewModel.availablePhotoSource(for: reference.photo),
-                    usageOrders: viewModel.usageOrders(for: reference),
+                    references: viewModel.visibleCustomerReferences,
+                    photoSource: { viewModel.availablePhotoSource(for: $0.photo) },
+                    usageOrders: viewModel.usageOrders,
                     onToggleFavorite: { viewModel.toggleFavorite($0) },
                     onUpdateTags: { viewModel.updateTags($0, for: $1) },
                     onDelete: { viewModel.delete($0) }
@@ -276,8 +280,9 @@ struct CakeDesignListView: View {
 
 private struct CustomerReferencePreviewView: View {
     @State private var reference: CustomerReferenceDesign
-    let photoSource: CakeDesignPhotoSource?
-    let usageOrders: [Order]
+    let references: [CustomerReferenceDesign]
+    let photoSource: (CustomerReferenceDesign) -> CakeDesignPhotoSource?
+    let usageOrders: (CustomerReferenceDesign) -> [Order]
     let onToggleFavorite: (CustomerReferenceDesign) -> CustomerReferenceDesign?
     let onUpdateTags: (String, CustomerReferenceDesign) -> CustomerReferenceDesign?
     let onDelete: (CustomerReferenceDesign) -> Bool
@@ -289,13 +294,15 @@ private struct CustomerReferencePreviewView: View {
 
     init(
         reference: CustomerReferenceDesign,
-        photoSource: CakeDesignPhotoSource?,
-        usageOrders: [Order],
+        references: [CustomerReferenceDesign],
+        photoSource: @escaping (CustomerReferenceDesign) -> CakeDesignPhotoSource?,
+        usageOrders: @escaping (CustomerReferenceDesign) -> [Order],
         onToggleFavorite: @escaping (CustomerReferenceDesign) -> CustomerReferenceDesign?,
         onUpdateTags: @escaping (String, CustomerReferenceDesign) -> CustomerReferenceDesign?,
         onDelete: @escaping (CustomerReferenceDesign) -> Bool
     ) {
         _reference = State(initialValue: reference)
+        self.references = references
         self.photoSource = photoSource
         self.usageOrders = usageOrders
         self.onToggleFavorite = onToggleFavorite
@@ -306,11 +313,12 @@ private struct CustomerReferencePreviewView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                DesignPhotoView(source: photoSource, maximumPixelSize: 2_400, contentMode: .fit)
-                    .aspectRatio(1, contentMode: .fit)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                    .accessibilityIdentifier("designs.customerReference.preview.photo")
+                ZoomableDesignPhoto(
+                    source: photoSource(reference),
+                    accessibilityLabel: "\(reference.title), customer reference",
+                    accessibilityIdentifier: "designs.customerReference.preview.photo"
+                )
+                .id(reference.id)
 
                 CloudBakeDetailCard {
                     CloudBakeDetailRow("Source") { Text("Customer Reference") }
@@ -330,9 +338,9 @@ private struct CustomerReferencePreviewView: View {
 
                 CloudBakeDetailCard {
                     CloudBakeDetailRow("Used In") {
-                        Text("\(usageOrders.count) order\(usageOrders.count == 1 ? "" : "s")")
+                        Text("\(currentUsageOrders.count) order\(currentUsageOrders.count == 1 ? "" : "s")")
                     }
-                    ForEach(usageOrders, id: \.id) { order in
+                    ForEach(currentUsageOrders, id: \.id) { order in
                         CloudBakeDetailDivider()
                         VStack(alignment: .leading, spacing: 4) {
                             Text(order.title)
@@ -362,6 +370,7 @@ private struct CustomerReferencePreviewView: View {
             }
             .padding(CloudBakeTheme.Spacing.screenHorizontal)
         }
+        .simultaneousGesture(adjacentReferenceSwipe)
         .background(CloudBakeScreenBackground().ignoresSafeArea())
         .navigationTitle(reference.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -410,6 +419,26 @@ private struct CustomerReferencePreviewView: View {
             }
             .accessibilityIdentifier("designs.customerReference.delete.confirm")
         }
+    }
+
+    private var currentUsageOrders: [Order] {
+        usageOrders(reference)
+    }
+
+    private var adjacentReferenceSwipe: some Gesture {
+        DragGesture(minimumDistance: 40)
+            .onEnded { value in
+                guard abs(value.translation.width) > abs(value.translation.height) * 1.4,
+                      abs(value.translation.width) >= 72,
+                      let index = references.firstIndex(where: { $0.id == reference.id }) else {
+                    return
+                }
+                let nextIndex = value.translation.width < 0 ? index + 1 : index - 1
+                guard references.indices.contains(nextIndex) else { return }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    reference = references[nextIndex]
+                }
+            }
     }
 }
 
@@ -500,9 +529,10 @@ private struct InternetInspirationImportView: View {
 
 private struct CakeDesignPreviewView: View {
     @State private var design: CakeDesign
-    let photoSource: CakeDesignPhotoSource?
-    let accessibilityLabel: String
-    let usageOrders: [Order]
+    let designs: [CakeDesign]
+    let photoSource: (CakeDesign) -> CakeDesignPhotoSource?
+    let accessibilityLabel: (CakeDesign) -> String
+    let usageOrders: (CakeDesign) -> [Order]
     let onToggleFavorite: (CakeDesign) -> CakeDesign?
     let onUpdateTags: (String, CakeDesign) -> CakeDesign?
     let onDelete: (CakeDesign) -> Bool
@@ -514,14 +544,16 @@ private struct CakeDesignPreviewView: View {
 
     init(
         design: CakeDesign,
-        photoSource: CakeDesignPhotoSource?,
-        accessibilityLabel: String,
-        usageOrders: [Order],
+        designs: [CakeDesign],
+        photoSource: @escaping (CakeDesign) -> CakeDesignPhotoSource?,
+        accessibilityLabel: @escaping (CakeDesign) -> String,
+        usageOrders: @escaping (CakeDesign) -> [Order],
         onToggleFavorite: @escaping (CakeDesign) -> CakeDesign?,
         onUpdateTags: @escaping (String, CakeDesign) -> CakeDesign?,
         onDelete: @escaping (CakeDesign) -> Bool
     ) {
         _design = State(initialValue: design)
+        self.designs = designs
         self.photoSource = photoSource
         self.accessibilityLabel = accessibilityLabel
         self.usageOrders = usageOrders
@@ -533,12 +565,12 @@ private struct CakeDesignPreviewView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                DesignPhotoView(source: photoSource, maximumPixelSize: 2_400, contentMode: .fit)
-                .aspectRatio(1, contentMode: .fit)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                .accessibilityLabel(accessibilityLabel)
-                .accessibilityIdentifier("designs.preview.photo")
+                ZoomableDesignPhoto(
+                    source: photoSource(design),
+                    accessibilityLabel: accessibilityLabel(design),
+                    accessibilityIdentifier: "designs.preview.photo"
+                )
+                .id(design.id)
 
                 CloudBakeDetailCard {
                     CloudBakeDetailRow("Name") {
@@ -597,9 +629,9 @@ private struct CakeDesignPreviewView: View {
 
                 CloudBakeDetailCard {
                     CloudBakeDetailRow("Used In") {
-                        Text(usageOrders.isEmpty ? "No linked orders" : "\(usageOrders.count) order\(usageOrders.count == 1 ? "" : "s")")
+                        Text(currentUsageOrders.isEmpty ? "No linked orders" : "\(currentUsageOrders.count) order\(currentUsageOrders.count == 1 ? "" : "s")")
                     }
-                    ForEach(usageOrders, id: \.id) { order in
+                    ForEach(currentUsageOrders, id: \.id) { order in
                         CloudBakeDetailDivider()
                         VStack(alignment: .leading, spacing: 4) {
                             Text(order.title)
@@ -615,6 +647,7 @@ private struct CakeDesignPreviewView: View {
             }
             .padding(CloudBakeTheme.Spacing.screenHorizontal)
         }
+        .simultaneousGesture(adjacentDesignSwipe)
         .background(CloudBakeScreenBackground().ignoresSafeArea())
         .navigationTitle(design.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -667,9 +700,108 @@ private struct CakeDesignPreviewView: View {
             .accessibilityIdentifier("designs.delete.confirm")
         }
     }
+
+    private var currentUsageOrders: [Order] {
+        usageOrders(design)
+    }
+
+    private var adjacentDesignSwipe: some Gesture {
+        DragGesture(minimumDistance: 40)
+            .onEnded { value in
+                guard abs(value.translation.width) > abs(value.translation.height) * 1.4,
+                      abs(value.translation.width) >= 72,
+                      let index = designs.firstIndex(where: { $0.id == design.id }) else {
+                    return
+                }
+                let nextIndex = value.translation.width < 0 ? index + 1 : index - 1
+                guard designs.indices.contains(nextIndex) else { return }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    design = designs[nextIndex]
+                }
+            }
+    }
 }
 
 extension CakeDesign: Identifiable {}
+
+private struct ZoomableDesignPhoto: View {
+    let source: CakeDesignPhotoSource?
+    let accessibilityLabel: String
+    let accessibilityIdentifier: String
+    @State private var scale: CGFloat = 1
+    @State private var gestureStartScale: CGFloat = 1
+
+    var body: some View {
+        VStack(spacing: 10) {
+            DesignPhotoView(source: source, maximumPixelSize: 2_400, contentMode: .fit)
+                .aspectRatio(1, contentMode: .fit)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .scaleEffect(scale)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .contentShape(Rectangle())
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            scale = clampedScale(gestureStartScale * value)
+                        }
+                        .onEnded { _ in
+                            gestureStartScale = scale
+                        }
+                )
+                .accessibilityLabel(accessibilityLabel)
+                .accessibilityIdentifier(accessibilityIdentifier)
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: zoom(by: 0.5)
+                    case .decrement: zoom(by: -0.5)
+                    @unknown default: break
+                    }
+                }
+
+            HStack(spacing: 12) {
+                zoomButton(systemImage: "minus.magnifyingglass", label: "Zoom Out") {
+                    zoom(by: -0.5)
+                }
+                zoomButton(systemImage: "1.magnifyingglass", label: "Reset Zoom") {
+                    setScale(1)
+                }
+                zoomButton(systemImage: "plus.magnifyingglass", label: "Zoom In") {
+                    zoom(by: 0.5)
+                }
+            }
+            .accessibilityIdentifier("designs.preview.zoomControls")
+        }
+    }
+
+    private func zoomButton(
+        systemImage: String,
+        label: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .frame(minWidth: 44, minHeight: 32)
+        }
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.capsule)
+        .accessibilityLabel(label)
+    }
+
+    private func zoom(by amount: CGFloat) {
+        setScale(scale + amount)
+    }
+
+    private func setScale(_ value: CGFloat) {
+        withAnimation(.easeInOut(duration: 0.15)) {
+            scale = clampedScale(value)
+            gestureStartScale = scale
+        }
+    }
+
+    private func clampedScale(_ value: CGFloat) -> CGFloat {
+        min(max(value, 1), 4)
+    }
+}
 
 private actor DesignThumbnailLoader {
     static let shared = DesignThumbnailLoader()

@@ -17,6 +17,7 @@ final class AppDatabase {
             try database.seedOrderReminderFixtureIfRequested()
             try database.seedInventoryFixtureIfRequested()
             try database.seedCakeDesignFixtureIfRequested()
+            try database.seedDesignGalleryFixtureIfRequested()
             try database.seedOrderPhotoFixtureIfRequested()
             return database
         }
@@ -236,6 +237,30 @@ final class AppDatabase {
                 updatedAt: timestamp
             )
         )
+    }
+
+    private func seedDesignGalleryFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_DESIGN_GALLERY_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        for (id, name) in [
+            ("design-ui-gallery-first", "First Gallery Cake"),
+            ("design-ui-gallery-second", "Second Gallery Cake")
+        ] {
+            try repository.save(
+                CakeDesign(
+                    id: id,
+                    name: name,
+                    notes: nil,
+                    photoReference: nil,
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            )
+        }
     }
 
     private func seedOrderPhotoFixtureIfRequested() throws {
