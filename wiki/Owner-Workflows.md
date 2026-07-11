@@ -365,6 +365,10 @@ same inspection workflow without requiring a pinch gesture. Swipe horizontally t
 or previous item in the current filtered source collection; vertical swipes continue scrolling the
 detail screen.
 
+The add action beside My Designs imports completed owner work directly from the iPhone Photos
+library. A name is required; notes and comma-separated tags are optional. CloudBake stores the
+Photos asset reference and metadata only, and the design remains private by default.
+
 Order detail also includes a Photos section for order-specific images. Customer References are for
 images the customer shares before preparation, while Final Cake Photos are for what the owner made
 and delivered. Each group shows compact camera and photo-library icons beside the group title. The
