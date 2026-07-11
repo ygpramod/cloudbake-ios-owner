@@ -314,6 +314,8 @@ origin.
   not retain a second app-owned copy of a design image.
 - Camera, share, and file imports must first save the chosen image to Photos with owner consent,
   then persist only the returned asset identifier.
+- This boundary applies to every source surfaced by Designs, including customer-reference and final
+  cake order photos; new order-photo imports must not create a permanent app-container copy.
 - Removing a design record must not delete the corresponding Photos asset. The owner controls that
   asset from Photos.
 - Legacy app-relative references may remain readable during migration, but all new design-library
