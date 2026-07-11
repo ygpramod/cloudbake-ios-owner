@@ -1,5 +1,9 @@
 # Slice RFC-0070: Detail Screen Look And Feel
 
+## Status
+
+Implemented
+
 ## Authority And Scope
 
 This slice applies the CloudBake visual language to owner-facing detail screens and centered action

@@ -1,5 +1,9 @@
 # Slice RFC-0072: Customer Linking And Inventory Data Tools
 
+## Status
+
+Implemented
+
 ## Authority And Scope
 
 This slice improves owner data-management workflows that were too awkward once customers and

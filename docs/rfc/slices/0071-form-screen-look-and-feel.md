@@ -1,5 +1,9 @@
 # Slice RFC-0071: Form Screen Look And Feel
 
+## Status
+
+Implemented
+
 ## Authority And Scope
 
 This slice applies the CloudBake visual language to owner-facing form screens where the owner

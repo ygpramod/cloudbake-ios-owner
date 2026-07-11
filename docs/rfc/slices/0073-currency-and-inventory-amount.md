@@ -1,5 +1,9 @@
 # Slice RFC-0073: Currency And Inventory Amount
 
+## Status
+
+Implemented
+
 ## Authority And Scope
 
 This slice adds owner-level currency display and records amount on inventory stock batches.
