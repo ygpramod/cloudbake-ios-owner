@@ -420,30 +420,42 @@ struct SettingsView: View {
     }
 
     private func continueDataOperation(_ operation: SettingsDataOperation) {
-        pendingDataOperation = nil
         switch operation {
         case .importInventory:
-            isImportingInventory = true
+            dismissDataOperationPopup {
+                isImportingInventory = true
+            }
         case .exportInventory:
             if let document = viewModel.exportInventoryDocument() {
-                presentExporter(document: document, kind: .inventory)
+                dismissDataOperationPopup {
+                    presentExporter(document: document, kind: .inventory)
+                }
             }
         case .importRecipes:
-            isImportingRecipes = true
+            dismissDataOperationPopup {
+                isImportingRecipes = true
+            }
         case .exportRecipes:
             if let document = viewModel.exportRecipeDocument() {
-                presentExporter(document: document, kind: .recipes)
+                dismissDataOperationPopup {
+                    presentExporter(document: document, kind: .recipes)
+                }
             }
+        }
+    }
+
+    private func dismissDataOperationPopup(then action: @escaping @MainActor () -> Void) {
+        withAnimation(.easeInOut(duration: 0.18), completionCriteria: .removed) {
+            pendingDataOperation = nil
+        } completion: {
+            action()
         }
     }
 
     private func presentExporter(document: InventoryCSVDocument, kind: SettingsExportKind) {
         exportDocument = document
         exportKind = kind
-        Task { @MainActor in
-            await Task.yield()
-            isExporting = true
-        }
+        isExporting = true
     }
 }
 
