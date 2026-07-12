@@ -136,6 +136,25 @@ struct OrderForm: View {
             }
 
             Section("Pricing And Payment") {
+                if let ingredientCost = viewModel.draftIngredientCost,
+                   !ingredientCost.lines.isEmpty {
+                    LabeledContent("Estimated Ingredient Cost") {
+                        Text(MoneyDisplay.formatted(ingredientCost.knownCost))
+                            .fontWeight(.semibold)
+                    }
+                    .accessibilityIdentifier("orders.form.ingredientCost")
+
+                    if !ingredientCost.itemsMissingPrice.isEmpty {
+                        Label(
+                            "Partial total — missing prices for \(ingredientCost.itemsMissingPrice.joined(separator: ", "))",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier("orders.form.ingredientCost.warning")
+                    }
+                }
+
                 TextField("Quoted Price", text: $viewModel.draftQuotedPrice)
                     .keyboardType(.decimalPad)
                     .accessibilityIdentifier("orders.form.quotedPrice")
@@ -147,6 +166,9 @@ struct OrderForm: View {
                 TextField("Payment Notes", text: $viewModel.draftPaymentNotes, axis: .vertical)
                     .lineLimit(2...5)
                     .accessibilityIdentifier("orders.form.paymentNotes")
+            }
+            .onChange(of: viewModel.draftRecipeScaleMultiplier) { _, _ in
+                viewModel.refreshDraftIngredientCost()
             }
 
             if let errorMessage = viewModel.errorMessage {

@@ -70,6 +70,7 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftExtraIngredientUnit: InventoryUnit = .gram
     @Published var draftExtraIngredientNote = ""
     @Published private(set) var draftExtraIngredientRows: [OrderExtraIngredientDraftRow] = []
+    @Published private(set) var draftIngredientCost: OrderIngredientCostSummary?
     @Published var searchText = ""
     @Published var errorMessage: String?
     @Published private(set) var isPromotingDesign = false
@@ -310,12 +311,14 @@ final class OrderListViewModel: ObservableObject {
 
     func selectDraftRecipe(id: String) {
         draftRecipeId = id
+        refreshDraftIngredientCost()
     }
 
     func clearDraftRecipeLink() {
         draftRecipeId = ""
         draftRecipeScaleMultiplier = "1"
         draftExtraIngredientRows = []
+        draftIngredientCost = nil
     }
 
     func draftRecipeName() -> String {
@@ -508,6 +511,7 @@ final class OrderListViewModel: ObservableObject {
         loadFormReferences()
         loadSelectedOrderExtraIngredients(for: selectedOrder)
         draftExtraIngredientRows = selectedOrderExtraIngredients.map { OrderExtraIngredientDraftRow(row: $0) }
+        refreshDraftIngredientCost()
     }
 
     var editedOrderRequiresInventoryDeductionConfirmation: Bool {
@@ -776,6 +780,7 @@ final class OrderListViewModel: ObservableObject {
                 note: draft.note
             )
         )
+        refreshDraftIngredientCost()
         resetExtraIngredientDraft(keepingInventoryItems: true)
         errorMessage = nil
         return true
@@ -783,6 +788,64 @@ final class OrderListViewModel: ObservableObject {
 
     func deleteDraftExtraIngredient(_ row: OrderExtraIngredientDraftRow) {
         draftExtraIngredientRows.removeAll { $0.id == row.id }
+        refreshDraftIngredientCost()
+    }
+
+    func refreshDraftIngredientCost() {
+        guard !draftRecipeId.isEmpty,
+              let scale = Decimal(string: TextInputFormatting.trimmed(draftRecipeScaleMultiplier)),
+              scale > 0 else {
+            draftIngredientCost = nil
+            return
+        }
+
+        let now = dateProvider()
+        let orderId = editingOrder?.id ?? "draft-order-cost"
+        let draftOrder = Order(
+            id: orderId,
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: draftRecipeId,
+            recipeScaleMultiplier: scale,
+            title: draftTitle,
+            customerName: draftCustomerName,
+            status: draftStatus,
+            dueAt: draftDueAt,
+            fulfillmentType: draftFulfillmentType,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: now,
+            updatedAt: now
+        )
+        let extras = draftExtraIngredientRows.map { row in
+            OrderExtraIngredient(
+                id: row.id,
+                orderId: orderId,
+                inventoryItemId: row.inventoryItemId,
+                quantity: row.quantity,
+                unit: row.unit,
+                note: row.note,
+                createdAt: now,
+                updatedAt: now
+            )
+        }
+
+        do {
+            let requirements = try OrderIngredientRequirements.requirements(
+                for: draftOrder,
+                inventoryItems: availableInventoryItems,
+                recipeComponents: repository.fetchRecipeComponents(recipeId:),
+                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
+                orderExtraIngredients: { _ in extras }
+            )
+            draftIngredientCost = try OrderIngredientCostCalculation.summary(
+                requirements: requirements,
+                batches: repository.fetchInventoryStockBatches(inventoryItemId:),
+                at: now
+            )
+        } catch {
+            draftIngredientCost = nil
+        }
     }
 
     func deleteExtraIngredient(_ row: OrderExtraIngredientRow) -> Bool {
@@ -1506,6 +1569,7 @@ final class OrderListViewModel: ObservableObject {
         draftQuotedPrice = ""
         draftDepositPaid = ""
         draftPaymentNotes = ""
+        draftIngredientCost = nil
     }
 
     private func resetExtraIngredientDraft(keepingInventoryItems: Bool = false) {
