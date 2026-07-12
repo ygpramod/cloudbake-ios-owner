@@ -98,6 +98,7 @@ struct InventoryCSVService {
         let groupedRows = Dictionary(grouping: importedRows) { row in
             "\(TextInputFormatting.normalizedSearchKey(row.name))|\(row.unit.rawValue)"
         }
+        try validateItemMetadata(in: groupedRows)
         let existingItems = try repository.fetchInventoryItems()
         let now = dateProvider()
         var importedBatchCount = 0
@@ -145,6 +146,40 @@ struct InventoryCSVService {
             importedItemCount: groupedRows.count,
             importedBatchCount: importedBatchCount
         )
+    }
+
+    private func validateItemMetadata(in groupedRows: [String: [InventoryCSVImportRow]]) throws {
+        for rows in groupedRows.values {
+            guard let firstRow = rows.first else { continue }
+            let expectedAliases = normalizedAliases(firstRow.aliases)
+
+            for row in rows.dropFirst() {
+                guard normalizedAliases(row.aliases) == expectedAliases else {
+                    throw InventoryCSVError.invalidRow(
+                        row.rowNumber,
+                        "Aliases must match across batch rows for the same item."
+                    )
+                }
+                guard row.type == firstRow.type else {
+                    throw InventoryCSVError.invalidRow(
+                        row.rowNumber,
+                        "Type must match across batch rows for the same item."
+                    )
+                }
+                guard row.minimumQuantity == firstRow.minimumQuantity else {
+                    throw InventoryCSVError.invalidRow(
+                        row.rowNumber,
+                        "Minimum quantity must match across batch rows for the same item."
+                    )
+                }
+            }
+        }
+    }
+
+    private func normalizedAliases(_ aliases: [String]) -> [String] {
+        aliases
+            .map(TextInputFormatting.normalizedSearchKey)
+            .sorted()
     }
 
     private func csvRow(item: InventoryItem, batchQuantity: Double, amount: Decimal?, expiryDate: Date?) -> [String] {
@@ -214,6 +249,7 @@ struct InventoryCSVService {
             let expiryDate = try parseOptionalDate(expiryText, rowNumber: rowNumber)
 
             return InventoryCSVImportRow(
+                rowNumber: rowNumber,
                 name: name,
                 aliases: aliases,
                 type: type,
@@ -357,6 +393,7 @@ struct InventoryCSVService {
 }
 
 private struct InventoryCSVImportRow {
+    let rowNumber: Int
     let name: String
     let aliases: [String]
     let type: InventoryItemType
