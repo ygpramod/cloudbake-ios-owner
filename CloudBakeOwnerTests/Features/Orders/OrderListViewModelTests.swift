@@ -1066,6 +1066,48 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.selectedOrderIngredientCostIsActual)
     }
 
+    func testOrderDetailKeepsActualCostForArchivedInventoryItem() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_140_000)
+        let order = makeOrder(
+            id: "order-archived-cost",
+            recipeId: "recipe-cake",
+            status: .completed,
+            dueAt: timestamp
+        )
+        let archivedFlour = InventoryItem(
+            id: "inventory-archived-flour",
+            name: "Archived cake flour",
+            unit: .gram,
+            currentQuantity: 0,
+            minimumQuantity: 10,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            archivedAt: timestamp
+        )
+        repository.orders = [order]
+        repository.recipes = [makeRecipe(id: "recipe-cake", name: "Cake")]
+        repository.inventoryItems = [archivedFlour]
+        repository.ingredientCosts = [
+            OrderIngredientCost(
+                id: "cost-archived-flour",
+                orderId: order.id,
+                inventoryItemId: archivedFlour.id,
+                quantity: 100,
+                unit: .gram,
+                knownCost: 12,
+                missingPriceQuantity: 0,
+                recordedAt: timestamp
+            )
+        ]
+        let viewModel = OrderListViewModel(repository: repository, dateProvider: { timestamp })
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertEqual(viewModel.selectedOrderIngredientCost?.knownCost, decimal("12"))
+        XCTAssertEqual(viewModel.selectedOrderIngredientCost?.lines.first?.inventoryItemName, "Archived cake flour")
+    }
+
     func testFailedStatusEditDoesNotPersistDraftExtraIngredients() {
         let repository = FakeOrderRepository()
         let order = makeOrder(
