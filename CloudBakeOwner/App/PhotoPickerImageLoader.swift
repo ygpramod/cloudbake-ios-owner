@@ -54,7 +54,8 @@ struct AppLogoStore {
             in: .userDomainMask
         )[0]
         return applicationSupport
-            .appendingPathComponent("CloudBake", isDirectory: true)
+            .appendingPathComponent("CloudBakeOwner", isDirectory: true)
+            .appendingPathComponent("Branding", isDirectory: true)
             .appendingPathComponent("custom-logo.jpg")
     }
 }
