@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved.
+Implemented.
 
 ## Parent Decisions
 
@@ -51,3 +51,25 @@ and production schema promotion must be documented and reproducible.
 ## Rollout Notes
 
 Keep publication inaccessible to owners until scheduling and status controls ship.
+
+## Implementation Notes
+
+- `CloudBackupPublisher` creates a deterministic upload plan from a validated snapshot, uploads into
+  a non-current generation, verifies remote metadata and every payload checksum, then conditionally
+  advances the current pointer.
+- `CloudKitBackupStore` is the only CloudKit-dependent adapter. Application publication protocols,
+  plans, results, and error categories remain CloudKit-free.
+- Pointer publication and generation deletion use server-record preconditions. Cleanup can delete a
+  candidate only while atomically proving that an unchanged pointer does not reference it.
+- Interrupted attempts are replaced safely on retry. Post-publication cleanup failures retain the
+  valid new pointer and report pending cleanup.
+- `docs/cloudkit-backup-operations.md` records the private schema, development-to-production process,
+  signing requirements, and manual development-container smoke checklist. CI remains independent of
+  personal iCloud accounts.
+- The app target declares the CloudKit container entitlement, but publication remains dormant until
+  the scheduling and Settings slices activate it.
+
+## Wiki Decision
+
+No wiki change. RFC-0102 adds dormant CloudKit publication infrastructure and an engineering
+runbook; owner-facing backup behavior and guidance arrive with later Settings and lifecycle slices.
