@@ -30,6 +30,7 @@ enum CloudBackupPlanError: Error, Equatable {
     case generationMismatch
     case manifestMismatch
     case invalidGenerationID
+    case invalidRecordName
     case unsafeFilePath(String)
     case missingFile(String)
     case fileSizeMismatch(String)
@@ -88,6 +89,15 @@ extension CloudBackupGenerationPlan {
             )
         }
         let files = [manifestFile, databaseFile] + assetFiles
+        guard files.allSatisfy({ CloudBackupRecordName.isSafe($0.recordName) }) else {
+            throw CloudBackupPlanError.invalidRecordName
+        }
+        guard BackupManifest.calculatedTotalByteCount(
+            database: manifest.database,
+            assets: manifest.assets
+        ) == manifest.totalByteCount else {
+            throw CloudBackupPlanError.manifestMismatch
+        }
         var verifiedTotal: Int64 = 0
         for file in files {
             let addition = verifiedTotal.addingReportingOverflow(file.byteCount)
@@ -149,6 +159,18 @@ extension CloudBackupGenerationPlan {
             sha256: checksum,
             localFileURL: standardizedURL
         )
+    }
+}
+
+enum CloudBackupRecordName {
+    static func isSafe(_ value: String) -> Bool {
+        guard (1...200).contains(value.utf8.count) else { return false }
+        return value.utf8.allSatisfy { byte in
+            (48...57).contains(byte)
+                || (65...90).contains(byte)
+                || (97...122).contains(byte)
+                || byte == 45
+        }
     }
 }
 
