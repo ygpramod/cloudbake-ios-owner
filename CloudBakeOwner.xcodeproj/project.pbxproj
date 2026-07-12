@@ -28,6 +28,8 @@
 		4100000000000000000000DC /* SettingsFileExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000DC /* SettingsFileExporter.swift */; };
 		4100000000000000000000E0 /* CloudBackupPublication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000E0 /* CloudBackupPublication.swift */; };
 		4100000000000000000000E1 /* CloudBackupPublicationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000E1 /* CloudBackupPublicationTests.swift */; };
+		4100000000000000000000E2 /* CloudKitBackupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000E2 /* CloudKitBackupStore.swift */; };
+		4100000000000000000000E3 /* CloudKitBackupStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000E3 /* CloudKitBackupStoreTests.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -208,6 +210,9 @@
 		4200000000000000000000DC /* SettingsFileExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFileExporter.swift; sourceTree = "<group>"; };
 		4200000000000000000000E0 /* CloudBackupPublication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupPublication.swift; sourceTree = "<group>"; };
 		4200000000000000000000E1 /* CloudBackupPublicationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupPublicationTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000E2 /* CloudKitBackupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitBackupStore.swift; sourceTree = "<group>"; };
+		4200000000000000000000E3 /* CloudKitBackupStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitBackupStoreTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000DB /* CloudBakeOwner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CloudBakeOwner.entitlements; sourceTree = "<group>"; };
 		420000000000000000000011 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		420000000000000000000012 /* AppDatabaseMigrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseMigrations.swift; sourceTree = "<group>"; };
 		420000000000000000000013 /* HealthCheckRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckRepository.swift; sourceTree = "<group>"; };
@@ -371,6 +376,7 @@
 		450000000000000000000002 /* CloudBakeOwner */ = {
 			isa = PBXGroup;
 			children = (
+				4200000000000000000000DB /* CloudBakeOwner.entitlements */,
 				450000000000000000000003 /* App */,
 				450000000000000000000013 /* Domain */,
 				450000000000000000000004 /* Features */,
@@ -425,6 +431,7 @@
 				4200000000000000000000D3 /* AppSnapshotService.swift */,
 				4200000000000000000000D1 /* BackupManifest.swift */,
 				4200000000000000000000E0 /* CloudBackupPublication.swift */,
+				4200000000000000000000E2 /* CloudKitBackupStore.swift */,
 				4200000000000000000000D5 /* PhotoKitBackupAssetResolver.swift */,
 				4200000000000000000000D7 /* ManualBackupService.swift */,
 			);
@@ -662,6 +669,7 @@
 				4200000000000000000000D4 /* AppSnapshotServiceTests.swift */,
 				4200000000000000000000D2 /* BackupManifestTests.swift */,
 				4200000000000000000000E1 /* CloudBackupPublicationTests.swift */,
+				4200000000000000000000E3 /* CloudKitBackupStoreTests.swift */,
 				4200000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift */,
 				4200000000000000000000D8 /* ManualBackupServiceTests.swift */,
 			);
@@ -844,6 +852,11 @@
 				TargetAttributes = {
 					111111111111111111111111 = {
 						CreatedOnToolsVersion = 26.6;
+						SystemCapabilities = {
+							com.apple.iCloud = {
+								enabled = 1;
+							};
+						};
 					};
 					222222222222222222222222 = {
 						CreatedOnToolsVersion = 26.6;
@@ -913,6 +926,7 @@
 				4100000000000000000000D3 /* AppSnapshotService.swift in Sources */,
 				4100000000000000000000D1 /* BackupManifest.swift in Sources */,
 				4100000000000000000000E0 /* CloudBackupPublication.swift in Sources */,
+				4100000000000000000000E2 /* CloudKitBackupStore.swift in Sources */,
 				4100000000000000000000D5 /* PhotoKitBackupAssetResolver.swift in Sources */,
 				4100000000000000000000D7 /* ManualBackupService.swift in Sources */,
 				410000000000000000000001 /* CloudBakeOwnerApp.swift in Sources */,
@@ -1015,6 +1029,7 @@
 				4100000000000000000000D4 /* AppSnapshotServiceTests.swift in Sources */,
 				4100000000000000000000D2 /* BackupManifestTests.swift in Sources */,
 				4100000000000000000000E1 /* CloudBackupPublicationTests.swift in Sources */,
+				4100000000000000000000E3 /* CloudKitBackupStoreTests.swift in Sources */,
 				4100000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift in Sources */,
 				4100000000000000000000D8 /* ManualBackupServiceTests.swift in Sources */,
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
@@ -1208,6 +1223,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CloudBakeOwner/CloudBakeOwner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4H787CNDS2;
@@ -1227,6 +1243,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CloudBakeOwner/CloudBakeOwner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4H787CNDS2;
