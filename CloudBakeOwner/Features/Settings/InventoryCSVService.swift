@@ -87,7 +87,7 @@ struct InventoryCSVService {
             }
         }
 
-        return encode(rows)
+        return CloudBakeCSV.encode(rows)
     }
 
     func importCSV(
@@ -197,7 +197,7 @@ struct InventoryCSVService {
     }
 
     private func parseImportRows(_ csvText: String) throws -> [InventoryCSVImportRow] {
-        let table = parseCSV(csvText)
+        let table = CloudBakeCSV.parse(csvText)
             .filter { row in row.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } }
         guard let header = table.first else {
             return []
@@ -317,22 +317,17 @@ struct InventoryCSVService {
         NSDecimalNumber(decimal: amount).stringValue
     }
 
-    private func encode(_ rows: [[String]]) -> String {
+}
+
+enum CloudBakeCSV {
+    static func encode(_ rows: [[String]]) -> String {
         rows
             .map { row in row.map(escaped).joined(separator: ",") }
             .joined(separator: "\n")
             + "\n"
     }
 
-    private func escaped(_ value: String) -> String {
-        guard value.contains(",") || value.contains("\"") || value.contains("\n") else {
-            return value
-        }
-
-        return "\"\(value.replacingOccurrences(of: "\"", with: "\"\""))\""
-    }
-
-    private func parseCSV(_ text: String) -> [[String]] {
+    static func parse(_ text: String) -> [[String]] {
         var rows: [[String]] = []
         var row: [String] = []
         var field = ""
@@ -372,6 +367,227 @@ struct InventoryCSVService {
 
         return rows
     }
+
+    private static func escaped(_ value: String) -> String {
+        guard value.contains(",") || value.contains("\"") || value.contains("\n") else {
+            return value
+        }
+
+        return "\"\(value.replacingOccurrences(of: "\"", with: "\"\""))\""
+    }
+
+}
+
+enum RecipeCSVError: Error, Equatable {
+    case missingRequiredHeader(String)
+    case invalidRow(Int, String)
+}
+
+struct RecipeCSVImportSummary: Equatable {
+    let importedRecipeCount: Int
+    let importedIngredientCount: Int
+}
+
+struct RecipeCSVService {
+    private let idGenerator: () -> String
+    private let dateProvider: () -> Date
+
+    init(
+        idGenerator: @escaping () -> String = { UUID().uuidString },
+        dateProvider: @escaping () -> Date = Date.init
+    ) {
+        self.idGenerator = idGenerator
+        self.dateProvider = dateProvider
+    }
+
+    func exportCSV(
+        repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & InventoryItemRepository
+    ) throws -> String {
+        let inventoryById = Dictionary(
+            uniqueKeysWithValues: try repository.fetchInventoryItems().map { ($0.id, $0) }
+        )
+        var rows = [
+            ["name", "recipe", "ingredients"],
+            ["# Example - ignored during import", "", "Cake Flour:250:g | Sugar:200:g | Cream:150:ml"]
+        ]
+
+        for recipe in try repository.fetchRecipes() {
+            var ingredientValues: [String] = []
+            for component in try repository.fetchRecipeComponents(recipeId: recipe.id) {
+                for ingredient in try repository.fetchRecipeIngredients(componentId: component.id) {
+                    guard let inventoryItem = inventoryById[ingredient.inventoryItemId] else { continue }
+                    ingredientValues.append(
+                        "\(inventoryItem.name):\(Self.formatQuantity(ingredient.quantity)):\(ingredient.unit.displayName)"
+                    )
+                }
+            }
+            rows.append([recipe.name, recipe.notes ?? "", ingredientValues.joined(separator: " | ")])
+        }
+
+        return CloudBakeCSV.encode(rows)
+    }
+
+    func importCSV(
+        _ csvText: String,
+        repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & InventoryItemRepository
+    ) throws -> RecipeCSVImportSummary {
+        let rows = try parseRows(csvText, inventoryItems: repository.fetchInventoryItems())
+        let groupedRows = Dictionary(grouping: rows) {
+            TextInputFormatting.normalizedSearchKey($0.name)
+        }
+        if let duplicateRows = groupedRows.values.first(where: { $0.count > 1 }),
+           let duplicateRow = duplicateRows.dropFirst().first {
+            throw RecipeCSVError.invalidRow(duplicateRow.rowNumber, "Recipe names must be unique within the CSV.")
+        }
+        let existingRecipeNames = Set(
+            try repository.fetchRecipes().map { TextInputFormatting.normalizedSearchKey($0.name) }
+        )
+        for row in rows where existingRecipeNames.contains(TextInputFormatting.normalizedSearchKey(row.name)) {
+            throw RecipeCSVError.invalidRow(row.rowNumber, "A recipe with this name already exists.")
+        }
+
+        let now = dateProvider()
+        var ingredientCount = 0
+        for row in rows {
+            let recipeId = idGenerator()
+            try repository.save(
+                Recipe(id: recipeId, name: row.name, notes: row.notes, createdAt: now, updatedAt: now)
+            )
+            guard !row.ingredients.isEmpty else { continue }
+            let componentId = idGenerator()
+            try repository.save(
+                RecipeComponent(
+                    id: componentId,
+                    recipeId: recipeId,
+                    name: "Ingredients",
+                    sortOrder: 0,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            )
+            for value in row.ingredients {
+                try repository.save(
+                    RecipeIngredient(
+                        id: idGenerator(),
+                        componentId: componentId,
+                        inventoryItemId: value.inventoryItemId,
+                        quantity: value.quantity,
+                        unit: value.unit,
+                        note: nil,
+                        createdAt: now,
+                        updatedAt: now
+                    )
+                )
+                ingredientCount += 1
+            }
+        }
+
+        return RecipeCSVImportSummary(
+            importedRecipeCount: rows.count,
+            importedIngredientCount: ingredientCount
+        )
+    }
+
+    private func parseRows(_ text: String, inventoryItems: [InventoryItem]) throws -> [RecipeCSVImportRow] {
+        let table = CloudBakeCSV.parse(text).filter { $0.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } }
+        guard let header = table.first else { return [] }
+        let lookup = Dictionary(uniqueKeysWithValues: header.enumerated().map {
+            (TextInputFormatting.normalizedSearchKey($0.element), $0.offset)
+        })
+        let nameIndex = try requiredHeader("name", in: lookup)
+        let recipeIndex = try requiredHeader("recipe", in: lookup)
+        let ingredientsIndex = try requiredHeader("ingredients", in: lookup)
+
+        return try table.dropFirst().enumerated().compactMap { offset, columns in
+            let rowNumber = offset + 2
+            let name = value(at: nameIndex, in: columns).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.hasPrefix("#") else { return nil }
+            guard !name.isEmpty else {
+                throw RecipeCSVError.invalidRow(rowNumber, "Name is required.")
+            }
+            let notesText = value(at: recipeIndex, in: columns).trimmingCharacters(in: .whitespacesAndNewlines)
+            let ingredients = try parseIngredients(
+                value(at: ingredientsIndex, in: columns),
+                rowNumber: rowNumber,
+                inventoryItems: inventoryItems
+            )
+            return RecipeCSVImportRow(
+                rowNumber: rowNumber,
+                name: name,
+                notes: notesText.isEmpty ? nil : notesText,
+                ingredients: ingredients
+            )
+        }
+    }
+
+    private func parseIngredients(
+        _ text: String,
+        rowNumber: Int,
+        inventoryItems: [InventoryItem]
+    ) throws -> [RecipeCSVIngredient] {
+        try text.split(separator: "|").map { rawValue in
+            let parts = rawValue.split(separator: ":", omittingEmptySubsequences: false).map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            guard parts.count == 3, !parts[0].isEmpty else {
+                throw RecipeCSVError.invalidRow(rowNumber, "Ingredients must use name:quantity:unit separated by |.")
+            }
+            guard let quantity = Double(parts[1]), quantity > 0 else {
+                throw RecipeCSVError.invalidRow(rowNumber, "Ingredient quantity must be greater than zero.")
+            }
+            guard let unit = InventoryUnit.csvValue(parts[2]) else {
+                throw RecipeCSVError.invalidRow(rowNumber, "Ingredient unit is not supported.")
+            }
+            let key = TextInputFormatting.normalizedSearchKey(parts[0])
+            let matches = inventoryItems.filter { item in
+                ([item.name] + item.aliases).contains {
+                    TextInputFormatting.normalizedSearchKey($0) == key
+                }
+            }
+            guard matches.count == 1, let inventoryItem = matches.first else {
+                let message = matches.isEmpty
+                    ? "Ingredient '\(parts[0])' does not match active inventory."
+                    : "Ingredient '\(parts[0])' matches more than one inventory item."
+                throw RecipeCSVError.invalidRow(rowNumber, message)
+            }
+            return RecipeCSVIngredient(
+                inventoryItemId: inventoryItem.id,
+                quantity: quantity,
+                unit: unit
+            )
+        }
+    }
+
+    private func requiredHeader(_ name: String, in lookup: [String: Int]) throws -> Int {
+        guard let index = lookup[TextInputFormatting.normalizedSearchKey(name)] else {
+            throw RecipeCSVError.missingRequiredHeader(name)
+        }
+        return index
+    }
+
+    private func value(at index: Int, in row: [String]) -> String {
+        row.indices.contains(index) ? row[index] : ""
+    }
+
+    private static func formatQuantity(_ quantity: Double) -> String {
+        quantity.formatted(.number.grouping(.never).precision(.fractionLength(0...6)))
+    }
+}
+
+private struct RecipeCSVImportRow {
+    let rowNumber: Int
+    let name: String
+    let notes: String?
+    let ingredients: [RecipeCSVIngredient]
+}
+
+private struct RecipeCSVIngredient {
+    let inventoryItemId: String
+    let quantity: Double
+    let unit: InventoryUnit
+}
+
+private extension InventoryCSVService {
 
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
