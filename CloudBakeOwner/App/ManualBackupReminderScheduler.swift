@@ -5,6 +5,7 @@ struct ManualBackupPreferences {
     static let reminderEnabledKey = "cloudbake.manualBackupReminderEnabled"
     static let lastSuccessfulExportKey = "cloudbake.manualBackupLastSuccessfulExport"
     static let nextReminderDateKey = "cloudbake.manualBackupNextReminderDate"
+    static let reminderDeliveryStatusKey = "cloudbake.manualBackupReminderDeliveryStatus"
 
     private let defaults: UserDefaults
 
@@ -29,6 +30,18 @@ struct ManualBackupPreferences {
         defaults.object(forKey: Self.nextReminderDateKey) as? Date
     }
 
+    var reminderDeliveryStatus: ManualBackupReminderStatus {
+        get {
+            guard let rawValue = defaults.string(forKey: Self.reminderDeliveryStatusKey) else {
+                return .notChecked
+            }
+            return ManualBackupReminderStatus(rawValue: rawValue) ?? .notChecked
+        }
+        nonmutating set {
+            defaults.set(newValue.rawValue, forKey: Self.reminderDeliveryStatusKey)
+        }
+    }
+
     func recordSuccessfulExport(at date: Date, calendar: Calendar = .current) {
         defaults.set(date, forKey: Self.lastSuccessfulExportKey)
         defaults.set(
@@ -45,6 +58,14 @@ struct ManualBackupPreferences {
         defaults.set(scheduledDate, forKey: Self.nextReminderDateKey)
         return scheduledDate
     }
+}
+
+enum ManualBackupReminderStatus: String, Equatable, Sendable {
+    case notChecked
+    case scheduled
+    case disabled
+    case authorizationDenied
+    case failed
 }
 
 struct ManualBackupReminderScheduler {
@@ -67,17 +88,22 @@ struct ManualBackupReminderScheduler {
         self.calendar = calendar
     }
 
-    func refreshReminder() async {
+    @discardableResult
+    func refreshReminder() async -> ManualBackupReminderStatus {
         let pendingIdentifiers = await notificationCenter.pendingNotificationRequests()
             .map(\.identifier)
             .filter { $0 == Self.notificationIdentifier }
         notificationCenter.removePendingNotificationRequests(withIdentifiers: pendingIdentifiers)
 
-        guard preferences.isReminderEnabled else { return }
+        guard preferences.isReminderEnabled else {
+            preferences.reminderDeliveryStatus = .disabled
+            return .disabled
+        }
 
         do {
             guard try await notificationCenter.requestAuthorization(options: [.alert, .sound]) else {
-                return
+                preferences.reminderDeliveryStatus = .authorizationDenied
+                return .authorizationDenied
             }
             let now = dateProvider()
             let dueAt = preferences.ensureNextReminderDate(from: now, calendar: calendar)
@@ -95,9 +121,11 @@ struct ManualBackupReminderScheduler {
                 )
             )
             try await notificationCenter.add(request)
+            preferences.reminderDeliveryStatus = .scheduled
+            return .scheduled
         } catch {
-            // Backup reminders must never block normal owner workflows.
+            preferences.reminderDeliveryStatus = .failed
+            return .failed
         }
     }
 }
-
