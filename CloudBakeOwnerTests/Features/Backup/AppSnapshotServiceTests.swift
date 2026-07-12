@@ -189,6 +189,31 @@ final class AppSnapshotServiceTests: XCTestCase {
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: fixture.stagingRoot.path), [])
     }
 
+    func testCancellationDuringExternalPhotoReadCleansStaging() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.database.makeCoreDataRepository().save(
+            fixture.design(id: "external", photoReference: "photos://slow")
+        )
+        let probe = ExternalResolverProbe()
+        let service = fixture.service(
+            externalAssetResolver: SlowExternalAssetResolver(probe: probe)
+        )
+        let snapshotTask = Task {
+            try await service.createSnapshot()
+        }
+        try await probe.waitUntilStarted()
+
+        snapshotTask.cancel()
+        do {
+            _ = try await snapshotTask.value
+            XCTFail("Expected snapshot cancellation")
+        } catch is CancellationError {
+            // Expected.
+        }
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: fixture.stagingRoot.path), [])
+    }
+
     func testMissingReferencedAssetFailsAndRemovesBuildingDirectory() async throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -238,6 +263,7 @@ final class AppSnapshotServiceTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: abandoned.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: finalized.path))
     }
+
 }
 
 private final class Fixture: @unchecked Sendable {
@@ -329,5 +355,32 @@ private struct FutureDatedExternalAssetResolver: BackupExternalAssetResolving {
             data: Data("edited-photo".utf8),
             modificationDate: .distantFuture
         )
+    }
+}
+
+private struct SlowExternalAssetResolver: BackupExternalAssetResolving {
+    let probe: ExternalResolverProbe
+
+    func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
+        await probe.markStarted()
+        try await Task.sleep(nanoseconds: 30_000_000_000)
+        return BackupResolvedExternalAsset(data: Data(), modificationDate: nil)
+    }
+}
+
+private actor ExternalResolverProbe {
+    private var isStarted = false
+
+    func markStarted() {
+        isStarted = true
+    }
+
+    func waitUntilStarted() async throws {
+        for _ in 0..<100 where !isStarted {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        guard isStarted else {
+            throw BackupExternalAssetResolverError.assetUnavailable
+        }
     }
 }
