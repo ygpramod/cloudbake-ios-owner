@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved.
+Implemented.
 
 ## Parent Decisions
 
@@ -53,3 +53,18 @@ Hashing and file work run outside the main actor. Filenames and logs contain no 
 ## Rollout Notes
 
 Ship dormant foundations only. Do not request CloudKit access or schedule background work in this slice.
+
+## Implementation Notes
+
+- `AppSnapshotService` uses GRDB's online backup API and runs as an actor outside the main actor.
+- Captured database references drive app-managed asset staging; external `photos://` references are
+  intentionally excluded because the app does not own those files.
+- The app-managed custom logo is included when present so branding survives eventual full restore.
+- Staged asset filenames are opaque hashes. Original relative paths remain only inside the manifest
+  needed to reconstruct app-managed storage.
+- Packages remain dormant local artifacts in this slice; CloudKit publication begins in RFC-0102.
+
+## Wiki Decision
+
+No wiki change. RFC-0101 adds dormant recovery infrastructure with no owner-visible workflow;
+owner-facing backup guidance will be documented with the Settings and status slice.
