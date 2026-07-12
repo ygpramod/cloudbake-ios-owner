@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved.
+Implemented.
 
 ## Parent Decisions
 
@@ -59,3 +59,25 @@ failure do not claim success. Reminder scheduling is best effort and never block
 
 Keep CloudKit RFC-0102 paused at its Apple-program activation gate. The manual package format must
 remain compatible with the future CloudKit transport and RFC-0108 restore.
+
+## Implementation Notes
+
+- `ManualBackupService` reuses the RFC-0101 consistent snapshot and validation boundary, then streams
+  the immutable directory into one compressed `.cloudbakebackup` archive using ZIPFoundation.
+- A URL-based `UIDocumentPickerViewController` copies the archive without loading it into memory. It
+  replaces SwiftUI's transferable exporter, which crashes while assigning filenames to this custom
+  archive on the supported simulator runtime.
+- The last-success boundary is the document picker's successful destination callback, not snapshot
+  preparation. Cancellation leaves last-success metadata unchanged.
+- `ManualBackupReminderScheduler` stores one durable due date, schedules overdue reminders promptly,
+  resets to seven days only after successful export, and removes the request when disabled.
+- Settings presents Backup and Data Management as collapsed disclosure sections and keeps all
+  backup creation behind an explicit summary and confirmation.
+- RFC-0108 remains required before CloudBake can restore this archive inside the app.
+
+## Wiki Changes
+
+- `wiki/Owner-Workflows.md` documents creation, destination choice, reminder behavior, privacy, and
+  the pending restore boundary.
+- `wiki/Current-App-Capabilities.md` records full-app manual export.
+- `wiki/Business-Concepts.md` defines the package as private disaster-recovery data.
