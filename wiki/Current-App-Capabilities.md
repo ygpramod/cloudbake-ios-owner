@@ -166,6 +166,8 @@ The app currently supports:
 124. a ten-tag, frequency-ranked Designs ribbon and a photo-first searchable Designs grid for
     linking owner-made designs or customer references to order drafts, while retaining historical
     labels for retired Internet Inspiration links.
+125. owner-selected in-app branding through a Settings photo picker, with app-managed logo storage,
+    immediate dashboard refresh, and restoration of the bundled default logo.
 
 ## Partially Prepared
 
