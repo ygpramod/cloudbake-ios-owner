@@ -402,6 +402,29 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["orders.ingredientCost.line.inventory-ui-projected-flour"].exists)
     }
 
+    func testOrderFormShowsIngredientCostWhileQuoting() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launchEnvironment["CLOUDBAKE_SEED_PROJECTED_DEMAND_FIXTURE"] = "1"
+        app.launch()
+
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
+
+        let recipeField = app.buttons["orders.form.recipe"]
+        scrollToHittable(recipeField, in: app, timeout: transitionTimeout)
+        tapWhenReady(recipeField, timeout: transitionTimeout)
+        tapWhenReady(
+            app.buttons["orders.recipeSelection.recipe.recipe-ui-projected-cake"],
+            timeout: transitionTimeout
+        )
+
+        let ingredientCost = app.descendants(matching: .any)["orders.form.ingredientCost"]
+        assertExistsAfterScrolling(ingredientCost, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(app.descendants(matching: .any)["orders.form.ingredientCost.warning"].exists)
+        XCTAssertTrue(app.textFields["orders.form.quotedPrice"].exists)
+    }
+
     func testOrderCanBeEditedFromDetail() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
