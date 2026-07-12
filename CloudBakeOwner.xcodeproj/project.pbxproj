@@ -21,6 +21,11 @@
 		4100000000000000000000D4 /* AppSnapshotServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D4 /* AppSnapshotServiceTests.swift */; };
 		4100000000000000000000D5 /* PhotoKitBackupAssetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D5 /* PhotoKitBackupAssetResolver.swift */; };
 		4100000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift */; };
+		4100000000000000000000D7 /* ManualBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D7 /* ManualBackupService.swift */; };
+		4100000000000000000000D8 /* ManualBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D8 /* ManualBackupServiceTests.swift */; };
+		4100000000000000000000D9 /* ManualBackupReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D9 /* ManualBackupReminderScheduler.swift */; };
+		4100000000000000000000DA /* ManualBackupReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000DA /* ManualBackupReminderSchedulerTests.swift */; };
+		4100000000000000000000DC /* ManualBackupFileExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000DC /* ManualBackupFileExporter.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -30,6 +35,7 @@
 		41000000000000000000000A /* HealthCheckRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000013 /* HealthCheckRepository.swift */; };
 		41000000000000000000000B /* AppDatabaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000014 /* AppDatabaseTests.swift */; };
 		41000000000000000000000C /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000001 /* GRDB */; };
+		4100000000000000000000DB /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000002 /* ZIPFoundation */; };
 		41000000000000000000000D /* CoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000015 /* CoreModels.swift */; };
 		41000000000000000000000E /* CoreDataRepositories.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000016 /* CoreDataRepositories.swift */; };
 		41000000000000000000000F /* GRDBCoreDataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000017 /* GRDBCoreDataRepository.swift */; };
@@ -193,6 +199,11 @@
 		4200000000000000000000D4 /* AppSnapshotServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSnapshotServiceTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000D5 /* PhotoKitBackupAssetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoKitBackupAssetResolver.swift; sourceTree = "<group>"; };
 		4200000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoKitBackupAssetResolverTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000D7 /* ManualBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualBackupService.swift; sourceTree = "<group>"; };
+		4200000000000000000000D8 /* ManualBackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualBackupServiceTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000D9 /* ManualBackupReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualBackupReminderScheduler.swift; sourceTree = "<group>"; };
+		4200000000000000000000DA /* ManualBackupReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/ManualBackupReminderSchedulerTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000DC /* ManualBackupFileExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualBackupFileExporter.swift; sourceTree = "<group>"; };
 		420000000000000000000011 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		420000000000000000000012 /* AppDatabaseMigrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseMigrations.swift; sourceTree = "<group>"; };
 		420000000000000000000013 /* HealthCheckRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckRepository.swift; sourceTree = "<group>"; };
@@ -322,6 +333,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				41000000000000000000000C /* GRDB in Frameworks */,
+				4100000000000000000000DB /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -374,6 +386,7 @@
 				42000000000000000000004F /* CameraImagePickerView.swift */,
 				420000000000000000000001 /* CloudBakeOwnerApp.swift */,
 				420000000000000000000026 /* ExpiryReminderScheduler.swift */,
+				4200000000000000000000D9 /* ManualBackupReminderScheduler.swift */,
 				4200000000000000000000B1 /* InventoryNavigationRouter.swift */,
 				4200000000000000000000C0 /* OrderNavigationRouter.swift */,
 				4200000000000000000000AD /* OrderNotificationRouter.swift */,
@@ -408,6 +421,7 @@
 				4200000000000000000000D3 /* AppSnapshotService.swift */,
 				4200000000000000000000D1 /* BackupManifest.swift */,
 				4200000000000000000000D5 /* PhotoKitBackupAssetResolver.swift */,
+				4200000000000000000000D7 /* ManualBackupService.swift */,
 			);
 			path = Backup;
 			sourceTree = "<group>";
@@ -451,6 +465,7 @@
 			isa = PBXGroup;
 			children = (
 				420000000000000000000081 /* InventoryCSVService.swift */,
+				4200000000000000000000DC /* ManualBackupFileExporter.swift */,
 				420000000000000000000082 /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -539,6 +554,7 @@
 			children = (
 				420000000000000000000006 /* AppDestinationTests.swift */,
 				420000000000000000000027 /* ExpiryReminderSchedulerTests.swift */,
+				4200000000000000000000DA /* ManualBackupReminderSchedulerTests.swift */,
 				4200000000000000000000B3 /* NavigationRouterTests.swift */,
 				42000000000000000000003A /* OrderReminderSchedulerTests.swift */,
 				450000000000000000000014 /* Domain */,
@@ -641,6 +657,7 @@
 				4200000000000000000000D4 /* AppSnapshotServiceTests.swift */,
 				4200000000000000000000D2 /* BackupManifestTests.swift */,
 				4200000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift */,
+				4200000000000000000000D8 /* ManualBackupServiceTests.swift */,
 			);
 			path = Backup;
 			sourceTree = "<group>";
@@ -767,6 +784,7 @@
 			name = CloudBakeOwner;
 			packageProductDependencies = (
 				4C0000000000000000000001 /* GRDB */,
+				4C0000000000000000000002 /* ZIPFoundation */,
 			);
 			productName = CloudBakeOwner;
 			productReference = 420000000000000000000008 /* CloudBakeOwner.app */;
@@ -842,6 +860,7 @@
 			mainGroup = 450000000000000000000001;
 			packageReferences = (
 				4D0000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				4D0000000000000000000002 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			productRefGroup = 450000000000000000000010 /* Products */;
 			projectDirPath = "";
@@ -888,6 +907,7 @@
 				4100000000000000000000D3 /* AppSnapshotService.swift in Sources */,
 				4100000000000000000000D1 /* BackupManifest.swift in Sources */,
 				4100000000000000000000D5 /* PhotoKitBackupAssetResolver.swift in Sources */,
+				4100000000000000000000D7 /* ManualBackupService.swift in Sources */,
 				410000000000000000000001 /* CloudBakeOwnerApp.swift in Sources */,
 				410000000000000000000002 /* AppDestination.swift in Sources */,
 				410000000000000000000080 /* AppNavigation.swift in Sources */,
@@ -895,6 +915,7 @@
 				410000000000000000000004 /* DashboardView.swift in Sources */,
 				410000000000000000000015 /* DashboardViewModel.swift in Sources */,
 				41000000000000000000001E /* ExpiryReminderScheduler.swift in Sources */,
+				4100000000000000000000D9 /* ManualBackupReminderScheduler.swift in Sources */,
 				4100000000000000000000B1 /* InventoryNavigationRouter.swift in Sources */,
 				4100000000000000000000C0 /* OrderNavigationRouter.swift in Sources */,
 				4100000000000000000000AD /* OrderNotificationRouter.swift in Sources */,
@@ -975,6 +996,7 @@
 				4100000000000000000000AE /* ReminderView.swift in Sources */,
 				4100000000000000000000AF /* ReminderViewModel.swift in Sources */,
 				410000000000000000000081 /* InventoryCSVService.swift in Sources */,
+				4100000000000000000000DC /* ManualBackupFileExporter.swift in Sources */,
 				410000000000000000000082 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -986,6 +1008,7 @@
 				4100000000000000000000D4 /* AppSnapshotServiceTests.swift in Sources */,
 				4100000000000000000000D2 /* BackupManifestTests.swift in Sources */,
 				4100000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift in Sources */,
+				4100000000000000000000D8 /* ManualBackupServiceTests.swift in Sources */,
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
 				41000000000000000000000B /* AppDatabaseTests.swift in Sources */,
 					410000000000000000000018 /* BakingCatalogTests.swift in Sources */,
@@ -1000,6 +1023,7 @@
 				410000000000000000000073 /* CustomerDraftValidationTests.swift in Sources */,
 				410000000000000000000086 /* CakeDesignListViewModelTests.swift in Sources */,
 				41000000000000000000001F /* ExpiryReminderSchedulerTests.swift in Sources */,
+				4100000000000000000000DA /* ManualBackupReminderSchedulerTests.swift in Sources */,
 				4100000000000000000000B3 /* NavigationRouterTests.swift in Sources */,
 				410000000000000000000032 /* OrderReminderSchedulerTests.swift in Sources */,
 				410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */,
@@ -1318,6 +1342,14 @@
 				minimumVersion = 7.11.1;
 			};
 		};
+		4D0000000000000000000002 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.20;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1325,6 +1357,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4D0000000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
+		};
+		4C0000000000000000000002 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D0000000000000000000002 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
