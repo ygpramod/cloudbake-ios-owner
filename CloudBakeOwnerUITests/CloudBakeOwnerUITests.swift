@@ -384,6 +384,24 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(warning.label.contains("500 g"))
     }
 
+    func testOrderIngredientCostShowsPartialTotalAndMissingPriceWarning() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launchEnvironment["CLOUDBAKE_SEED_PROJECTED_DEMAND_FIXTURE"] = "1"
+        app.launch()
+
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.item.order-ui-projected-1"], timeout: transitionTimeout)
+
+        let ingredientCost = app.buttons["orders.detail.ingredientCost"]
+        scrollToHittable(ingredientCost, in: app, timeout: transitionTimeout)
+        tapWhenReady(ingredientCost, timeout: transitionTimeout)
+
+        XCTAssertTrue(app.staticTexts["orders.ingredientCost.total"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(app.descendants(matching: .any)["orders.ingredientCost.warning"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["orders.ingredientCost.line.inventory-ui-projected-flour"].exists)
+    }
+
     func testOrderCanBeEditedFromDetail() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
