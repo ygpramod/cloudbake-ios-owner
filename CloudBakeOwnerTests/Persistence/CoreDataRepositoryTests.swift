@@ -518,6 +518,7 @@ final class CoreDataRepositoryTests: XCTestCase {
                 inventoryItemId: inventoryItem.id,
                 remainingQuantity: 400,
                 expiresAt: newerExpiry,
+                amount: 200,
                 createdAt: timestamp.addingTimeInterval(20),
                 updatedAt: timestamp.addingTimeInterval(20)
             )
@@ -528,6 +529,7 @@ final class CoreDataRepositoryTests: XCTestCase {
                 inventoryItemId: inventoryItem.id,
                 remainingQuantity: 100,
                 expiresAt: olderExpiry,
+                amount: 20,
                 createdAt: timestamp.addingTimeInterval(10),
                 updatedAt: timestamp.addingTimeInterval(10)
             )
@@ -561,6 +563,8 @@ final class CoreDataRepositoryTests: XCTestCase {
                     inventoryItemId: inventoryItem.id,
                     remainingQuantity: 0,
                     expiresAt: olderExpiry,
+                    amount: 20,
+                    unitCost: decimal("0.2"),
                     createdAt: timestamp.addingTimeInterval(10),
                     updatedAt: usedAt
                 ),
@@ -569,6 +573,8 @@ final class CoreDataRepositoryTests: XCTestCase {
                     inventoryItemId: inventoryItem.id,
                     remainingQuantity: 350,
                     expiresAt: newerExpiry,
+                    amount: 200,
+                    unitCost: decimal("0.5"),
                     createdAt: timestamp.addingTimeInterval(20),
                     updatedAt: usedAt
                 )
@@ -584,6 +590,21 @@ final class CoreDataRepositoryTests: XCTestCase {
                 createdAt: usedAt,
                 updatedAt: usedAt
             )
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderIngredientCosts(orderId: order.id),
+            [
+                OrderIngredientCost(
+                    id: "\(order.id):\(inventoryItem.id)",
+                    orderId: order.id,
+                    inventoryItemId: inventoryItem.id,
+                    quantity: 150,
+                    unit: .gram,
+                    knownCost: 45,
+                    missingPriceQuantity: 0,
+                    recordedAt: usedAt
+                )
+            ]
         )
         XCTAssertEqual(
             try repository.fetchInventoryTransactions(inventoryItemId: inventoryItem.id),

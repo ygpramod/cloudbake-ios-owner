@@ -31,32 +31,18 @@ enum ProjectedIngredientDemand {
 
         for order in orders where order.hasActiveReminderState {
             guard try recipeUsage(order.id) == nil else { continue }
-
-            if let recipeId = order.recipeId {
-                let scale = NSDecimalNumber(decimal: order.recipeScaleMultiplier).doubleValue
-                for component in try recipeComponents(recipeId) {
-                    for ingredient in try recipeIngredients(component.id) {
-                        add(
-                            inventoryItemId: ingredient.inventoryItemId,
-                            quantity: ingredient.quantity * scale,
-                            unit: ingredient.unit,
-                            orderId: order.id,
-                            itemsById: itemsById,
-                            demandByItemId: &demandByItemId
-                        )
-                    }
-                }
-            }
-
-            for ingredient in try orderExtraIngredients(order.id) {
-                add(
-                    inventoryItemId: ingredient.inventoryItemId,
-                    quantity: ingredient.quantity,
-                    unit: ingredient.unit,
-                    orderId: order.id,
-                    itemsById: itemsById,
-                    demandByItemId: &demandByItemId
-                )
+            let requirements = try OrderIngredientRequirements.requirements(
+                for: order,
+                inventoryItems: inventoryItems,
+                recipeComponents: recipeComponents,
+                recipeIngredients: recipeIngredients,
+                orderExtraIngredients: orderExtraIngredients
+            )
+            for requirement in requirements {
+                var demand = demandByItemId[requirement.item.id] ?? Demand()
+                demand.quantity += requirement.quantity
+                demand.orderIds.insert(order.id)
+                demandByItemId[requirement.item.id] = demand
             }
         }
 
@@ -82,28 +68,65 @@ enum ProjectedIngredientDemand {
         }
     }
 
+    private struct Demand {
+        var quantity = 0.0
+        var orderIds = Set<String>()
+    }
+}
+
+enum OrderIngredientRequirements {
+    static func requirements(
+        for order: Order,
+        inventoryItems: [InventoryItem],
+        recipeComponents: (String) throws -> [RecipeComponent],
+        recipeIngredients: (String) throws -> [RecipeIngredient],
+        orderExtraIngredients: (String) throws -> [OrderExtraIngredient]
+    ) throws -> [(item: InventoryItem, quantity: Double)] {
+        let itemsById = Dictionary(uniqueKeysWithValues: inventoryItems.map { ($0.id, $0) })
+        var quantitiesByItemId: [String: Double] = [:]
+
+        if let recipeId = order.recipeId {
+            let scale = NSDecimalNumber(decimal: order.recipeScaleMultiplier).doubleValue
+            for component in try recipeComponents(recipeId) {
+                for ingredient in try recipeIngredients(component.id) {
+                    add(
+                        inventoryItemId: ingredient.inventoryItemId,
+                        quantity: ingredient.quantity * scale,
+                        unit: ingredient.unit,
+                        itemsById: itemsById,
+                        quantitiesByItemId: &quantitiesByItemId
+                    )
+                }
+            }
+        }
+
+        for ingredient in try orderExtraIngredients(order.id) {
+            add(
+                inventoryItemId: ingredient.inventoryItemId,
+                quantity: ingredient.quantity,
+                unit: ingredient.unit,
+                itemsById: itemsById,
+                quantitiesByItemId: &quantitiesByItemId
+            )
+        }
+
+        return quantitiesByItemId.compactMap { itemId, quantity in
+            itemsById[itemId].map { ($0, quantity) }
+        }
+    }
+
     private static func add(
         inventoryItemId: String,
         quantity: Double,
         unit: InventoryUnit,
-        orderId: String,
         itemsById: [String: InventoryItem],
-        demandByItemId: inout [String: Demand]
+        quantitiesByItemId: inout [String: Double]
     ) {
         guard quantity > 0,
               let item = itemsById[inventoryItemId],
               let convertedQuantity = unit.convertedQuantity(quantity, to: item.unit) else {
             return
         }
-
-        var demand = demandByItemId[inventoryItemId] ?? Demand()
-        demand.quantity += convertedQuantity
-        demand.orderIds.insert(orderId)
-        demandByItemId[inventoryItemId] = demand
-    }
-
-    private struct Demand {
-        var quantity = 0.0
-        var orderIds = Set<String>()
+        quantitiesByItemId[inventoryItemId, default: 0] += convertedQuantity
     }
 }
