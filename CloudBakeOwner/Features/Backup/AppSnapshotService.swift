@@ -20,6 +20,7 @@ struct AppSnapshotPackage: Equatable, Sendable {
     let directoryURL: URL
     let manifestURL: URL
     let databaseURL: URL
+    let manifest: BackupManifest
 }
 
 enum AppSnapshotError: Error, Equatable {
@@ -133,7 +134,8 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
                 generationID: generationID,
                 directoryURL: finalURL,
                 manifestURL: finalURL.appendingPathComponent(Self.manifestFilename),
-                databaseURL: finalURL.appendingPathComponent(Self.databaseFilename)
+                databaseURL: finalURL.appendingPathComponent(Self.databaseFilename),
+                manifest: manifest
             )
         } catch {
             try? fileManager.removeItem(at: buildingURL)
