@@ -1,4 +1,4 @@
-# Slice RFC-0100: Cloud Backup Snapshot Foundation
+# Slice RFC-0101: Cloud Backup Snapshot Foundation
 
 ## Status
 
@@ -53,4 +53,3 @@ Hashing and file work run outside the main actor. Filenames and logs contain no 
 ## Rollout Notes
 
 Ship dormant foundations only. Do not request CloudKit access or schedule background work in this slice.
-

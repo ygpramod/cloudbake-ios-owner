@@ -106,6 +106,12 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0098: Projected Order Ingredient Demand
 - Slice RFC-0099: Estimated And Actual Order Ingredient Cost
 - Slice RFC-0100: Customizable In-App Logo
+- Slice RFC-0101: Cloud Backup Snapshot Foundation
+- Slice RFC-0102: CloudKit Atomic Backup Publication
+- Slice RFC-0103: Cloud Backup Scheduling And Connectivity
+- Slice RFC-0104: Cloud Backup Settings And Status
+- Slice RFC-0105: CloudKit Full Restore
+- Slice RFC-0106: Cloud Backup Account And Deletion Lifecycle
 
 ## Base RFCs
 

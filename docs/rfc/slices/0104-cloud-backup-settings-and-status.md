@@ -1,4 +1,4 @@
-# Slice RFC-0103: Cloud Backup Settings And Status
+# Slice RFC-0104: Cloud Backup Settings And Status
 
 ## Status
 
@@ -7,7 +7,7 @@ Approved.
 ## Parent Decisions
 
 - Foundation RFC-0002: CloudKit Disaster Recovery
-- Slice RFC-0102: Cloud Backup Scheduling And Connectivity
+- Slice RFC-0103: Cloud Backup Scheduling And Connectivity
 
 ## Goal
 
@@ -51,4 +51,3 @@ must not expose customer, recipe, cost, or photo content.
 ## Rollout Notes
 
 Update repo-local wiki owner workflows and privacy documentation in the implementation PR.
-

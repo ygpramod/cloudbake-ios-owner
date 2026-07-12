@@ -1,4 +1,4 @@
-# Slice RFC-0101: CloudKit Atomic Backup Publication
+# Slice RFC-0102: CloudKit Atomic Backup Publication
 
 ## Status
 
@@ -8,7 +8,7 @@ Approved.
 
 - Foundation ADR-0010: Use CloudKit For Owner App Disaster Recovery
 - Foundation RFC-0002: CloudKit Disaster Recovery
-- Slice RFC-0100: Cloud Backup Snapshot Foundation
+- Slice RFC-0101: Cloud Backup Snapshot Foundation
 
 ## Goal
 
@@ -51,4 +51,3 @@ and production schema promotion must be documented and reproducible.
 ## Rollout Notes
 
 Keep publication inaccessible to owners until scheduling and status controls ship.
-
