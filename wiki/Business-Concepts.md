@@ -147,6 +147,12 @@ Restoring moves an archived inventory item back to the active inventory list.
 
 Inventory CSV is an owner-controlled import/export format for active inventory and stock batches.
 
+A CloudBake full backup is an owner-controlled disaster-recovery package. It contains the complete
+private local database and referenced recovery assets, not a customer-safe export. The owner chooses
+where to save it and is responsible for protecting or deleting that copy. Manual backup transport
+uses the system Files picker and does not require CloudKit; restore is implemented as a separate
+validated, rollback-protected workflow.
+
 It uses the columns `name`, `aliases`, `type`, `unit`, `current_quantity`, `minimum_quantity`,
 `batch_quantity`, `amount`, and `expiry_date`. Aliases are comma-separated inside the CSV field,
 type is Standard or Perishable, and dates use `yyyy-MM-dd`.
