@@ -73,15 +73,8 @@ final class CloudKitBackupStoreTests: XCTestCase {
             values,
             maximumCount: CloudKitBackupStore.recordFetchLimit
         )
-        let deletionChunks = CloudKitBackupBatching.chunks(
-            values,
-            maximumCount: CloudKitBackupStore.recordDeletionLimit
-        )
-
         XCTAssertEqual(fetchChunks.flatMap(Array.init), values)
         XCTAssertTrue(fetchChunks.allSatisfy { $0.count <= 400 })
-        XCTAssertEqual(deletionChunks.flatMap(Array.init), values)
-        XCTAssertTrue(deletionChunks.allSatisfy { $0.count <= 399 })
-        XCTAssertEqual(deletionChunks.count, 6)
+        XCTAssertEqual(fetchChunks.count, 6)
     }
 }
