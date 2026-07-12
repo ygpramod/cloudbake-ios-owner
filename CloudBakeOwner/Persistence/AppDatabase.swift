@@ -17,6 +17,7 @@ final class AppDatabase {
             try database.seedOrderReminderFixtureIfRequested()
             try database.seedInventoryFixtureIfRequested()
             try database.seedExpiredInventoryFixtureIfRequested()
+            try database.seedProjectedDemandFixtureIfRequested()
             try database.seedCakeDesignFixtureIfRequested()
             try database.seedDesignGalleryFixtureIfRequested()
             try database.seedDesignScrollFixtureIfRequested()
@@ -192,6 +193,83 @@ final class AppDatabase {
                 updatedAt: now
             )
         )
+    }
+
+    private func seedProjectedDemandFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_PROJECTED_DEMAND_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date()
+        let flour = InventoryItem(
+            id: "inventory-ui-projected-flour",
+            name: "Projected cake flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(flour)
+        try repository.save(
+            InventoryStockBatch(
+                id: "inventory-ui-projected-flour-batch",
+                inventoryItemId: flour.id,
+                remainingQuantity: 500,
+                expiresAt: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+        let recipe = Recipe(
+            id: "recipe-ui-projected-cake",
+            name: "Projected Cake",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-ui-projected-cake",
+            recipeId: recipe.id,
+            name: "Cake",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(
+            RecipeIngredient(
+                id: "ingredient-ui-projected-flour",
+                componentId: component.id,
+                inventoryItemId: flour.id,
+                quantity: 300,
+                unit: .gram,
+                note: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+        for index in 1...2 {
+            try repository.save(
+                Order(
+                    id: "order-ui-projected-\(index)",
+                    customerId: nil,
+                    cakeDesignId: nil,
+                    recipeId: recipe.id,
+                    title: "Projected Cake \(index)",
+                    customerName: "Amy",
+                    status: .confirmed,
+                    dueAt: timestamp.addingTimeInterval(Double(index) * 86_400),
+                    fulfillmentType: .pickup,
+                    deliveryAddress: nil,
+                    cakeNotes: nil,
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            )
+        }
     }
 
     private func seedOrderCustomerLinkFixtureIfRequested() throws {
