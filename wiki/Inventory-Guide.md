@@ -201,8 +201,19 @@ The consumption unit defaults to the item's unit, but the owner can choose anoth
 For example, a cream item stored in ml can be used by entering liters, tablespoons, teaspoons, or
 cups.
 
-Consumption also updates stock batches. The oldest-expiring remaining stock is reduced before newer
-stock.
+Consumption also updates stock batches. Expired batches cannot be consumed. Among the remaining
+usable batches, the oldest-expiring stock is reduced before newer stock. If usable stock cannot
+cover the requested quantity, CloudBake stops the consumption and explains that non-expired stock
+is insufficient.
+
+## Dispose Expired Stock
+
+Open an inventory item and use the trash action beside Expiry to dispose of all remaining expired
+stock. CloudBake asks for confirmation, clears only expired batches, preserves usable stock, and
+records the change as Expired Disposal in stock history.
+
+Expired disposal is for stock that was discarded. Use batch correction instead when the saved
+quantity or expiry date was entered incorrectly.
 
 ## Stock Batch Editing
 
@@ -219,8 +230,8 @@ deleted batch quantity. This is a correction workflow for mistaken batches, not 
 
 Use stock history to review why an active inventory item's quantity changed.
 
-History shows adjustment and consumption records newest first. Adjustments display as stock added.
-Consumption displays as stock used.
+History shows adjustment, consumption, and expired-disposal records newest first. Adjustments
+display as stock added, consumption as stock used, and expired disposal as expired stock removed.
 
 ## Archive And Restore
 

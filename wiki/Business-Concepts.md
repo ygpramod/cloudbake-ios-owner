@@ -87,9 +87,14 @@ An inventory transaction records why stock changed.
 Current transaction types:
 
 1. adjustment: stock was added,
-2. consumption: stock was used.
+2. consumption: usable stock was used,
+3. expired disposal: expired stock was discarded.
 
 Transaction quantities are stored as positive numbers. The transaction type carries the meaning.
+
+Expired batches are excluded from manual and order-driven consumption. They remain in current stock
+until the owner explicitly disposes of them or corrects the saved batch. Disposal clears only
+expired remaining batches and preserves usable stock.
 
 ## Stock Batch Correction
 

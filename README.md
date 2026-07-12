@@ -102,6 +102,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0094: Inventory CSV Aliases And Type
 - Slice RFC-0095: Section Header Add Actions
 - Slice RFC-0096: Recipe CSV Import And Export
+- Slice RFC-0097: Expired Inventory Exclusion And Disposal
 
 ## Base RFCs
 
