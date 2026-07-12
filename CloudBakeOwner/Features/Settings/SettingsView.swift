@@ -7,26 +7,82 @@ final class SettingsViewModel: ObservableObject {
     @Published private(set) var statusMessage: String?
     @Published private(set) var errorMessage: String?
     @Published private(set) var customLogoImage: UIImage?
+    @Published private(set) var isPreparingBackup = false
+    @Published private(set) var lastManualBackupDate: Date?
+    @Published private(set) var isWeeklyBackupReminderEnabled: Bool
 
     private let repository: any InventoryItemRepository & InventoryStockBatchRepository
     private let csvService: InventoryCSVService
     private let recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository & InventoryItemRepository)?
     private let recipeCSVService: RecipeCSVService
     private let logoStore: AppLogoStore
+    private let manualBackupService: (any ManualBackupPreparing)?
+    private let manualBackupPreferences: ManualBackupPreferences
+    private let manualBackupReminderScheduler: ManualBackupReminderScheduler
 
     init(
         repository: any InventoryItemRepository & InventoryStockBatchRepository,
         csvService: InventoryCSVService = InventoryCSVService(),
         recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository & InventoryItemRepository)? = nil,
         recipeCSVService: RecipeCSVService = RecipeCSVService(),
-        logoStore: AppLogoStore = AppLogoStore()
+        logoStore: AppLogoStore = AppLogoStore(),
+        manualBackupService: (any ManualBackupPreparing)? = nil,
+        manualBackupPreferences: ManualBackupPreferences = ManualBackupPreferences(),
+        manualBackupReminderScheduler: ManualBackupReminderScheduler? = nil
     ) {
         self.repository = repository
         self.csvService = csvService
         self.recipeRepository = recipeRepository
         self.recipeCSVService = recipeCSVService
         self.logoStore = logoStore
+        self.manualBackupService = manualBackupService
+        self.manualBackupPreferences = manualBackupPreferences
+        self.manualBackupReminderScheduler = manualBackupReminderScheduler
+            ?? ManualBackupReminderScheduler(preferences: manualBackupPreferences)
+        lastManualBackupDate = manualBackupPreferences.lastSuccessfulExport
+        isWeeklyBackupReminderEnabled = manualBackupPreferences.isReminderEnabled
         customLogoImage = logoStore.load()
+    }
+
+    func prepareManualBackup() async -> ManualBackupExport? {
+        guard let manualBackupService else {
+            errorMessage = "CloudBake backup is not available in this build."
+            statusMessage = nil
+            return nil
+        }
+        isPreparingBackup = true
+        defer { isPreparingBackup = false }
+        do {
+            let export = try await manualBackupService.prepareBackup()
+            statusMessage = "Backup is ready. Choose a safe location to save it."
+            errorMessage = nil
+            return export
+        } catch {
+            statusMessage = nil
+            errorMessage = "CloudBake could not create a complete backup. No backup was saved."
+            return nil
+        }
+    }
+
+    func markManualBackupExported(at date: Date = Date()) async {
+        manualBackupPreferences.recordSuccessfulExport(at: date)
+        lastManualBackupDate = date
+        statusMessage = "CloudBake backup saved successfully."
+        errorMessage = nil
+        await manualBackupReminderScheduler.refreshReminder()
+    }
+
+    func markManualBackupExportFailed() {
+        statusMessage = nil
+        errorMessage = "The backup was not saved. Your existing data was not changed."
+    }
+
+    func setWeeklyBackupReminderEnabled(_ isEnabled: Bool) {
+        manualBackupPreferences.isReminderEnabled = isEnabled
+        isWeeklyBackupReminderEnabled = isEnabled
+        Task {
+            await manualBackupReminderScheduler.refreshReminder()
+        }
     }
 
     func saveLogo(_ image: UIImage) -> Bool {
@@ -146,6 +202,11 @@ struct SettingsView: View {
     @State private var exportKind: SettingsExportKind?
     @State private var pendingDataOperation: SettingsDataOperation?
     @State private var exportDocument = InventoryCSVDocument()
+    @State private var isBackupExpanded = false
+    @State private var isDataManagementExpanded = false
+    @State private var isConfirmingManualBackup = false
+    @State private var isExportingManualBackup = false
+    @State private var manualBackupExport: ManualBackupExport?
 
     init(viewModel: SettingsViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -215,8 +276,51 @@ struct SettingsView: View {
                 }
             }
 
-            CloudBakeSection("Data Management") {
-                CloudBakeDetailCard {
+            CloudBakeSection {
+                DisclosureGroup(isExpanded: $isBackupExpanded) {
+                    CloudBakeDetailCard {
+                        CloudBakeDetailRow("Last Backup") {
+                            Text(lastBackupDescription)
+                        }
+
+                        CloudBakeDetailDivider()
+
+                        Toggle(
+                            "Weekly Backup Reminder",
+                            isOn: Binding(
+                                get: { viewModel.isWeeklyBackupReminderEnabled },
+                                set: { isEnabled in
+                                    viewModel.setWeeklyBackupReminderEnabled(isEnabled)
+                                }
+                            )
+                        )
+                        .padding(.vertical, 12)
+                        .accessibilityIdentifier("settings.backup.weeklyReminder")
+
+                        CloudBakeDetailDivider()
+
+                        settingsAction(
+                            title: viewModel.isPreparingBackup ? "Preparing Backup…" : "Create Full Backup",
+                            detail: "Includes app data, photos, and your custom logo.",
+                            systemImage: "externaldrive.badge.plus",
+                            accessibilityIdentifier: "settings.backup.create"
+                        ) {
+                            isConfirmingManualBackup = true
+                        }
+                        .disabled(viewModel.isPreparingBackup)
+                    }
+                    .padding(.top, 12)
+                } label: {
+                    settingsDisclosureLabel(
+                        "Backup",
+                        accessibilityIdentifier: "settings.backup.disclosure"
+                    )
+                }
+            }
+
+            CloudBakeSection {
+                DisclosureGroup(isExpanded: $isDataManagementExpanded) {
+                    CloudBakeDetailCard {
                     settingsAction(
                         title: "Import Inventory CSV",
                         detail: "Review merge behavior before choosing a CSV file.",
@@ -258,6 +362,13 @@ struct SettingsView: View {
                     ) {
                         pendingDataOperation = .exportRecipes
                     }
+                    }
+                    .padding(.top, 12)
+                } label: {
+                    settingsDisclosureLabel(
+                        "Data Management",
+                        accessibilityIdentifier: "settings.dataManagement.disclosure"
+                    )
                 }
             }
 
@@ -296,6 +407,19 @@ struct SettingsView: View {
                     viewModel.markLogoSelectionFailed()
                 }
             }
+        }
+        .cloudBakeCenteredPopup(
+            isPresented: isConfirmingManualBackup,
+            title: "Create Full Backup?",
+            subtitle: "CloudBake will prepare the complete database, app-managed photos, lightweight recovery copies of linked Photos-library images, and your custom logo. You will choose where to save the package.",
+            systemImage: "externaldrive.badge.plus",
+            cancelAccessibilityIdentifier: "settings.backup.cancel",
+            onCancel: { isConfirmingManualBackup = false }
+        ) {
+            centeredPopupButton("Create Backup") {
+                dismissManualBackupPopupAndPrepare()
+            }
+            .accessibilityIdentifier("settings.backup.create.continue")
         }
         .cloudBakeCenteredPopup(
             isPresented: pendingDataOperation != nil,
@@ -350,6 +474,17 @@ struct SettingsView: View {
             guard case .success(let urls) = result, let url = urls.first else { return }
             viewModel.importRecipeCSV(from: url)
         }
+        .sheet(isPresented: $isExportingManualBackup) {
+            if let manualBackupExport {
+                ManualBackupFileExporter(fileURL: manualBackupExport.packageURL) { didExport in
+                    isExportingManualBackup = false
+                    if didExport {
+                        Task { await viewModel.markManualBackupExported() }
+                    }
+                    self.manualBackupExport = nil
+                }
+            }
+        }
     }
 
     private func settingsAction(
@@ -387,6 +522,18 @@ struct SettingsView: View {
         .accessibilityIdentifier(accessibilityIdentifier)
     }
 
+    private func settingsDisclosureLabel(
+        _ title: String,
+        accessibilityIdentifier: String
+    ) -> some View {
+        Text(title)
+            .font(CloudBakeTheme.Typography.sectionTitle)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
     @ViewBuilder
     private var logoPreview: some View {
         Group {
@@ -417,6 +564,23 @@ struct SettingsView: View {
 
     private var selectedCurrency: AppCurrency {
         AppCurrency(rawValue: selectedCurrencySymbol) ?? AppCurrency.defaultCurrency
+    }
+
+    private var lastBackupDescription: String {
+        guard let date = viewModel.lastManualBackupDate else { return "Never" }
+        return date.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    private func dismissManualBackupPopupAndPrepare() {
+        withAnimation(.easeInOut(duration: 0.18), completionCriteria: .removed) {
+            isConfirmingManualBackup = false
+        } completion: {
+            Task {
+                guard let export = await viewModel.prepareManualBackup() else { return }
+                manualBackupExport = export
+                isExportingManualBackup = true
+            }
+        }
     }
 
     private func continueDataOperation(_ operation: SettingsDataOperation) {

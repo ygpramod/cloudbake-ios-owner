@@ -183,7 +183,8 @@ struct RootView: View {
             SettingsView(
                 viewModel: SettingsViewModel(
                     repository: repository,
-                    recipeRepository: repository
+                    recipeRepository: repository,
+                    manualBackupService: try? ManualBackupService.live(database: database)
                 )
             )
         case .designs:
@@ -209,6 +210,7 @@ struct RootView: View {
         await OrderReminderScheduler(
             repository: repository
         ).refreshReminders()
+        await ManualBackupReminderScheduler().refreshReminder()
     }
 }
 
