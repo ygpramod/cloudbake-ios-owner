@@ -19,7 +19,9 @@ CloudBake's normal local-first behavior.
 1. Define the backup manifest, compatibility, database snapshot, asset inventory, checksum, and size models.
 2. Add snapshot creation and validation boundaries that do not depend on CloudKit.
 3. Capture GRDB consistently while the owner continues using the app.
-4. Stage every app-managed lightweight photo referenced by the captured database.
+4. Stage every lightweight photo referenced by the captured database. Materialize legacy/current
+   `photos://` references into canonical app-managed recovery paths rather than retaining an external
+   reference that may not survive device loss.
 5. Clean abandoned staging packages safely.
 
 ## Out Of Scope
@@ -33,7 +35,9 @@ CloudBake's normal local-first behavior.
 Add pure manifest models plus `AppSnapshotCreating` and `AppSnapshotValidating` protocols. The GRDB
 implementation uses SQLite's supported online backup mechanism rather than copying live database
 files. Asset enumeration is derived from the captured database and copied to an immutable generation
-directory. The manifest records format version, database schema version, minimum compatible app
+directory. PhotoKit assets are resized into lightweight JPEG recovery payloads, and the staged
+database copy is rewritten to canonical app-managed recovery paths. The manifest records format
+version, database schema version, minimum compatible app
 version, generation ID, timestamp, database and asset checksums, individual sizes, and total size.
 Hashing and file work run outside the main actor. Filenames and logs contain no private domain data.
 
@@ -57,8 +61,11 @@ Ship dormant foundations only. Do not request CloudKit access or schedule backgr
 ## Implementation Notes
 
 - `AppSnapshotService` uses GRDB's online backup API and runs as an actor outside the main actor.
-- Captured database references drive app-managed asset staging; external `photos://` references are
-  intentionally excluded because the app does not own those files.
+- Captured database references drive asset staging. Existing `photos://` assets are materialized as
+  lightweight recovery payloads and only the staged database copy is rewritten to their canonical
+  app-managed restore destinations; live local-first state remains untouched.
+- A database-capture timestamp plus source modification metadata rejects assets changed after the
+  database point in time, while before/after checksums reject changes during file copying.
 - The app-managed custom logo is included when present so branding survives eventual full restore.
 - Staged asset filenames are opaque hashes. Original relative paths remain only inside the manifest
   needed to reconstruct app-managed storage.
