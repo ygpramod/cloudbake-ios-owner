@@ -58,6 +58,8 @@ struct InventoryCSVService {
         var rows: [[String]] = [
             [
                 "name",
+                "aliases",
+                "type",
                 "unit",
                 "current_quantity",
                 "minimum_quantity",
@@ -126,8 +128,8 @@ struct InventoryCSVService {
             let item = InventoryItem(
                 id: itemId,
                 name: firstRow.name,
-                aliases: existingItem?.aliases ?? [],
-                type: existingItem?.type ?? .standard,
+                aliases: firstRow.aliases,
+                type: firstRow.type,
                 unit: firstRow.unit,
                 currentQuantity: batches.reduce(0) { $0 + $1.remainingQuantity },
                 minimumQuantity: firstRow.minimumQuantity,
@@ -148,6 +150,8 @@ struct InventoryCSVService {
     private func csvRow(item: InventoryItem, batchQuantity: Double, amount: Decimal?, expiryDate: Date?) -> [String] {
         [
             item.name,
+            InventoryAliases.displayText(item.aliases),
+            item.type.displayName,
             item.unit.displayName,
             formatQuantity(item.currentQuantity),
             formatQuantity(item.minimumQuantity),
@@ -168,6 +172,8 @@ struct InventoryCSVService {
             (TextInputFormatting.normalizedSearchKey(value), index)
         })
         let nameIndex = try requiredHeader("name", in: headerLookup)
+        let aliasesIndex = try requiredHeader("aliases", in: headerLookup)
+        let typeIndex = try requiredHeader("type", in: headerLookup)
         let unitIndex = try requiredHeader("unit", in: headerLookup)
         let minimumIndex = try requiredHeader("minimum_quantity", in: headerLookup)
         let currentIndex = headerLookup[TextInputFormatting.normalizedSearchKey("current_quantity")]
@@ -181,6 +187,10 @@ struct InventoryCSVService {
             let name = value(at: nameIndex, in: row).trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else {
                 throw InventoryCSVError.invalidRow(rowNumber, "Name is required.")
+            }
+            let aliases = InventoryAliases.aliases(from: value(at: aliasesIndex, in: row))
+            guard let type = InventoryItemType.csvValue(value(at: typeIndex, in: row)) else {
+                throw InventoryCSVError.invalidRow(rowNumber, "Type must be Standard or Perishable.")
             }
             guard let unit = InventoryUnit.csvValue(value(at: unitIndex, in: row)) else {
                 throw InventoryCSVError.invalidRow(rowNumber, "Unit is not supported.")
@@ -205,6 +215,8 @@ struct InventoryCSVService {
 
             return InventoryCSVImportRow(
                 name: name,
+                aliases: aliases,
+                type: type,
                 unit: unit,
                 minimumQuantity: minimumQuantity,
                 batchQuantity: batchQuantity,
@@ -346,11 +358,23 @@ struct InventoryCSVService {
 
 private struct InventoryCSVImportRow {
     let name: String
+    let aliases: [String]
+    let type: InventoryItemType
     let unit: InventoryUnit
     let minimumQuantity: Double
     let batchQuantity: Double
     let amount: Decimal?
     let expiryDate: Date?
+}
+
+private extension InventoryItemType {
+    static func csvValue(_ text: String) -> InventoryItemType? {
+        let normalized = TextInputFormatting.normalizedSearchKey(text)
+        return InventoryItemType.allCases.first { type in
+            normalized == TextInputFormatting.normalizedSearchKey(type.rawValue)
+                || normalized == TextInputFormatting.normalizedSearchKey(type.displayName)
+        }
+    }
 }
 
 private extension InventoryUnit {
