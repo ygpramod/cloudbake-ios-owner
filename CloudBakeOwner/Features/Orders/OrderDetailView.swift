@@ -144,6 +144,36 @@ struct OrderDetailView: View {
                     }
                 }
 
+                if !viewModel.selectedOrderIngredientShortages.isEmpty {
+                    CloudBakeSection("Ingredient Warning") {
+                        CloudBakeDetailCard {
+                            ForEach(Array(viewModel.selectedOrderIngredientShortages.enumerated()), id: \.element.id) { index, shortage in
+                                if index > 0 {
+                                    CloudBakeDetailDivider()
+                                }
+                                HStack(alignment: .top, spacing: 12) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundStyle(.orange)
+                                        .accessibilityHidden(true)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(shortage.inventoryItemName)
+                                            .font(.subheadline.weight(.semibold))
+                                        Text(
+                                            "Need \(shortage.requiredQuantity.formatted()) \(shortage.unit.displayName) across active orders; \(shortage.availableQuantity.formatted()) \(shortage.unit.displayName) usable."
+                                        )
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                    }
+                                    Spacer(minLength: 0)
+                                }
+                                .padding(.vertical, 14)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityIdentifier("orders.detail.ingredientShortage.\(shortage.inventoryItemId)")
+                            }
+                        }
+                    }
+                }
+
                 customerSection(order: order)
                 recipeSection(order: order)
                 designSection(order: order)

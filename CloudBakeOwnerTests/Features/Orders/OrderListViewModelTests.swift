@@ -904,6 +904,64 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.draftExtraIngredientRows.isEmpty)
     }
 
+    func testOrderDetailShowsShortageFromDemandAcrossActiveOrders() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_140_000)
+        let selectedOrder = makeOrder(
+            id: "order-one",
+            recipeId: "recipe-cake",
+            status: .confirmed,
+            dueAt: timestamp
+        )
+        repository.orders = [
+            selectedOrder,
+            makeOrder(
+                id: "order-two",
+                recipeId: "recipe-cake",
+                status: .confirmed,
+                dueAt: timestamp
+            )
+        ]
+        repository.recipes = [makeRecipe(id: "recipe-cake", name: "Cake")]
+        repository.inventoryItems = [
+            makeInventoryItem(
+                id: "inventory-flour",
+                name: "Cake flour",
+                currentQuantity: 10,
+                minimumQuantity: 5
+            )
+        ]
+        repository.recipeComponents = [
+            RecipeComponent(
+                id: "component-cake",
+                recipeId: "recipe-cake",
+                name: "Cake",
+                sortOrder: 0,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+        repository.recipeIngredients = [
+            RecipeIngredient(
+                id: "ingredient-flour",
+                componentId: "component-cake",
+                inventoryItemId: "inventory-flour",
+                quantity: 6,
+                unit: .gram,
+                note: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+        let viewModel = OrderListViewModel(repository: repository, dateProvider: { timestamp })
+
+        viewModel.beginViewingOrder(selectedOrder)
+
+        XCTAssertEqual(viewModel.selectedOrderIngredientShortages.count, 1)
+        XCTAssertEqual(viewModel.selectedOrderIngredientShortages[0].requiredQuantity, 12, accuracy: 0.001)
+        XCTAssertEqual(viewModel.selectedOrderIngredientShortages[0].availableQuantity, 10, accuracy: 0.001)
+    }
+
     func testFailedStatusEditDoesNotPersistDraftExtraIngredients() {
         let repository = FakeOrderRepository()
         let order = makeOrder(
