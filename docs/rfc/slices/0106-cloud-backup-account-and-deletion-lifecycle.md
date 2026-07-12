@@ -1,4 +1,4 @@
-# Slice RFC-0105: Cloud Backup Account And Deletion Lifecycle
+# Slice RFC-0106: Cloud Backup Account And Deletion Lifecycle
 
 ## Status
 
@@ -7,7 +7,7 @@ Approved.
 ## Parent Decisions
 
 - Foundation RFC-0002: CloudKit Disaster Recovery
-- Slice RFC-0104: CloudKit Full Restore
+- Slice RFC-0105: CloudKit Full Restore
 
 ## Goal
 
@@ -50,4 +50,3 @@ abandoned generations. It is distinct from disabling backup, which retains the l
 ## Rollout Notes
 
 Update wiki privacy and owner-workflow documentation before release.
-

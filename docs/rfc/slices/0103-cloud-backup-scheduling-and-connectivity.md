@@ -1,4 +1,4 @@
-# Slice RFC-0102: Cloud Backup Scheduling And Connectivity
+# Slice RFC-0103: Cloud Backup Scheduling And Connectivity
 
 ## Status
 
@@ -7,7 +7,7 @@ Approved.
 ## Parent Decisions
 
 - Foundation RFC-0002: CloudKit Disaster Recovery
-- Slice RFC-0101: CloudKit Atomic Backup Publication
+- Slice RFC-0102: CloudKit Atomic Backup Publication
 
 ## Goal
 
@@ -49,4 +49,3 @@ Wi-Fi-only. Background expiration cancels safely without changing the current cl
 ## Rollout Notes
 
 Report actual execution and last success; never promise an exact nightly clock time.
-

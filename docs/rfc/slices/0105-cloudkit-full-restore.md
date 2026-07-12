@@ -1,4 +1,4 @@
-# Slice RFC-0104: CloudKit Full Restore
+# Slice RFC-0105: CloudKit Full Restore
 
 ## Status
 
@@ -8,7 +8,7 @@ Approved.
 
 - Foundation ADR-0010: Use CloudKit For Owner App Disaster Recovery
 - Foundation RFC-0002: CloudKit Disaster Recovery
-- Slice RFC-0103: Cloud Backup Settings And Status
+- Slice RFC-0104: Cloud Backup Settings And Status
 
 ## Goal
 
@@ -54,4 +54,3 @@ under a short maintenance boundary. Startup detects and resolves interrupted act
 
 Prove restore using a production-like CloudKit snapshot before release; backup is incomplete until
 restore is demonstrated.
-
