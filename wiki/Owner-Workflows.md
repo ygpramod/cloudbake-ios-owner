@@ -426,12 +426,13 @@ balance due. From order detail, the owner can mark the order Paid or add a parti
 opening full edit. Marking Paid sets the paid amount to the quoted price and makes balance due zero.
 Adding a partial payment asks for the newly received amount and adds it to the existing paid amount.
 
-When a linked recipe has inventory-backed ingredients, order detail also shows Estimated Ingredient
-Cost. Tap that row to expand the per-ingredient breakdown. The total includes every priced portion
-and displays a warning when a required batch has no purchase amount. After inventory is deducted,
-the row becomes Actual Ingredient Cost and uses the cost of the exact usable batches consumed.
-Expired stock never contributes cost, and ingredient cost does not change the quoted price
-automatically.
+When a linked recipe has inventory-backed ingredients, the order form shows Estimated Ingredient
+Cost beside the quoted-price input so the owner can use it while preparing a quote. The estimate
+updates when the recipe, scale, or extra ingredients change. It includes every priced portion and
+displays a warning when a required batch has no purchase amount. Order detail shows the same estimate;
+tap that row to expand the per-ingredient breakdown. After inventory is deducted, the row becomes
+Actual Ingredient Cost and uses the cost of the exact usable batches consumed. Expired stock never
+contributes cost, and ingredient cost does not change the quoted price automatically.
 
 CloudBake keeps separately entered priced purchases as separate batches, even when their expiry date
 and amount match. This preserves the purchase quantity and unit cost used by order costing.

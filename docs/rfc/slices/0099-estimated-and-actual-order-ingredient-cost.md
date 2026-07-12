@@ -17,6 +17,7 @@ inventory batches consumed for the order.
 4. Show the known partial total while warning about ingredients with missing prices.
 5. Persist actual per-ingredient cost atomically with order inventory deduction.
 6. Show the cost breakdown only after the owner opens the ingredient-cost row.
+7. Show the live estimate in the order form beside the quoted-price input.
 
 ## Business Rules
 
@@ -40,9 +41,10 @@ expiry date and total amount match, because combining their quantities would cor
 ## Validation
 
 1. Unit tests cover partial known cost, missing price warnings, and expired-batch exclusion.
-2. View-model tests cover estimated, actual, and pre-slice historical states.
+2. View-model tests cover the live order-form estimate, estimated detail, actual, and pre-slice historical states.
 3. Persistence integration verifies actual cost is stored with FEFO deduction.
-4. Acceptance coverage expands the breakdown and verifies its partial total and missing-price warning.
+4. Acceptance coverage verifies the order-form estimate and expands the detail breakdown to verify its
+   partial total and missing-price warning.
 5. The full unit and integration lane and targeted acceptance test pass locally.
 
 ## Documentation Decision
