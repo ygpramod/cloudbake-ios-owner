@@ -43,6 +43,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var selectedOrderIngredientShortages: [ProjectedIngredientShortage] = []
     @Published private(set) var selectedOrderIngredientCost: OrderIngredientCostSummary?
     @Published private(set) var selectedOrderIngredientCostIsActual = false
+    @Published var isIngredientCostBreakdownExpanded = false
     @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
     @Published private(set) var selectedOrderPhotos: [OrderPhoto] = []
     @Published private(set) var editingOrder: Order?
@@ -272,6 +273,7 @@ final class OrderListViewModel: ObservableObject {
         selectedOrderIngredientShortages = []
         selectedOrderIngredientCost = nil
         selectedOrderIngredientCostIsActual = false
+        isIngredientCostBreakdownExpanded = false
         selectedOrderChecklistItems = []
         selectedOrderPhotos = []
         draftChecklistItemTitle = ""
