@@ -60,6 +60,11 @@ final class AppDatabase {
         GRDBCoreDataRepository(writer: writer)
     }
 
+    func writeBackupSnapshot(to destinationURL: URL) throws {
+        let destination = try DatabaseQueue(path: destinationURL.path)
+        try writer.backup(to: destination)
+    }
+
     private func seedCustomerFixtureIfRequested() throws {
         guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] == "1" else {
             return
