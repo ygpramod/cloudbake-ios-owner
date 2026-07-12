@@ -21,7 +21,6 @@ struct OrderDetailView: View {
     @State private var editingChecklistItem: OrderChecklistItem?
     @State private var editedChecklistItemTitle = ""
     @State private var partialPaymentAmount = ""
-    @State private var isShowingIngredientCostBreakdown = false
     @FocusState private var isChecklistTitleFocused: Bool
 
     init(
@@ -182,6 +181,13 @@ struct OrderDetailView: View {
                 customerContextSection
                 notesSection(order: order)
                 paymentSection(order: order)
+                if viewModel.isIngredientCostBreakdownExpanded,
+                   let summary = viewModel.selectedOrderIngredientCost {
+                    OrderIngredientCostBreakdownContent(
+                        summary: summary,
+                        isActual: viewModel.selectedOrderIngredientCostIsActual
+                    )
+                }
                 checklistSection
                 remindersSection(order: order)
 
@@ -202,15 +208,6 @@ struct OrderDetailView: View {
                     viewModel: viewModel,
                     isPresented: $isAddingExtraIngredient,
                     onSave: viewModel.addExtraIngredientToSelectedOrder
-                )
-            }
-        }
-        .sheet(isPresented: $isShowingIngredientCostBreakdown) {
-            if let summary = viewModel.selectedOrderIngredientCost {
-                OrderIngredientCostBreakdownView(
-                    summary: summary,
-                    isActual: viewModel.selectedOrderIngredientCostIsActual,
-                    isPresented: $isShowingIngredientCostBreakdown
                 )
             }
         }
@@ -718,26 +715,27 @@ struct OrderDetailView: View {
                 if let ingredientCost = viewModel.selectedOrderIngredientCost,
                    !ingredientCost.lines.isEmpty {
                     CloudBakeDetailDivider()
-                    Button {
-                        isShowingIngredientCostBreakdown = true
-                    } label: {
-                        HStack(spacing: 12) {
-                            Text(viewModel.selectedOrderIngredientCostIsActual ? "Actual Ingredient Cost" : "Estimated Ingredient Cost")
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            if !ingredientCost.itemsMissingPrice.isEmpty {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(.orange)
-                            }
-                            Text(formattedMoney(ingredientCost.knownCost))
-                                .foregroundStyle(.secondary)
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.tertiary)
+                    HStack(spacing: 12) {
+                        Text(viewModel.selectedOrderIngredientCostIsActual ? "Actual Ingredient Cost" : "Estimated Ingredient Cost")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        if !ingredientCost.itemsMissingPrice.isEmpty {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
                         }
-                        .padding(.vertical, 14)
+                        Text(formattedMoney(ingredientCost.knownCost))
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
                     }
-                    .buttonStyle(.plain)
+                    .padding(.vertical, 14)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        viewModel.isIngredientCostBreakdownExpanded.toggle()
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isButton)
                     .accessibilityIdentifier("orders.detail.ingredientCost")
                 }
 
@@ -882,17 +880,12 @@ struct OrderDetailView: View {
     }
 }
 
-private struct OrderIngredientCostBreakdownView: View {
+private struct OrderIngredientCostBreakdownContent: View {
     let summary: OrderIngredientCostSummary
     let isActual: Bool
-    @Binding var isPresented: Bool
 
     var body: some View {
-        CloudBakeDetailScaffold(
-            title: isActual ? "Actual Ingredient Cost" : "Estimated Ingredient Cost",
-            backAccessibilityIdentifier: "orders.ingredientCost.done",
-            onBack: { isPresented = false }
-        ) {
+        Group {
             CloudBakeSection("Total") {
                 CloudBakeDetailCard {
                     CloudBakeDetailRow("Known Cost") {
