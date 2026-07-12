@@ -18,15 +18,21 @@ actor CloudKitBackupStore: CloudBackupStoring {
         static let minimumCompatibleAppVersion = "minimumCompatibleAppVersion"
         static let payloadByteCount = "payloadByteCount"
         static let uploadByteCount = "uploadByteCount"
-        static let fileRecordNames = "fileRecordNames"
         static let fileCount = "fileCount"
+        static let lifecycleState = "lifecycleState"
         static let role = "role"
         static let relativePath = "relativePath"
         static let byteCount = "byteCount"
         static let sha256 = "sha256"
         static let payload = "payload"
         static let updatedAt = "updatedAt"
+
+        static let uploadingState = "uploading"
+        static let deletingState = "deleting"
     }
+
+    static let recordFetchLimit = 400
+    static let recordDeletionLimit = 399
 
     private let database: CKDatabase
     private let zoneID: CKRecordZone.ID
@@ -90,8 +96,8 @@ actor CloudKitBackupStore: CloudBackupStoring {
             record[Schema.minimumCompatibleAppVersion] = plan.minimumCompatibleAppVersion as CKRecordValue
             record[Schema.payloadByteCount] = NSNumber(value: plan.payloadByteCount)
             record[Schema.uploadByteCount] = NSNumber(value: plan.uploadByteCount)
-            record[Schema.fileRecordNames] = plan.files.map(\.recordName) as CKRecordValue
             record[Schema.fileCount] = NSNumber(value: plan.files.count)
+            record[Schema.lifecycleState] = Schema.uploadingState as CKRecordValue
             _ = try await saveRecords([record], atomically: true)
         }
     }
@@ -125,17 +131,22 @@ actor CloudKitBackupStore: CloudBackupStoring {
                 throw CloudKitBackupStoreInternalError.corruptRecord
             }
 
-            let fileIDs = plan.files.map {
-                CKRecord.ID(recordName: $0.recordName, zoneID: zoneID)
-            }
-            let records = try await database.records(for: fileIDs)
-            for file in plan.files {
-                let recordID = CKRecord.ID(recordName: file.recordName, zoneID: zoneID)
-                guard let result = records[recordID] else {
-                    throw CloudKitBackupStoreInternalError.corruptRecord
+            for files in CloudKitBackupBatching.chunks(
+                plan.files,
+                maximumCount: Self.recordFetchLimit
+            ) {
+                let fileIDs = files.map {
+                    CKRecord.ID(recordName: $0.recordName, zoneID: zoneID)
                 }
-                let record = try result.get()
-                try verifyFileRecord(record, expected: file, generationID: plan.generationID)
+                let records = try await database.records(for: fileIDs)
+                for file in files {
+                    let recordID = CKRecord.ID(recordName: file.recordName, zoneID: zoneID)
+                    guard let result = records[recordID] else {
+                        throw CloudKitBackupStoreInternalError.corruptRecord
+                    }
+                    let record = try result.get()
+                    try verifyFileRecord(record, expected: file, generationID: plan.generationID)
+                }
             }
         }
     }
@@ -149,41 +160,49 @@ actor CloudKitBackupStore: CloudBackupStoring {
             guard nonEmptyString(pointer[Schema.generationID]) == expectedGenerationID else {
                 throw CloudKitBackupStoreInternalError.pointerConflict
             }
+            let generation = try await requiredRecord(generationRecordID(generationID))
+            guard nonEmptyString(generation[Schema.lifecycleState]) == Schema.uploadingState else {
+                throw CloudKitBackupStoreInternalError.pointerConflict
+            }
             pointer[Schema.generationID] = generationID as CKRecordValue
             pointer[Schema.updatedAt] = Date() as CKRecordValue
-            _ = try await saveRecords([pointer], atomically: true)
+            _ = try await saveRecords([pointer, generation], atomically: true)
         }
     }
 
     func deleteGenerationIfNotCurrent(_ generationID: String) async throws -> Bool {
         try await mappedOperation {
-            let pointer = try await ensureZoneAndPointer()
+            var pointer = try await ensureZoneAndPointer()
             guard nonEmptyString(pointer[Schema.generationID]) != generationID else {
                 return false
             }
             guard let generation = try await optionalRecord(generationRecordID(generationID)) else {
                 return true
             }
-            guard let fileRecordNames = generation[Schema.fileRecordNames] as? [String],
-                  fileRecordNames.allSatisfy(CloudBackupRecordName.isSafe) else {
+            let lifecycleState = nonEmptyString(generation[Schema.lifecycleState])
+            guard lifecycleState == Schema.uploadingState || lifecycleState == Schema.deletingState else {
                 throw CloudKitBackupStoreInternalError.corruptRecord
             }
-            let deletionIDs = fileRecordNames.map {
-                CKRecord.ID(recordName: $0, zoneID: zoneID)
-            } + [generation.recordID]
-            let result = try await database.modifyRecords(
-                saving: [pointer],
-                deleting: deletionIDs,
-                savePolicy: .ifServerRecordUnchanged,
-                atomically: true
-            )
-            try requireSaved(pointer.recordID, from: result.saveResults)
-            for recordID in deletionIDs {
-                guard let deletion = result.deleteResults[recordID] else {
+
+            if lifecycleState != Schema.deletingState {
+                generation[Schema.lifecycleState] = Schema.deletingState as CKRecordValue
+                let claimed = try await saveRecords([pointer, generation], atomically: true)
+                guard let savedPointer = claimed[pointer.recordID],
+                      claimed[generation.recordID] != nil else {
                     throw CloudKitBackupStoreInternalError.corruptResponse
                 }
-                try deletion.get()
+                pointer = savedPointer
             }
+
+            let fileRecordIDs = try await fileRecordIDs(generationID: generationID)
+            for deletionIDs in CloudKitBackupBatching.chunks(
+                fileRecordIDs,
+                maximumCount: Self.recordDeletionLimit
+            ) {
+                pointer = try await deleteRecords(Array(deletionIDs), preserving: pointer)
+            }
+
+            _ = try await deleteRecords([generation.recordID], preserving: pointer)
             return true
         }
     }
@@ -262,8 +281,8 @@ actor CloudKitBackupStore: CloudBackupStoring {
             && nonEmptyString(record[Schema.minimumCompatibleAppVersion]) == plan.minimumCompatibleAppVersion
             && integer(record[Schema.payloadByteCount]) == plan.payloadByteCount
             && integer(record[Schema.uploadByteCount]) == plan.uploadByteCount
-            && record[Schema.fileRecordNames] as? [String] == plan.files.map(\.recordName)
             && integer(record[Schema.fileCount]) == Int64(plan.files.count)
+            && nonEmptyString(record[Schema.lifecycleState]) == Schema.uploadingState
     }
 
     private func verifyFileRecord(
@@ -305,6 +324,51 @@ actor CloudKitBackupStore: CloudBackupStoring {
             throw CloudKitBackupStoreInternalError.corruptResponse
         }
         _ = try result.get()
+    }
+
+    private func fileRecordIDs(generationID: String) async throws -> [CKRecord.ID] {
+        let query = CKQuery(
+            recordType: Schema.fileRecordType,
+            predicate: NSPredicate(format: "%K == %@", Schema.generationID, generationID)
+        )
+        var result = try await database.records(
+            matching: query,
+            inZoneWith: zoneID,
+            desiredKeys: []
+        )
+        var recordIDs: [CKRecord.ID] = []
+        while true {
+            for (recordID, recordResult) in result.matchResults {
+                _ = try recordResult.get()
+                recordIDs.append(recordID)
+            }
+            guard let cursor = result.queryCursor else { break }
+            result = try await database.records(continuingMatchFrom: cursor, desiredKeys: [])
+        }
+        return recordIDs
+    }
+
+    private func deleteRecords(
+        _ recordIDs: [CKRecord.ID],
+        preserving pointer: CKRecord
+    ) async throws -> CKRecord {
+        let result = try await database.modifyRecords(
+            saving: [pointer],
+            deleting: recordIDs,
+            savePolicy: .ifServerRecordUnchanged,
+            atomically: true
+        )
+        try requireSaved(pointer.recordID, from: result.saveResults)
+        for recordID in recordIDs {
+            guard let deletion = result.deleteResults[recordID] else {
+                throw CloudKitBackupStoreInternalError.corruptResponse
+            }
+            try deletion.get()
+        }
+        guard let savedPointer = try result.saveResults[pointer.recordID]?.get() else {
+            throw CloudKitBackupStoreInternalError.corruptResponse
+        }
+        return savedPointer
     }
 
     private func mappedOperation<T>(_ operation: () async throws -> T) async throws -> T {
@@ -391,4 +455,25 @@ private enum CloudKitBackupStoreInternalError: Error {
     case corruptRecord
     case corruptResponse
     case invalidPlan
+}
+
+enum CloudKitBackupBatching {
+    static func chunks<Element>(
+        _ values: [Element],
+        maximumCount: Int
+    ) -> [ArraySlice<Element>] {
+        precondition(maximumCount > 0)
+        var chunks: [ArraySlice<Element>] = []
+        var start = values.startIndex
+        while start < values.endIndex {
+            let end = values.index(
+                start,
+                offsetBy: maximumCount,
+                limitedBy: values.endIndex
+            ) ?? values.endIndex
+            chunks.append(values[start..<end])
+            start = end
+        }
+        return chunks
+    }
 }

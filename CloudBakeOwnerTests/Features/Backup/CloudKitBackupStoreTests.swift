@@ -64,4 +64,24 @@ final class CloudKitBackupStoreTests: XCTestCase {
             .cancelled
         )
     }
+
+    func testLargeBackupIsSplitWithinCloudKitOperationLimits() {
+        let fileCount = 2_002
+        let values = Array(0..<fileCount)
+
+        let fetchChunks = CloudKitBackupBatching.chunks(
+            values,
+            maximumCount: CloudKitBackupStore.recordFetchLimit
+        )
+        let deletionChunks = CloudKitBackupBatching.chunks(
+            values,
+            maximumCount: CloudKitBackupStore.recordDeletionLimit
+        )
+
+        XCTAssertEqual(fetchChunks.flatMap(Array.init), values)
+        XCTAssertTrue(fetchChunks.allSatisfy { $0.count <= 400 })
+        XCTAssertEqual(deletionChunks.flatMap(Array.init), values)
+        XCTAssertTrue(deletionChunks.allSatisfy { $0.count <= 399 })
+        XCTAssertEqual(deletionChunks.count, 6)
+    }
 }
