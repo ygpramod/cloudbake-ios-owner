@@ -48,10 +48,11 @@ final class ReminderViewModel: ObservableObject {
             let orders = try repository.fetchOrders()
             let customers = try repository.fetchCustomers()
             let inventoryItems = try repository.fetchInventoryItems()
+            let now = dateProvider()
             let shortages = try ProjectedIngredientDemand.shortages(
                 inventoryItems: inventoryItems,
                 orders: orders,
-                at: dateProvider(),
+                at: now,
                 stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
                 recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
@@ -62,7 +63,7 @@ final class ReminderViewModel: ObservableObject {
             let lowInventory = try InventoryLowInventoryAlertRules.itemsForAlerts(
                 inventoryItems: inventoryItems,
                 activeOrders: orders,
-                date: dateProvider(),
+                date: now,
                 inventoryStockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
                 orderRecipeUsage: repository.fetchOrderRecipeUsage(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
