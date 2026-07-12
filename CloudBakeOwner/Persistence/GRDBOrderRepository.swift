@@ -402,7 +402,7 @@ private extension GRDBCoreDataRepository {
             scaleMultiplier: order.recipeScaleMultiplier,
             in: db
         )
-        try validateStock(for: pendingUsages, in: db)
+        try validateStock(for: pendingUsages, at: usedAt, in: db)
         try applyRecipeUsage(
             pendingUsages,
             order: order,
@@ -650,7 +650,11 @@ private extension GRDBCoreDataRepository {
         }
     }
 
-    func validateStock(for pendingUsages: [PendingInventoryUsage], in db: Database) throws {
+    func validateStock(
+        for pendingUsages: [PendingInventoryUsage],
+        at usedAt: Date,
+        in db: Database
+    ) throws {
         for pendingUsage in pendingUsages {
             guard pendingUsage.item.currentQuantity - pendingUsage.quantity >= 0 else {
                 throw OrderRecipeUsageError.insufficientStock(itemName: pendingUsage.item.name)
@@ -658,7 +662,9 @@ private extension GRDBCoreDataRepository {
 
             let batches = try inventoryStockBatches(inventoryItemId: pendingUsage.item.id, in: db)
             if !batches.isEmpty {
-                let availableBatchQuantity = batches.reduce(0) { $0 + $1.remainingQuantity }
+                let availableBatchQuantity = batches
+                    .filter { $0.isUsable(at: usedAt) }
+                    .reduce(0) { $0 + $1.remainingQuantity }
                 guard availableBatchQuantity - pendingUsage.quantity >= 0 else {
                     throw OrderRecipeUsageError.insufficientStock(itemName: pendingUsage.item.name)
                 }

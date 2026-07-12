@@ -8,6 +8,7 @@ struct InventoryItemDetailView: View {
     @State private var isAdjustingStock = false
     @State private var isConsumingStock = false
     @State private var isShowingHistory = false
+    @State private var isConfirmingExpiredDisposal = false
 
     var body: some View {
         CloudBakeDetailScaffold(
@@ -118,7 +119,17 @@ struct InventoryItemDetailView: View {
                     }
                 }
 
-                CloudBakeSection("Expiry") {
+                CloudBakeSection(
+                    "Expiry",
+                    action: viewModel.selectedExpiredQuantity > 0
+                        ? CloudBakeSectionAction(
+                            title: "Dispose Expired Stock",
+                            systemImage: "trash",
+                            accessibilityIdentifier: "inventory.detail.disposeExpired",
+                            action: { isConfirmingExpiredDisposal = true }
+                        )
+                        : nil
+                ) {
                     CloudBakeDetailCard {
                         let activeBatches = viewModel.selectedItemBatches.filter { $0.remainingQuantity > 0 }
                         if activeBatches.isEmpty {
@@ -219,6 +230,21 @@ struct InventoryItemDetailView: View {
                     onSave: viewModel.saveEditedItem
                 )
             }
+        }
+        .cloudBakeCenteredPopup(
+            isPresented: isConfirmingExpiredDisposal,
+            title: "Dispose Expired Stock?",
+            subtitle: "Remove \(viewModel.selectedExpiredQuantity.formatted()) \(viewModel.selectedItem?.unit.displayName ?? "") of expired stock. This records an inventory disposal and cannot be undone.",
+            systemImage: "trash",
+            cancelAccessibilityIdentifier: "inventory.disposeExpired.cancel",
+            onCancel: { isConfirmingExpiredDisposal = false }
+        ) {
+            centeredPopupButton("Dispose Expired Stock", role: .destructive) {
+                if viewModel.disposeSelectedExpiredStock() {
+                    isConfirmingExpiredDisposal = false
+                }
+            }
+            .accessibilityIdentifier("inventory.disposeExpired.confirm")
         }
         .sheet(isPresented: $isAdjustingStock) {
             NavigationStack {

@@ -109,6 +109,7 @@ private extension InventoryTransaction {
         case .adjustment: "Adjustment"
         case .purchase: "Purchase"
         case .consumption: "Used"
+        case .expiredDisposal: "Expired Disposal"
         }
     }
 
@@ -116,6 +117,7 @@ private extension InventoryTransaction {
         switch kind {
         case .adjustment, .purchase: "plus.circle"
         case .consumption: "minus.circle"
+        case .expiredDisposal: "trash.circle"
         }
     }
 
@@ -123,6 +125,7 @@ private extension InventoryTransaction {
         switch kind {
         case .adjustment, .purchase: .green
         case .consumption: .orange
+        case .expiredDisposal: .red
         }
     }
 
@@ -131,7 +134,7 @@ private extension InventoryTransaction {
         switch kind {
         case .adjustment, .purchase:
             sign = "+"
-        case .consumption:
+        case .consumption, .expiredDisposal:
             sign = "-"
         }
 

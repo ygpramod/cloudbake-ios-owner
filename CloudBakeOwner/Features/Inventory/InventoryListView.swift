@@ -271,7 +271,7 @@ struct InventoryListView: View {
     }
 }
 
-private final class PreviewInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository {
+private final class PreviewInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository, ExpiredStockDisposalRepository {
     private var items: [InventoryItem] = [
         InventoryItem(
             id: "preview-flour",

@@ -448,13 +448,14 @@ final class CoreDataRepositoryTests: XCTestCase {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
         let usedAt = Date(timeIntervalSince1970: 1_800_020_000)
+        let expiredAt = usedAt.addingTimeInterval(-1)
         let olderExpiry = Date(timeIntervalSince1970: 1_805_000_000)
         let newerExpiry = Date(timeIntervalSince1970: 1_806_000_000)
         let inventoryItem = InventoryItem(
             id: "inventory-flour",
             name: "Cake flour",
             unit: .gram,
-            currentQuantity: 500,
+            currentQuantity: 575,
             minimumQuantity: 100,
             createdAt: timestamp,
             updatedAt: timestamp
@@ -503,6 +504,16 @@ final class CoreDataRepositoryTests: XCTestCase {
         try repository.save(inventoryItem)
         try repository.save(
             InventoryStockBatch(
+                id: "batch-expired-flour",
+                inventoryItemId: inventoryItem.id,
+                remainingQuantity: 75,
+                expiresAt: expiredAt,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+        try repository.save(
+            InventoryStockBatch(
                 id: "batch-newer-flour",
                 inventoryItemId: inventoryItem.id,
                 remainingQuantity: 400,
@@ -533,10 +544,18 @@ final class CoreDataRepositoryTests: XCTestCase {
             transactionIdProvider: { "transaction-order-vanilla-flour" }
         )
 
-        XCTAssertEqual(try repository.fetchInventoryItem(id: inventoryItem.id)?.currentQuantity, 350)
+        XCTAssertEqual(try repository.fetchInventoryItem(id: inventoryItem.id)?.currentQuantity, 425)
         XCTAssertEqual(
             try repository.fetchInventoryStockBatches(inventoryItemId: inventoryItem.id),
             [
+                InventoryStockBatch(
+                    id: "batch-expired-flour",
+                    inventoryItemId: inventoryItem.id,
+                    remainingQuantity: 75,
+                    expiresAt: expiredAt,
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                ),
                 InventoryStockBatch(
                     id: "batch-older-flour",
                     inventoryItemId: inventoryItem.id,
