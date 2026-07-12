@@ -60,7 +60,12 @@ Keep publication inaccessible to owners until scheduling and status controls shi
 - `CloudKitBackupStore` is the only CloudKit-dependent adapter. Application publication protocols,
   plans, results, and error categories remain CloudKit-free.
 - Pointer publication and generation deletion use server-record preconditions. Cleanup can delete a
-  candidate only while atomically proving that an unchanged pointer does not reference it.
+  candidate only after atomically claiming it while proving that an unchanged pointer does not
+  reference it. Publication conditionally preserves the unclaimed generation record, preventing a
+  cleanup/publication race.
+- File verification and cleanup use bounded, paginated operations rather than embedding generation
+  membership in one CloudKit list, supporting recovery snapshots with thousands of lightweight
+  assets and interrupted uploads with missing file records.
 - Interrupted attempts are replaced safely on retry. Post-publication cleanup failures retain the
   valid new pointer and report pending cleanup.
 - `docs/cloudkit-backup-operations.md` records the private schema, development-to-production process,
