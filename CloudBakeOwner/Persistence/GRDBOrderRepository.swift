@@ -96,6 +96,35 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchOrderIngredientCosts(orderId: String) throws -> [OrderIngredientCost] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM order_ingredient_costs
+                    WHERE order_id = ?
+                    ORDER BY inventory_item_id
+                    """,
+                arguments: [orderId]
+            ).compactMap { row in
+                guard let unit = InventoryUnit(rawValue: row["unit"]),
+                      let knownCost = optionalDecimal(row["known_cost_decimal"]) else {
+                    return nil
+                }
+                return OrderIngredientCost(
+                    id: row["id"],
+                    orderId: row["order_id"],
+                    inventoryItemId: row["inventory_item_id"],
+                    quantity: row["quantity"],
+                    unit: unit,
+                    knownCost: knownCost,
+                    missingPriceQuantity: row["missing_price_quantity"],
+                    recordedAt: date(row["recorded_at_unix_time"])
+                )
+            }
+        }
+    }
+
     func save(_ ingredient: OrderExtraIngredient) throws {
         try writer.write { db in
             try save(ingredient, in: db)
@@ -697,6 +726,26 @@ private extension GRDBCoreDataRepository {
                 archivedAt: item.archivedAt
             )
             let batches = try inventoryStockBatches(inventoryItemId: item.id, in: db)
+            let costSummary = try OrderIngredientCostCalculation.summary(
+                requirements: [(item, pendingUsage.quantity)],
+                batches: { _ in batches },
+                at: usedAt
+            )
+            if let costLine = costSummary.lines.first {
+                try save(
+                    OrderIngredientCost(
+                        id: "\(order.id):\(item.id)",
+                        orderId: order.id,
+                        inventoryItemId: item.id,
+                        quantity: pendingUsage.quantity,
+                        unit: item.unit,
+                        knownCost: costLine.knownCost,
+                        missingPriceQuantity: costLine.missingPriceQuantity,
+                        recordedAt: usedAt
+                    ),
+                    in: db
+                )
+            }
             try consume(quantity: pendingUsage.quantity, from: batches, updatedAt: usedAt, in: db)
             try save(updatedItem, in: db)
             try save(
@@ -730,6 +779,32 @@ private extension GRDBCoreDataRepository {
                 usage.usedAt.timeIntervalSince1970,
                 usage.createdAt.timeIntervalSince1970,
                 usage.updatedAt.timeIntervalSince1970
+            ])
+        )
+    }
+
+    func save(_ cost: OrderIngredientCost, in db: Database) throws {
+        try db.execute(
+            sql: """
+                INSERT INTO order_ingredient_costs
+                (id, order_id, inventory_item_id, quantity, unit, known_cost_decimal, missing_price_quantity, recorded_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(order_id, inventory_item_id) DO UPDATE SET
+                quantity = excluded.quantity,
+                unit = excluded.unit,
+                known_cost_decimal = excluded.known_cost_decimal,
+                missing_price_quantity = excluded.missing_price_quantity,
+                recorded_at_unix_time = excluded.recorded_at_unix_time
+                """,
+            arguments: arguments([
+                cost.id,
+                cost.orderId,
+                cost.inventoryItemId,
+                cost.quantity,
+                cost.unit.rawValue,
+                decimalString(cost.knownCost),
+                cost.missingPriceQuantity,
+                cost.recordedAt.timeIntervalSince1970
             ])
         )
     }

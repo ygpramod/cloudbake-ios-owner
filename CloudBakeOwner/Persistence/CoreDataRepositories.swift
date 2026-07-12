@@ -105,6 +105,10 @@ protocol OrderRecipeUsageRepository {
     ) throws
 }
 
+protocol OrderIngredientCostRepository {
+    func fetchOrderIngredientCosts(orderId: String) throws -> [OrderIngredientCost]
+}
+
 protocol OrderExtraIngredientRepository {
     func save(_ ingredient: OrderExtraIngredient) throws
     func fetchOrderExtraIngredients(orderId: String) throws -> [OrderExtraIngredient]
