@@ -1,6 +1,35 @@
 import XCTest
 
 extension CloudBakeOwnerUITests {
+    func testExpiredInventoryCanBeDisposedFromItemDetail() throws {
+        let app = makeApp(initialDestination: "inventory")
+        app.launchEnvironment["CLOUDBAKE_SEED_EXPIRED_INVENTORY_FIXTURE"] = "1"
+        app.launch()
+
+        let item = app.buttons["inventory.item.view.inventory-ui-expired-cream"]
+        XCTAssertTrue(item.waitForExistence(timeout: 10))
+        tapWhenReady(item)
+        let dispose = app.buttons["inventory.detail.disposeExpired"]
+        scrollToHittable(dispose, in: app, timeout: 10)
+        tapWhenReady(dispose)
+        let confirmDisposal = app.buttons.element(
+            matching: NSPredicate(
+                format: "label == %@ AND identifier == %@",
+                "Dispose Expired Stock",
+                "inventory.detail.screen"
+            )
+        )
+        XCTAssertTrue(confirmDisposal.waitForExistence(timeout: 5))
+        tapWhenReady(confirmDisposal)
+
+        XCTAssertFalse(app.buttons["inventory.detail.disposeExpired"].exists)
+        app.buttons["inventory.detail.done"].tap()
+        let updatedQuantity = app.staticTexts.element(
+            matching: NSPredicate(format: "label == %@", "Current Quantity: 125 ml")
+        )
+        XCTAssertTrue(updatedQuantity.waitForExistence(timeout: 5))
+    }
+
     func testInventoryDuplicateNameShowsWarningBeforeAdding() throws {
         let app = makeApp()
         app.launch()
