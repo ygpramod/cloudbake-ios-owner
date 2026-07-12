@@ -11,6 +11,7 @@ Implemented
 3. Export inventory type as Standard or Perishable.
 4. Apply imported aliases and inventory type when creating or updating an item.
 5. Reject CSV files that omit either new header or contain an unsupported type.
+6. Reject conflicting aliases, type, or minimum quantity across batch rows for the same item.
 
 Backward compatibility with the earlier seven-column CSV schema is intentionally out of scope.
 
@@ -18,7 +19,8 @@ Backward compatibility with the earlier seven-column CSV schema is intentionally
 
 1. Export coverage verifies aliases, type, quoting, amount, and expiry.
 2. Import coverage verifies new-item creation and existing-item replacement for aliases and type.
-3. Validation coverage verifies missing headers and unsupported types are rejected.
+3. Validation coverage verifies missing headers, unsupported types, and conflicting batch-row
+   metadata are rejected.
 4. The full unit and integration suite provides repository regression coverage.
 
 ## Documentation Decision

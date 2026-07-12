@@ -160,6 +160,42 @@ final class InventoryCSVServiceTests: XCTestCase {
         }
     }
 
+    func testImportRejectsConflictingMetadataAcrossBatchRows() throws {
+        let service = InventoryCSVService()
+
+        XCTAssertThrowsError(
+            try service.importCSV(
+                """
+                name,aliases,type,unit,minimum_quantity,batch_quantity
+                Cake flour,Maida,Standard,g,500,125
+                Cake Flour,Plain Flour,Standard,g,500,175
+                """,
+                repository: FakeInventoryItemRepository()
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? InventoryCSVError,
+                .invalidRow(3, "Aliases must match across batch rows for the same item.")
+            )
+        }
+
+        XCTAssertThrowsError(
+            try service.importCSV(
+                """
+                name,aliases,type,unit,minimum_quantity,batch_quantity
+                Cake flour,Maida,Standard,g,500,125
+                Cake Flour,maida,Perishable,g,500,175
+                """,
+                repository: FakeInventoryItemRepository()
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? InventoryCSVError,
+                .invalidRow(3, "Type must match across batch rows for the same item.")
+            )
+        }
+    }
+
     @MainActor
     func testSettingsViewModelReportsExportReadyState() throws {
         let repository = FakeInventoryItemRepository()
