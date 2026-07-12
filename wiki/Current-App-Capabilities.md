@@ -168,6 +168,9 @@ The app currently supports:
     labels for retired Internet Inspiration links.
 125. owner-selected in-app branding through a Settings photo picker, with app-managed logo storage,
     immediate dashboard refresh, and restoration of the bundled default logo.
+126. owner-controlled full-app `.cloudbakebackup` export through the system Files picker, including
+    the validated database, app-managed images, lightweight recovery copies of linked Photos assets,
+    and custom logo, with last-success status and a default-on weekly reminder that can be disabled.
 
 ## Partially Prepared
 

@@ -308,6 +308,17 @@ header. CloudBake keeps an app-managed copy so the selection remains available a
 owner can restore the bundled default logo at any time. This setting does not change the iPhone Home
 Screen app icon.
 
+Backup and Data Management are collapsed by default. Expand Backup and choose **Create Full
+Backup** to prepare one validated `.cloudbakebackup` package, then use the system Files picker to
+save it to a safe location such as iCloud Drive. The package contains the complete local database,
+app-managed photos, lightweight recovery copies of linked iPhone Photos images, and the custom logo.
+It is private business data and should not be shared casually.
+
+CloudBake records the last successful save and enables a weekly backup reminder by default. The
+owner can disable that reminder independently. Cancelling the Files picker or an export failure does
+not update the last-backup date. Full package restore is the next recovery slice; until it ships,
+retain the package and use iPhone or encrypted Finder backup for device-level recovery.
+
 ## Order Workflow
 
 Use Orders to track accepted or draft cake work from enquiry through delivery. `docs/rfc/orders.md`
