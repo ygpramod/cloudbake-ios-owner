@@ -426,9 +426,16 @@ balance due. From order detail, the owner can mark the order Paid or add a parti
 opening full edit. Marking Paid sets the paid amount to the quoted price and makes balance due zero.
 Adding a partial payment asks for the newly received amount and adds it to the existing paid amount.
 
+When a linked recipe has inventory-backed ingredients, order detail also shows Estimated Ingredient
+Cost. Tap that row to expand the per-ingredient breakdown. The total includes every priced portion
+and displays a warning when a required batch has no purchase amount. After inventory is deducted,
+the row becomes Actual Ingredient Cost and uses the cost of the exact usable batches consumed.
+Expired stock never contributes cost, and ingredient cost does not change the quoted price
+automatically.
+
 Order rows also expose visible action chips for quick status changes and payment recording. These
 quick actions use centered popups and ask for confirmation before saving. Pricing suggestions,
-recipe-cost calculation, discounts, refunds, and online payment processing remain future work.
+discounts, refunds, and online payment processing remain future work.
 
 Future order slices should add reminder snooze, configurable reminders, partial recipe usage,
 multi-recipe orders, inventory reservation, checklist reordering/templates, pricing calculation,
