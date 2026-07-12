@@ -102,7 +102,6 @@ final class CloudBackupPublicationTests: XCTestCase {
     func testEveryPrepublicationFailurePreservesPreviousPointer() async throws {
         let failurePoints: [FakeCloudBackupStore.FailurePoint] = [
             .readPointer,
-            .listGenerations,
             .deleteGeneration("generation-new"),
             .prepare,
             .upload,
@@ -132,6 +131,23 @@ final class CloudBackupPublicationTests: XCTestCase {
                 )
             }
         }
+    }
+
+    func testAbandonedGenerationEnumerationFailureDoesNotBlockPublication() async throws {
+        let fixture = try PublicationFixture()
+        defer { fixture.remove() }
+        let store = FakeCloudBackupStore(
+            currentGenerationID: "generation-old",
+            generationIDs: ["generation-old"],
+            failurePoint: .listGenerations
+        )
+
+        let result = try await CloudBackupPublisher(store: store).publish(fixture.package)
+
+        XCTAssertEqual(result.generationID, "generation-new")
+        XCTAssertTrue(result.cleanupPending)
+        let currentGeneration = await store.current()
+        XCTAssertEqual(currentGeneration, "generation-new")
     }
 
     func testPointerConflictCannotOverwriteConcurrentPublication() async throws {

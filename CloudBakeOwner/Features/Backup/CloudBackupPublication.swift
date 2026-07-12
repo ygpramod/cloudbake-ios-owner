@@ -240,11 +240,8 @@ actor CloudBackupPublisher {
             )
         }
 
-        let existingGenerationIDs = try await store.generationIDs()
-        if existingGenerationIDs.contains(plan.generationID) {
-            guard try await store.deleteGenerationIfNotCurrent(plan.generationID) else {
-                throw CloudBackupPublicationError.generationBecameCurrent
-            }
+        guard try await store.deleteGenerationIfNotCurrent(plan.generationID) else {
+            throw CloudBackupPublicationError.generationBecameCurrent
         }
         let prepublicationCleanupPending = await cleanGenerations(
             except: previousGenerationID,
