@@ -124,6 +124,13 @@ CSV import can create new inventory items or update matching active items by nam
 from CSV replaces the matched item's stock batches, so it should be treated as a deliberate data
 correction workflow rather than normal stock adjustment.
 
+## Recipe CSV
+
+Recipe CSV is an owner-editable transfer format with `name`, `recipe`, and `ingredients` columns.
+The ingredients field contains pipe-separated `ingredient name:quantity:unit` values. Rows whose
+name starts with `#` are documentation examples and are never imported. Ingredients resolve to
+active inventory by saved name or alias; the CSV does not create inventory or change stock.
+
 ## App Currency
 
 App currency is the owner-selected display symbol for money values in CloudBake.
