@@ -224,6 +224,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["settings.currency"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["settings.logo.choose"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
         XCTAssertTrue(app.buttons["settings.inventory.import"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["settings.inventory.export"].waitForExistence(timeout: 5))
         scrollToHittable(app.buttons["settings.recipes.import"], in: app)
@@ -235,10 +236,27 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Settings", in: app)
+        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
         tapWhenReady(app.buttons["settings.inventory.export"])
         tapWhenReady(app.buttons["settings.inventory.export.continue"])
 
         XCTAssertTrue(app.buttons["Save"].waitForExistence(timeout: 10))
+    }
+
+    func testManualFullBackupPresentsDestinationPicker() throws {
+        let app = makeApp()
+        app.launch()
+
+        openDashboardDestination("Settings", in: app)
+        tapWhenReady(app.buttons["settings.backup.disclosure"])
+        XCTAssertTrue(app.switches["settings.backup.weeklyReminder"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["settings.backup.create"])
+        tapWhenReady(app.buttons["settings.backup.create.continue"])
+
+        let saveButton = app.buttons["Save"]
+        if !saveButton.waitForExistence(timeout: 15) {
+            XCTFail("Backup exporter did not appear. Hierarchy: \(app.debugDescription)")
+        }
     }
 
     func testOrderCanBeAddedAndListed() throws {
