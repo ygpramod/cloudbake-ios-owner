@@ -8,13 +8,48 @@ final class SettingsViewModel: ObservableObject {
 
     private let repository: any InventoryItemRepository & InventoryStockBatchRepository
     private let csvService: InventoryCSVService
+    private let recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & InventoryItemRepository)?
+    private let recipeCSVService: RecipeCSVService
 
     init(
         repository: any InventoryItemRepository & InventoryStockBatchRepository,
-        csvService: InventoryCSVService = InventoryCSVService()
+        csvService: InventoryCSVService = InventoryCSVService(),
+        recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & InventoryItemRepository)? = nil,
+        recipeCSVService: RecipeCSVService = RecipeCSVService()
     ) {
         self.repository = repository
         self.csvService = csvService
+        self.recipeRepository = recipeRepository
+        self.recipeCSVService = recipeCSVService
+    }
+
+    func exportRecipeDocument() -> InventoryCSVDocument? {
+        guard let recipeRepository else { return nil }
+        do {
+            let text = try recipeCSVService.exportCSV(repository: recipeRepository)
+            statusMessage = "Recipe export is ready. Choose a location to save the CSV."
+            errorMessage = nil
+            return InventoryCSVDocument(text: text)
+        } catch {
+            statusMessage = nil
+            errorMessage = "Recipes could not be exported."
+            return nil
+        }
+    }
+
+    func importRecipeCSV(from url: URL) {
+        guard let recipeRepository else { return }
+        let didStartAccessing = url.startAccessingSecurityScopedResource()
+        defer { if didStartAccessing { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            let summary = try recipeCSVService.importCSV(text, repository: recipeRepository)
+            statusMessage = "Imported \(summary.importedRecipeCount) recipes and \(summary.importedIngredientCount) ingredients."
+            errorMessage = nil
+        } catch {
+            statusMessage = nil
+            errorMessage = "Recipe CSV could not be imported. Check names, ingredient format, and inventory matches."
+        }
     }
 
     func exportInventoryDocument() -> InventoryCSVDocument? {
@@ -53,6 +88,11 @@ final class SettingsViewModel: ObservableObject {
         statusMessage = nil
         errorMessage = "Inventory CSV could not be exported."
     }
+
+    func markRecipeExportFailed() {
+        statusMessage = nil
+        errorMessage = "Recipe CSV could not be exported."
+    }
 }
 
 struct SettingsView: View {
@@ -61,6 +101,8 @@ struct SettingsView: View {
     @State private var isSelectingCurrency = false
     @State private var isImportingInventory = false
     @State private var isExportingInventory = false
+    @State private var isImportingRecipes = false
+    @State private var isExportingRecipes = false
     @State private var pendingDataOperation: SettingsDataOperation?
     @State private var exportDocument = InventoryCSVDocument()
 
@@ -112,6 +154,28 @@ struct SettingsView: View {
                         accessibilityIdentifier: "settings.inventory.export"
                     ) {
                         pendingDataOperation = .exportInventory
+                    }
+
+                    CloudBakeDetailDivider()
+
+                    settingsAction(
+                        title: "Import Recipe CSV",
+                        detail: "Import name, recipe notes, and pipe-separated ingredients.",
+                        systemImage: "square.and.arrow.down",
+                        accessibilityIdentifier: "settings.recipes.import"
+                    ) {
+                        pendingDataOperation = .importRecipes
+                    }
+
+                    CloudBakeDetailDivider()
+
+                    settingsAction(
+                        title: "Export Recipe CSV",
+                        detail: "Export recipes with a reusable ingredient format example.",
+                        systemImage: "square.and.arrow.up",
+                        accessibilityIdentifier: "settings.recipes.export"
+                    ) {
+                        pendingDataOperation = .exportRecipes
                     }
                 }
             }
@@ -175,6 +239,22 @@ struct SettingsView: View {
                 viewModel.markExportFailed()
             }
         }
+        .fileImporter(
+            isPresented: $isImportingRecipes,
+            allowedContentTypes: [.commaSeparatedText, .plainText],
+            allowsMultipleSelection: false
+        ) { result in
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            viewModel.importRecipeCSV(from: url)
+        }
+        .fileExporter(
+            isPresented: $isExportingRecipes,
+            document: exportDocument,
+            contentType: .commaSeparatedText,
+            defaultFilename: "cloudbake-recipes.csv"
+        ) { result in
+            if case .failure = result { viewModel.markRecipeExportFailed() }
+        }
     }
 
     private func settingsAction(
@@ -235,6 +315,13 @@ struct SettingsView: View {
                 exportDocument = document
                 isExportingInventory = true
             }
+        case .importRecipes:
+            isImportingRecipes = true
+        case .exportRecipes:
+            if let document = viewModel.exportRecipeDocument() {
+                exportDocument = document
+                isExportingRecipes = true
+            }
         }
     }
 }
@@ -242,6 +329,8 @@ struct SettingsView: View {
 private enum SettingsDataOperation: Identifiable {
     case importInventory
     case exportInventory
+    case importRecipes
+    case exportRecipes
 
     var id: String {
         switch self {
@@ -249,6 +338,10 @@ private enum SettingsDataOperation: Identifiable {
             return "importInventory"
         case .exportInventory:
             return "exportInventory"
+        case .importRecipes:
+            return "importRecipes"
+        case .exportRecipes:
+            return "exportRecipes"
         }
     }
 
@@ -258,6 +351,10 @@ private enum SettingsDataOperation: Identifiable {
             return "Import Inventory CSV?"
         case .exportInventory:
             return "Export Inventory CSV?"
+        case .importRecipes:
+            return "Import Recipe CSV?"
+        case .exportRecipes:
+            return "Export Recipe CSV?"
         }
     }
 
@@ -267,6 +364,10 @@ private enum SettingsDataOperation: Identifiable {
             return "CloudBake will merge rows by item name and unit. Matching items are updated, and their stock batches are replaced by the CSV rows."
         case .exportInventory:
             return "CloudBake will export active inventory items and stock batches. Archived items are not included."
+        case .importRecipes:
+            return "CloudBake will create new recipes. Ingredient names must match one active inventory name or alias."
+        case .exportRecipes:
+            return "CloudBake will export recipe names, notes, and ingredients. The example row is ignored during import."
         }
     }
 
@@ -275,6 +376,10 @@ private enum SettingsDataOperation: Identifiable {
         case .importInventory:
             return "square.and.arrow.down"
         case .exportInventory:
+            return "square.and.arrow.up"
+        case .importRecipes:
+            return "square.and.arrow.down"
+        case .exportRecipes:
             return "square.and.arrow.up"
         }
     }
@@ -285,6 +390,10 @@ private enum SettingsDataOperation: Identifiable {
             return "Choose CSV File"
         case .exportInventory:
             return "Create Export"
+        case .importRecipes:
+            return "Choose CSV File"
+        case .exportRecipes:
+            return "Create Export"
         }
     }
 
@@ -294,6 +403,10 @@ private enum SettingsDataOperation: Identifiable {
             return "settings.inventory.import.continue"
         case .exportInventory:
             return "settings.inventory.export.continue"
+        case .importRecipes:
+            return "settings.recipes.import.continue"
+        case .exportRecipes:
+            return "settings.recipes.export.continue"
         }
     }
 }
