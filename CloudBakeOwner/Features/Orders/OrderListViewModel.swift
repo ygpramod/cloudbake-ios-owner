@@ -41,6 +41,8 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var selectedOrderRecipeUsage: OrderRecipeUsage?
     @Published private(set) var selectedOrderExtraIngredients: [OrderExtraIngredientRow] = []
     @Published private(set) var selectedOrderIngredientShortages: [ProjectedIngredientShortage] = []
+    @Published private(set) var selectedOrderIngredientCost: OrderIngredientCostSummary?
+    @Published private(set) var selectedOrderIngredientCostIsActual = false
     @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
     @Published private(set) var selectedOrderPhotos: [OrderPhoto] = []
     @Published private(set) var editingOrder: Order?
@@ -71,7 +73,7 @@ final class OrderListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published private(set) var isPromotingDesign = false
 
-    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
     private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
@@ -79,7 +81,7 @@ final class OrderListViewModel: ObservableObject {
     private let presentation: OrderListPresentation
 
     init(
-        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository,
+        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
@@ -268,6 +270,8 @@ final class OrderListViewModel: ObservableObject {
         selectedOrderRecipeUsage = nil
         selectedOrderExtraIngredients = []
         selectedOrderIngredientShortages = []
+        selectedOrderIngredientCost = nil
+        selectedOrderIngredientCostIsActual = false
         selectedOrderChecklistItems = []
         selectedOrderPhotos = []
         draftChecklistItemTitle = ""
@@ -1313,10 +1317,57 @@ final class OrderListViewModel: ObservableObject {
             }
             availableInventoryItems = inventoryItems
             loadSelectedOrderIngredientShortages(for: order, inventoryItems: inventoryItems)
+            loadSelectedOrderIngredientCost(for: order, inventoryItems: inventoryItems)
         } catch {
             selectedOrderExtraIngredients = []
             selectedOrderIngredientShortages = []
+            selectedOrderIngredientCost = nil
             errorMessage = "Extra ingredients could not be loaded."
+        }
+    }
+
+    private func loadSelectedOrderIngredientCost(
+        for order: Order,
+        inventoryItems: [InventoryItem]
+    ) {
+        do {
+            let actualCosts = try repository.fetchOrderIngredientCosts(orderId: order.id)
+            if !actualCosts.isEmpty {
+                let itemsById = Dictionary(uniqueKeysWithValues: inventoryItems.map { ($0.id, $0) })
+                selectedOrderIngredientCost = OrderIngredientCostSummary(
+                    lines: actualCosts.compactMap { cost in
+                        guard let item = itemsById[cost.inventoryItemId] else { return nil }
+                        return OrderIngredientCostLine(
+                            inventoryItemId: item.id,
+                            inventoryItemName: item.name,
+                            quantity: cost.quantity,
+                            unit: cost.unit,
+                            knownCost: cost.knownCost,
+                            missingPriceQuantity: cost.missingPriceQuantity
+                        )
+                    }
+                )
+                selectedOrderIngredientCostIsActual = true
+                return
+            }
+
+            let requirements = try OrderIngredientRequirements.requirements(
+                for: order,
+                inventoryItems: inventoryItems,
+                recipeComponents: repository.fetchRecipeComponents(recipeId:),
+                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
+                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
+            )
+            selectedOrderIngredientCost = try OrderIngredientCostCalculation.summary(
+                requirements: requirements,
+                batches: repository.fetchInventoryStockBatches(inventoryItemId:),
+                at: dateProvider()
+            )
+            selectedOrderIngredientCostIsActual = false
+        } catch {
+            selectedOrderIngredientCost = nil
+            selectedOrderIngredientCostIsActual = false
+            errorMessage = "Ingredient cost could not be loaded."
         }
     }
 

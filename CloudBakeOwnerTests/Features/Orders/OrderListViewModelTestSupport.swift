@@ -195,6 +195,7 @@ final class FakeOrderRepository: OrderRepository,
     InventoryItemRepository,
     InventoryStockBatchRepository,
     OrderRecipeUsageRepository,
+    OrderIngredientCostRepository,
     OrderStatusChangeRepository,
     OrderExtraIngredientRepository,
     OrderChecklistRepository,
@@ -209,6 +210,7 @@ final class FakeOrderRepository: OrderRepository,
     var inventoryItems: [InventoryItem] = []
     var inventoryStockBatches: [InventoryStockBatch] = []
     var usages: [OrderRecipeUsage] = []
+    var ingredientCosts: [OrderIngredientCost] = []
     var extraIngredients: [OrderExtraIngredient] = []
     var checklistItems: [OrderChecklistItem] = []
     var orderPhotos: [OrderPhoto] = []
@@ -423,6 +425,10 @@ final class FakeOrderRepository: OrderRepository,
 
     func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? {
         usages.first { $0.orderId == orderId }
+    }
+
+    func fetchOrderIngredientCosts(orderId: String) throws -> [OrderIngredientCost] {
+        ingredientCosts.filter { $0.orderId == orderId }
     }
 
     func save(_ ingredient: OrderExtraIngredient) throws {

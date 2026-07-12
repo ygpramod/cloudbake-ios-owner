@@ -21,6 +21,7 @@ struct OrderDetailView: View {
     @State private var editingChecklistItem: OrderChecklistItem?
     @State private var editedChecklistItemTitle = ""
     @State private var partialPaymentAmount = ""
+    @State private var isShowingIngredientCostBreakdown = false
     @FocusState private var isChecklistTitleFocused: Bool
 
     init(
@@ -201,6 +202,15 @@ struct OrderDetailView: View {
                     viewModel: viewModel,
                     isPresented: $isAddingExtraIngredient,
                     onSave: viewModel.addExtraIngredientToSelectedOrder
+                )
+            }
+        }
+        .sheet(isPresented: $isShowingIngredientCostBreakdown) {
+            if let summary = viewModel.selectedOrderIngredientCost {
+                OrderIngredientCostBreakdownView(
+                    summary: summary,
+                    isActual: viewModel.selectedOrderIngredientCostIsActual,
+                    isPresented: $isShowingIngredientCostBreakdown
                 )
             }
         }
@@ -705,6 +715,32 @@ struct OrderDetailView: View {
                     }
                 }
 
+                if let ingredientCost = viewModel.selectedOrderIngredientCost,
+                   !ingredientCost.lines.isEmpty {
+                    CloudBakeDetailDivider()
+                    Button {
+                        isShowingIngredientCostBreakdown = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Text(viewModel.selectedOrderIngredientCostIsActual ? "Actual Ingredient Cost" : "Estimated Ingredient Cost")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if !ingredientCost.itemsMissingPrice.isEmpty {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                            }
+                            Text(formattedMoney(ingredientCost.knownCost))
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("orders.detail.ingredientCost")
+                }
+
                 if let depositPaid = order.depositPaid {
                     CloudBakeDetailDivider()
                     CloudBakeDetailRow("Deposit Paid") {
@@ -843,6 +879,64 @@ struct OrderDetailView: View {
 
     private func formattedMoney(_ amount: Decimal) -> String {
         MoneyDisplay.formatted(amount)
+    }
+}
+
+private struct OrderIngredientCostBreakdownView: View {
+    let summary: OrderIngredientCostSummary
+    let isActual: Bool
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        CloudBakeDetailScaffold(
+            title: isActual ? "Actual Ingredient Cost" : "Estimated Ingredient Cost",
+            backAccessibilityIdentifier: "orders.ingredientCost.done",
+            onBack: { isPresented = false }
+        ) {
+            CloudBakeSection("Total") {
+                CloudBakeDetailCard {
+                    CloudBakeDetailRow("Known Cost") {
+                        Text(MoneyDisplay.formatted(summary.knownCost))
+                            .fontWeight(.semibold)
+                            .accessibilityIdentifier("orders.ingredientCost.total")
+                    }
+                }
+            }
+
+            if !summary.itemsMissingPrice.isEmpty {
+                CloudBakeErrorBanner(
+                    message: "Missing inventory prices for \(summary.itemsMissingPrice.joined(separator: ", ")). The total includes every ingredient cost that can be calculated.",
+                    accessibilityIdentifier: "orders.ingredientCost.warning"
+                )
+            }
+
+            CloudBakeSection("Ingredients") {
+                CloudBakeDetailCard {
+                    ForEach(Array(summary.lines.enumerated()), id: \.element.id) { index, line in
+                        if index > 0 { CloudBakeDetailDivider() }
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text(line.inventoryItemName)
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text(MoneyDisplay.formatted(line.knownCost))
+                            }
+                            Text("\(line.quantity.formatted()) \(line.unit.displayName)")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            if line.hasMissingPrice {
+                                Text("Price missing for \(line.missingPriceQuantity.formatted()) \(line.unit.displayName)")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+                        .padding(.vertical, 14)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("orders.ingredientCost.line.\(line.inventoryItemId)")
+                    }
+                }
+            }
+        }
     }
 }
 
