@@ -111,6 +111,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
                 snapshotDatabase: snapshotDatabase,
                 in: buildingURL
             )
+            try snapshotDatabase.close()
             let databaseDescriptor = try describeFile(
                 at: databaseURL,
                 relativePath: Self.databaseFilename
