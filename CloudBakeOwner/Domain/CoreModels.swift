@@ -31,6 +31,7 @@ enum AppCurrency: String, CaseIterable, Equatable {
 
 enum AppSettings {
     static let currencySymbolKey = "cloudbake.currencySymbol"
+    static let logoRevisionKey = "cloudbake.logoRevision"
 
     static var currency: AppCurrency {
         AppCurrency(rawValue: UserDefaults.standard.string(forKey: currencySymbolKey) ?? "")

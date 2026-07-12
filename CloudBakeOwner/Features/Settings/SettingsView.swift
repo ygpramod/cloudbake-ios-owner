@@ -1,26 +1,65 @@
 import SwiftUI
+import PhotosUI
 import UniformTypeIdentifiers
 
 @MainActor
 final class SettingsViewModel: ObservableObject {
     @Published private(set) var statusMessage: String?
     @Published private(set) var errorMessage: String?
+    @Published private(set) var customLogoImage: UIImage?
 
     private let repository: any InventoryItemRepository & InventoryStockBatchRepository
     private let csvService: InventoryCSVService
     private let recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository & InventoryItemRepository)?
     private let recipeCSVService: RecipeCSVService
+    private let logoStore: AppLogoStore
 
     init(
         repository: any InventoryItemRepository & InventoryStockBatchRepository,
         csvService: InventoryCSVService = InventoryCSVService(),
         recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository & InventoryItemRepository)? = nil,
-        recipeCSVService: RecipeCSVService = RecipeCSVService()
+        recipeCSVService: RecipeCSVService = RecipeCSVService(),
+        logoStore: AppLogoStore = AppLogoStore()
     ) {
         self.repository = repository
         self.csvService = csvService
         self.recipeRepository = recipeRepository
         self.recipeCSVService = recipeCSVService
+        self.logoStore = logoStore
+        customLogoImage = logoStore.load()
+    }
+
+    func saveLogo(_ image: UIImage) -> Bool {
+        do {
+            try logoStore.save(image)
+            customLogoImage = logoStore.load()
+            statusMessage = "CloudBake logo updated."
+            errorMessage = nil
+            return true
+        } catch {
+            statusMessage = nil
+            errorMessage = "The selected logo could not be saved."
+            return false
+        }
+    }
+
+    func restoreDefaultLogo() -> Bool {
+        do {
+            try logoStore.remove()
+            customLogoImage = nil
+            statusMessage = "Default CloudBake logo restored."
+            errorMessage = nil
+            return true
+        } catch {
+            statusMessage = nil
+            errorMessage = "The default logo could not be restored."
+            return false
+        }
+    }
+
+    func markLogoSelectionFailed() {
+        statusMessage = nil
+        errorMessage = "The selected logo could not be opened."
     }
 
     func exportRecipeDocument() -> InventoryCSVDocument? {
@@ -98,7 +137,9 @@ final class SettingsViewModel: ObservableObject {
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @AppStorage(AppSettings.currencySymbolKey) private var selectedCurrencySymbol = AppCurrency.defaultCurrency.symbol
+    @AppStorage(AppSettings.logoRevisionKey) private var logoRevision = 0
     @State private var isSelectingCurrency = false
+    @State private var selectedLogoItem: PhotosPickerItem?
     @State private var isImportingInventory = false
     @State private var isImportingRecipes = false
     @State private var isExporting = false
@@ -131,6 +172,46 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("settings.currency")
+                }
+            }
+
+            CloudBakeSection("Appearance") {
+                CloudBakeDetailCard {
+                    HStack(spacing: 16) {
+                        logoPreview
+
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("CloudBake Logo")
+                                .font(.headline)
+                            Text("Shown in the app. The Home Screen icon is unchanged.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        PhotosPicker(selection: $selectedLogoItem, matching: .images, photoLibrary: .shared()) {
+                            Text("Choose")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.cloudBakePink)
+                        }
+                        .accessibilityIdentifier("settings.logo.choose")
+                    }
+                    .padding(.vertical, 12)
+
+                    if viewModel.customLogoImage != nil {
+                        CloudBakeDetailDivider()
+
+                        Button("Restore Default Logo", role: .destructive) {
+                            if viewModel.restoreDefaultLogo() {
+                                logoRevision += 1
+                            }
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 12)
+                        .accessibilityIdentifier("settings.logo.restoreDefault")
+                    }
                 }
             }
 
@@ -201,6 +282,20 @@ struct SettingsView: View {
                     isSelectingCurrency = false
                 }
             )
+        }
+        .onChange(of: selectedLogoItem) { _, item in
+            guard let item else { return }
+            Task {
+                defer { selectedLogoItem = nil }
+                do {
+                    let image = try await PhotoPickerImageLoader.image(from: item)
+                    if viewModel.saveLogo(image) {
+                        logoRevision += 1
+                    }
+                } catch {
+                    viewModel.markLogoSelectionFailed()
+                }
+            }
         }
         .cloudBakeCenteredPopup(
             isPresented: pendingDataOperation != nil,
@@ -290,6 +385,25 @@ struct SettingsView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    @ViewBuilder
+    private var logoPreview: some View {
+        Group {
+            if let customLogo = viewModel.customLogoImage {
+                Image(uiImage: customLogo)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image("CloudBakeLogo")
+                    .resizable()
+                    .scaledToFit()
+            }
+        }
+        .frame(width: 52, height: 52)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(Color.black.opacity(0.06), lineWidth: 1))
+        .accessibilityHidden(true)
     }
 
     private func settingsStatusBanner(_ message: String) -> some View {

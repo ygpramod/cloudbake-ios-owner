@@ -131,6 +131,9 @@ struct DashboardView: View {
 }
 
 private struct DashboardHeader: View {
+    @AppStorage(AppSettings.logoRevisionKey) private var logoRevision = 0
+    @State private var customLogoImage = AppLogoStore().load()
+
     var body: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
@@ -147,9 +150,7 @@ private struct DashboardHeader: View {
 
             Spacer(minLength: 20)
 
-            Image("CloudBakeLogo")
-                .resizable()
-                .scaledToFit()
+            appLogo
                 .frame(width: 52, height: 52)
                 .clipShape(Circle())
                 .overlay(
@@ -158,6 +159,22 @@ private struct DashboardHeader: View {
                 )
                 .shadow(color: CloudBakeTheme.Elevation.softShadow, radius: 10, y: 4)
                 .accessibilityHidden(true)
+        }
+        .onChange(of: logoRevision) { _, _ in
+            customLogoImage = AppLogoStore().load()
+        }
+    }
+
+    @ViewBuilder
+    private var appLogo: some View {
+        if let customLogoImage {
+            Image(uiImage: customLogoImage)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Image("CloudBakeLogo")
+                .resizable()
+                .scaledToFit()
         }
     }
 }
