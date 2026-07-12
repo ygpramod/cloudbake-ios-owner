@@ -103,6 +103,20 @@ Expired batches are excluded from manual and order-driven consumption. They rema
 until the owner explicitly disposes of them or corrects the saved batch. Disposal clears only
 expired remaining batches and preserves usable stock.
 
+## Order Ingredient Cost
+
+Estimated ingredient cost helps the owner quote an order. It combines the order's scaled recipe and
+extra ingredients, then uses the purchase amount and quantity of usable inventory batches to derive
+cost in earliest-expiry-first order. Expired batches are excluded.
+
+When some used quantity has no saved purchase amount, CloudBake shows the total for every priced
+portion and warns which ingredients still have missing prices. Missing prices are not treated as
+zero.
+
+When order inventory is deducted, CloudBake saves the actual per-ingredient cost from the batches
+consumed. Later inventory price edits do not rewrite that actual cost. Deductions recorded before
+ingredient costing was introduced are not backfilled.
+
 ## Stock Batch Correction
 
 Stock batch correction is used when a saved batch is wrong.

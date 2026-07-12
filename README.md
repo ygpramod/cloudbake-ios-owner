@@ -104,6 +104,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0096: Recipe CSV Import And Export
 - Slice RFC-0097: Expired Inventory Exclusion And Disposal
 - Slice RFC-0098: Projected Order Ingredient Demand
+- Slice RFC-0099: Estimated And Actual Order Ingredient Cost
 
 ## Base RFCs
 
