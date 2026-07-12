@@ -99,6 +99,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0091: Direct Owner Design Import
 - Slice RFC-0092: Designs RFC Closeout
 - Slice RFC-0093: Designs Simplification And Order Picker
+- Slice RFC-0094: Inventory CSV Aliases And Type
 - Slice RFC-0095: Section Header Add Actions
 
 ## Base RFCs

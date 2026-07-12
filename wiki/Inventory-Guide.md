@@ -239,17 +239,20 @@ Open Settings to import or export inventory CSV.
 CSV export includes active inventory items and their stock batches. Each row includes:
 
 1. name,
-2. unit,
-3. current quantity,
-4. minimum quantity,
-5. batch quantity,
-6. amount,
-7. expiry date.
+2. aliases,
+3. inventory type,
+4. unit,
+5. current quantity,
+6. minimum quantity,
+7. batch quantity,
+8. amount,
+9. expiry date.
 
 CSV import creates new active inventory items or updates matching active items by name and unit.
 When updating an existing item, CloudBake replaces that item's saved stock batches with the imported
-batches and recalculates current quantity from the imported batch quantities. The `amount` column
-is optional so older exported files can still be imported.
+batches, aliases, and inventory type, then recalculates current quantity from the imported batch
+quantities. The CSV must include the `aliases` and `type` headers. Type accepts `Standard` or
+`Perishable`.
 
 Use stock adjustment for normal day-to-day stock changes. Use CSV import when moving inventory data
 in bulk or making a deliberate correction from a reviewed file.
