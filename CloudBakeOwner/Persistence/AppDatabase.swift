@@ -216,8 +216,20 @@ final class AppDatabase {
             InventoryStockBatch(
                 id: "inventory-ui-projected-flour-batch",
                 inventoryItemId: flour.id,
-                remainingQuantity: 500,
-                expiresAt: nil,
+                remainingQuantity: 200,
+                expiresAt: timestamp.addingTimeInterval(86_400),
+                amount: 100,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+        try repository.save(
+            InventoryStockBatch(
+                id: "inventory-ui-projected-flour-missing-price-batch",
+                inventoryItemId: flour.id,
+                remainingQuantity: 300,
+                expiresAt: timestamp.addingTimeInterval(172_800),
+                amount: nil,
                 createdAt: timestamp,
                 updatedAt: timestamp
             )
