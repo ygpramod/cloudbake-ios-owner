@@ -100,9 +100,9 @@ struct SettingsView: View {
     @AppStorage(AppSettings.currencySymbolKey) private var selectedCurrencySymbol = AppCurrency.defaultCurrency.symbol
     @State private var isSelectingCurrency = false
     @State private var isImportingInventory = false
-    @State private var isExportingInventory = false
     @State private var isImportingRecipes = false
-    @State private var isExportingRecipes = false
+    @State private var isExporting = false
+    @State private var exportKind: SettingsExportKind?
     @State private var pendingDataOperation: SettingsDataOperation?
     @State private var exportDocument = InventoryCSVDocument()
 
@@ -230,14 +230,22 @@ struct SettingsView: View {
             viewModel.importInventoryCSV(from: url)
         }
         .fileExporter(
-            isPresented: $isExportingInventory,
+            isPresented: $isExporting,
             document: exportDocument,
             contentType: .commaSeparatedText,
-            defaultFilename: "cloudbake-inventory.csv"
+            defaultFilename: exportKind?.defaultFilename ?? "cloudbake-export.csv"
         ) { result in
             if case .failure = result {
-                viewModel.markExportFailed()
+                switch exportKind {
+                case .inventory:
+                    viewModel.markExportFailed()
+                case .recipes:
+                    viewModel.markRecipeExportFailed()
+                case nil:
+                    break
+                }
             }
+            exportKind = nil
         }
         .fileImporter(
             isPresented: $isImportingRecipes,
@@ -246,14 +254,6 @@ struct SettingsView: View {
         ) { result in
             guard case .success(let urls) = result, let url = urls.first else { return }
             viewModel.importRecipeCSV(from: url)
-        }
-        .fileExporter(
-            isPresented: $isExportingRecipes,
-            document: exportDocument,
-            contentType: .commaSeparatedText,
-            defaultFilename: "cloudbake-recipes.csv"
-        ) { result in
-            if case .failure = result { viewModel.markRecipeExportFailed() }
         }
     }
 
@@ -312,16 +312,37 @@ struct SettingsView: View {
             isImportingInventory = true
         case .exportInventory:
             if let document = viewModel.exportInventoryDocument() {
-                exportDocument = document
-                isExportingInventory = true
+                presentExporter(document: document, kind: .inventory)
             }
         case .importRecipes:
             isImportingRecipes = true
         case .exportRecipes:
             if let document = viewModel.exportRecipeDocument() {
-                exportDocument = document
-                isExportingRecipes = true
+                presentExporter(document: document, kind: .recipes)
             }
+        }
+    }
+
+    private func presentExporter(document: InventoryCSVDocument, kind: SettingsExportKind) {
+        exportDocument = document
+        exportKind = kind
+        Task { @MainActor in
+            await Task.yield()
+            isExporting = true
+        }
+    }
+}
+
+private enum SettingsExportKind {
+    case inventory
+    case recipes
+
+    var defaultFilename: String {
+        switch self {
+        case .inventory:
+            return "cloudbake-inventory.csv"
+        case .recipes:
+            return "cloudbake-recipes.csv"
         }
     }
 }
