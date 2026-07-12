@@ -30,8 +30,12 @@ final class AppSnapshotServiceTests: XCTestCase {
             manifest.assets.map(\.originalRelativePath),
             ["Branding/custom-logo.jpg", "OrderPhotos/design.jpg"]
         )
+        let designAsset = try XCTUnwrap(
+            manifest.assets.first { $0.originalRelativePath == "OrderPhotos/design.jpg" }
+        )
+        XCTAssertFalse(designAsset.file.relativePath.contains("design"))
         XCTAssertEqual(
-            try Data(contentsOf: package.directoryURL.appendingPathComponent("Assets/OrderPhotos/design.jpg")),
+            try Data(contentsOf: package.directoryURL.appendingPathComponent(designAsset.file.relativePath)),
             Data("design".utf8)
         )
         try await service.validatePackage(at: package.directoryURL)

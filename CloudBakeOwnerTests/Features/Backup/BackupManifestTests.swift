@@ -38,6 +38,13 @@ final class BackupManifestTests: XCTestCase {
         XCTAssertFalse(BackupPath.isSafeRelativePath(""))
     }
 
+    func testSafeIdentifierAllowsOpaqueIDsOnly() {
+        XCTAssertTrue(BackupPath.isSafeIdentifier("6ea15e35-4c28-43c9-a91e-8dfcf65dc296"))
+        XCTAssertFalse(BackupPath.isSafeIdentifier("customer backup"))
+        XCTAssertFalse(BackupPath.isSafeIdentifier("../backup"))
+        XCTAssertFalse(BackupPath.isSafeIdentifier(".hidden"))
+    }
+
     func testChecksumMatchesKnownSHA256() {
         XCTAssertEqual(
             BackupChecksum.sha256(of: Data("CloudBake".utf8)),

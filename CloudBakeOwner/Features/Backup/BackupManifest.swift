@@ -73,6 +73,16 @@ enum BackupPath {
         let components = NSString(string: path).pathComponents
         return !components.contains("..") && !components.contains(".")
     }
+
+    static func isSafeIdentifier(_ value: String) -> Bool {
+        guard (1...64).contains(value.utf8.count) else { return false }
+        return value.utf8.allSatisfy { byte in
+            (48...57).contains(byte)
+                || (65...90).contains(byte)
+                || (97...122).contains(byte)
+                || byte == 45
+        }
+    }
 }
 
 enum BackupChecksum {
