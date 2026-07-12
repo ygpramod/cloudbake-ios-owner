@@ -15,6 +15,8 @@
 		410000000000000000000082 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000082 /* SettingsView.swift */; };
 		410000000000000000000083 /* InventoryCSVServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000083 /* InventoryCSVServiceTests.swift */; };
 		4100000000000000000000D0 /* AppLogoStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D0 /* AppLogoStoreTests.swift */; };
+		4100000000000000000000D1 /* BackupManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D1 /* BackupManifest.swift */; };
+		4100000000000000000000D2 /* BackupManifestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D2 /* BackupManifestTests.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -181,6 +183,8 @@
 		420000000000000000000008 /* CloudBakeOwner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudBakeOwner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		420000000000000000000009 /* CloudBakeOwnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CloudBakeOwnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		420000000000000000000010 /* CloudBakeOwnerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CloudBakeOwnerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4200000000000000000000D1 /* BackupManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManifest.swift; sourceTree = "<group>"; };
+		4200000000000000000000D2 /* BackupManifestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManifestTests.swift; sourceTree = "<group>"; };
 		420000000000000000000011 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		420000000000000000000012 /* AppDatabaseMigrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseMigrations.swift; sourceTree = "<group>"; };
 		420000000000000000000013 /* HealthCheckRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckRepository.swift; sourceTree = "<group>"; };
@@ -376,6 +380,7 @@
 		450000000000000000000004 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				4500000000000000000000D1 /* Backup */,
 				45000000000000000000001C /* Customers */,
 				450000000000000000000005 /* Dashboard */,
 				450000000000000000000023 /* Designs */,
@@ -387,6 +392,14 @@
 				450000000000000000000021 /* Settings */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		4500000000000000000000D1 /* Backup */ = {
+			isa = PBXGroup;
+			children = (
+				4200000000000000000000D1 /* BackupManifest.swift */,
+			);
+			path = Backup;
 			sourceTree = "<group>";
 		};
 		450000000000000000000023 /* Designs */ = {
@@ -599,6 +612,7 @@
 		450000000000000000000016 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				4500000000000000000000D2 /* Backup */,
 				45000000000000000000001D /* Customers */,
 				450000000000000000000018 /* Dashboard */,
 				450000000000000000000024 /* Designs */,
@@ -609,6 +623,14 @@
 				450000000000000000000022 /* Settings */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		4500000000000000000000D2 /* Backup */ = {
+			isa = PBXGroup;
+			children = (
+				4200000000000000000000D2 /* BackupManifestTests.swift */,
+			);
+			path = Backup;
 			sourceTree = "<group>";
 		};
 		450000000000000000000024 /* Designs */ = {
@@ -851,6 +873,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4100000000000000000000D1 /* BackupManifest.swift in Sources */,
 				410000000000000000000001 /* CloudBakeOwnerApp.swift in Sources */,
 				410000000000000000000002 /* AppDestination.swift in Sources */,
 				410000000000000000000080 /* AppNavigation.swift in Sources */,
@@ -946,6 +969,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4100000000000000000000D2 /* BackupManifestTests.swift in Sources */,
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
 				41000000000000000000000B /* AppDatabaseTests.swift in Sources */,
 					410000000000000000000018 /* BakingCatalogTests.swift in Sources */,
