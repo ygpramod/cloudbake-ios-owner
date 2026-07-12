@@ -83,6 +83,78 @@ final class InventoryCSVServiceTests: XCTestCase {
         XCTAssertTrue(repository.recipes.isEmpty)
     }
 
+    func testRecipeImportRejectsDuplicateHeadersAndIncompatibleUnits() throws {
+        let repository = FakeRecipeRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        repository.inventoryItems = [
+            InventoryItem(id: "flour", name: "Cake Flour", unit: .gram, currentQuantity: 1, minimumQuantity: 0, createdAt: now, updatedAt: now)
+        ]
+
+        XCTAssertThrowsError(
+            try RecipeCSVService().importCSV(
+                "name,Name,recipe,ingredients\nCake,,,Cake Flour:250:g\n",
+                repository: repository
+            )
+        ) { error in
+            XCTAssertEqual(error as? RecipeCSVError, .invalidRow(1, "CSV headers must be unique."))
+        }
+
+        XCTAssertThrowsError(
+            try RecipeCSVService().importCSV(
+                "name,recipe,ingredients\nCake,,Cake Flour:250:ml\n",
+                repository: repository
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? RecipeCSVError,
+                .invalidRow(2, "Ingredient unit is incompatible with 'Cake Flour'.")
+            )
+        }
+        XCTAssertTrue(repository.recipes.isEmpty)
+    }
+
+    func testRecipeImportRepositoryFailureDoesNotPartiallySave() throws {
+        enum TestError: Error { case failed }
+        let repository = FakeRecipeRepository()
+        repository.recipeCSVImportError = TestError.failed
+
+        XCTAssertThrowsError(
+            try RecipeCSVService().importCSV(
+                "name,recipe,ingredients\nCake,Notes,\n",
+                repository: repository
+            )
+        )
+        XCTAssertTrue(repository.recipes.isEmpty)
+        XCTAssertTrue(repository.components.isEmpty)
+        XCTAssertTrue(repository.ingredients.isEmpty)
+    }
+
+    func testRecipeExportIncludesArchivedInventoryAndRejectsMissingReference() throws {
+        let repository = FakeRecipeRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let archived = InventoryItem(
+            id: "archived-flour",
+            name: "Archived Flour",
+            unit: .gram,
+            currentQuantity: 0,
+            minimumQuantity: 0,
+            createdAt: now,
+            updatedAt: now,
+            archivedAt: now
+        )
+        repository.archivedInventoryItems = [archived]
+        repository.recipes = [Recipe(id: "recipe", name: "Cake", notes: nil, createdAt: now, updatedAt: now)]
+        repository.components = [RecipeComponent(id: "component", recipeId: "recipe", name: "Ingredients", sortOrder: 0, createdAt: now, updatedAt: now)]
+        repository.ingredients = [RecipeIngredient(id: "ingredient", componentId: "component", inventoryItemId: archived.id, quantity: 10, unit: .gram, note: nil, createdAt: now, updatedAt: now)]
+
+        XCTAssertTrue(try RecipeCSVService().exportCSV(repository: repository).contains("Archived Flour:10:g"))
+
+        repository.archivedInventoryItems = []
+        XCTAssertThrowsError(try RecipeCSVService().exportCSV(repository: repository)) { error in
+            XCTAssertEqual(error as? RecipeCSVError, .missingInventoryReference(archived.id))
+        }
+    }
+
     func testExportWritesActiveInventoryWithBatchExpiry() throws {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_000_000)

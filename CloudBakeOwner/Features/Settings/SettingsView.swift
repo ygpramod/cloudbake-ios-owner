@@ -8,13 +8,13 @@ final class SettingsViewModel: ObservableObject {
 
     private let repository: any InventoryItemRepository & InventoryStockBatchRepository
     private let csvService: InventoryCSVService
-    private let recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & InventoryItemRepository)?
+    private let recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository & InventoryItemRepository)?
     private let recipeCSVService: RecipeCSVService
 
     init(
         repository: any InventoryItemRepository & InventoryStockBatchRepository,
         csvService: InventoryCSVService = InventoryCSVService(),
-        recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & InventoryItemRepository)? = nil,
+        recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository & InventoryItemRepository)? = nil,
         recipeCSVService: RecipeCSVService = RecipeCSVService()
     ) {
         self.repository = repository

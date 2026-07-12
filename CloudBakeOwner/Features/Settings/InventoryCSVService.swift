@@ -203,9 +203,14 @@ struct InventoryCSVService {
             return []
         }
 
-        let headerLookup = Dictionary(uniqueKeysWithValues: header.enumerated().map { index, value in
-            (TextInputFormatting.normalizedSearchKey(value), index)
-        })
+        var headerLookup: [String: Int] = [:]
+        for (index, value) in header.enumerated() {
+            let key = TextInputFormatting.normalizedSearchKey(value)
+            guard headerLookup[key] == nil else {
+                throw InventoryCSVError.invalidRow(1, "CSV headers must be unique.")
+            }
+            headerLookup[key] = index
+        }
         let nameIndex = try requiredHeader("name", in: headerLookup)
         let aliasesIndex = try requiredHeader("aliases", in: headerLookup)
         let typeIndex = try requiredHeader("type", in: headerLookup)
@@ -381,6 +386,7 @@ enum CloudBakeCSV {
 enum RecipeCSVError: Error, Equatable {
     case missingRequiredHeader(String)
     case invalidRow(Int, String)
+    case missingInventoryReference(String)
 }
 
 struct RecipeCSVImportSummary: Equatable {
@@ -403,8 +409,9 @@ struct RecipeCSVService {
     func exportCSV(
         repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & InventoryItemRepository
     ) throws -> String {
+        let inventoryItems = try repository.fetchInventoryItems() + repository.fetchArchivedInventoryItems()
         let inventoryById = Dictionary(
-            uniqueKeysWithValues: try repository.fetchInventoryItems().map { ($0.id, $0) }
+            uniqueKeysWithValues: inventoryItems.map { ($0.id, $0) }
         )
         var rows = [
             ["name", "recipe", "ingredients"],
@@ -415,7 +422,9 @@ struct RecipeCSVService {
             var ingredientValues: [String] = []
             for component in try repository.fetchRecipeComponents(recipeId: recipe.id) {
                 for ingredient in try repository.fetchRecipeIngredients(componentId: component.id) {
-                    guard let inventoryItem = inventoryById[ingredient.inventoryItemId] else { continue }
+                    guard let inventoryItem = inventoryById[ingredient.inventoryItemId] else {
+                        throw RecipeCSVError.missingInventoryReference(ingredient.inventoryItemId)
+                    }
                     ingredientValues.append(
                         "\(inventoryItem.name):\(Self.formatQuantity(ingredient.quantity)):\(ingredient.unit.displayName)"
                     )
@@ -429,7 +438,7 @@ struct RecipeCSVService {
 
     func importCSV(
         _ csvText: String,
-        repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & InventoryItemRepository
+        repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository & InventoryItemRepository
     ) throws -> RecipeCSVImportSummary {
         let rows = try parseRows(csvText, inventoryItems: repository.fetchInventoryItems())
         let groupedRows = Dictionary(grouping: rows) {
@@ -447,15 +456,17 @@ struct RecipeCSVService {
         }
 
         let now = dateProvider()
-        var ingredientCount = 0
+        var recipes: [Recipe] = []
+        var components: [RecipeComponent] = []
+        var ingredients: [RecipeIngredient] = []
         for row in rows {
             let recipeId = idGenerator()
-            try repository.save(
+            recipes.append(
                 Recipe(id: recipeId, name: row.name, notes: row.notes, createdAt: now, updatedAt: now)
             )
             guard !row.ingredients.isEmpty else { continue }
             let componentId = idGenerator()
-            try repository.save(
+            components.append(
                 RecipeComponent(
                     id: componentId,
                     recipeId: recipeId,
@@ -466,7 +477,7 @@ struct RecipeCSVService {
                 )
             )
             for value in row.ingredients {
-                try repository.save(
+                ingredients.append(
                     RecipeIngredient(
                         id: idGenerator(),
                         componentId: componentId,
@@ -478,22 +489,31 @@ struct RecipeCSVService {
                         updatedAt: now
                     )
                 )
-                ingredientCount += 1
             }
         }
+        try repository.saveRecipeCSVImport(
+            recipes: recipes,
+            components: components,
+            ingredients: ingredients
+        )
 
         return RecipeCSVImportSummary(
             importedRecipeCount: rows.count,
-            importedIngredientCount: ingredientCount
+            importedIngredientCount: ingredients.count
         )
     }
 
     private func parseRows(_ text: String, inventoryItems: [InventoryItem]) throws -> [RecipeCSVImportRow] {
         let table = CloudBakeCSV.parse(text).filter { $0.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } }
         guard let header = table.first else { return [] }
-        let lookup = Dictionary(uniqueKeysWithValues: header.enumerated().map {
-            (TextInputFormatting.normalizedSearchKey($0.element), $0.offset)
-        })
+        var lookup: [String: Int] = [:]
+        for (index, value) in header.enumerated() {
+            let key = TextInputFormatting.normalizedSearchKey(value)
+            guard lookup[key] == nil else {
+                throw RecipeCSVError.invalidRow(1, "CSV headers must be unique.")
+            }
+            lookup[key] = index
+        }
         let nameIndex = try requiredHeader("name", in: lookup)
         let recipeIndex = try requiredHeader("recipe", in: lookup)
         let ingredientsIndex = try requiredHeader("ingredients", in: lookup)
@@ -549,6 +569,12 @@ struct RecipeCSVService {
                     ? "Ingredient '\(parts[0])' does not match active inventory."
                     : "Ingredient '\(parts[0])' matches more than one inventory item."
                 throw RecipeCSVError.invalidRow(rowNumber, message)
+            }
+            guard unit.convertedQuantity(quantity, to: inventoryItem.unit) != nil else {
+                throw RecipeCSVError.invalidRow(
+                    rowNumber,
+                    "Ingredient unit is incompatible with '\(inventoryItem.name)'."
+                )
             }
             return RecipeCSVIngredient(
                 inventoryItemId: inventoryItem.id,
