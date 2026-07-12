@@ -16,6 +16,7 @@ final class AppDatabase {
             try database.seedCompletedOrderFixtureIfRequested()
             try database.seedOrderReminderFixtureIfRequested()
             try database.seedInventoryFixtureIfRequested()
+            try database.seedExpiredInventoryFixtureIfRequested()
             try database.seedCakeDesignFixtureIfRequested()
             try database.seedDesignGalleryFixtureIfRequested()
             try database.seedDesignScrollFixtureIfRequested()
@@ -151,6 +152,44 @@ final class AppDatabase {
                 expiresAt: expiresAt,
                 createdAt: timestamp,
                 updatedAt: timestamp
+            )
+        )
+    }
+
+    private func seedExpiredInventoryFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_EXPIRED_INVENTORY_FIXTURE"] == "1" else {
+            return
+        }
+        let repository = makeCoreDataRepository()
+        let now = Date()
+        let item = InventoryItem(
+            id: "inventory-ui-expired-cream",
+            name: "Expired cream",
+            unit: .milliliter,
+            currentQuantity: 200,
+            minimumQuantity: 50,
+            createdAt: now,
+            updatedAt: now
+        )
+        try repository.save(item)
+        try repository.save(
+            InventoryStockBatch(
+                id: "inventory-ui-expired-cream-batch",
+                inventoryItemId: item.id,
+                remainingQuantity: 75,
+                expiresAt: now.addingTimeInterval(-86_400),
+                createdAt: now,
+                updatedAt: now
+            )
+        )
+        try repository.save(
+            InventoryStockBatch(
+                id: "inventory-ui-usable-cream-batch",
+                inventoryItemId: item.id,
+                remainingQuantity: 125,
+                expiresAt: now.addingTimeInterval(86_400),
+                createdAt: now,
+                updatedAt: now
             )
         )
     }
