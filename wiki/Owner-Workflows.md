@@ -44,8 +44,8 @@ item and stores the quantity, unit, and optional preparation note needed for tha
 
 Use the edit action in recipe detail when the recipe name or notes need correction.
 
-Use Add Ingredient when the owner wants to manually define the stock needed by a recipe. Tap an
-ingredient row to edit it, or use the visible delete action for a mistaken row.
+Use the `+` beside the Ingredients heading when the owner wants to manually define the stock needed
+by a recipe. Tap an ingredient row to edit it, or use the visible delete action for a mistaken row.
 
 Recipe ingredient rows do not reduce inventory yet. They prepare the app for a future Use Recipe
 flow that will deduct stock from oldest-expiring batches first.
@@ -63,7 +63,7 @@ ingredients are kept as recipe notes.
 
 ## Add Inventory
 
-Use add inventory when a new ingredient or supply needs to be tracked.
+Use the `+` beside the Items heading when a new ingredient or supply needs to be tracked.
 
 Before adding, the app warns when an existing item has the same or similar name. This helps avoid
 duplicates like multiple cake flour rows.
