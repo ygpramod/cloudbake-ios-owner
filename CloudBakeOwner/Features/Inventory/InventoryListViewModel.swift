@@ -1163,7 +1163,8 @@ final class InventoryListViewModel: ObservableObject {
     private func canCombineStockBatch(_ left: InventoryStockBatch, with right: InventoryStockBatch) -> Bool {
         left.inventoryItemId == right.inventoryItemId
             && sameExpiryDate(left.expiresAt, right.expiresAt)
-            && left.amount == right.amount
+            && left.amount == nil
+            && right.amount == nil
     }
 
     private func sameExpiryDate(_ left: Date?, _ right: Date?) -> Bool {

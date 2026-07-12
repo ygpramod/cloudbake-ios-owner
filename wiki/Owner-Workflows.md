@@ -433,6 +433,9 @@ the row becomes Actual Ingredient Cost and uses the cost of the exact usable bat
 Expired stock never contributes cost, and ingredient cost does not change the quoted price
 automatically.
 
+CloudBake keeps separately entered priced purchases as separate batches, even when their expiry date
+and amount match. This preserves the purchase quantity and unit cost used by order costing.
+
 Order rows also expose visible action chips for quick status changes and payment recording. These
 quick actions use centered popups and ask for confirmation before saving. Pricing suggestions,
 discounts, refunds, and online payment processing remain future work.

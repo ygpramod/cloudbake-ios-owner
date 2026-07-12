@@ -409,9 +409,8 @@ enum AppDatabaseMigrations {
             try db.execute(
                 sql: """
                     UPDATE inventory_stock_batches
-                    SET unit_cost_decimal = CAST(CAST(amount_decimal AS REAL) / remaining_quantity AS TEXT)
+                    SET unit_cost_decimal = NULL
                     WHERE amount_decimal IS NOT NULL
-                    AND remaining_quantity > 0
                     """
             )
 
