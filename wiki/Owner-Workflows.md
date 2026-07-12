@@ -303,6 +303,11 @@ The owner can choose the money display symbol from `$`, `₹`, `£`, `RM`, and `
 display for order prices, payments, balances, and inventory amount. It does not convert stored
 amounts or apply exchange rates.
 
+Under Appearance, the owner can choose a photo to replace the CloudBake logo shown in the dashboard
+header. CloudBake keeps an app-managed copy so the selection remains available after relaunch. The
+owner can restore the bundled default logo at any time. This setting does not change the iPhone Home
+Screen app icon.
+
 ## Order Workflow
 
 Use Orders to track accepted or draft cake work from enquiry through delivery. `docs/rfc/orders.md`
