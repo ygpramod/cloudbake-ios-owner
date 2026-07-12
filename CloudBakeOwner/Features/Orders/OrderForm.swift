@@ -138,7 +138,11 @@ struct OrderForm: View {
             Section("Pricing And Payment") {
                 if let ingredientCost = viewModel.draftIngredientCost,
                    !ingredientCost.lines.isEmpty {
-                    LabeledContent("Estimated Ingredient Cost") {
+                    LabeledContent(
+                        viewModel.draftIngredientCostIsActual
+                            ? "Actual Ingredient Cost"
+                            : "Estimated Ingredient Cost"
+                    ) {
                         Text(MoneyDisplay.formatted(ingredientCost.knownCost))
                             .fontWeight(.semibold)
                     }

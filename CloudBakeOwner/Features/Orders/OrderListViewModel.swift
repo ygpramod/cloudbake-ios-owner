@@ -71,6 +71,7 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftExtraIngredientNote = ""
     @Published private(set) var draftExtraIngredientRows: [OrderExtraIngredientDraftRow] = []
     @Published private(set) var draftIngredientCost: OrderIngredientCostSummary?
+    @Published private(set) var draftIngredientCostIsActual = false
     @Published var searchText = ""
     @Published var errorMessage: String?
     @Published private(set) var isPromotingDesign = false
@@ -318,7 +319,7 @@ final class OrderListViewModel: ObservableObject {
         draftRecipeId = ""
         draftRecipeScaleMultiplier = "1"
         draftExtraIngredientRows = []
-        draftIngredientCost = nil
+        refreshDraftIngredientCost()
     }
 
     func draftRecipeName() -> String {
@@ -511,7 +512,12 @@ final class OrderListViewModel: ObservableObject {
         loadFormReferences()
         loadSelectedOrderExtraIngredients(for: selectedOrder)
         draftExtraIngredientRows = selectedOrderExtraIngredients.map { OrderExtraIngredientDraftRow(row: $0) }
-        refreshDraftIngredientCost()
+        if selectedOrderIngredientCostIsActual {
+            draftIngredientCost = selectedOrderIngredientCost
+            draftIngredientCostIsActual = true
+        } else {
+            refreshDraftIngredientCost()
+        }
     }
 
     var editedOrderRequiresInventoryDeductionConfirmation: Bool {
@@ -792,6 +798,13 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func refreshDraftIngredientCost() {
+        if editingOrder != nil, selectedOrderIngredientCostIsActual {
+            draftIngredientCost = selectedOrderIngredientCost
+            draftIngredientCostIsActual = true
+            return
+        }
+
+        draftIngredientCostIsActual = false
         guard !draftRecipeId.isEmpty,
               let scale = Decimal(string: TextInputFormatting.trimmed(draftRecipeScaleMultiplier)),
               scale > 0 else {
@@ -1570,6 +1583,7 @@ final class OrderListViewModel: ObservableObject {
         draftDepositPaid = ""
         draftPaymentNotes = ""
         draftIngredientCost = nil
+        draftIngredientCostIsActual = false
     }
 
     private func resetExtraIngredientDraft(keepingInventoryItems: Bool = false) {

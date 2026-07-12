@@ -1079,9 +1079,12 @@ final class OrderListViewModelTests: XCTestCase {
         let viewModel = OrderListViewModel(repository: repository, dateProvider: { timestamp })
 
         viewModel.beginViewingOrder(order)
+        viewModel.beginEditingOrder()
 
         XCTAssertEqual(viewModel.selectedOrderIngredientCost?.knownCost, decimal("7"))
         XCTAssertTrue(viewModel.selectedOrderIngredientCostIsActual)
+        XCTAssertEqual(viewModel.draftIngredientCost?.knownCost, decimal("7"))
+        XCTAssertTrue(viewModel.draftIngredientCostIsActual)
     }
 
     func testOrderDetailDoesNotEstimateHistoricalUsageWithoutActualCostSnapshot() {
