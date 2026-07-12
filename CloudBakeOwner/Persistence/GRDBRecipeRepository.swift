@@ -4,7 +4,12 @@ import GRDB
 extension GRDBCoreDataRepository {
     func save(_ recipe: Recipe) throws {
         try writer.write { db in
-            try db.execute(
+            try save(recipe, in: db)
+        }
+    }
+
+    private func save(_ recipe: Recipe, in db: Database) throws {
+        try db.execute(
                 sql: """
                     INSERT INTO recipes
                     (id, name, notes, created_at_unix_time, updated_at_unix_time)
@@ -22,8 +27,7 @@ extension GRDBCoreDataRepository {
                     recipe.createdAt.timeIntervalSince1970,
                     recipe.updatedAt.timeIntervalSince1970
                 ])
-            )
-        }
+        )
     }
 
     func fetchRecipe(id: String) throws -> Recipe? {
@@ -47,7 +51,12 @@ extension GRDBCoreDataRepository {
 
     func save(_ component: RecipeComponent) throws {
         try writer.write { db in
-            try db.execute(
+            try save(component, in: db)
+        }
+    }
+
+    private func save(_ component: RecipeComponent, in db: Database) throws {
+        try db.execute(
                 sql: """
                     INSERT INTO recipe_components
                     (id, recipe_id, name, sort_order, created_at_unix_time, updated_at_unix_time)
@@ -67,8 +76,7 @@ extension GRDBCoreDataRepository {
                     component.createdAt.timeIntervalSince1970,
                     component.updatedAt.timeIntervalSince1970
                 ])
-            )
-        }
+        )
     }
 
     func fetchRecipeComponent(id: String) throws -> RecipeComponent? {
@@ -126,7 +134,12 @@ extension GRDBCoreDataRepository {
 
     func save(_ ingredient: RecipeIngredient) throws {
         try writer.write { db in
-            try db.execute(
+            try save(ingredient, in: db)
+        }
+    }
+
+    private func save(_ ingredient: RecipeIngredient, in db: Database) throws {
+        try db.execute(
                 sql: """
                     INSERT INTO recipe_ingredients
                     (id, component_id, inventory_item_id, quantity, unit, note, created_at_unix_time, updated_at_unix_time)
@@ -150,7 +163,18 @@ extension GRDBCoreDataRepository {
                     ingredient.createdAt.timeIntervalSince1970,
                     ingredient.updatedAt.timeIntervalSince1970
                 ])
-            )
+        )
+    }
+
+    func saveRecipeCSVImport(
+        recipes: [Recipe],
+        components: [RecipeComponent],
+        ingredients: [RecipeIngredient]
+    ) throws {
+        try writer.write { db in
+            for recipe in recipes { try save(recipe, in: db) }
+            for component in components { try save(component, in: db) }
+            for ingredient in ingredients { try save(ingredient, in: db) }
         }
     }
 

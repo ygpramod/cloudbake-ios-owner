@@ -21,12 +21,25 @@ func placeholderCGImage() -> CGImage? {
 final class FakeRecipeRepository: RecipeRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
+    RecipeCSVImportRepository,
     InventoryItemRepository {
     var recipes: [Recipe] = []
     var components: [RecipeComponent] = []
     var ingredients: [RecipeIngredient] = []
     var inventoryItems: [InventoryItem] = []
     var archivedInventoryItems: [InventoryItem] = []
+    var recipeCSVImportError: Error?
+
+    func saveRecipeCSVImport(
+        recipes: [Recipe],
+        components: [RecipeComponent],
+        ingredients: [RecipeIngredient]
+    ) throws {
+        if let recipeCSVImportError { throw recipeCSVImportError }
+        self.recipes.append(contentsOf: recipes)
+        self.components.append(contentsOf: components)
+        self.ingredients.append(contentsOf: ingredients)
+    }
 
     func save(_ recipe: Recipe) throws {
         recipes.removeAll { $0.id == recipe.id }

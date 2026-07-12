@@ -26,6 +26,14 @@ protocol RecipeIngredientRepository {
     func deleteRecipeIngredient(id: String) throws
 }
 
+protocol RecipeCSVImportRepository {
+    func saveRecipeCSVImport(
+        recipes: [Recipe],
+        components: [RecipeComponent],
+        ingredients: [RecipeIngredient]
+    ) throws
+}
+
 protocol CakeDesignRepository {
     func save(_ design: CakeDesign) throws
     func deleteCakeDesign(id: String) throws

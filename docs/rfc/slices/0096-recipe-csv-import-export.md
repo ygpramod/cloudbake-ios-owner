@@ -13,6 +13,10 @@ Implemented
 5. Create recipes and their default Ingredients component only after the complete file validates.
 6. Reject malformed ingredients, unsupported units, missing/ambiguous inventory matches, and names
    that already exist locally.
+7. Validate unit compatibility and the complete file before saving all imported records in one
+   database transaction.
+8. Resolve archived inventory during export so existing recipe ingredients are not silently lost;
+   fail export when a stored inventory reference is missing entirely.
 
 ## Format
 
@@ -30,7 +34,9 @@ change stock, or import ingredient notes/components beyond the default Ingredien
 1. Unit coverage verifies export quoting, the example row, and pipe-separated ingredient encoding.
 2. Unit coverage verifies comment skipping and inventory alias matching.
 3. Unit coverage verifies unmatched inventory fails before any recipe is saved.
-4. Acceptance verifies Settings exposes both recipe CSV actions.
+4. Unit coverage verifies duplicate headers, incompatible units, atomic failure, archived inventory,
+   and missing export references.
+5. Acceptance verifies Settings exposes both recipe CSV actions.
 
 ## Documentation Decision
 
