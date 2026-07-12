@@ -147,6 +147,9 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
 
     private func validatePackageContents(at packageURL: URL) throws {
         let manifestURL = packageURL.appendingPathComponent(Self.manifestFilename)
+        guard isRegularContainedFile(manifestURL, in: packageURL) else {
+            throw AppSnapshotError.missingPayload(Self.manifestFilename)
+        }
         let manifest = try Self.makeDecoder().decode(
             BackupManifest.self,
             from: Data(contentsOf: manifestURL)
@@ -251,6 +254,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
             )
             if source.isExternal {
                 let resolved = try await externalAssetResolver.resolve(reference: source.sourceReference)
+                try Task.checkCancellation()
                 guard resolved.modificationDate.map({ $0 <= capturedAt }) ?? true else {
                     throw AppSnapshotError.assetChanged(path)
                 }
@@ -341,16 +345,10 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
             throw AppSnapshotError.invalidManifestPath(descriptor.relativePath)
         }
         let fileURL = packageURL.appendingPathComponent(descriptor.relativePath).standardizedFileURL
-        let resolvedFileURL = fileURL.resolvingSymlinksInPath()
-        let resolvedPackageURL = packageURL.standardizedFileURL.resolvingSymlinksInPath()
-        let values = try? fileURL.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
         guard descriptor.byteCount >= 0 else {
             throw AppSnapshotError.invalidPayloadSize(descriptor.relativePath)
         }
-        guard isContained(resolvedFileURL, in: resolvedPackageURL),
-              values?.isRegularFile == true,
-              values?.isSymbolicLink != true,
-              fileManager.fileExists(atPath: fileURL.path) else {
+        guard isRegularContainedFile(fileURL, in: packageURL) else {
             throw AppSnapshotError.missingPayload(descriptor.relativePath)
         }
         let actual = try describeFile(at: fileURL, relativePath: descriptor.relativePath)
@@ -364,6 +362,19 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
 
     private func isContained(_ child: URL, in parent: URL) -> Bool {
         child.path.hasPrefix(parent.path + "/")
+    }
+
+    private func isRegularContainedFile(_ fileURL: URL, in directoryURL: URL) -> Bool {
+        let standardizedFileURL = fileURL.standardizedFileURL
+        let resolvedFileURL = standardizedFileURL.resolvingSymlinksInPath()
+        let resolvedDirectoryURL = directoryURL.standardizedFileURL.resolvingSymlinksInPath()
+        let values = try? standardizedFileURL.resourceValues(
+            forKeys: [.isRegularFileKey, .isSymbolicLinkKey]
+        )
+        return isContained(resolvedFileURL, in: resolvedDirectoryURL)
+            && values?.isRegularFile == true
+            && values?.isSymbolicLink != true
+            && fileManager.fileExists(atPath: standardizedFileURL.path)
     }
 
     private func removeIfPresent(_ url: URL) throws {

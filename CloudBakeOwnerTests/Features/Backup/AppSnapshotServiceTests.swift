@@ -131,6 +131,26 @@ final class AppSnapshotServiceTests: XCTestCase {
         }
     }
 
+    func testValidationRejectsSymlinkManifest() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let package = try await fixture.service().createSnapshot()
+        let externalManifest = fixture.root.appendingPathComponent("external-manifest.json")
+        try FileManager.default.copyItem(at: package.manifestURL, to: externalManifest)
+        try FileManager.default.removeItem(at: package.manifestURL)
+        try FileManager.default.createSymbolicLink(
+            at: package.manifestURL,
+            withDestinationURL: externalManifest
+        )
+
+        do {
+            try await fixture.service().validatePackage(at: package.directoryURL)
+            XCTFail("Expected symlink manifest to fail validation")
+        } catch let error as AppSnapshotError {
+            XCTAssertEqual(error, .missingPayload("manifest.json"))
+        }
+    }
+
     func testUnavailableExternalPhotoFailsSnapshotAndCleansStaging() async throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -145,6 +165,26 @@ final class AppSnapshotServiceTests: XCTestCase {
             XCTFail("Expected missing PhotoKit asset to fail snapshot creation")
         } catch let error as BackupExternalAssetResolverError {
             XCTAssertEqual(error, .assetUnavailable)
+        }
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: fixture.stagingRoot.path), [])
+    }
+
+    func testExternalPhotoChangedAfterDatabaseCaptureFailsSnapshot() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let reference = "photos://asset-id"
+        try fixture.database.makeCoreDataRepository().save(
+            fixture.design(id: "external", photoReference: reference)
+        )
+        let recoveryPath = "RecoveredPhotos/\(BackupChecksum.sha256(of: Data(reference.utf8))).jpg"
+
+        do {
+            _ = try await fixture.service(
+                externalAssetResolver: FutureDatedExternalAssetResolver()
+            ).createSnapshot()
+            XCTFail("Expected post-capture PhotoKit edit to fail snapshot creation")
+        } catch let error as AppSnapshotError {
+            XCTAssertEqual(error, .assetChanged(recoveryPath))
         }
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: fixture.stagingRoot.path), [])
     }
@@ -280,5 +320,14 @@ private struct FakeExternalAssetResolver: BackupExternalAssetResolving {
 private struct UnavailableExternalAssetResolver: BackupExternalAssetResolving {
     func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
         throw BackupExternalAssetResolverError.assetUnavailable
+    }
+}
+
+private struct FutureDatedExternalAssetResolver: BackupExternalAssetResolving {
+    func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
+        BackupResolvedExternalAsset(
+            data: Data("edited-photo".utf8),
+            modificationDate: .distantFuture
+        )
     }
 }
