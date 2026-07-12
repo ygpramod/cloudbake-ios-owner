@@ -193,10 +193,46 @@ final class ReminderViewModelTests: XCTestCase {
                 LowInventoryReminderItem(
                     id: "inventory-strawberry",
                     name: "Strawberry",
-                    quantityText: "0 / 10 g"
+                    quantityText: "0 usable / 1 needed g"
                 )
             ]
         )
+    }
+
+    func testLoadShowsProjectedShortageAcrossOrderExtras() {
+        let repository = FakeReminderRepository()
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        repository.items = [
+            makeInventoryItem(
+                id: "inventory-flour",
+                name: "Cake flour",
+                currentQuantity: 10,
+                minimumQuantity: 5
+            )
+        ]
+        repository.orders = [
+            makeOrder(id: "order-one", status: .confirmed, dueAt: dueAt),
+            makeOrder(id: "order-two", status: .confirmed, dueAt: dueAt)
+        ]
+        repository.extraIngredients = [
+            makeOrderExtraIngredient(
+                id: "extra-one",
+                orderId: "order-one",
+                inventoryItemId: "inventory-flour",
+                quantity: 6
+            ),
+            makeOrderExtraIngredient(
+                id: "extra-two",
+                orderId: "order-two",
+                inventoryItemId: "inventory-flour",
+                quantity: 6
+            )
+        ]
+
+        let viewModel = ReminderViewModel(repository: repository)
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.lowInventoryItems.map(\.id), ["inventory-flour"])
     }
 
     func testMarkPaidUpdatesOrderAndRemovesPaymentDueReminder() {
@@ -223,7 +259,9 @@ final class ReminderViewModelTests: XCTestCase {
 }
 
 private final class FakeReminderRepository: OrderRepository,
+    OrderRecipeUsageRepository,
     InventoryItemRepository,
+    InventoryStockBatchRepository,
     CustomerRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
@@ -234,6 +272,8 @@ private final class FakeReminderRepository: OrderRepository,
     var components: [RecipeComponent] = []
     var ingredients: [RecipeIngredient] = []
     var extraIngredients: [OrderExtraIngredient] = []
+    var batches: [InventoryStockBatch] = []
+    var usages: [OrderRecipeUsage] = []
 
     func save(_ order: Order) throws {
         if let existingIndex = orders.firstIndex(where: { $0.id == order.id }) {
@@ -249,6 +289,27 @@ private final class FakeReminderRepository: OrderRepository,
 
     func fetchOrders() throws -> [Order] {
         orders
+    }
+
+    func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? {
+        usages.first { $0.orderId == orderId }
+    }
+
+    func recordRecipeUsage(
+        for order: Order,
+        usageId: String,
+        usedAt: Date,
+        transactionIdProvider: () -> String
+    ) throws {}
+
+    func save(_ batch: InventoryStockBatch) throws {}
+    func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}
+    func deleteBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}
+    func replaceInventoryStock(item: InventoryItem, batches: [InventoryStockBatch]) throws {
+        self.batches = batches
+    }
+    func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
+        batches.filter { $0.inventoryItemId == inventoryItemId }
     }
 
     func save(_ item: InventoryItem) throws {}
@@ -336,13 +397,18 @@ private func makeInventoryItem(
     )
 }
 
-private func makeOrderExtraIngredient(id: String, orderId: String, inventoryItemId: String) -> OrderExtraIngredient {
+private func makeOrderExtraIngredient(
+    id: String,
+    orderId: String,
+    inventoryItemId: String,
+    quantity: Double = 1
+) -> OrderExtraIngredient {
     let timestamp = Date(timeIntervalSince1970: 1_800_040_000)
     return OrderExtraIngredient(
         id: id,
         orderId: orderId,
         inventoryItemId: inventoryItemId,
-        quantity: 1,
+        quantity: quantity,
         unit: .gram,
         note: nil,
         createdAt: timestamp,

@@ -5,6 +5,7 @@ final class DashboardViewModel: ObservableObject {
     @Published private(set) var lowInventoryItems: [InventoryItem] = []
     @Published private(set) var upcomingOrders: [Order] = []
     @Published private(set) var overdueOrderAlert: OrderOverdueAlert?
+    @Published private(set) var projectedIngredientShortages: [String: ProjectedIngredientShortage] = [:]
     @Published var errorMessage: String?
 
     var displayedLowInventoryItems: [InventoryItem] {
@@ -23,11 +24,21 @@ final class DashboardViewModel: ObservableObject {
         upcomingOrders.first
     }
 
-    private let repository: any InventoryItemRepository & OrderRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
+    func lowInventoryDetail(for item: InventoryItem) -> String {
+        if let shortage = projectedIngredientShortages[item.id] {
+            return "\(shortage.availableQuantity.formatted()) usable / \(shortage.requiredQuantity.formatted()) needed \(shortage.unit.displayName)"
+        }
+
+        if item.hasExpiredStock { return "Expired stock" }
+        if item.hasExpiringSoonStock { return "Expiring soon" }
+        return "\(item.currentQuantity.formatted()) / \(item.minimumQuantity.formatted()) \(item.unit.displayName)"
+    }
+
+    private let repository: any InventoryItemRepository & InventoryStockBatchRepository & OrderRepository & OrderRecipeUsageRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
     private let orderPresentation: OrderListPresentation
 
     init(
-        repository: any InventoryItemRepository & OrderRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
+        repository: any InventoryItemRepository & InventoryStockBatchRepository & OrderRepository & OrderRecipeUsageRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
         orderPresentation: OrderListPresentation = OrderListPresentation(
             dateProvider: Date.init,
             calendar: .current
@@ -40,9 +51,24 @@ final class DashboardViewModel: ObservableObject {
     func load() {
         do {
             let orders = try repository.fetchOrders()
+            let inventoryItems = try repository.fetchInventoryItems()
+            let shortages = try ProjectedIngredientDemand.shortages(
+                inventoryItems: inventoryItems,
+                orders: orders,
+                at: orderPresentation.dateProvider(),
+                stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
+                recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
+                recipeComponents: repository.fetchRecipeComponents(recipeId:),
+                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
+                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
+            )
+            projectedIngredientShortages = Dictionary(uniqueKeysWithValues: shortages.map { ($0.id, $0) })
             lowInventoryItems = try InventoryLowInventoryAlertRules.itemsForAlerts(
-                inventoryItems: repository.fetchInventoryItems(),
+                inventoryItems: inventoryItems,
                 activeOrders: orders,
+                date: orderPresentation.dateProvider(),
+                inventoryStockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
+                orderRecipeUsage: repository.fetchOrderRecipeUsage(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
                 recipeIngredients: repository.fetchRecipeIngredients(componentId:),
                 orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
@@ -52,6 +78,7 @@ final class DashboardViewModel: ObservableObject {
             errorMessage = nil
         } catch {
             lowInventoryItems = []
+            projectedIngredientShortages = [:]
             upcomingOrders = []
             overdueOrderAlert = nil
             errorMessage = "Low inventory could not be loaded."

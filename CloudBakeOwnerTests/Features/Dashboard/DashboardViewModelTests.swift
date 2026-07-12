@@ -147,6 +147,37 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.lowInventoryItems, [fruit])
     }
 
+    func testLoadShowsProjectedShortageAcrossActiveOrders() {
+        let repository = FakeDashboardInventoryItemRepository()
+        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let flour = makeInventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            currentQuantity: 10,
+            minimumQuantity: 5
+        )
+        let component = makeRecipeComponent(id: "component-cake", recipeId: "recipe-cake")
+        repository.items = [flour]
+        repository.orders = [
+            makeOrder(id: "order-one", recipeId: "recipe-cake", status: .confirmed, dueAt: dueAt),
+            makeOrder(id: "order-two", recipeId: "recipe-cake", status: .confirmed, dueAt: dueAt)
+        ]
+        repository.components = [component]
+        repository.ingredients = [
+            makeRecipeIngredient(
+                id: "ingredient-flour",
+                componentId: component.id,
+                inventoryItemId: flour.id,
+                quantity: 6
+            )
+        ]
+
+        let viewModel = DashboardViewModel(repository: repository)
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.lowInventoryItems, [flour])
+    }
+
     func testLoadCountsOnlyActiveUpcomingOrders() {
         let repository = FakeDashboardInventoryItemRepository()
         let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
@@ -219,7 +250,9 @@ private func makeInventoryItem(
 }
 
 private final class FakeDashboardInventoryItemRepository: InventoryItemRepository,
+    InventoryStockBatchRepository,
     OrderRepository,
+    OrderRecipeUsageRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
     OrderExtraIngredientRepository {
@@ -228,6 +261,8 @@ private final class FakeDashboardInventoryItemRepository: InventoryItemRepositor
     var components: [RecipeComponent] = []
     var ingredients: [RecipeIngredient] = []
     var extraIngredients: [OrderExtraIngredient] = []
+    var batches: [InventoryStockBatch] = []
+    var usages: [OrderRecipeUsage] = []
 
     func save(_ item: InventoryItem) throws {}
 
@@ -251,6 +286,27 @@ private final class FakeDashboardInventoryItemRepository: InventoryItemRepositor
 
     func fetchOrders() throws -> [Order] {
         orders
+    }
+
+    func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? {
+        usages.first { $0.orderId == orderId }
+    }
+
+    func recordRecipeUsage(
+        for order: Order,
+        usageId: String,
+        usedAt: Date,
+        transactionIdProvider: () -> String
+    ) throws {}
+
+    func save(_ batch: InventoryStockBatch) throws {}
+    func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}
+    func deleteBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}
+    func replaceInventoryStock(item: InventoryItem, batches: [InventoryStockBatch]) throws {
+        self.batches = batches
+    }
+    func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
+        batches.filter { $0.inventoryItemId == inventoryItemId }
     }
 
     func save(_ component: RecipeComponent) throws {}
@@ -296,13 +352,18 @@ private func makeRecipeComponent(id: String, recipeId: String) -> RecipeComponen
     )
 }
 
-private func makeRecipeIngredient(id: String, componentId: String, inventoryItemId: String) -> RecipeIngredient {
+private func makeRecipeIngredient(
+    id: String,
+    componentId: String,
+    inventoryItemId: String,
+    quantity: Double = 1
+) -> RecipeIngredient {
     let timestamp = Date(timeIntervalSince1970: 1_800_040_000)
     return RecipeIngredient(
         id: id,
         componentId: componentId,
         inventoryItemId: inventoryItemId,
-        quantity: 1,
+        quantity: quantity,
         unit: .gram,
         note: nil,
         createdAt: timestamp,
