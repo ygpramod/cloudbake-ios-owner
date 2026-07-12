@@ -14,6 +14,7 @@
 		410000000000000000000081 /* InventoryCSVService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000081 /* InventoryCSVService.swift */; };
 		410000000000000000000082 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000082 /* SettingsView.swift */; };
 		410000000000000000000083 /* InventoryCSVServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000083 /* InventoryCSVServiceTests.swift */; };
+		4100000000000000000000D0 /* AppLogoStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D0 /* AppLogoStoreTests.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -168,6 +169,7 @@
 		420000000000000000000081 /* InventoryCSVService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCSVService.swift; sourceTree = "<group>"; };
 		420000000000000000000082 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		420000000000000000000083 /* InventoryCSVServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCSVServiceTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000D0 /* AppLogoStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogoStoreTests.swift; sourceTree = "<group>"; };
 		420000000000000000000084 /* CakeDesignListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CakeDesignListView.swift; sourceTree = "<group>"; };
 		420000000000000000000085 /* CakeDesignListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CakeDesignListViewModel.swift; sourceTree = "<group>"; };
 		420000000000000000000086 /* CakeDesignListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CakeDesignListViewModelTests.swift; sourceTree = "<group>"; };
@@ -660,6 +662,7 @@
 		450000000000000000000022 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				4200000000000000000000D0 /* AppLogoStoreTests.swift */,
 				420000000000000000000083 /* InventoryCSVServiceTests.swift */,
 			);
 			path = Settings;
@@ -982,6 +985,7 @@
 				41000000000000000000006E /* RecipeListViewModelTestSupport.swift in Sources */,
 				4100000000000000000000B0 /* ReminderViewModelTests.swift in Sources */,
 				410000000000000000000083 /* InventoryCSVServiceTests.swift in Sources */,
+				4100000000000000000000D0 /* AppLogoStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
