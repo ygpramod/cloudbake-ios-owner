@@ -179,9 +179,11 @@ struct RootView: View {
                 }
             )
         case .settings:
+            let repository = database.makeCoreDataRepository()
             SettingsView(
                 viewModel: SettingsViewModel(
-                    repository: database.makeCoreDataRepository()
+                    repository: repository,
+                    recipeRepository: repository
                 )
             )
         case .designs:
