@@ -374,4 +374,15 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository, Inv
                 }
             }
     }
+
+    func saveExpiredStockDisposal(
+        item: InventoryItem,
+        batches: [InventoryStockBatch],
+        transaction: InventoryTransaction
+    ) throws {
+        try save(item)
+        self.batches.removeAll { $0.inventoryItemId == item.id }
+        self.batches.append(contentsOf: batches)
+        try save(transaction)
+    }
 }

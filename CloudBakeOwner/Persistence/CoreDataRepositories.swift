@@ -148,18 +148,6 @@ protocol ExpiredStockDisposalRepository {
     ) throws
 }
 
-extension ExpiredStockDisposalRepository where Self: InventoryItemRepository & InventoryStockBatchRepository & InventoryTransactionRepository {
-    func saveExpiredStockDisposal(
-        item: InventoryItem,
-        batches: [InventoryStockBatch],
-        transaction: InventoryTransaction
-    ) throws {
-        try save(item)
-        for batch in batches { try save(batch) }
-        try save(transaction)
-    }
-}
-
 protocol PricingRuleRepository {
     func save(_ rule: PricingRule) throws
     func fetchPricingRule(id: String) throws -> PricingRule?
