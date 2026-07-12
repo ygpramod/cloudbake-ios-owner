@@ -10,6 +10,8 @@ final class SettingsViewModel: ObservableObject {
     @Published private(set) var isPreparingBackup = false
     @Published private(set) var lastManualBackupDate: Date?
     @Published private(set) var isWeeklyBackupReminderEnabled: Bool
+    @Published private(set) var manualBackupReminderStatus: ManualBackupReminderStatus
+    @Published private(set) var nextManualBackupReminderDate: Date?
 
     private let repository: any InventoryItemRepository & InventoryStockBatchRepository
     private let csvService: InventoryCSVService
@@ -41,6 +43,8 @@ final class SettingsViewModel: ObservableObject {
             ?? ManualBackupReminderScheduler(preferences: manualBackupPreferences)
         lastManualBackupDate = manualBackupPreferences.lastSuccessfulExport
         isWeeklyBackupReminderEnabled = manualBackupPreferences.isReminderEnabled
+        manualBackupReminderStatus = manualBackupPreferences.reminderDeliveryStatus
+        nextManualBackupReminderDate = manualBackupPreferences.nextReminderDate
         customLogoImage = logoStore.load()
     }
 
@@ -69,7 +73,8 @@ final class SettingsViewModel: ObservableObject {
         lastManualBackupDate = date
         statusMessage = "CloudBake backup saved successfully."
         errorMessage = nil
-        await manualBackupReminderScheduler.refreshReminder()
+        manualBackupReminderStatus = await manualBackupReminderScheduler.refreshReminder()
+        nextManualBackupReminderDate = manualBackupPreferences.nextReminderDate
     }
 
     func markManualBackupExportFailed() {
@@ -81,7 +86,8 @@ final class SettingsViewModel: ObservableObject {
         manualBackupPreferences.isReminderEnabled = isEnabled
         isWeeklyBackupReminderEnabled = isEnabled
         Task {
-            await manualBackupReminderScheduler.refreshReminder()
+            manualBackupReminderStatus = await manualBackupReminderScheduler.refreshReminder()
+            nextManualBackupReminderDate = manualBackupPreferences.nextReminderDate
         }
     }
 
@@ -296,6 +302,17 @@ struct SettingsView: View {
                         )
                         .padding(.vertical, 12)
                         .accessibilityIdentifier("settings.backup.weeklyReminder")
+
+                        Text(backupReminderDescription)
+                            .font(.footnote)
+                            .foregroundStyle(
+                                viewModel.manualBackupReminderStatus == .authorizationDenied
+                                    || viewModel.manualBackupReminderStatus == .failed
+                                    ? Color.orange
+                                    : Color.secondary
+                            )
+                            .padding(.bottom, 12)
+                            .accessibilityIdentifier("settings.backup.weeklyReminder.status")
 
                         CloudBakeDetailDivider()
 
@@ -569,6 +586,24 @@ struct SettingsView: View {
     private var lastBackupDescription: String {
         guard let date = viewModel.lastManualBackupDate else { return "Never" }
         return date.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    private var backupReminderDescription: String {
+        switch viewModel.manualBackupReminderStatus {
+        case .scheduled:
+            if let date = viewModel.nextManualBackupReminderDate {
+                return "Next reminder: \(date.formatted(date: .abbreviated, time: .shortened))."
+            }
+            return "The weekly reminder is scheduled."
+        case .disabled:
+            return "Weekly backup reminders are off."
+        case .authorizationDenied:
+            return "Notifications are off. Allow CloudBake notifications in iPhone Settings."
+        case .failed:
+            return "The reminder could not be scheduled. CloudBake will try again later."
+        case .notChecked:
+            return "Reminder delivery has not been checked yet."
+        }
     }
 
     private func dismissManualBackupPopupAndPrepare() {

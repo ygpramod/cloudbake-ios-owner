@@ -38,6 +38,7 @@ final class ManualBackupReminderSchedulerTests: XCTestCase {
             center.requests.first?.trigger as? UNTimeIntervalNotificationTrigger
         )
         XCTAssertEqual(trigger.timeInterval, 7 * 24 * 60 * 60, accuracy: 0.01)
+        XCTAssertEqual(preferences.reminderDeliveryStatus, .scheduled)
     }
 
     func testDisabledReminderRemovesPendingRequestWithoutRequestingPermission() async {
@@ -54,6 +55,7 @@ final class ManualBackupReminderSchedulerTests: XCTestCase {
 
         XCTAssertTrue(center.requests.isEmpty)
         XCTAssertNil(center.requestedAuthorizationOptions)
+        XCTAssertEqual(preferences.reminderDeliveryStatus, .disabled)
     }
 
     func testSuccessfulExportResetsReminderAndRecordsLastSuccess() async throws {
@@ -101,6 +103,38 @@ final class ManualBackupReminderSchedulerTests: XCTestCase {
         XCTAssertEqual(preferences.nextReminderDate, dueAt)
     }
 
+    func testAuthorizationDenialIsPersistedForTruthfulSettingsStatus() async {
+        let center = ManualBackupNotificationCenter()
+        center.authorizationGranted = false
+        let preferences = ManualBackupPreferences(defaults: defaults)
+        let scheduler = ManualBackupReminderScheduler(
+            preferences: preferences,
+            notificationCenter: center
+        )
+
+        let status = await scheduler.refreshReminder()
+
+        XCTAssertEqual(status, .authorizationDenied)
+        XCTAssertEqual(preferences.reminderDeliveryStatus, .authorizationDenied)
+        XCTAssertTrue(center.requests.isEmpty)
+    }
+
+    func testSchedulingFailureIsPersistedForTruthfulSettingsStatus() async {
+        let center = ManualBackupNotificationCenter()
+        center.addError = ReminderTestError.failed
+        let preferences = ManualBackupPreferences(defaults: defaults)
+        let scheduler = ManualBackupReminderScheduler(
+            preferences: preferences,
+            notificationCenter: center
+        )
+
+        let status = await scheduler.refreshReminder()
+
+        XCTAssertEqual(status, .failed)
+        XCTAssertEqual(preferences.reminderDeliveryStatus, .failed)
+        XCTAssertTrue(center.requests.isEmpty)
+    }
+
     private func makeRequest() -> UNNotificationRequest {
         UNNotificationRequest(
             identifier: ManualBackupReminderScheduler.notificationIdentifier,
@@ -113,10 +147,12 @@ final class ManualBackupReminderSchedulerTests: XCTestCase {
 private final class ManualBackupNotificationCenter: LocalNotificationCenter {
     var requestedAuthorizationOptions: UNAuthorizationOptions?
     var requests: [UNNotificationRequest] = []
+    var authorizationGranted = true
+    var addError: Error?
 
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
         requestedAuthorizationOptions = options
-        return true
+        return authorizationGranted
     }
 
     func pendingNotificationRequests() async -> [UNNotificationRequest] {
@@ -128,6 +164,11 @@ private final class ManualBackupNotificationCenter: LocalNotificationCenter {
     }
 
     func add(_ request: UNNotificationRequest) async throws {
+        if let addError { throw addError }
         requests.append(request)
     }
+}
+
+private enum ReminderTestError: Error {
+    case failed
 }
