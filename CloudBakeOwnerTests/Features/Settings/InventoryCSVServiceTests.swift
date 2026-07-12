@@ -2,6 +2,87 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class InventoryCSVServiceTests: XCTestCase {
+    func testRecipeExportIncludesIgnoredExampleAndPipeSeparatedIngredients() throws {
+        let repository = FakeRecipeRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let flour = InventoryItem(
+            id: "flour",
+            name: "Cake Flour",
+            aliases: ["Maida"],
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: now,
+            updatedAt: now
+        )
+        repository.inventoryItems = [flour]
+        repository.recipes = [Recipe(id: "recipe", name: "Vanilla Sponge", notes: "Bake, then cool", createdAt: now, updatedAt: now)]
+        repository.components = [RecipeComponent(id: "component", recipeId: "recipe", name: "Ingredients", sortOrder: 0, createdAt: now, updatedAt: now)]
+        repository.ingredients = [RecipeIngredient(id: "ingredient", componentId: "component", inventoryItemId: flour.id, quantity: 250, unit: .gram, note: nil, createdAt: now, updatedAt: now)]
+
+        let csv = try RecipeCSVService().exportCSV(repository: repository)
+
+        XCTAssertTrue(csv.contains("name,recipe,ingredients"))
+        XCTAssertTrue(csv.contains("# Example - ignored during import"))
+        XCTAssertTrue(csv.contains("Vanilla Sponge,\"Bake, then cool\",Cake Flour:250:g"))
+    }
+
+    func testRecipeImportSkipsExampleAndMatchesInventoryAlias() throws {
+        let repository = FakeRecipeRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        repository.inventoryItems = [
+            InventoryItem(
+                id: "flour",
+                name: "Cake Flour",
+                aliases: ["Maida"],
+                unit: .gram,
+                currentQuantity: 500,
+                minimumQuantity: 100,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        let service = RecipeCSVService(
+            idGenerator: makeIncrementingIdGenerator(prefix: "recipe-csv"),
+            dateProvider: { now }
+        )
+
+        let summary = try service.importCSV(
+            """
+            name,recipe,ingredients
+            # Example - ignored during import,,Cake Flour:250:g | Sugar:200:g
+            Vanilla Sponge,"Bake, then cool",Maida:250:g
+            """,
+            repository: repository
+        )
+
+        XCTAssertEqual(summary, RecipeCSVImportSummary(importedRecipeCount: 1, importedIngredientCount: 1))
+        XCTAssertEqual(repository.recipes.map(\.name), ["Vanilla Sponge"])
+        XCTAssertEqual(repository.recipes.first?.notes, "Bake, then cool")
+        XCTAssertEqual(repository.ingredients.first?.inventoryItemId, "flour")
+        XCTAssertEqual(repository.ingredients.first?.quantity, 250)
+    }
+
+    func testRecipeImportRejectsUnmatchedIngredientBeforeSaving() throws {
+        let repository = FakeRecipeRepository()
+
+        XCTAssertThrowsError(
+            try RecipeCSVService().importCSV(
+                """
+                name,recipe,ingredients
+                Vanilla Sponge,,Unknown Flour:250:g
+                """,
+                repository: repository
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? RecipeCSVError,
+                .invalidRow(2, "Ingredient 'Unknown Flour' does not match active inventory.")
+            )
+        }
+        XCTAssertTrue(repository.recipes.isEmpty)
+    }
+
     func testExportWritesActiveInventoryWithBatchExpiry() throws {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_000_000)
