@@ -220,6 +220,7 @@ struct InventoryStockBatch: Equatable {
     let remainingQuantity: Double
     let expiresAt: Date?
     let amount: Decimal?
+    let unitCost: Decimal?
     let createdAt: Date
     let updatedAt: Date
 
@@ -229,6 +230,7 @@ struct InventoryStockBatch: Equatable {
         remainingQuantity: Double,
         expiresAt: Date?,
         amount: Decimal? = nil,
+        unitCost: Decimal? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -237,8 +239,14 @@ struct InventoryStockBatch: Equatable {
         self.remainingQuantity = remainingQuantity
         self.expiresAt = expiresAt
         self.amount = amount
+        self.unitCost = unitCost ?? Self.unitCost(amount: amount, quantity: remainingQuantity)
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    private static func unitCost(amount: Decimal?, quantity: Double) -> Decimal? {
+        guard let amount, quantity > 0 else { return nil }
+        return amount / Decimal(quantity)
     }
 }
 
@@ -506,6 +514,17 @@ struct OrderRecipeUsage: Equatable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+}
+
+struct OrderIngredientCost: Equatable {
+    let id: String
+    let orderId: String
+    let inventoryItemId: String
+    let quantity: Double
+    let unit: InventoryUnit
+    let knownCost: Decimal
+    let missingPriceQuantity: Double
+    let recordedAt: Date
 }
 
 struct OrderExtraIngredient: Equatable {

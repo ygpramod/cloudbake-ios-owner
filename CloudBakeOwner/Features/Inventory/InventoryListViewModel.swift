@@ -657,6 +657,7 @@ final class InventoryListViewModel: ObservableObject {
                 remainingQuantity: 0,
                 expiresAt: batch.expiresAt,
                 amount: batch.amount,
+                unitCost: batch.unitCost,
                 createdAt: batch.createdAt,
                 updatedAt: now
             )
@@ -1115,6 +1116,7 @@ final class InventoryListViewModel: ObservableObject {
                 remainingQuantity: batch.remainingQuantity - quantityFromBatch,
                 expiresAt: batch.expiresAt,
                 amount: batch.amount,
+                unitCost: batch.unitCost,
                 createdAt: batch.createdAt,
                 updatedAt: updatedAt
             )

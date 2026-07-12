@@ -405,6 +405,33 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0027_add_order_ingredient_costs") { db in
+            try db.execute(
+                sql: """
+                    UPDATE inventory_stock_batches
+                    SET unit_cost_decimal = CAST(CAST(amount_decimal AS REAL) / remaining_quantity AS TEXT)
+                    WHERE amount_decimal IS NOT NULL
+                    AND remaining_quantity > 0
+                    """
+            )
+
+            try db.create(table: "order_ingredient_costs") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .cascade)
+                table.column("inventory_item_id", .text)
+                    .notNull()
+                    .references("inventory_items", onDelete: .restrict)
+                table.column("quantity", .double).notNull()
+                table.column("unit", .text).notNull()
+                table.column("known_cost_decimal", .text).notNull()
+                table.column("missing_price_quantity", .double).notNull()
+                table.column("recorded_at_unix_time", .double).notNull()
+                table.uniqueKey(["order_id", "inventory_item_id"])
+            }
+        }
+
         return migrator
     }
 }
