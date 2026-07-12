@@ -34,7 +34,7 @@ enum FakeRepositoryError: Error {
     case requestedFailure
 }
 
-final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository {
+final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository, ExpiredStockDisposalRepository {
     var items: [InventoryItem] = []
     var transactions: [InventoryTransaction] = []
     var batches: [InventoryStockBatch] = []
@@ -136,6 +136,17 @@ final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTrans
                     return $0.createdAt < $1.createdAt
                 }
             }
+    }
+
+    func saveExpiredStockDisposal(
+        item: InventoryItem,
+        batches: [InventoryStockBatch],
+        transaction: InventoryTransaction
+    ) throws {
+        try save(item)
+        self.batches.removeAll { $0.inventoryItemId == item.id }
+        self.batches.append(contentsOf: batches)
+        try save(transaction)
     }
 }
 

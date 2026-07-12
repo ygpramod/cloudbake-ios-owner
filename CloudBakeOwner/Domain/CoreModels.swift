@@ -242,6 +242,17 @@ struct InventoryStockBatch: Equatable {
     }
 }
 
+extension InventoryStockBatch {
+    func isExpired(at date: Date) -> Bool {
+        guard let expiresAt else { return false }
+        return expiresAt < date
+    }
+
+    func isUsable(at date: Date) -> Bool {
+        remainingQuantity > 0 && !isExpired(at: date)
+    }
+}
+
 struct Recipe: Equatable {
     let id: String
     let name: String
@@ -570,6 +581,7 @@ enum InventoryTransactionKind: String, Equatable {
     case adjustment
     case purchase
     case consumption
+    case expiredDisposal
 }
 
 struct InventoryTransaction: Equatable {

@@ -63,13 +63,13 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var historyItem: InventoryItem?
     @Published private(set) var historyTransactions: [InventoryTransaction] = []
 
-    private let repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository
+    private let repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & ExpiredStockDisposalRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private var acknowledgedDuplicateNameKey: String?
 
     init(
-        repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository,
+        repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & ExpiredStockDisposalRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init
     ) {
@@ -605,13 +605,14 @@ final class InventoryListViewModel: ObservableObject {
         do {
             let batches = try repository.fetchInventoryStockBatches(inventoryItemId: plan.updatedItem.id)
             if !batches.isEmpty {
-                let availableBatchQuantity = batches.reduce(0) { $0 + $1.remainingQuantity }
+                let usableBatches = batches.filter { $0.isUsable(at: now) }
+                let availableBatchQuantity = usableBatches.reduce(0) { $0 + $1.remainingQuantity }
                 guard availableBatchQuantity - plan.quantity >= 0 else {
-                    errorMessage = "Consumption quantity cannot be greater than current stock."
+                    errorMessage = "Not enough non-expired stock is available."
                     return false
                 }
 
-                try consume(quantity: plan.quantity, from: batches, updatedAt: now)
+                try consume(quantity: plan.quantity, from: usableBatches, updatedAt: now)
             }
             try repository.save(plan.updatedItem)
             try repository.save(plan.transaction)
@@ -627,6 +628,74 @@ final class InventoryListViewModel: ObservableObject {
 
     func cancelStockConsumption() {
         resetConsumptionDraft()
+    }
+
+    var selectedExpiredQuantity: Double {
+        let now = dateProvider()
+        return selectedItemBatches
+            .filter { $0.remainingQuantity > 0 && $0.isExpired(at: now) }
+            .reduce(0) { $0 + $1.remainingQuantity }
+    }
+
+    func disposeSelectedExpiredStock() -> Bool {
+        guard let selectedItem else { return false }
+        let now = dateProvider()
+        let expiredBatches = selectedItemBatches.filter {
+            $0.remainingQuantity > 0 && $0.isExpired(at: now)
+        }
+        let disposedQuantity = expiredBatches.reduce(0) { $0 + $1.remainingQuantity }
+        guard disposedQuantity > 0 else {
+            errorMessage = "No expired stock is available to dispose."
+            return false
+        }
+        let expiredIds = Set(expiredBatches.map(\.id))
+        let updatedBatches = selectedItemBatches.map { batch in
+            guard expiredIds.contains(batch.id) else { return batch }
+            return InventoryStockBatch(
+                id: batch.id,
+                inventoryItemId: batch.inventoryItemId,
+                remainingQuantity: 0,
+                expiresAt: batch.expiresAt,
+                amount: batch.amount,
+                createdAt: batch.createdAt,
+                updatedAt: now
+            )
+        }
+        let updatedItem = InventoryItem(
+            id: selectedItem.id,
+            name: selectedItem.name,
+            aliases: selectedItem.aliases,
+            type: selectedItem.type,
+            unit: selectedItem.unit,
+            currentQuantity: max(0, selectedItem.currentQuantity - disposedQuantity),
+            minimumQuantity: selectedItem.minimumQuantity,
+            createdAt: selectedItem.createdAt,
+            updatedAt: now,
+            archivedAt: selectedItem.archivedAt
+        )
+        let transaction = InventoryTransaction(
+            id: idGenerator(),
+            inventoryItemId: selectedItem.id,
+            kind: .expiredDisposal,
+            quantity: disposedQuantity,
+            occurredAt: now,
+            note: "Expired stock disposed",
+            createdAt: now,
+            updatedAt: now
+        )
+        do {
+            try repository.saveExpiredStockDisposal(
+                item: updatedItem,
+                batches: updatedBatches,
+                transaction: transaction
+            )
+            load()
+            beginViewingItem(updatedItem)
+            return true
+        } catch {
+            errorMessage = "Expired stock could not be disposed."
+            return false
+        }
     }
 
     func createPurchaseBillDrafts(catalog: [BakingCatalogItem]) -> Bool {
@@ -1038,7 +1107,7 @@ final class InventoryListViewModel: ObservableObject {
         updatedAt: Date
     ) throws {
         var remainingQuantityToUse = quantity
-        for batch in batches where remainingQuantityToUse > 0 && batch.remainingQuantity > 0 {
+        for batch in batches where remainingQuantityToUse > 0 && batch.isUsable(at: updatedAt) {
             let quantityFromBatch = min(batch.remainingQuantity, remainingQuantityToUse)
             let updatedBatch = InventoryStockBatch(
                 id: batch.id,

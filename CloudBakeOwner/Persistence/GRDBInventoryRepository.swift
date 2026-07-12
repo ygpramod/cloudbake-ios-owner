@@ -122,6 +122,18 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func saveExpiredStockDisposal(
+        item: InventoryItem,
+        batches: [InventoryStockBatch],
+        transaction: InventoryTransaction
+    ) throws {
+        try writer.write { db in
+            try save(item, in: db)
+            for batch in batches { try save(batch, in: db) }
+            try save(transaction, in: db)
+        }
+    }
+
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
         try writer.read { db in
             try Row.fetchAll(
@@ -242,7 +254,7 @@ extension GRDBCoreDataRepository {
         in db: Database
     ) throws {
         var remainingQuantityToUse = quantity
-        for batch in batches where remainingQuantityToUse > 0 && batch.remainingQuantity > 0 {
+        for batch in batches where remainingQuantityToUse > 0 && batch.isUsable(at: updatedAt) {
             let quantityFromBatch = min(batch.remainingQuantity, remainingQuantityToUse)
             try save(
                 InventoryStockBatch(

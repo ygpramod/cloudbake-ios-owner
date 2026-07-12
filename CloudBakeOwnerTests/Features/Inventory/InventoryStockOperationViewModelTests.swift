@@ -1,8 +1,101 @@
 import XCTest
 @testable import CloudBakeOwner
 
+private func makeInventoryItem(
+    id: String,
+    name: String,
+    currentQuantity: Double
+) -> InventoryItem {
+    let date = Date(timeIntervalSince1970: 1_800_030_000)
+    return InventoryItem(
+        id: id,
+        name: name,
+        unit: .gram,
+        currentQuantity: currentQuantity,
+        minimumQuantity: 0,
+        createdAt: date,
+        updatedAt: date
+    )
+}
+
+private func makeInventoryBatch(
+    id: String,
+    itemId: String,
+    quantity: Double,
+    expiresAt: Date?
+) -> InventoryStockBatch {
+    let date = Date(timeIntervalSince1970: 1_800_030_000)
+    return InventoryStockBatch(
+        id: id,
+        inventoryItemId: itemId,
+        remainingQuantity: quantity,
+        expiresAt: expiresAt,
+        createdAt: date,
+        updatedAt: date
+    )
+}
+
 @MainActor
 final class InventoryStockOperationViewModelTests: XCTestCase {
+    func testConsumptionSkipsExpiredBatches() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = makeInventoryItem(id: "inventory-flour", name: "Cake flour", currentQuantity: 300)
+        repository.items = [item]
+        repository.batches = [
+            makeInventoryBatch(id: "expired", itemId: item.id, quantity: 150, expiresAt: now.addingTimeInterval(-1)),
+            makeInventoryBatch(id: "usable", itemId: item.id, quantity: 150, expiresAt: now.addingTimeInterval(86_400))
+        ]
+        let viewModel = InventoryListViewModel(repository: repository, dateProvider: { now })
+        viewModel.beginConsuming(item)
+        viewModel.draftConsumptionQuantity = "100"
+
+        XCTAssertTrue(viewModel.recordStockConsumption())
+        XCTAssertEqual(repository.batches.first { $0.id == "expired" }?.remainingQuantity, 150)
+        XCTAssertEqual(repository.batches.first { $0.id == "usable" }?.remainingQuantity, 50)
+    }
+
+    func testConsumptionFailsWhenOnlyExpiredStockCanCoverQuantity() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = makeInventoryItem(id: "inventory-flour", name: "Cake flour", currentQuantity: 200)
+        repository.items = [item]
+        repository.batches = [
+            makeInventoryBatch(id: "expired", itemId: item.id, quantity: 150, expiresAt: now.addingTimeInterval(-1)),
+            makeInventoryBatch(id: "usable", itemId: item.id, quantity: 50, expiresAt: nil)
+        ]
+        let viewModel = InventoryListViewModel(repository: repository, dateProvider: { now })
+        viewModel.beginConsuming(item)
+        viewModel.draftConsumptionQuantity = "100"
+
+        XCTAssertFalse(viewModel.recordStockConsumption())
+        XCTAssertEqual(viewModel.errorMessage, "Not enough non-expired stock is available.")
+        XCTAssertEqual(repository.batches.map(\.remainingQuantity), [150, 50])
+    }
+
+    func testDisposeExpiredStockClearsOnlyExpiredBatchesAndRecordsHistory() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_100)
+        let item = makeInventoryItem(id: "inventory-flour", name: "Cake flour", currentQuantity: 300)
+        repository.items = [item]
+        repository.batches = [
+            makeInventoryBatch(id: "expired", itemId: item.id, quantity: 125, expiresAt: now.addingTimeInterval(-1)),
+            makeInventoryBatch(id: "usable", itemId: item.id, quantity: 175, expiresAt: nil)
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "expired-disposal" },
+            dateProvider: { now }
+        )
+        viewModel.beginViewingItem(item)
+
+        XCTAssertTrue(viewModel.disposeSelectedExpiredStock())
+        XCTAssertEqual(repository.items.first?.currentQuantity, 175)
+        XCTAssertEqual(repository.batches.first { $0.id == "expired" }?.remainingQuantity, 0)
+        XCTAssertEqual(repository.batches.first { $0.id == "usable" }?.remainingQuantity, 175)
+        XCTAssertEqual(repository.transactions.first?.kind, .expiredDisposal)
+        XCTAssertEqual(repository.transactions.first?.quantity, 125)
+    }
     func testBeginAdjustingCopiesItemIntoAdjustmentDraft() {
         let item = InventoryItem(
             id: "inventory-flour",
