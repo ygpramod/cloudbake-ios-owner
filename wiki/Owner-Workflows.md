@@ -238,6 +238,17 @@ item's aliases, inventory type, and saved stock batches so the CSV can be used a
 correction source. Import requires the `aliases` and `type` columns. The owner should review the CSV
 before import because there is no separate conflict review screen yet.
 
+## Import And Export Recipe CSV
+
+Recipe CSV export uses the columns `name`, `recipe`, and `ingredients`. The recipe field contains
+notes or instructions. Ingredients use `name:quantity:unit` and are separated with `|`, for example
+`Cake Flour:250:g | Sugar:200:g`.
+
+Every export includes a row whose name starts with `# Example`; CloudBake ignores that row during
+import. Imported ingredient names must match exactly one active inventory item name or alias.
+Malformed, unmatched, ambiguous, or duplicate recipe rows are rejected instead of being partially
+interpreted.
+
 ## Archive Inventory
 
 Use archive when an item should not appear in the active inventory list anymore.
