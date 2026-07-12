@@ -1005,6 +1005,53 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.selectedOrderIngredientCostIsActual)
     }
 
+    func testOrderFormCalculatesEstimatedIngredientCostBeforeQuoting() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_140_000)
+        repository.recipes = [makeRecipe(id: "recipe-cake", name: "Cake")]
+        repository.inventoryItems = [makeInventoryItem(id: "inventory-flour", name: "Cake flour")]
+        repository.recipeComponents = [
+            RecipeComponent(
+                id: "component-cake",
+                recipeId: "recipe-cake",
+                name: "Cake",
+                sortOrder: 0,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+        repository.recipeIngredients = [
+            RecipeIngredient(
+                id: "ingredient-flour",
+                componentId: "component-cake",
+                inventoryItemId: "inventory-flour",
+                quantity: 100,
+                unit: .gram,
+                note: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+        repository.inventoryStockBatches = [
+            InventoryStockBatch(
+                id: "batch-flour",
+                inventoryItemId: "inventory-flour",
+                remainingQuantity: 500,
+                expiresAt: timestamp.addingTimeInterval(86_400),
+                amount: 50,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+        let viewModel = OrderListViewModel(repository: repository, dateProvider: { timestamp })
+
+        viewModel.beginAddingOrder()
+        viewModel.selectDraftRecipe(id: "recipe-cake")
+
+        XCTAssertEqual(viewModel.draftIngredientCost?.knownCost, decimal("10"))
+        XCTAssertEqual(viewModel.draftIngredientCost?.itemsMissingPrice, [])
+    }
+
     func testOrderDetailUsesPersistedActualIngredientCostAfterDeduction() {
         let repository = FakeOrderRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_140_000)
