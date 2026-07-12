@@ -189,8 +189,11 @@ final class FakeOrderRepository: OrderRepository,
     CustomerRepository,
     CustomerImportantDateRepository,
     RecipeRepository,
+    RecipeComponentRepository,
+    RecipeIngredientRepository,
     CakeDesignRepository,
     InventoryItemRepository,
+    InventoryStockBatchRepository,
     OrderRecipeUsageRepository,
     OrderStatusChangeRepository,
     OrderExtraIngredientRepository,
@@ -200,8 +203,11 @@ final class FakeOrderRepository: OrderRepository,
     var customers: [Customer] = []
     var customerImportantDates: [CustomerImportantDate] = []
     var recipes: [Recipe] = []
+    var recipeComponents: [RecipeComponent] = []
+    var recipeIngredients: [RecipeIngredient] = []
     var cakeDesigns: [CakeDesign] = []
     var inventoryItems: [InventoryItem] = []
+    var inventoryStockBatches: [InventoryStockBatch] = []
     var usages: [OrderRecipeUsage] = []
     var extraIngredients: [OrderExtraIngredient] = []
     var checklistItems: [OrderChecklistItem] = []
@@ -295,6 +301,36 @@ final class FakeOrderRepository: OrderRepository,
         }
     }
 
+    func save(_ component: RecipeComponent) throws {
+        recipeComponents.removeAll { $0.id == component.id }
+        recipeComponents.append(component)
+    }
+
+    func fetchRecipeComponent(id: String) throws -> RecipeComponent? {
+        recipeComponents.first { $0.id == id }
+    }
+
+    func fetchRecipeComponents(recipeId: String) throws -> [RecipeComponent] {
+        recipeComponents.filter { $0.recipeId == recipeId }
+    }
+
+    func save(_ ingredient: RecipeIngredient) throws {
+        recipeIngredients.removeAll { $0.id == ingredient.id }
+        recipeIngredients.append(ingredient)
+    }
+
+    func fetchRecipeIngredient(id: String) throws -> RecipeIngredient? {
+        recipeIngredients.first { $0.id == id }
+    }
+
+    func fetchRecipeIngredients(componentId: String) throws -> [RecipeIngredient] {
+        recipeIngredients.filter { $0.componentId == componentId }
+    }
+
+    func deleteRecipeIngredient(id: String) throws {
+        recipeIngredients.removeAll { $0.id == id }
+    }
+
     func save(_ design: CakeDesign) throws {
         cakeDesigns.removeAll { $0.id == design.id }
         cakeDesigns.append(design)
@@ -358,6 +394,31 @@ final class FakeOrderRepository: OrderRepository,
 
     func fetchArchivedInventoryItems() throws -> [InventoryItem] {
         inventoryItems.filter(\.isArchived)
+    }
+
+    func save(_ batch: InventoryStockBatch) throws {
+        inventoryStockBatches.removeAll { $0.id == batch.id }
+        inventoryStockBatches.append(batch)
+    }
+
+    func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {
+        try save(item)
+        try save(batch)
+    }
+
+    func deleteBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {
+        try save(item)
+        inventoryStockBatches.removeAll { $0.id == batch.id }
+    }
+
+    func replaceInventoryStock(item: InventoryItem, batches: [InventoryStockBatch]) throws {
+        try save(item)
+        inventoryStockBatches.removeAll { $0.inventoryItemId == item.id }
+        inventoryStockBatches.append(contentsOf: batches)
+    }
+
+    func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
+        inventoryStockBatches.filter { $0.inventoryItemId == inventoryItemId }
     }
 
     func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? {
