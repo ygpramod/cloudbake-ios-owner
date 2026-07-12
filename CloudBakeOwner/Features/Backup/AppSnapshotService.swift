@@ -79,8 +79,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         try cleanAbandonedStagingDirectories()
 
         let generationID = makeGenerationID()
-        guard BackupPath.isSafeRelativePath(generationID),
-              !generationID.contains("/") else {
+        guard BackupPath.isSafeIdentifier(generationID) else {
             throw AppSnapshotError.invalidGenerationID
         }
 
@@ -115,7 +114,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
                 assets: assets
             )
             let manifestURL = buildingURL.appendingPathComponent(Self.manifestFilename)
-            try Self.encoder.encode(manifest).write(to: manifestURL, options: .atomic)
+            try Self.makeEncoder().encode(manifest).write(to: manifestURL, options: .atomic)
             try validatePackageContents(at: buildingURL)
             try fileManager.moveItem(at: buildingURL, to: finalURL)
 
@@ -137,7 +136,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
 
     private func validatePackageContents(at packageURL: URL) throws {
         let manifestURL = packageURL.appendingPathComponent(Self.manifestFilename)
-        let manifest = try Self.decoder.decode(
+        let manifest = try Self.makeDecoder().decode(
             BackupManifest.self,
             from: Data(contentsOf: manifestURL)
         )
@@ -165,7 +164,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         for child in try fileManager.contentsOfDirectory(
             at: stagingRoot,
             includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
+            options: []
         ) where child.lastPathComponent.hasSuffix(".building") {
             try fileManager.removeItem(at: child)
         }
@@ -221,7 +220,8 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
                 throw AppSnapshotError.assetMissing(path)
             }
 
-            let stagedPath = "Assets/\(path)"
+            let opaqueFilename = BackupChecksum.sha256(of: Data(path.utf8))
+            let stagedPath = "Assets/\(opaqueFilename).asset"
             let destinationURL = buildingURL.appendingPathComponent(stagedPath)
             try fileManager.createDirectory(
                 at: destinationURL.deletingLastPathComponent(),
@@ -281,16 +281,16 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         }
     }
 
-    private static let encoder: JSONEncoder = {
+    private static func makeEncoder() -> JSONEncoder {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return encoder
-    }()
+    }
 
-    private static let decoder: JSONDecoder = {
+    private static func makeDecoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return decoder
-    }()
+    }
 }
