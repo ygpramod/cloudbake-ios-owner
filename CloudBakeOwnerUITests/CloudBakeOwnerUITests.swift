@@ -223,6 +223,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         openDashboardDestination("Settings", in: app)
 
         XCTAssertTrue(app.buttons["settings.currency"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["settings.logo.choose"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["settings.inventory.import"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["settings.inventory.export"].waitForExistence(timeout: 5))
         scrollToHittable(app.buttons["settings.recipes.import"], in: app)
