@@ -15,7 +15,7 @@ final class BackupManifestTests: XCTestCase {
             manifest.assets.map(\.originalRelativePath),
             ["Branding/custom-logo.jpg", "OrderPhotos/z.jpg"]
         )
-        XCTAssertEqual(manifest.payloadByteCount, 22)
+        XCTAssertEqual(manifest.totalByteCount, 22)
 
         let data = try JSONEncoder().encode(manifest)
         XCTAssertEqual(try JSONDecoder().decode(BackupManifest.self, from: data), manifest)

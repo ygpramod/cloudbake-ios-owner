@@ -17,6 +17,8 @@
 		4100000000000000000000D0 /* AppLogoStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D0 /* AppLogoStoreTests.swift */; };
 		4100000000000000000000D1 /* BackupManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D1 /* BackupManifest.swift */; };
 		4100000000000000000000D2 /* BackupManifestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D2 /* BackupManifestTests.swift */; };
+		4100000000000000000000D3 /* AppSnapshotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D3 /* AppSnapshotService.swift */; };
+		4100000000000000000000D4 /* AppSnapshotServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D4 /* AppSnapshotServiceTests.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -185,6 +187,8 @@
 		420000000000000000000010 /* CloudBakeOwnerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CloudBakeOwnerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4200000000000000000000D1 /* BackupManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManifest.swift; sourceTree = "<group>"; };
 		4200000000000000000000D2 /* BackupManifestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManifestTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000D3 /* AppSnapshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSnapshotService.swift; sourceTree = "<group>"; };
+		4200000000000000000000D4 /* AppSnapshotServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSnapshotServiceTests.swift; sourceTree = "<group>"; };
 		420000000000000000000011 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		420000000000000000000012 /* AppDatabaseMigrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseMigrations.swift; sourceTree = "<group>"; };
 		420000000000000000000013 /* HealthCheckRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckRepository.swift; sourceTree = "<group>"; };
@@ -397,6 +401,7 @@
 		4500000000000000000000D1 /* Backup */ = {
 			isa = PBXGroup;
 			children = (
+				4200000000000000000000D3 /* AppSnapshotService.swift */,
 				4200000000000000000000D1 /* BackupManifest.swift */,
 			);
 			path = Backup;
@@ -628,6 +633,7 @@
 		4500000000000000000000D2 /* Backup */ = {
 			isa = PBXGroup;
 			children = (
+				4200000000000000000000D4 /* AppSnapshotServiceTests.swift */,
 				4200000000000000000000D2 /* BackupManifestTests.swift */,
 			);
 			path = Backup;
@@ -873,6 +879,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4100000000000000000000D3 /* AppSnapshotService.swift in Sources */,
 				4100000000000000000000D1 /* BackupManifest.swift in Sources */,
 				410000000000000000000001 /* CloudBakeOwnerApp.swift in Sources */,
 				410000000000000000000002 /* AppDestination.swift in Sources */,
@@ -969,6 +976,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4100000000000000000000D4 /* AppSnapshotServiceTests.swift in Sources */,
 				4100000000000000000000D2 /* BackupManifestTests.swift in Sources */,
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
 				41000000000000000000000B /* AppDatabaseTests.swift in Sources */,

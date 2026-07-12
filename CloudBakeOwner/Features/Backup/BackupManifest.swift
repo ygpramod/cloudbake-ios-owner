@@ -11,10 +11,7 @@ struct BackupManifest: Codable, Equatable, Sendable {
     let createdAt: Date
     let database: BackupFileDescriptor
     let assets: [BackupAssetDescriptor]
-
-    var payloadByteCount: Int64 {
-        database.byteCount + assets.reduce(0) { $0 + $1.file.byteCount }
-    }
+    let totalByteCount: Int64
 
     init(
         formatVersion: Int = currentFormatVersion,
@@ -32,6 +29,7 @@ struct BackupManifest: Codable, Equatable, Sendable {
         self.createdAt = createdAt
         self.database = database
         self.assets = assets.sorted { $0.originalRelativePath < $1.originalRelativePath }
+        totalByteCount = database.byteCount + assets.reduce(0) { $0 + $1.file.byteCount }
     }
 }
 
