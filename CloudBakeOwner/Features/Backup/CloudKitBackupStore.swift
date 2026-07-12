@@ -12,6 +12,7 @@ actor CloudKitBackupStore: CloudBackupStoring {
         static let fileRecordType = "CBBackupFile"
 
         static let generationID = "generationID"
+        static let generationReference = "generationReference"
         static let createdAt = "createdAt"
         static let formatVersion = "formatVersion"
         static let databaseSchemaVersion = "databaseSchemaVersion"
@@ -32,7 +33,6 @@ actor CloudKitBackupStore: CloudBackupStoring {
     }
 
     static let recordFetchLimit = 400
-    static let recordDeletionLimit = 399
 
     private let database: CKDatabase
     private let zoneID: CKRecordZone.ID
@@ -114,6 +114,10 @@ actor CloudKitBackupStore: CloudBackupStoring {
                 recordID: CKRecord.ID(recordName: file.recordName, zoneID: zoneID)
             )
             record[Schema.generationID] = generationID as CKRecordValue
+            record[Schema.generationReference] = CKRecord.Reference(
+                recordID: generationRecordID(generationID),
+                action: .deleteSelf
+            )
             record[Schema.role] = file.role.rawValue as CKRecordValue
             record[Schema.relativePath] = file.relativePath as CKRecordValue
             record[Schema.byteCount] = NSNumber(value: file.byteCount)
@@ -192,14 +196,6 @@ actor CloudKitBackupStore: CloudBackupStoring {
                     throw CloudKitBackupStoreInternalError.corruptResponse
                 }
                 pointer = savedPointer
-            }
-
-            let fileRecordIDs = try await fileRecordIDs(generationID: generationID)
-            for deletionIDs in CloudKitBackupBatching.chunks(
-                fileRecordIDs,
-                maximumCount: Self.recordDeletionLimit
-            ) {
-                pointer = try await deleteRecords(Array(deletionIDs), preserving: pointer)
             }
 
             _ = try await deleteRecords([generation.recordID], preserving: pointer)
@@ -295,6 +291,9 @@ actor CloudKitBackupStore: CloudBackupStoring {
               nonEmptyString(record[Schema.relativePath]) == expected.relativePath,
               integer(record[Schema.byteCount]) == expected.byteCount,
               nonEmptyString(record[Schema.sha256]) == expected.sha256,
+              let generationReference = record[Schema.generationReference] as? CKRecord.Reference,
+              generationReference.recordID == generationRecordID(generationID),
+              generationReference.action == .deleteSelf,
               let asset = record[Schema.payload] as? CKAsset,
               let fileURL = asset.fileURL else {
             throw CloudKitBackupStoreInternalError.corruptRecord
@@ -324,28 +323,6 @@ actor CloudKitBackupStore: CloudBackupStoring {
             throw CloudKitBackupStoreInternalError.corruptResponse
         }
         _ = try result.get()
-    }
-
-    private func fileRecordIDs(generationID: String) async throws -> [CKRecord.ID] {
-        let query = CKQuery(
-            recordType: Schema.fileRecordType,
-            predicate: NSPredicate(format: "%K == %@", Schema.generationID, generationID)
-        )
-        var result = try await database.records(
-            matching: query,
-            inZoneWith: zoneID,
-            desiredKeys: []
-        )
-        var recordIDs: [CKRecord.ID] = []
-        while true {
-            for (recordID, recordResult) in result.matchResults {
-                _ = try recordResult.get()
-                recordIDs.append(recordID)
-            }
-            guard let cursor = result.queryCursor else { break }
-            result = try await database.records(continuingMatchFrom: cursor, desiredKeys: [])
-        }
-        return recordIDs
     }
 
     private func deleteRecords(

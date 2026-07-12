@@ -63,9 +63,9 @@ Keep publication inaccessible to owners until scheduling and status controls shi
   candidate only after atomically claiming it while proving that an unchanged pointer does not
   reference it. Publication conditionally preserves the unclaimed generation record, preventing a
   cleanup/publication race.
-- File verification and cleanup use bounded, paginated operations rather than embedding generation
-  membership in one CloudKit list, supporting recovery snapshots with thousands of lightweight
-  assets and interrupted uploads with missing file records.
+- File verification uses bounded operations rather than one unbounded request. Each file has a
+  CloudKit-owned cascade reference to its generation, so cleanup handles thousands of lightweight
+  assets and interrupted uploads without an eventually consistent membership query or list limit.
 - Interrupted attempts are replaced safely on retry. Post-publication cleanup failures retain the
   valid new pointer and report pending cleanup.
 - `docs/cloudkit-backup-operations.md` records the private schema, development-to-production process,
