@@ -80,6 +80,13 @@ expired or is close to expiry.
 Perishable low inventory is suppressed from Dashboard and Reminders until active order demand makes
 the item relevant.
 
+CloudBake also treats an item as low inventory when usable, non-expired stock cannot cover the
+combined projected demand from active orders. Projection includes scaled linked recipes and
+order-specific extra ingredients. It is a warning only and does not reserve or deduct stock.
+
+An order stops contributing projected demand after its inventory usage is recorded or when it is
+Completed or Cancelled. Projection is recalculated from current data and is not historical.
+
 ## Inventory Transaction
 
 An inventory transaction records why stock changed.
