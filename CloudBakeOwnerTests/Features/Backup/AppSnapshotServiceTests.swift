@@ -364,7 +364,7 @@ private struct SlowExternalAssetResolver: BackupExternalAssetResolving {
     func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
         await probe.markStarted()
         try await Task.sleep(nanoseconds: 30_000_000_000)
-        return BackupResolvedExternalAsset(data: Data(), modificationDate: nil)
+        return BackupResolvedExternalAsset(data: Data(), modificationDate: .distantPast)
     }
 }
 
