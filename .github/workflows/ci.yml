@@ -81,13 +81,15 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeEditedFromDetail
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrderAppearsInCompletedTab
-          - feature: orders-links-customers
+          - feature: order-links
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsLinkedCustomerContext
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanCreateAndLinkNewCustomerFromSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkRecipeFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkDesignFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanSelectCustomerReferenceFromPhotoFirstDesignPicker
+          - feature: customers
+            only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeAddedAndViewed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerAddOffersContactsImportAndManualEntry
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDuplicateWarningAppearsBeforeSaving
