@@ -29,12 +29,12 @@ final class ReminderViewModel: ObservableObject {
     @Published private(set) var lowInventoryItems: [LowInventoryReminderItem] = []
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & InventoryItemRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
+    private let repository: any OrderRepository & OrderRecipeUsageRepository & InventoryItemRepository & InventoryStockBatchRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
     private let dateProvider: () -> Date
     private let calendar: Calendar
 
     init(
-        repository: any OrderRepository & InventoryItemRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
+        repository: any OrderRepository & OrderRecipeUsageRepository & InventoryItemRepository & InventoryStockBatchRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
     ) {
@@ -47,16 +47,33 @@ final class ReminderViewModel: ObservableObject {
         do {
             let orders = try repository.fetchOrders()
             let customers = try repository.fetchCustomers()
+            let inventoryItems = try repository.fetchInventoryItems()
+            let shortages = try ProjectedIngredientDemand.shortages(
+                inventoryItems: inventoryItems,
+                orders: orders,
+                at: dateProvider(),
+                stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
+                recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
+                recipeComponents: repository.fetchRecipeComponents(recipeId:),
+                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
+                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
+            )
+            let shortagesByItemId = Dictionary(uniqueKeysWithValues: shortages.map { ($0.id, $0) })
             let lowInventory = try InventoryLowInventoryAlertRules.itemsForAlerts(
-                inventoryItems: repository.fetchInventoryItems(),
+                inventoryItems: inventoryItems,
                 activeOrders: orders,
+                date: dateProvider(),
+                inventoryStockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
+                orderRecipeUsage: repository.fetchOrderRecipeUsage(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
                 recipeIngredients: repository.fetchRecipeIngredients(componentId:),
                 orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
             )
             paymentDueItems = paymentDueItems(from: orders, customers: customers)
             todayOrderItems = todayOrderItems(from: orders)
-            lowInventoryItems = lowInventory.map(Self.lowInventoryItem)
+            lowInventoryItems = lowInventory.map {
+                Self.lowInventoryItem(from: $0, shortage: shortagesByItemId[$0.id])
+            }
             errorMessage = nil
         } catch {
             paymentDueItems = []
@@ -149,11 +166,16 @@ final class ReminderViewModel: ObservableObject {
             }
     }
 
-    private static func lowInventoryItem(from item: InventoryItem) -> LowInventoryReminderItem {
+    private static func lowInventoryItem(
+        from item: InventoryItem,
+        shortage: ProjectedIngredientShortage?
+    ) -> LowInventoryReminderItem {
         LowInventoryReminderItem(
             id: item.id,
             name: item.name,
-            quantityText: "\(item.currentQuantity.formatted()) / \(item.minimumQuantity.formatted()) \(item.unit.displayName)"
+            quantityText: shortage.map {
+                "\($0.availableQuantity.formatted()) usable / \($0.requiredQuantity.formatted()) needed \($0.unit.displayName)"
+            } ?? "\(item.currentQuantity.formatted()) / \(item.minimumQuantity.formatted()) \(item.unit.displayName)"
         )
     }
 

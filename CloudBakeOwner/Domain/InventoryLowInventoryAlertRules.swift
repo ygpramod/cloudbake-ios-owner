@@ -4,6 +4,9 @@ enum InventoryLowInventoryAlertRules {
     static func itemsForAlerts(
         inventoryItems: [InventoryItem],
         activeOrders: [Order],
+        date: Date,
+        inventoryStockBatches: (String) throws -> [InventoryStockBatch],
+        orderRecipeUsage: (String) throws -> OrderRecipeUsage?,
         recipeComponents: (String) throws -> [RecipeComponent],
         recipeIngredients: (String) throws -> [RecipeIngredient],
         orderExtraIngredients: (String) throws -> [OrderExtraIngredient]
@@ -14,9 +17,22 @@ enum InventoryLowInventoryAlertRules {
             recipeIngredients: recipeIngredients,
             orderExtraIngredients: orderExtraIngredients
         )
+        let projectedShortageIds = try Set(
+            ProjectedIngredientDemand.shortages(
+                inventoryItems: inventoryItems,
+                orders: activeOrders,
+                at: date,
+                stockBatches: inventoryStockBatches,
+                recipeUsage: orderRecipeUsage,
+                recipeComponents: recipeComponents,
+                recipeIngredients: recipeIngredients,
+                orderExtraIngredients: orderExtraIngredients
+            ).map(\.inventoryItemId)
+        )
 
         return inventoryItems.filter {
             $0.showsLowInventoryAlert(neededInventoryItemIds: neededInventoryItemIds)
+                || projectedShortageIds.contains($0.id)
         }
     }
 

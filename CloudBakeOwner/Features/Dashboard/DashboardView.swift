@@ -126,7 +126,7 @@ struct DashboardView: View {
             return "\(firstItem.name) and more"
         }
 
-        return "\(firstItem.name) · \(firstItem.lowInventoryDetail)"
+        return "\(firstItem.name) · \(viewModel.lowInventoryDetail(for: firstItem))"
     }
 }
 
@@ -399,20 +399,6 @@ private struct DashboardDivider: View {
     }
 }
 
-private extension InventoryItem {
-    var lowInventoryDetail: String {
-        if hasExpiredStock {
-            return "Expired stock"
-        }
-
-        if hasExpiringSoonStock {
-            return "Expiring soon"
-        }
-
-        return "\(currentQuantity.formatted()) / \(minimumQuantity.formatted()) \(unit.displayName)"
-    }
-}
-
 #Preview {
     DashboardView(
         viewModel: DashboardViewModel(
@@ -423,7 +409,9 @@ private extension InventoryItem {
 }
 
 private final class PreviewDashboardInventoryItemRepository: InventoryItemRepository,
+    InventoryStockBatchRepository,
     OrderRepository,
+    OrderRecipeUsageRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
     OrderExtraIngredientRepository {
@@ -460,6 +448,25 @@ private final class PreviewDashboardInventoryItemRepository: InventoryItemReposi
     func fetchOrders() throws -> [Order] {
         []
     }
+
+    func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? { nil }
+
+    func recordRecipeUsage(
+        for order: Order,
+        usageId: String,
+        usedAt: Date,
+        transactionIdProvider: () -> String
+    ) throws {}
+
+    func save(_ batch: InventoryStockBatch) throws {}
+
+    func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}
+
+    func deleteBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}
+
+    func replaceInventoryStock(item: InventoryItem, batches: [InventoryStockBatch]) throws {}
+
+    func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] { [] }
 
     func save(_ component: RecipeComponent) throws {}
 
