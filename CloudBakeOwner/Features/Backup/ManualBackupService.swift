@@ -31,6 +31,10 @@ struct ZIPManualBackupArchiver: ManualBackupArchiving {
             compressionMethod: .deflate
         )
     }
+
+    func extractArchive(at sourceURL: URL, to destinationURL: URL) throws {
+        try FileManager.default.unzipItem(at: sourceURL, to: destinationURL)
+    }
 }
 
 actor ManualBackupService: ManualBackupPreparing {
@@ -61,7 +65,12 @@ actor ManualBackupService: ManualBackupPreparing {
         let archiveURL = package.directoryURL
             .deletingLastPathComponent()
             .appendingPathComponent(filename)
-        try archiver.archivePackage(at: package.directoryURL, to: archiveURL)
+        do {
+            try archiver.archivePackage(at: package.directoryURL, to: archiveURL)
+        } catch {
+            try? fileManager.removeItem(at: archiveURL)
+            throw error
+        }
         return ManualBackupExport(
             packageURL: archiveURL,
             filename: filename

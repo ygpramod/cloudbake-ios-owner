@@ -13,8 +13,15 @@ final class ManualBackupServiceTests: XCTestCase {
         try Data("database".utf8).write(
             to: directory.appendingPathComponent("database.sqlite")
         )
+        let assets = directory.appendingPathComponent("Assets", isDirectory: true)
+        try FileManager.default.createDirectory(at: assets, withIntermediateDirectories: true)
+        try Data("photo-bytes".utf8).write(to: assets.appendingPathComponent("photo.asset"))
+        try Data("logo-bytes".utf8).write(to: assets.appendingPathComponent("logo.asset"))
+        let extraction = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
         defer {
             try? FileManager.default.removeItem(at: directory)
+            try? FileManager.default.removeItem(at: extraction)
             let parent = directory.deletingLastPathComponent()
             for child in (try? FileManager.default.contentsOfDirectory(
                 at: parent,
@@ -41,6 +48,61 @@ final class ManualBackupServiceTests: XCTestCase {
         XCTAssertTrue(export.filename.hasPrefix("cloudbake-backup-"))
         XCTAssertTrue(export.filename.hasSuffix(".cloudbakebackup"))
         XCTAssertFalse(export.filename.contains("opaque-generation"))
+
+        try ZIPManualBackupArchiver().extractArchive(
+            at: export.packageURL,
+            to: extraction
+        )
+        XCTAssertEqual(
+            Set(try FileManager.default.contentsOfDirectory(atPath: extraction.path)),
+            ["Assets", "database.sqlite", "manifest.json"]
+        )
+        XCTAssertEqual(
+            try Data(contentsOf: extraction.appendingPathComponent("manifest.json")),
+            Data("manifest".utf8)
+        )
+        XCTAssertEqual(
+            try Data(contentsOf: extraction.appendingPathComponent("database.sqlite")),
+            Data("database".utf8)
+        )
+        XCTAssertEqual(
+            try Data(contentsOf: extraction.appendingPathComponent("Assets/photo.asset")),
+            Data("photo-bytes".utf8)
+        )
+        XCTAssertEqual(
+            try Data(contentsOf: extraction.appendingPathComponent("Assets/logo.asset")),
+            Data("logo-bytes".utf8)
+        )
+    }
+
+    func testArchiveFailureRemovesPartialExport() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let directory = root.appendingPathComponent("generation", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let package = AppSnapshotPackage(
+            generationID: "opaque-generation",
+            directoryURL: directory,
+            manifestURL: directory.appendingPathComponent("manifest.json"),
+            databaseURL: directory.appendingPathComponent("database.sqlite")
+        )
+        let date = Date(timeIntervalSince1970: 1_783_800_000)
+        let service = ManualBackupService(
+            snapshotCreator: ManualBackupSnapshotCreator(package: package),
+            dateProvider: { date },
+            archiver: FailingManualBackupArchiver()
+        )
+        let expectedArchive = root.appendingPathComponent(
+            ManualBackupService.filename(for: date)
+        )
+
+        do {
+            _ = try await service.prepareBackup()
+            XCTFail("Expected archive failure")
+        } catch TestError.failed {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: expectedArchive.path))
+        }
     }
 
     @MainActor
@@ -107,4 +169,11 @@ private struct ManualBackupPreparingStub: ManualBackupPreparing {
 
 private enum TestError: Error {
     case failed
+}
+
+private struct FailingManualBackupArchiver: ManualBackupArchiving {
+    func archivePackage(at sourceURL: URL, to destinationURL: URL) throws {
+        try Data("partial".utf8).write(to: destinationURL)
+        throw TestError.failed
+    }
 }
