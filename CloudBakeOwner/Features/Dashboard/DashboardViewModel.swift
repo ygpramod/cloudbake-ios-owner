@@ -52,10 +52,11 @@ final class DashboardViewModel: ObservableObject {
         do {
             let orders = try repository.fetchOrders()
             let inventoryItems = try repository.fetchInventoryItems()
+            let now = orderPresentation.dateProvider()
             let shortages = try ProjectedIngredientDemand.shortages(
                 inventoryItems: inventoryItems,
                 orders: orders,
-                at: orderPresentation.dateProvider(),
+                at: now,
                 stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
                 recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
@@ -66,7 +67,7 @@ final class DashboardViewModel: ObservableObject {
             lowInventoryItems = try InventoryLowInventoryAlertRules.itemsForAlerts(
                 inventoryItems: inventoryItems,
                 activeOrders: orders,
-                date: orderPresentation.dateProvider(),
+                date: now,
                 inventoryStockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
                 orderRecipeUsage: repository.fetchOrderRecipeUsage(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
