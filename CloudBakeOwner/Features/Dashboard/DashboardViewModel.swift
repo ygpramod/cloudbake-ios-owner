@@ -67,9 +67,8 @@ final class DashboardViewModel: ObservableObject {
             lowInventoryItems = try InventoryLowInventoryAlertRules.itemsForAlerts(
                 inventoryItems: inventoryItems,
                 activeOrders: orders,
-                date: now,
-                inventoryStockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
                 orderRecipeUsage: repository.fetchOrderRecipeUsage(orderId:),
+                projectedShortageIds: Set(shortages.map(\.inventoryItemId)),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
                 recipeIngredients: repository.fetchRecipeIngredients(componentId:),
                 orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)

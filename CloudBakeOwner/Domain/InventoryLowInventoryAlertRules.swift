@@ -4,32 +4,19 @@ enum InventoryLowInventoryAlertRules {
     static func itemsForAlerts(
         inventoryItems: [InventoryItem],
         activeOrders: [Order],
-        date: Date,
-        inventoryStockBatches: (String) throws -> [InventoryStockBatch],
         orderRecipeUsage: (String) throws -> OrderRecipeUsage?,
+        projectedShortageIds: Set<String>,
         recipeComponents: (String) throws -> [RecipeComponent],
         recipeIngredients: (String) throws -> [RecipeIngredient],
         orderExtraIngredients: (String) throws -> [OrderExtraIngredient]
     ) throws -> [InventoryItem] {
         let neededInventoryItemIds = try neededInventoryItemIds(
             activeOrders: activeOrders,
+            orderRecipeUsage: orderRecipeUsage,
             recipeComponents: recipeComponents,
             recipeIngredients: recipeIngredients,
             orderExtraIngredients: orderExtraIngredients
         )
-        let projectedShortageIds = try Set(
-            ProjectedIngredientDemand.shortages(
-                inventoryItems: inventoryItems,
-                orders: activeOrders,
-                at: date,
-                stockBatches: inventoryStockBatches,
-                recipeUsage: orderRecipeUsage,
-                recipeComponents: recipeComponents,
-                recipeIngredients: recipeIngredients,
-                orderExtraIngredients: orderExtraIngredients
-            ).map(\.inventoryItemId)
-        )
-
         return inventoryItems.filter {
             $0.showsLowInventoryAlert(neededInventoryItemIds: neededInventoryItemIds)
                 || projectedShortageIds.contains($0.id)
@@ -38,6 +25,7 @@ enum InventoryLowInventoryAlertRules {
 
     private static func neededInventoryItemIds(
         activeOrders: [Order],
+        orderRecipeUsage: (String) throws -> OrderRecipeUsage?,
         recipeComponents: (String) throws -> [RecipeComponent],
         recipeIngredients: (String) throws -> [RecipeIngredient],
         orderExtraIngredients: (String) throws -> [OrderExtraIngredient]
@@ -45,6 +33,7 @@ enum InventoryLowInventoryAlertRules {
         var inventoryItemIds = Set<String>()
 
         for order in activeOrders where order.hasActiveReminderState {
+            guard try orderRecipeUsage(order.id) == nil else { continue }
             if let recipeId = order.recipeId {
                 let components = try recipeComponents(recipeId)
                 for component in components {

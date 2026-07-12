@@ -147,6 +147,46 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.lowInventoryItems, [fruit])
     }
 
+    func testLoadSuppressesPerishableAlertAfterActiveOrderUsageIsRecorded() {
+        let repository = FakeDashboardInventoryItemRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_140_000)
+        let fruit = makeInventoryItem(
+            id: "inventory-strawberry",
+            name: "Strawberry",
+            type: .perishable,
+            currentQuantity: 0,
+            minimumQuantity: 10
+        )
+        let order = makeOrder(
+            id: "order-fruit-cake",
+            recipeId: "recipe-fruit-cake",
+            status: .ready,
+            dueAt: timestamp
+        )
+        let component = makeRecipeComponent(id: "component-filling", recipeId: "recipe-fruit-cake")
+        repository.items = [fruit]
+        repository.orders = [order]
+        repository.components = [component]
+        repository.ingredients = [
+            makeRecipeIngredient(id: "ingredient-strawberry", componentId: component.id, inventoryItemId: fruit.id)
+        ]
+        repository.usages = [
+            OrderRecipeUsage(
+                id: "usage-fruit-cake",
+                orderId: order.id,
+                recipeId: "recipe-fruit-cake",
+                usedAt: timestamp,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+
+        let viewModel = DashboardViewModel(repository: repository)
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.lowInventoryItems, [])
+    }
+
     func testLoadShowsProjectedShortageAcrossActiveOrders() {
         let repository = FakeDashboardInventoryItemRepository()
         let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
