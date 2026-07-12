@@ -165,7 +165,7 @@ CI has passed the unit/integration job and all feature-sharded acceptance jobs:
 xcodebuild test -project CloudBakeOwner.xcodeproj -scheme CloudBakeOwner -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-GitHub Actions runs acceptance UI tests in four parallel shards:
-`core-recipes-customers`, `orders-core`, `orders-links`, and `inventory`. This keeps the
-unit/integration job plus acceptance jobs within the current five-runner macOS concurrency limit.
-When adding a new acceptance test, add it to the matching CI shard in `.github/workflows/ci.yml`.
+GitHub Actions runs acceptance UI tests in six feature shards: `core-recipes`, `orders-core`,
+`order-links`, `customers`, `inventory`, and `designs`. Customer workflows have their own shard so
+their runtime and failures do not extend the order-link shard. When adding a new acceptance test,
+add it to the matching CI shard in `.github/workflows/ci.yml`.
