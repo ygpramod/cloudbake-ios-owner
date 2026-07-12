@@ -366,6 +366,24 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(app.staticTexts["orders.detail.reminder.1"], in: app, timeout: transitionTimeout)
     }
 
+    func testOrderShowsProjectedIngredientShortageAcrossActiveOrders() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launchEnvironment["CLOUDBAKE_SEED_PROJECTED_DEMAND_FIXTURE"] = "1"
+        app.launch()
+
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.item.order-ui-projected-1"], timeout: transitionTimeout)
+
+        let warning = app.descendants(matching: .any)[
+            "orders.detail.ingredientShortage.inventory-ui-projected-flour"
+        ]
+        assertExistsAfterScrolling(warning, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(warning.label.contains("600 g"))
+        XCTAssertTrue(warning.label.contains("500 g"))
+    }
+
     func testOrderCanBeEditedFromDetail() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
