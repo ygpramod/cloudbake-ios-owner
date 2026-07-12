@@ -31,9 +31,11 @@ inventory batches consumed for the order.
 
 ## Persistence
 
-Migration `0027_add_order_ingredient_costs` derives a stable unit cost for priced remaining batches
-and creates one actual cost snapshot per order and inventory item. New stock calculates unit cost
-from purchase amount divided by batch quantity. Consumption preserves that unit cost.
+Migration `0027_add_order_ingredient_costs` leaves pre-slice batches unpriced because their original
+quantity cannot be reconstructed safely, and creates one actual cost snapshot per order and
+inventory item. New stock calculates unit cost from purchase amount divided by batch quantity.
+Consumption preserves that unit cost. Priced purchases remain separate batches even when their
+expiry date and total amount match, because combining their quantities would corrupt unit cost.
 
 ## Validation
 

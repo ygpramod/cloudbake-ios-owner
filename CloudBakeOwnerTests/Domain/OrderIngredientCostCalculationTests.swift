@@ -39,6 +39,21 @@ final class OrderIngredientCostCalculationTests: XCTestCase {
         XCTAssertEqual(summary.lines[0].missingPriceQuantity, 0, accuracy: 0.001)
     }
 
+    func testReportsRequiredQuantityThatHasNoUsableStockAsMissingPrice() throws {
+        let item = makeItem()
+        let batches = [makeBatch(id: "priced", quantity: 100, amount: 50, expiresIn: 1)]
+
+        let summary = try OrderIngredientCostCalculation.summary(
+            requirements: [(item, 300)],
+            batches: { _ in batches },
+            at: now
+        )
+
+        XCTAssertEqual(summary.knownCost, decimal("50"))
+        XCTAssertEqual(summary.lines[0].missingPriceQuantity, 200, accuracy: 0.001)
+        XCTAssertEqual(summary.itemsMissingPrice, ["Cake flour"])
+    }
+
     private func makeItem() -> InventoryItem {
         InventoryItem(
             id: "flour",

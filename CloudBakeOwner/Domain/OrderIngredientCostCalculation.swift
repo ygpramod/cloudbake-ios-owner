@@ -44,6 +44,7 @@ enum OrderIngredientCostCalculation {
                 }
                 quantityRemaining -= allocatedQuantity
             }
+            missingPriceQuantity += quantityRemaining
 
             return OrderIngredientCostLine(
                 inventoryItemId: requirement.item.id,

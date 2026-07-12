@@ -117,6 +117,11 @@ When order inventory is deducted, CloudBake saves the actual per-ingredient cost
 consumed. Later inventory price edits do not rewrite that actual cost. Deductions recorded before
 ingredient costing was introduced are not backfilled.
 
+Pre-existing batches are left without a derived unit cost because their original purchased quantity
+is not available after earlier consumption. The owner can correct their amount to establish a new
+cost basis. New priced purchases stay as separate batches so each purchase retains its correct unit
+cost.
+
 ## Stock Batch Correction
 
 Stock batch correction is used when a saved batch is wrong.

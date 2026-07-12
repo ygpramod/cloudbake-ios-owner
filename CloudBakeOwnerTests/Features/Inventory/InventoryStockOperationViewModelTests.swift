@@ -274,7 +274,7 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
         XCTAssertEqual(repository.batches.first?.remainingQuantity, 1_250)
     }
 
-    func testRecordStockAdjustmentCombinesBatchWhenExpiryAndUnitCostMatch() {
+    func testRecordStockAdjustmentKeepsPricedPurchasesSeparateWhenExpiryAndAmountMatch() {
         let repository = FakeInventoryItemRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_030_000)
         let adjustedAt = Date(timeIntervalSince1970: 1_800_030_100)
@@ -315,10 +315,10 @@ final class InventoryStockOperationViewModelTests: XCTestCase {
 
         XCTAssertTrue(viewModel.recordStockAdjustment())
 
-        XCTAssertEqual(repository.batches.count, 1)
-        XCTAssertEqual(repository.batches[0].id, "batch-flour-initial")
-        XCTAssertEqual(repository.batches[0].remainingQuantity, 350)
-        XCTAssertEqual(repository.batches[0].amount, Decimal(string: "2.50"))
+        XCTAssertEqual(repository.batches.count, 2)
+        XCTAssertEqual(repository.batches.map(\.remainingQuantity), [250, 100])
+        XCTAssertEqual(repository.batches.map(\.amount), [Decimal(string: "2.50"), Decimal(string: "2.50")])
+        XCTAssertEqual(repository.batches.map(\.unitCost), [decimal("0.01"), decimal("0.025")])
     }
 
     func testRecordStockAdjustmentKeepsSeparateBatchWhenUnitCostDiffers() {

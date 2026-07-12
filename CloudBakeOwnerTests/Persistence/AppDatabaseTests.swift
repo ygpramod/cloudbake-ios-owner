@@ -118,6 +118,43 @@ final class AppDatabaseTests: XCTestCase {
         )
     }
 
+    func testIngredientCostMigrationLeavesLegacyPartialBatchUnpriced() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0026_add_design_portfolio_publication")
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO inventory_items
+                    (id, name, unit, minimum_quantity, current_quantity, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: ["legacy-flour", "Legacy flour", "gram", 10, 50, 1_800_000_000, 1_800_000_000]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO inventory_stock_batches
+                    (id, inventory_item_id, remaining_quantity, amount_decimal, unit_cost_decimal, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: ["legacy-batch", "legacy-flour", 50, "10", "10", 1_800_000_000, 1_800_000_000]
+            )
+        }
+
+        try migrator.migrate(queue)
+
+        try queue.read { db in
+            let unitCost: String? = try String.fetchOne(
+                db,
+                sql: "SELECT unit_cost_decimal FROM inventory_stock_batches WHERE id = ?",
+                arguments: ["legacy-batch"]
+            )
+            XCTAssertNil(unitCost)
+            XCTAssertTrue(try db.tableExists("order_ingredient_costs"))
+        }
+    }
+
     func testCakeDesignProvenanceMigrationClassifiesExistingDesignsAsOwnerMade() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         let migrator = AppDatabaseMigrations.makeMigrator()
