@@ -170,6 +170,50 @@ final class CloudBackupPublicationTests: XCTestCase {
         XCTAssertEqual(currentGeneration, "generation-new")
         XCTAssertEqual(generationIDs, ["generation-new", "generation-old"])
     }
+
+    func testCancellationLeavesPointerUntouchedAndRetryReplacesPartialGeneration() async throws {
+        let fixture = try PublicationFixture()
+        defer { fixture.remove() }
+        let store = FakeCloudBackupStore(
+            currentGenerationID: "generation-old",
+            generationIDs: ["generation-old"],
+            suspendUpload: true
+        )
+        let publisher = CloudBackupPublisher(store: store)
+        let publication = Task {
+            try await publisher.publish(fixture.package)
+        }
+        try await waitForUpload(in: store)
+
+        publication.cancel()
+        do {
+            _ = try await publication.value
+            XCTFail("Expected publication cancellation")
+        } catch is CancellationError {
+            // Expected.
+        }
+        let currentAfterCancellation = await store.current()
+        XCTAssertEqual(currentAfterCancellation, "generation-old")
+
+        await store.allowUploads()
+        let retryResult = try await publisher.publish(fixture.package)
+
+        XCTAssertEqual(retryResult.generationID, "generation-new")
+        let currentAfterRetry = await store.current()
+        let events = await store.events()
+        XCTAssertEqual(currentAfterRetry, "generation-new")
+        XCTAssertTrue(events.contains("delete:generation-new"))
+    }
+
+    private func waitForUpload(in store: FakeCloudBackupStore) async throws {
+        for _ in 0..<100 {
+            if await store.events().contains(where: { $0.hasPrefix("upload:") }) {
+                return
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTFail("Publication did not reach upload phase")
+    }
 }
 
 private final class PublicationFixture: @unchecked Sendable {
@@ -251,6 +295,7 @@ private actor FakeCloudBackupStore: CloudBackupStoring {
     private var generations: [String: Generation]
     private let failurePoint: FailurePoint?
     private let replacePointerBeforePublishWith: String?
+    private var shouldSuspendUpload: Bool
     private var eventLog: [String] = []
 
     init(
@@ -259,11 +304,13 @@ private actor FakeCloudBackupStore: CloudBackupStoring {
         generationIDs: Set<String>,
         partialGenerationID: String? = nil,
         failurePoint: FailurePoint? = nil,
-        replacePointerBeforePublishWith: String? = nil
+        replacePointerBeforePublishWith: String? = nil,
+        suspendUpload: Bool = false
     ) {
         pointer = currentGenerationID
         self.failurePoint = failurePoint
         self.replacePointerBeforePublishWith = replacePointerBeforePublishWith
+        shouldSuspendUpload = suspendUpload
         generations = Dictionary(uniqueKeysWithValues: generationIDs.map {
             ($0, Generation(plan: nil, uploadedRecordNames: []))
         })
@@ -302,6 +349,9 @@ private actor FakeCloudBackupStore: CloudBackupStoring {
     func uploadFile(_ file: CloudBackupFileUpload, generationID: String) async throws {
         try failIfNeeded(.upload)
         eventLog.append("upload:\(file.recordName)")
+        if shouldSuspendUpload {
+            try await Task.sleep(nanoseconds: 30_000_000_000)
+        }
         generations[generationID]?.uploadedRecordNames.insert(file.recordName)
     }
 
@@ -341,6 +391,10 @@ private actor FakeCloudBackupStore: CloudBackupStoring {
     func current() -> String? { pointer }
     func allGenerationIDs() -> Set<String> { Set(generations.keys) }
     func events() -> [String] { eventLog }
+
+    func allowUploads() {
+        shouldSuspendUpload = false
+    }
 
     func isGenerationComplete(_ generationID: String) -> Bool {
         guard let generation = generations[generationID], let plan = generation.plan else {
