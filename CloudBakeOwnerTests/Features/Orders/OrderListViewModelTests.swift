@@ -1037,6 +1037,35 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.selectedOrderIngredientCostIsActual)
     }
 
+    func testOrderDetailDoesNotEstimateHistoricalUsageWithoutActualCostSnapshot() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_140_000)
+        let order = makeOrder(
+            id: "order-historical-cost",
+            recipeId: "recipe-cake",
+            status: .completed,
+            dueAt: timestamp
+        )
+        repository.orders = [order]
+        repository.recipes = [makeRecipe(id: "recipe-cake", name: "Cake")]
+        repository.usages = [
+            OrderRecipeUsage(
+                id: "usage-historical-cost",
+                orderId: order.id,
+                recipeId: "recipe-cake",
+                usedAt: timestamp,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+        let viewModel = OrderListViewModel(repository: repository, dateProvider: { timestamp })
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertNil(viewModel.selectedOrderIngredientCost)
+        XCTAssertTrue(viewModel.selectedOrderIngredientCostIsActual)
+    }
+
     func testFailedStatusEditDoesNotPersistDraftExtraIngredients() {
         let repository = FakeOrderRepository()
         let order = makeOrder(

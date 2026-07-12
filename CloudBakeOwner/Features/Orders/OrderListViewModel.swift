@@ -1353,6 +1353,12 @@ final class OrderListViewModel: ObservableObject {
                 return
             }
 
+            if try repository.fetchOrderRecipeUsage(orderId: order.id) != nil {
+                selectedOrderIngredientCost = nil
+                selectedOrderIngredientCostIsActual = true
+                return
+            }
+
             let requirements = try OrderIngredientRequirements.requirements(
                 for: order,
                 inventoryItems: inventoryItems,
