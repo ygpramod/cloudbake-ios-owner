@@ -1335,7 +1335,10 @@ final class OrderListViewModel: ObservableObject {
         do {
             let actualCosts = try repository.fetchOrderIngredientCosts(orderId: order.id)
             if !actualCosts.isEmpty {
-                let itemsById = Dictionary(uniqueKeysWithValues: inventoryItems.map { ($0.id, $0) })
+                let archivedItems = try repository.fetchArchivedInventoryItems()
+                let itemsById = Dictionary(
+                    uniqueKeysWithValues: (inventoryItems + archivedItems).map { ($0.id, $0) }
+                )
                 selectedOrderIngredientCost = OrderIngredientCostSummary(
                     lines: actualCosts.compactMap { cost in
                         guard let item = itemsById[cost.inventoryItemId] else { return nil }

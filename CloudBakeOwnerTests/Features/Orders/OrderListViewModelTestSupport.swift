@@ -389,7 +389,7 @@ final class FakeOrderRepository: OrderRepository,
     }
 
     func fetchInventoryItems() throws -> [InventoryItem] {
-        inventoryItems.sorted { lhs, rhs in
+        inventoryItems.filter { !$0.isArchived }.sorted { lhs, rhs in
             lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
     }
