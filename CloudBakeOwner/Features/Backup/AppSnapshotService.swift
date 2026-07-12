@@ -32,6 +32,7 @@ enum AppSnapshotError: Error, Equatable {
     case payloadSizeMismatch(String)
     case payloadChecksumMismatch(String)
     case totalSizeMismatch
+    case invalidPayloadSize(String)
     case incompatibleManifest(BackupManifestCompatibility)
     case missingDatabaseSchemaVersion
 }
@@ -45,6 +46,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
     private let stagingRoot: URL
     private let minimumCompatibleAppVersion: String
     private let currentAppVersion: String
+    private let externalAssetResolver: any BackupExternalAssetResolving
     private let now: @Sendable () -> Date
     private let makeGenerationID: @Sendable () -> String
     private let didCaptureDatabase: @Sendable () throws -> Void
@@ -57,6 +59,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         stagingRoot: URL,
         minimumCompatibleAppVersion: String,
         currentAppVersion: String,
+        externalAssetResolver: any BackupExternalAssetResolving = PhotoKitBackupAssetResolver(),
         now: @escaping @Sendable () -> Date = Date.init,
         makeGenerationID: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() },
         didCaptureDatabase: @escaping @Sendable () throws -> Void = {},
@@ -68,6 +71,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         self.stagingRoot = stagingRoot.standardizedFileURL
         self.minimumCompatibleAppVersion = minimumCompatibleAppVersion
         self.currentAppVersion = currentAppVersion
+        self.externalAssetResolver = externalAssetResolver
         self.now = now
         self.makeGenerationID = makeGenerationID
         self.didCaptureDatabase = didCaptureDatabase
@@ -95,12 +99,18 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         do {
             let databaseURL = buildingURL.appendingPathComponent(Self.databaseFilename)
             try database.writeBackupSnapshot(to: databaseURL)
+            let databaseCapturedAt = Date()
             try didCaptureDatabase()
 
             let snapshotDatabase = try DatabaseQueue(path: databaseURL.path)
             let schemaVersion = try readSchemaVersion(from: snapshotDatabase)
-            let assetPaths = try readManagedAssetPaths(from: snapshotDatabase)
-            let assets = try stageAssets(assetPaths, in: buildingURL)
+            let assetSources = try readAssetSources(from: snapshotDatabase)
+            let assets = try await stageAssets(
+                assetSources,
+                capturedAt: databaseCapturedAt,
+                snapshotDatabase: snapshotDatabase,
+                in: buildingURL
+            )
             let databaseDescriptor = try describeFile(
                 at: databaseURL,
                 relativePath: Self.databaseFilename
@@ -144,9 +154,14 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         guard compatibility == .compatible else {
             throw AppSnapshotError.incompatibleManifest(compatibility)
         }
-        let calculatedTotal = manifest.database.byteCount
-            + manifest.assets.reduce(0) { $0 + $1.file.byteCount }
-        guard manifest.totalByteCount == calculatedTotal else {
+        guard let calculatedTotal = BackupManifest.calculatedTotalByteCount(
+            database: manifest.database,
+            assets: manifest.assets
+        ) else {
+            throw AppSnapshotError.invalidPayloadSize(Self.manifestFilename)
+        }
+        guard manifest.totalByteCount >= 0,
+              manifest.totalByteCount == calculatedTotal else {
             throw AppSnapshotError.totalSizeMismatch
         }
 
@@ -181,8 +196,8 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         return version
     }
 
-    private func readManagedAssetPaths(from database: DatabaseQueue) throws -> [String] {
-        var paths = try database.read { db in
+    private func readAssetSources(from database: DatabaseQueue) throws -> [SnapshotAssetSource] {
+        var references = try database.read { db in
             let designPaths = try String.fetchAll(
                 db,
                 sql: "SELECT photo_reference FROM cake_designs WHERE photo_reference IS NOT NULL"
@@ -195,31 +210,37 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         }
         let logoPath = "Branding/custom-logo.jpg"
         if fileManager.fileExists(atPath: appStorageRoot.appendingPathComponent(logoPath).path) {
-            paths.append(logoPath)
+            references.append(logoPath)
         }
-        return Array(Set(paths.filter { !$0.hasPrefix("photos://") })).sorted()
+        return Array(Set(references)).sorted().map { reference in
+            if reference.hasPrefix(PhotoKitDesignPhotoLibrary.referencePrefix) {
+                let referenceHash = BackupChecksum.sha256(of: Data(reference.utf8))
+                return SnapshotAssetSource(
+                    sourceReference: reference,
+                    recoveryRelativePath: "RecoveredPhotos/\(referenceHash).jpg",
+                    isExternal: true
+                )
+            }
+            return SnapshotAssetSource(
+                sourceReference: reference,
+                recoveryRelativePath: reference,
+                isExternal: false
+            )
+        }
     }
 
     private func stageAssets(
-        _ paths: [String],
+        _ sources: [SnapshotAssetSource],
+        capturedAt: Date,
+        snapshotDatabase: DatabaseQueue,
         in buildingURL: URL
-    ) throws -> [BackupAssetDescriptor] {
+    ) async throws -> [BackupAssetDescriptor] {
         var descriptors: [BackupAssetDescriptor] = []
-        for path in paths {
+        for source in sources {
+            let path = source.recoveryRelativePath
             guard BackupPath.isSafeRelativePath(path) else {
                 throw AppSnapshotError.invalidAssetPath(path)
             }
-            let sourceURL = appStorageRoot.appendingPathComponent(path).standardizedFileURL
-            let resolvedSourceURL = sourceURL.resolvingSymlinksInPath()
-            let resolvedStorageRoot = appStorageRoot.resolvingSymlinksInPath()
-            let sourceValues = try? sourceURL.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
-            guard isContained(resolvedSourceURL, in: resolvedStorageRoot),
-                  sourceValues?.isRegularFile == true,
-                  sourceValues?.isSymbolicLink != true,
-                  fileManager.fileExists(atPath: sourceURL.path) else {
-                throw AppSnapshotError.assetMissing(path)
-            }
-
             let opaqueFilename = BackupChecksum.sha256(of: Data(path.utf8))
             let stagedPath = "Assets/\(opaqueFilename).asset"
             let destinationURL = buildingURL.appendingPathComponent(stagedPath)
@@ -227,20 +248,81 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
                 at: destinationURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
-            let sourceChecksumBefore = try BackupChecksum.sha256(of: sourceURL)
-            try fileManager.copyItem(at: sourceURL, to: destinationURL)
-            try didCopyAsset(path)
-            let sourceChecksumAfter = try BackupChecksum.sha256(of: sourceURL)
-            let descriptor = try describeFile(at: destinationURL, relativePath: stagedPath)
-            guard sourceChecksumBefore == sourceChecksumAfter,
-                  descriptor.sha256 == sourceChecksumBefore else {
-                throw AppSnapshotError.assetChanged(path)
+            if source.isExternal {
+                let resolved = try await externalAssetResolver.resolve(reference: source.sourceReference)
+                guard resolved.modificationDate.map({ $0 <= capturedAt }) ?? true else {
+                    throw AppSnapshotError.assetChanged(path)
+                }
+                try resolved.data.write(to: destinationURL, options: .atomic)
+                try rewriteExternalReference(
+                    source.sourceReference,
+                    to: path,
+                    in: snapshotDatabase
+                )
+            } else {
+                try stageLocalAsset(
+                    sourceReference: source.sourceReference,
+                    recoveryRelativePath: path,
+                    capturedAt: capturedAt,
+                    destinationURL: destinationURL
+                )
             }
+            let descriptor = try describeFile(at: destinationURL, relativePath: stagedPath)
             descriptors.append(
                 BackupAssetDescriptor(originalRelativePath: path, file: descriptor)
             )
         }
         return descriptors
+    }
+
+    private func stageLocalAsset(
+        sourceReference: String,
+        recoveryRelativePath: String,
+        capturedAt: Date,
+        destinationURL: URL
+    ) throws {
+        let sourceURL = appStorageRoot.appendingPathComponent(sourceReference).standardizedFileURL
+        let resolvedSourceURL = sourceURL.resolvingSymlinksInPath()
+        let resolvedStorageRoot = appStorageRoot.resolvingSymlinksInPath()
+        let sourceValues = try? sourceURL.resourceValues(
+            forKeys: [.contentModificationDateKey, .isRegularFileKey, .isSymbolicLinkKey]
+        )
+        guard isContained(resolvedSourceURL, in: resolvedStorageRoot),
+              sourceValues?.isRegularFile == true,
+              sourceValues?.isSymbolicLink != true,
+              fileManager.fileExists(atPath: sourceURL.path) else {
+            throw AppSnapshotError.assetMissing(recoveryRelativePath)
+        }
+        guard sourceValues?.contentModificationDate.map({ $0 <= capturedAt }) ?? false else {
+            throw AppSnapshotError.assetChanged(recoveryRelativePath)
+        }
+
+        let sourceChecksumBefore = try BackupChecksum.sha256(of: sourceURL)
+        try fileManager.copyItem(at: sourceURL, to: destinationURL)
+        try didCopyAsset(recoveryRelativePath)
+        let sourceChecksumAfter = try BackupChecksum.sha256(of: sourceURL)
+        let destinationChecksum = try BackupChecksum.sha256(of: destinationURL)
+        guard sourceChecksumBefore == sourceChecksumAfter,
+              destinationChecksum == sourceChecksumBefore else {
+            throw AppSnapshotError.assetChanged(recoveryRelativePath)
+        }
+    }
+
+    private func rewriteExternalReference(
+        _ externalReference: String,
+        to recoveryRelativePath: String,
+        in database: DatabaseQueue
+    ) throws {
+        try database.write { db in
+            try db.execute(
+                sql: "UPDATE cake_designs SET photo_reference = ? WHERE photo_reference = ?",
+                arguments: [recoveryRelativePath, externalReference]
+            )
+            try db.execute(
+                sql: "UPDATE order_photos SET local_photo_path = ? WHERE local_photo_path = ?",
+                arguments: [recoveryRelativePath, externalReference]
+            )
+        }
     }
 
     private func describeFile(at url: URL, relativePath: String) throws -> BackupFileDescriptor {
@@ -258,7 +340,15 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
             throw AppSnapshotError.invalidManifestPath(descriptor.relativePath)
         }
         let fileURL = packageURL.appendingPathComponent(descriptor.relativePath).standardizedFileURL
-        guard isContained(fileURL, in: packageURL.standardizedFileURL),
+        let resolvedFileURL = fileURL.resolvingSymlinksInPath()
+        let resolvedPackageURL = packageURL.standardizedFileURL.resolvingSymlinksInPath()
+        let values = try? fileURL.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+        guard descriptor.byteCount >= 0 else {
+            throw AppSnapshotError.invalidPayloadSize(descriptor.relativePath)
+        }
+        guard isContained(resolvedFileURL, in: resolvedPackageURL),
+              values?.isRegularFile == true,
+              values?.isSymbolicLink != true,
               fileManager.fileExists(atPath: fileURL.path) else {
             throw AppSnapshotError.missingPayload(descriptor.relativePath)
         }
@@ -293,4 +383,10 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }
+}
+
+private struct SnapshotAssetSource {
+    let sourceReference: String
+    let recoveryRelativePath: String
+    let isExternal: Bool
 }

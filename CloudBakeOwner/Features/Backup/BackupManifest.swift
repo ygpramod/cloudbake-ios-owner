@@ -29,7 +29,25 @@ struct BackupManifest: Codable, Equatable, Sendable {
         self.createdAt = createdAt
         self.database = database
         self.assets = assets.sorted { $0.originalRelativePath < $1.originalRelativePath }
-        totalByteCount = database.byteCount + assets.reduce(0) { $0 + $1.file.byteCount }
+        totalByteCount = Self.calculatedTotalByteCount(
+            database: database,
+            assets: assets
+        ) ?? -1
+    }
+
+    static func calculatedTotalByteCount(
+        database: BackupFileDescriptor,
+        assets: [BackupAssetDescriptor]
+    ) -> Int64? {
+        guard database.byteCount >= 0 else { return nil }
+        var total = database.byteCount
+        for asset in assets {
+            guard asset.file.byteCount >= 0 else { return nil }
+            let addition = total.addingReportingOverflow(asset.file.byteCount)
+            guard !addition.overflow else { return nil }
+            total = addition.partialValue
+        }
+        return total
     }
 }
 

@@ -23,12 +23,24 @@ final class AppSnapshotServiceTests: XCTestCase {
             try String.fetchAll(db, sql: "SELECT id FROM cake_designs ORDER BY id")
         }
         XCTAssertEqual(designIDs, ["captured", "external"])
+        let recoveredExternalReference = try await snapshotQueue.read { db in
+            try String.fetchOne(
+                db,
+                sql: "SELECT photo_reference FROM cake_designs WHERE id = 'external'"
+            )
+        }
+        XCTAssertNotNil(recoveredExternalReference)
+        XCTAssertFalse(try XCTUnwrap(recoveredExternalReference).hasPrefix("photos://"))
 
         let manifest = try fixture.decodeManifest(at: package.manifestURL)
         XCTAssertEqual(manifest.databaseSchemaVersion, "0027_add_order_ingredient_costs")
         XCTAssertEqual(
             manifest.assets.map(\.originalRelativePath),
-            ["Branding/custom-logo.jpg", "OrderPhotos/design.jpg"]
+            [
+                "Branding/custom-logo.jpg",
+                "OrderPhotos/design.jpg",
+                try XCTUnwrap(recoveredExternalReference)
+            ].sorted()
         )
         let designAsset = try XCTUnwrap(
             manifest.assets.first { $0.originalRelativePath == "OrderPhotos/design.jpg" }
@@ -70,6 +82,73 @@ final class AppSnapshotServiceTests: XCTestCase {
         }
     }
 
+    func testValidationRejectsOverflowingManifestSizesWithoutReadingPayloads() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let packageURL = fixture.root.appendingPathComponent("HostilePackage", isDirectory: true)
+        try FileManager.default.createDirectory(at: packageURL, withIntermediateDirectories: true)
+        let json = """
+            {
+              "formatVersion": 1,
+              "databaseSchemaVersion": "0027_add_order_ingredient_costs",
+              "minimumCompatibleAppVersion": "1.0",
+              "generationID": "hostile",
+              "createdAt": "2027-01-15T08:00:00Z",
+              "database": {"relativePath":"database.sqlite","byteCount":9223372036854775807,"sha256":"db"},
+              "assets": [{"originalRelativePath":"asset.jpg","file":{"relativePath":"Assets/a.asset","byteCount":1,"sha256":"asset"}}],
+              "totalByteCount": 0
+            }
+            """
+        try Data(json.utf8).write(
+            to: packageURL.appendingPathComponent(AppSnapshotService.manifestFilename)
+        )
+
+        do {
+            try await fixture.service().validatePackage(at: packageURL)
+            XCTFail("Expected invalid sizes to fail validation")
+        } catch let error as AppSnapshotError {
+            XCTAssertEqual(error, .invalidPayloadSize("manifest.json"))
+        }
+    }
+
+    func testValidationRejectsSymlinkPayload() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let package = try await fixture.service().createSnapshot()
+        let externalFile = fixture.root.appendingPathComponent("external.sqlite")
+        try FileManager.default.copyItem(at: package.databaseURL, to: externalFile)
+        try FileManager.default.removeItem(at: package.databaseURL)
+        try FileManager.default.createSymbolicLink(
+            at: package.databaseURL,
+            withDestinationURL: externalFile
+        )
+
+        do {
+            try await fixture.service().validatePackage(at: package.directoryURL)
+            XCTFail("Expected symlink payload to fail validation")
+        } catch let error as AppSnapshotError {
+            XCTAssertEqual(error, .missingPayload("database.sqlite"))
+        }
+    }
+
+    func testUnavailableExternalPhotoFailsSnapshotAndCleansStaging() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.database.makeCoreDataRepository().save(
+            fixture.design(id: "external", photoReference: "photos://missing")
+        )
+
+        do {
+            _ = try await fixture.service(
+                externalAssetResolver: UnavailableExternalAssetResolver()
+            ).createSnapshot()
+            XCTFail("Expected missing PhotoKit asset to fail snapshot creation")
+        } catch let error as BackupExternalAssetResolverError {
+            XCTAssertEqual(error, .assetUnavailable)
+        }
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: fixture.stagingRoot.path), [])
+    }
+
     func testMissingReferencedAssetFailsAndRemovesBuildingDirectory() async throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -93,9 +172,9 @@ final class AppSnapshotServiceTests: XCTestCase {
         try fixture.database.makeCoreDataRepository().save(
             fixture.design(id: "changing", photoReference: "OrderPhotos/design.jpg")
         )
-        let service = fixture.service { _ in
+        let service = fixture.service(didCopyAsset: { _ in
             try fixture.write(Data("after".utf8), to: "OrderPhotos/design.jpg")
-        }
+        })
 
         do {
             _ = try await service.createSnapshot()
@@ -138,7 +217,8 @@ private final class Fixture: @unchecked Sendable {
 
     func service(
         didCaptureDatabase: @escaping @Sendable () throws -> Void = {},
-        didCopyAsset: @escaping @Sendable (String) throws -> Void = { _ in }
+        didCopyAsset: @escaping @Sendable (String) throws -> Void = { _ in },
+        externalAssetResolver: any BackupExternalAssetResolving = FakeExternalAssetResolver()
     ) -> AppSnapshotService {
         AppSnapshotService(
             database: database,
@@ -146,6 +226,7 @@ private final class Fixture: @unchecked Sendable {
             stagingRoot: stagingRoot,
             minimumCompatibleAppVersion: "1.0",
             currentAppVersion: "1.0",
+            externalAssetResolver: externalAssetResolver,
             now: { Date(timeIntervalSince1970: 1_800_000_000) },
             makeGenerationID: { "generation-1" },
             didCaptureDatabase: didCaptureDatabase,
@@ -181,5 +262,23 @@ private final class Fixture: @unchecked Sendable {
 
     func remove() {
         try? FileManager.default.removeItem(at: root)
+    }
+}
+
+private struct FakeExternalAssetResolver: BackupExternalAssetResolving {
+    func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
+        guard reference == "photos://asset-id" else {
+            throw BackupExternalAssetResolverError.assetUnavailable
+        }
+        return BackupResolvedExternalAsset(
+            data: Data("external-photo".utf8),
+            modificationDate: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+    }
+}
+
+private struct UnavailableExternalAssetResolver: BackupExternalAssetResolving {
+    func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
+        throw BackupExternalAssetResolverError.assetUnavailable
     }
 }

@@ -52,6 +52,15 @@ final class BackupManifestTests: XCTestCase {
         )
     }
 
+    func testTotalSizeCalculationRejectsNegativeAndOverflowingMetadata() {
+        let database = BackupFileDescriptor(relativePath: "database.sqlite", byteCount: Int64.max, sha256: "db")
+        let asset = makeAsset(path: "OrderPhotos/a.jpg", bytes: 1)
+        XCTAssertNil(BackupManifest.calculatedTotalByteCount(database: database, assets: [asset]))
+
+        let negative = BackupFileDescriptor(relativePath: "database.sqlite", byteCount: -1, sha256: "db")
+        XCTAssertNil(BackupManifest.calculatedTotalByteCount(database: negative, assets: []))
+    }
+
     private func makeManifest(
         formatVersion: Int = BackupManifest.currentFormatVersion,
         minimumAppVersion: String = "1.0",
