@@ -33,7 +33,7 @@ Out of scope:
 - a separate alias management screen,
 - alias conflict review,
 - automatically learning aliases from corrected bill drafts,
-- exporting or importing aliases through inventory CSV.
+- exporting or importing aliases through inventory CSV (delivered later by Slice RFC-0094).
 
 ## Requirements
 

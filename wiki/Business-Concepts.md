@@ -116,8 +116,9 @@ Restoring moves an archived inventory item back to the active inventory list.
 
 Inventory CSV is an owner-controlled import/export format for active inventory and stock batches.
 
-It uses the columns `name`, `unit`, `current_quantity`, `minimum_quantity`, `batch_quantity`,
-`amount`, and `expiry_date`. Dates use `yyyy-MM-dd`.
+It uses the columns `name`, `aliases`, `type`, `unit`, `current_quantity`, `minimum_quantity`,
+`batch_quantity`, `amount`, and `expiry_date`. Aliases are comma-separated inside the CSV field,
+type is Standard or Perishable, and dates use `yyyy-MM-dd`.
 
 CSV import can create new inventory items or update matching active items by name and unit. Updating
 from CSV replaces the matched item's stock batches, so it should be treated as a deliberate data

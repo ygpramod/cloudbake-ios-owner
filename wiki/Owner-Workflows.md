@@ -229,13 +229,14 @@ recipes start reducing inventory automatically.
 
 Use Settings when inventory data needs to move into or out of CloudBake.
 
-Inventory CSV export saves active inventory and stock batches with name, unit, current quantity,
-minimum quantity, batch quantity, and expiry date.
+Inventory CSV export saves active inventory and stock batches with name, aliases, inventory type,
+unit, current quantity, minimum quantity, batch quantity, amount, and expiry date.
 
 Inventory CSV import creates new active inventory items or updates matching active items by name
 and unit. When an imported row matches an existing item, the imported stock batches replace that
-item's saved stock batches so the CSV can be used as a deliberate correction source. The owner
-should review the CSV before import because there is no separate conflict review screen yet.
+item's aliases, inventory type, and saved stock batches so the CSV can be used as a deliberate
+correction source. Import requires the `aliases` and `type` columns. The owner should review the CSV
+before import because there is no separate conflict review screen yet.
 
 ## Archive Inventory
 
