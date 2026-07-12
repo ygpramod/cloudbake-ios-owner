@@ -426,8 +426,9 @@ struct SettingsView: View {
                 isImportingInventory = true
             }
         case .exportInventory:
-            if let document = viewModel.exportInventoryDocument() {
-                dismissDataOperationPopup {
+            let document = viewModel.exportInventoryDocument()
+            dismissDataOperationPopup {
+                if let document {
                     presentExporter(document: document, kind: .inventory)
                 }
             }
@@ -436,8 +437,9 @@ struct SettingsView: View {
                 isImportingRecipes = true
             }
         case .exportRecipes:
-            if let document = viewModel.exportRecipeDocument() {
-                dismissDataOperationPopup {
+            let document = viewModel.exportRecipeDocument()
+            dismissDataOperationPopup {
+                if let document {
                     presentExporter(document: document, kind: .recipes)
                 }
             }
