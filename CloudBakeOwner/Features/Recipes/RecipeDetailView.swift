@@ -20,17 +20,6 @@ struct RecipeDetailView: View {
                     isEditingRecipe = true
                 }
             ),
-            secondaryActions: [
-                CloudBakeDetailAction(
-                    title: "Add Ingredient",
-                    systemImage: "plus",
-                    accessibilityIdentifier: "recipes.ingredient.add",
-                    action: {
-                        viewModel.beginAddingIngredient()
-                        isEditingIngredient = true
-                    }
-                )
-            ],
             onBack: {
                 isPresented = false
             }
@@ -63,14 +52,25 @@ struct RecipeDetailView: View {
                     }
                 }
 
-                if viewModel.recipeIngredients.isEmpty {
-                    CloudBakeEmptyState(
-                        title: "No ingredients yet",
-                        systemImage: "list.bullet",
-                        message: "Add linked inventory items with the quantity needed for this recipe."
+                CloudBakeSection(
+                    "Ingredients",
+                    action: CloudBakeSectionAction(
+                        title: "Add Ingredient",
+                        systemImage: "plus",
+                        accessibilityIdentifier: "recipes.ingredient.add",
+                        action: {
+                            viewModel.beginAddingIngredient()
+                            isEditingIngredient = true
+                        }
                     )
-                } else {
-                    CloudBakeSection("Ingredients") {
+                ) {
+                    if viewModel.recipeIngredients.isEmpty {
+                        CloudBakeEmptyState(
+                            title: "No ingredients yet",
+                            systemImage: "list.bullet",
+                            message: "Add linked inventory items with the quantity needed for this recipe."
+                        )
+                    } else {
                         CloudBakeDetailCard {
                         ForEach(viewModel.recipeIngredients) { row in
                             HStack(spacing: 12) {

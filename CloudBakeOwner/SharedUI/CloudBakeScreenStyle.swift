@@ -275,24 +275,54 @@ struct CloudBakeDetailDivider: View {
 
 struct CloudBakeSection<Content: View>: View {
     let title: String?
+    let action: CloudBakeSectionAction?
     @ViewBuilder let content: Content
 
-    init(_ title: String? = nil, @ViewBuilder content: () -> Content) {
+    init(
+        _ title: String? = nil,
+        action: CloudBakeSectionAction? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
         self.title = title
+        self.action = action
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: CloudBakeTheme.Spacing.sectionContent) {
             if let title {
-                Text(title)
-                    .font(CloudBakeTheme.Typography.sectionTitle)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 12) {
+                    Text(title)
+                        .font(CloudBakeTheme.Typography.sectionTitle)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    if let action {
+                        Button(action: action.action) {
+                            Image(systemName: action.systemImage)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
+                                .frame(minWidth: 50, minHeight: 36)
+                        }
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.capsule)
+                        .accessibilityLabel(action.title)
+                        .accessibilityIdentifier(action.accessibilityIdentifier)
+                    }
+                }
             }
 
             content
         }
     }
+}
+
+struct CloudBakeSectionAction {
+    let title: String
+    let systemImage: String
+    let accessibilityIdentifier: String
+    let action: () -> Void
 }
 
 struct CloudBakeListCard<Content: View>: View {

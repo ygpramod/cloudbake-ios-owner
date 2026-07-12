@@ -22,12 +22,6 @@ struct InventoryListView: View {
         CloudBakeScreenScaffold(
             title: "Inventory",
             selectedDestination: .inventory,
-            primaryAction: CloudBakeScreenAction(
-                title: "Add inventory item",
-                systemImage: "plus",
-                accessibilityIdentifier: "inventory.add",
-                action: { isAddingItem = true }
-            ),
             secondaryActions: [
                 CloudBakeScreenAction(
                     title: "Archived inventory",
@@ -45,11 +39,7 @@ struct InventoryListView: View {
             collapsesActionsIntoMenu: true
         ) {
             if viewModel.items.isEmpty {
-                CloudBakeEmptyState(
-                    title: "No inventory yet",
-                    systemImage: "shippingbox",
-                    message: "Add ingredients and supplies as you stock the kitchen."
-                )
+                inventoryResults
             } else {
                 CloudBakeSearchField(
                     text: $viewModel.searchText,
@@ -168,16 +158,30 @@ struct InventoryListView: View {
 
     @ViewBuilder
     private var inventoryResults: some View {
-        if viewModel.visibleItems.isEmpty {
-            CloudBakeEmptyState(
-                title: "No matching inventory",
-                systemImage: "magnifyingglass",
-                message: viewModel.searchText.isEmpty
-                    ? "Try another stock filter."
-                    : "Try another ingredient, alias, or unit name."
+        CloudBakeSection(
+            "Items",
+            action: CloudBakeSectionAction(
+                title: "Add inventory item",
+                systemImage: "plus",
+                accessibilityIdentifier: "inventory.add",
+                action: { isAddingItem = true }
             )
-        } else {
-            CloudBakeSection("Items") {
+        ) {
+            if viewModel.items.isEmpty {
+                CloudBakeEmptyState(
+                    title: "No inventory yet",
+                    systemImage: "shippingbox",
+                    message: "Add ingredients and supplies as you stock the kitchen."
+                )
+            } else if viewModel.visibleItems.isEmpty {
+                CloudBakeEmptyState(
+                    title: "No matching inventory",
+                    systemImage: "magnifyingglass",
+                    message: viewModel.searchText.isEmpty
+                        ? "Try another stock filter."
+                        : "Try another ingredient, alias, or unit name."
+                )
+            } else {
                 VStack(spacing: 16) {
                     ForEach(viewModel.visibleItems, id: \.id) { item in
                         inventoryItemCard(item)
