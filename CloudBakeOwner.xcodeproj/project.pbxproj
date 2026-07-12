@@ -20,6 +20,7 @@
 		4100000000000000000000D3 /* AppSnapshotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D3 /* AppSnapshotService.swift */; };
 		4100000000000000000000D4 /* AppSnapshotServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D4 /* AppSnapshotServiceTests.swift */; };
 		4100000000000000000000D5 /* PhotoKitBackupAssetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D5 /* PhotoKitBackupAssetResolver.swift */; };
+		4100000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -191,6 +192,7 @@
 		4200000000000000000000D3 /* AppSnapshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSnapshotService.swift; sourceTree = "<group>"; };
 		4200000000000000000000D4 /* AppSnapshotServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSnapshotServiceTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000D5 /* PhotoKitBackupAssetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoKitBackupAssetResolver.swift; sourceTree = "<group>"; };
+		4200000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoKitBackupAssetResolverTests.swift; sourceTree = "<group>"; };
 		420000000000000000000011 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		420000000000000000000012 /* AppDatabaseMigrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseMigrations.swift; sourceTree = "<group>"; };
 		420000000000000000000013 /* HealthCheckRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckRepository.swift; sourceTree = "<group>"; };
@@ -638,6 +640,7 @@
 			children = (
 				4200000000000000000000D4 /* AppSnapshotServiceTests.swift */,
 				4200000000000000000000D2 /* BackupManifestTests.swift */,
+				4200000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift */,
 			);
 			path = Backup;
 			sourceTree = "<group>";
@@ -982,6 +985,7 @@
 			files = (
 				4100000000000000000000D4 /* AppSnapshotServiceTests.swift in Sources */,
 				4100000000000000000000D2 /* BackupManifestTests.swift in Sources */,
+				4100000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift in Sources */,
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
 				41000000000000000000000B /* AppDatabaseTests.swift in Sources */,
 					410000000000000000000018 /* BakingCatalogTests.swift in Sources */,

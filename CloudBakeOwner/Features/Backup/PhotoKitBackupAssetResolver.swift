@@ -4,7 +4,7 @@ import UIKit
 
 struct BackupResolvedExternalAsset: Sendable {
     let data: Data
-    let modificationDate: Date?
+    let modificationDate: Date
 }
 
 protocol BackupExternalAssetResolving: Sendable {
@@ -15,6 +15,7 @@ enum BackupExternalAssetResolverError: Error, Equatable {
     case accessDenied
     case assetUnavailable
     case assetChangedDuringRead
+    case missingVersionMetadata
     case imageEncodingFailed
 }
 
@@ -36,7 +37,10 @@ struct PhotoKitBackupAssetResolver: BackupExternalAssetResolving {
             throw BackupExternalAssetResolverError.assetUnavailable
         }
 
-        let initialVersionDate = asset.modificationDate ?? asset.creationDate
+        let initialVersionDate = try Self.versionDate(
+            modificationDate: asset.modificationDate,
+            creationDate: asset.creationDate
+        )
         let image = try await requestLightweightImage(for: asset)
         try Task.checkCancellation()
         guard let refreshedAsset = PHAsset.fetchAssets(
@@ -45,7 +49,10 @@ struct PhotoKitBackupAssetResolver: BackupExternalAssetResolving {
         ).firstObject else {
             throw BackupExternalAssetResolverError.assetUnavailable
         }
-        let finalVersionDate = refreshedAsset.modificationDate ?? refreshedAsset.creationDate
+        let finalVersionDate = try Self.versionDate(
+            modificationDate: refreshedAsset.modificationDate,
+            creationDate: refreshedAsset.creationDate
+        )
         guard initialVersionDate == finalVersionDate else {
             throw BackupExternalAssetResolverError.assetChangedDuringRead
         }
@@ -56,6 +63,13 @@ struct PhotoKitBackupAssetResolver: BackupExternalAssetResolving {
             data: data,
             modificationDate: finalVersionDate
         )
+    }
+
+    static func versionDate(modificationDate: Date?, creationDate: Date?) throws -> Date {
+        guard let versionDate = modificationDate ?? creationDate else {
+            throw BackupExternalAssetResolverError.missingVersionMetadata
+        }
+        return versionDate
     }
 
     private func requestLightweightImage(for asset: PHAsset) async throws -> UIImage {

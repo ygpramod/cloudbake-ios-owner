@@ -255,7 +255,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
             if source.isExternal {
                 let resolved = try await externalAssetResolver.resolve(reference: source.sourceReference)
                 try Task.checkCancellation()
-                guard resolved.modificationDate.map({ $0 <= capturedAt }) ?? true else {
+                guard resolved.modificationDate <= capturedAt else {
                     throw AppSnapshotError.assetChanged(path)
                 }
                 try resolved.data.write(to: destinationURL, options: .atomic)
