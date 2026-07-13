@@ -40,6 +40,7 @@
 		4100000000000000000000EB /* CloudBackupSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000EB /* CloudBackupSettings.swift */; };
 		4100000000000000000000EC /* CloudBackupSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000EC /* CloudBackupSettingsTests.swift */; };
 		4100000000000000000000ED /* CloudBackupSettingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000ED /* CloudBackupSettingsCard.swift */; };
+		4100000000000000000000EE /* CloudBackupNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000EE /* CloudBackupNotifications.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -211,6 +212,7 @@
 		4200000000000000000000EB /* CloudBackupSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupSettings.swift; sourceTree = "<group>"; };
 		4200000000000000000000EC /* CloudBackupSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupSettingsTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000ED /* CloudBackupSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupSettingsCard.swift; sourceTree = "<group>"; };
+		4200000000000000000000EE /* CloudBackupNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupNotifications.swift; sourceTree = "<group>"; };
 		4200000000000000000000D2 /* BackupManifestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManifestTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000D3 /* AppSnapshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSnapshotService.swift; sourceTree = "<group>"; };
 		4200000000000000000000D4 /* AppSnapshotServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSnapshotServiceTests.swift; sourceTree = "<group>"; };
@@ -457,6 +459,7 @@
 				4200000000000000000000E8 /* CloudBackupSystemAdapters.swift */,
 				4200000000000000000000EA /* CloudBackupRuntime.swift */,
 				4200000000000000000000EB /* CloudBackupSettings.swift */,
+				4200000000000000000000EE /* CloudBackupNotifications.swift */,
 				4200000000000000000000D5 /* PhotoKitBackupAssetResolver.swift */,
 				4200000000000000000000D7 /* ManualBackupService.swift */,
 			);
@@ -962,6 +965,7 @@
 				4100000000000000000000E8 /* CloudBackupSystemAdapters.swift in Sources */,
 				4100000000000000000000EA /* CloudBackupRuntime.swift in Sources */,
 				4100000000000000000000EB /* CloudBackupSettings.swift in Sources */,
+				4100000000000000000000EE /* CloudBackupNotifications.swift in Sources */,
 				4100000000000000000000D5 /* PhotoKitBackupAssetResolver.swift in Sources */,
 				4100000000000000000000D7 /* ManualBackupService.swift in Sources */,
 				410000000000000000000001 /* CloudBakeOwnerApp.swift in Sources */,
