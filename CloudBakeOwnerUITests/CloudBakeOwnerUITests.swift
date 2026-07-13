@@ -258,8 +258,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         openDashboardDestination("Settings", in: app)
         tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
-        tapWhenReady(app.buttons["settings.inventory.export"])
-        tapWhenReady(app.buttons["settings.inventory.export.continue"])
+        app.swipeUp()
+        let exportButton = app.buttons["settings.inventory.export"]
+        scrollToVisible(exportButton, in: app)
+        tapWhenReady(exportButton)
+        let continueButton = app.buttons["settings.inventory.export.continue"]
+        if !continueButton.waitForExistence(timeout: 10) {
+            XCTFail("Inventory export confirmation did not appear. Hierarchy: \(app.debugDescription)")
+        }
+        tapWhenReady(continueButton)
 
         XCTAssertTrue(app.buttons["Save"].waitForExistence(timeout: 10))
     }
