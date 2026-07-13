@@ -204,15 +204,11 @@ struct SettingsView: View {
     @State private var selectedLogoItem: PhotosPickerItem?
     @State private var isImportingInventory = false
     @State private var isImportingRecipes = false
-    @State private var isExporting = false
-    @State private var exportKind: SettingsExportKind?
     @State private var pendingDataOperation: SettingsDataOperation?
-    @State private var exportDocument = InventoryCSVDocument()
     @State private var isBackupExpanded = false
     @State private var isDataManagementExpanded = false
     @State private var isConfirmingManualBackup = false
-    @State private var isExportingManualBackup = false
-    @State private var manualBackupExport: ManualBackupExport?
+    @State private var activeFileExport: SettingsFileExport?
 
     init(viewModel: SettingsViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -465,24 +461,6 @@ struct SettingsView: View {
 
             viewModel.importInventoryCSV(from: url)
         }
-        .fileExporter(
-            isPresented: $isExporting,
-            document: exportDocument,
-            contentType: .commaSeparatedText,
-            defaultFilename: exportKind?.defaultFilename ?? "cloudbake-export.csv"
-        ) { result in
-            if case .failure = result {
-                switch exportKind {
-                case .inventory:
-                    viewModel.markExportFailed()
-                case .recipes:
-                    viewModel.markRecipeExportFailed()
-                case nil:
-                    break
-                }
-            }
-            exportKind = nil
-        }
         .fileImporter(
             isPresented: $isImportingRecipes,
             allowedContentTypes: [.commaSeparatedText, .plainText],
@@ -491,19 +469,22 @@ struct SettingsView: View {
             guard case .success(let urls) = result, let url = urls.first else { return }
             viewModel.importRecipeCSV(from: url)
         }
-        .background {
-            Color.clear
-                .sheet(isPresented: $isExportingManualBackup) {
-                    if let manualBackupExport {
-                        ManualBackupFileExporter(fileURL: manualBackupExport.packageURL) { didExport in
-                            isExportingManualBackup = false
-                            if didExport {
-                                Task { await viewModel.markManualBackupExported() }
-                            }
-                            self.manualBackupExport = nil
-                        }
+        .sheet(item: $activeFileExport) { export in
+            SettingsFileExporter(fileURL: export.fileURL) { didExport in
+                activeFileExport = nil
+                switch export.kind {
+                case .inventory:
+                    if !didExport { viewModel.markExportFailed() }
+                    try? FileManager.default.removeItem(at: export.fileURL)
+                case .recipes:
+                    if !didExport { viewModel.markRecipeExportFailed() }
+                    try? FileManager.default.removeItem(at: export.fileURL)
+                case .manualBackup:
+                    if didExport {
+                        Task { await viewModel.markManualBackupExported() }
                     }
                 }
+            }
         }
     }
 
@@ -615,8 +596,10 @@ struct SettingsView: View {
         } completion: {
             Task {
                 guard let export = await viewModel.prepareManualBackup() else { return }
-                manualBackupExport = export
-                isExportingManualBackup = true
+                activeFileExport = SettingsFileExport(
+                    fileURL: export.packageURL,
+                    kind: .manualBackup
+                )
             }
         }
     }
@@ -657,9 +640,31 @@ struct SettingsView: View {
     }
 
     private func presentExporter(document: InventoryCSVDocument, kind: SettingsExportKind) {
-        exportDocument = document
-        exportKind = kind
-        isExporting = true
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(kind.defaultFilename)
+        do {
+            try Data(document.text.utf8).write(to: fileURL, options: .atomic)
+            activeFileExport = SettingsFileExport(fileURL: fileURL, kind: kind.fileExportKind)
+        } catch {
+            switch kind {
+            case .inventory:
+                viewModel.markExportFailed()
+            case .recipes:
+                viewModel.markRecipeExportFailed()
+            }
+        }
+    }
+}
+
+private struct SettingsFileExport: Identifiable {
+    let id = UUID()
+    let fileURL: URL
+    let kind: Kind
+
+    enum Kind {
+        case inventory
+        case recipes
+        case manualBackup
     }
 }
 
@@ -673,6 +678,15 @@ private enum SettingsExportKind {
             return "cloudbake-inventory.csv"
         case .recipes:
             return "cloudbake-recipes.csv"
+        }
+    }
+
+    var fileExportKind: SettingsFileExport.Kind {
+        switch self {
+        case .inventory:
+            return .inventory
+        case .recipes:
+            return .recipes
         }
     }
 }
