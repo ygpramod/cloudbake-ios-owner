@@ -21,6 +21,7 @@ struct CloudBakeOwnerApp: App {
         #endif
 
         guard ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] != "1",
+              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
               case .success(let appDatabase) = database else {
             cloudBackupRuntime = nil
             return
