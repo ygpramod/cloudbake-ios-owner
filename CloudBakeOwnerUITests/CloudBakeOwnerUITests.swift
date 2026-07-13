@@ -272,6 +272,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.buttons["settings.backup.disclosure"])
         XCTAssertTrue(app.switches["settings.backup.weeklyReminder"].waitForExistence(timeout: 5))
         scrollToHittable(app.buttons["settings.backup.create"], in: app)
+        app.swipeUp()
         tapWhenReady(app.buttons["settings.backup.create"])
         tapWhenReady(app.buttons["settings.backup.create.continue"])
 
