@@ -296,6 +296,41 @@ actor BackupCoordinator {
         scheduleStore.load()
     }
 
+    func currentSettings(
+        areNotificationsEnabled: Bool
+    ) async -> CloudBackupSettingsSnapshot {
+        let metadata = scheduleStore.load()
+        let accountAvailability = await account.currentAvailability()
+        let connection = await connectivity.currentConnection()
+        let state = settingsState(
+            metadata: metadata,
+            accountAvailability: accountAvailability,
+            connection: connection
+        )
+        return CloudBackupSettingsSnapshot(
+            isEnabled: metadata.isEnabled,
+            areNotificationsEnabled: areNotificationsEnabled,
+            accountAvailability: accountAvailability,
+            state: state,
+            lastSuccessAt: metadata.lastSuccessAt,
+            estimatedUploadByteCount: metadata.estimatedUploadByteCount
+        )
+    }
+
+    func setBackupEnabled(_ isEnabled: Bool) async {
+        var metadata = scheduleStore.load()
+        guard metadata.isEnabled != isEnabled else { return }
+        metadata.isEnabled = isEnabled
+        if isEnabled {
+            metadata.isOverdue = true
+            metadata.nextEligibleAt = now()
+        }
+        scheduleStore.save(metadata)
+        if isEnabled {
+            await scheduleNextAttempt(from: metadata, fallbackDate: now())
+        }
+    }
+
     private func createAndPublishAutomaticBackup(startedAt: Date) async -> AutomaticBackupResult {
         var package: AppSnapshotPackage?
         do {
@@ -325,10 +360,11 @@ actor BackupCoordinator {
             if let package {
                 await packageCleaner.removePackage(generationID: package.generationID)
             }
-            recordFailure(at: now())
+            let category = errorCategory(for: error)
+            recordFailure(at: now(), category: category)
             finishOperation()
             await scheduleNextAttempt(from: scheduleStore.load(), fallbackDate: startedAt)
-            return .failed(errorCategory(for: error))
+            return .failed(category)
         }
     }
 
@@ -363,10 +399,11 @@ actor BackupCoordinator {
         _ error: Error,
         startedAt: Date
     ) async -> ManualBackupResult {
-        recordFailure(at: now())
+        let category = errorCategory(for: error)
+        recordFailure(at: now(), category: category)
         finishOperation()
         await scheduleNextAttempt(from: scheduleStore.load(), fallbackDate: startedAt)
-        return .failed(errorCategory(for: error))
+        return .failed(category)
     }
 
     private func finishPreparedManualDeferral(
@@ -466,16 +503,45 @@ actor BackupCoordinator {
         metadata.activeGenerationID = nil
         metadata.retryCount = 0
         metadata.estimatedUploadByteCount = estimatedUploadByteCount
+        metadata.lastFailureCategory = nil
         scheduleStore.save(metadata)
     }
 
-    private func recordFailure(at date: Date) {
+    private func recordFailure(at date: Date, category: CloudBackupErrorCategory) {
         var metadata = scheduleStore.load()
         metadata.activeGenerationID = nil
         metadata.isOverdue = true
         metadata.retryCount = incrementedRetryCount(metadata.retryCount)
         metadata.nextEligibleAt = schedulePolicy.retryDate(after: date, retryCount: metadata.retryCount)
+        metadata.lastFailureCategory = category.rawValue
         scheduleStore.save(metadata)
+    }
+
+    private func settingsState(
+        metadata: BackupScheduleMetadata,
+        accountAvailability: BackupAccountAvailability,
+        connection: BackupConnection
+    ) -> CloudBackupSettingsState {
+        switch activeOperation {
+        case .preparingManual:
+            return .preparing
+        case .automatic, .publishingManual, .cancellingManual:
+            return .uploading
+        case .awaitingManualCellularApproval:
+            return .awaitingCellularConfirmation
+        case nil:
+            break
+        }
+        guard metadata.isEnabled else { return .disabled }
+        guard accountAvailability == .available else { return .unavailable }
+        if metadata.isOverdue, connection == .cellular {
+            return .waitingForWiFi
+        }
+        if let rawCategory = metadata.lastFailureCategory,
+           let category = CloudBackupErrorCategory(rawValue: rawCategory) {
+            return .failed(category)
+        }
+        return metadata.lastSuccessAt == nil ? .enabled : .successful
     }
 
     private func recordDeferral(

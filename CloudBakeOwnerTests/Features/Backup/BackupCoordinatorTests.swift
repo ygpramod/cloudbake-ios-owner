@@ -2,6 +2,42 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class BackupCoordinatorTests: XCTestCase {
+    func testSettingsReflectOwnerPreferenceAndScheduleEnabledWork() async {
+        let fixture = CoordinatorFixture()
+
+        await fixture.coordinator.setBackupEnabled(false)
+        let disabled = await fixture.coordinator.currentSettings(
+            areNotificationsEnabled: false
+        )
+
+        XCTAssertFalse(disabled.isEnabled)
+        XCTAssertFalse(disabled.areNotificationsEnabled)
+        XCTAssertEqual(disabled.state, .disabled)
+
+        await fixture.coordinator.setBackupEnabled(true)
+        let enabled = await fixture.coordinator.currentSettings(
+            areNotificationsEnabled: true
+        )
+
+        XCTAssertTrue(enabled.isEnabled)
+        XCTAssertTrue(enabled.areNotificationsEnabled)
+        XCTAssertEqual(enabled.state, .enabled)
+        let scheduledDates = await fixture.scheduler.scheduledDates
+        XCTAssertEqual(scheduledDates, [fixture.now])
+    }
+
+    func testSettingsReportsWaitingForWiFiWithoutStartingWork() async {
+        let fixture = CoordinatorFixture(connection: .cellular)
+
+        let settings = await fixture.coordinator.currentSettings(
+            areNotificationsEnabled: true
+        )
+
+        XCTAssertEqual(settings.state, .waitingForWiFi)
+        let creationCount = await fixture.snapshotCreator.creationCount
+        XCTAssertEqual(creationCount, 0)
+    }
+
     func testEligibleAutomaticBackupPublishesOnceAndSchedulesNextNight() async throws {
         let fixture = CoordinatorFixture()
 
