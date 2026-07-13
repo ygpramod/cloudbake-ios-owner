@@ -14,6 +14,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Low inventory"].exists)
     }
 
+    func testDashboardDesignsShortcutOpensDesigns() throws {
+        let app = makeApp()
+        app.launch()
+
+        let designs = app.buttons["dashboard.quickAction.designs"]
+        XCTAssertTrue(designs.waitForExistence(timeout: 5))
+        tapWhenReady(designs)
+
+        assertScreenVisible("screen.designs", in: app, timeout: 5)
+    }
+
     func testPrimaryNavigationDestinationsAreReachable() throws {
         let destinations = [
             ("Orders", "screen.orders"),
