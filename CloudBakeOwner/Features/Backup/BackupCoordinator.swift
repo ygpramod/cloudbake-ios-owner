@@ -61,7 +61,7 @@ protocol BackupPowerChecking: Sendable {
 }
 
 protocol BackupStorageChecking: Sendable {
-    func hasSufficientWorkingStorage() async -> Bool
+    func hasSufficientWorkingStorage(estimatedUploadByteCount: Int64?) async -> Bool
 }
 
 protocol BackupBackgroundScheduling: Sendable {
@@ -181,7 +181,9 @@ actor BackupCoordinator {
         scheduleStore.save(metadata)
         guard metadata.isEnabled else { return .deferred(.disabled) }
 
-        let environment = await currentEnvironment()
+        let environment = await currentEnvironment(
+            estimatedUploadByteCount: metadata.estimatedUploadByteCount
+        )
         if let reason = manualDeferralReason(for: environment) {
             return .deferred(reason)
         }
@@ -237,7 +239,9 @@ actor BackupCoordinator {
             return .invalidCellularApproval
         }
 
-        let environment = await currentEnvironment()
+        let environment = await currentEnvironment(
+            estimatedUploadByteCount: scheduleStore.load().estimatedUploadByteCount
+        )
         if let reason = manualDeferralReason(for: environment) {
             return await finishPreparedManualDeferral(reason)
         }
@@ -365,7 +369,9 @@ actor BackupCoordinator {
         scheduleStore.save(metadata)
     }
 
-    private func currentEnvironment() async -> (
+    private func currentEnvironment(
+        estimatedUploadByteCount: Int64?
+    ) async -> (
         connection: BackupConnection,
         account: BackupAccountAvailability,
         hasEligiblePower: Bool,
@@ -374,7 +380,9 @@ actor BackupCoordinator {
         async let connection = connectivity.currentConnection()
         async let accountAvailability = account.currentAvailability()
         async let hasEligiblePower = power.hasEligiblePowerState()
-        async let hasSufficientStorage = storage.hasSufficientWorkingStorage()
+        async let hasSufficientStorage = storage.hasSufficientWorkingStorage(
+            estimatedUploadByteCount: estimatedUploadByteCount
+        )
         return await (
             connection,
             accountAvailability,
@@ -384,7 +392,9 @@ actor BackupCoordinator {
     }
 
     private func automaticDeferralReason() async -> BackupDeferralReason? {
-        let environment = await currentEnvironment()
+        let environment = await currentEnvironment(
+            estimatedUploadByteCount: scheduleStore.load().estimatedUploadByteCount
+        )
         guard environment.account == .available else { return .iCloudUnavailable }
         guard environment.hasEligiblePower else { return .powerRestricted }
         guard environment.hasSufficientStorage else { return .insufficientStorage }

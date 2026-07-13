@@ -329,7 +329,9 @@ private struct FakeBackupEnvironment: BackupConnectivityChecking,
     func currentConnection() async -> BackupConnection { connection }
     func currentAvailability() async -> BackupAccountAvailability { account }
     func hasEligiblePowerState() async -> Bool { hasEligiblePower }
-    func hasSufficientWorkingStorage() async -> Bool { hasSufficientStorage }
+    func hasSufficientWorkingStorage(estimatedUploadByteCount: Int64?) async -> Bool {
+        hasSufficientStorage
+    }
 }
 
 private actor FakeBackgroundScheduler: BackupBackgroundScheduling {

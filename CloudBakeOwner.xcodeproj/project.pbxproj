@@ -34,6 +34,8 @@
 		4100000000000000000000E5 /* BackupScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000E5 /* BackupScheduleTests.swift */; };
 		4100000000000000000000E6 /* BackupCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000E6 /* BackupCoordinator.swift */; };
 		4100000000000000000000E7 /* BackupCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000E7 /* BackupCoordinatorTests.swift */; };
+		4100000000000000000000E8 /* CloudBackupSystemAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000E8 /* CloudBackupSystemAdapters.swift */; };
+		4100000000000000000000E9 /* CloudBackupSystemAdaptersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000E9 /* CloudBackupSystemAdaptersTests.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -220,6 +222,8 @@
 		4200000000000000000000E5 /* BackupScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupScheduleTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000E6 /* BackupCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCoordinator.swift; sourceTree = "<group>"; };
 		4200000000000000000000E7 /* BackupCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCoordinatorTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000E8 /* CloudBackupSystemAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupSystemAdapters.swift; sourceTree = "<group>"; };
+		4200000000000000000000E9 /* CloudBackupSystemAdaptersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupSystemAdaptersTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000DB /* CloudBakeOwner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CloudBakeOwner.entitlements; sourceTree = "<group>"; };
 		420000000000000000000011 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		420000000000000000000012 /* AppDatabaseMigrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseMigrations.swift; sourceTree = "<group>"; };
@@ -442,6 +446,7 @@
 				4200000000000000000000E4 /* BackupSchedule.swift */,
 				4200000000000000000000E0 /* CloudBackupPublication.swift */,
 				4200000000000000000000E2 /* CloudKitBackupStore.swift */,
+				4200000000000000000000E8 /* CloudBackupSystemAdapters.swift */,
 				4200000000000000000000D5 /* PhotoKitBackupAssetResolver.swift */,
 				4200000000000000000000D7 /* ManualBackupService.swift */,
 			);
@@ -678,6 +683,7 @@
 			children = (
 				4200000000000000000000D4 /* AppSnapshotServiceTests.swift */,
 				4200000000000000000000E7 /* BackupCoordinatorTests.swift */,
+				4200000000000000000000E9 /* CloudBackupSystemAdaptersTests.swift */,
 				4200000000000000000000D2 /* BackupManifestTests.swift */,
 				4200000000000000000000E5 /* BackupScheduleTests.swift */,
 				4200000000000000000000E1 /* CloudBackupPublicationTests.swift */,
@@ -941,6 +947,7 @@
 				4100000000000000000000E4 /* BackupSchedule.swift in Sources */,
 				4100000000000000000000E0 /* CloudBackupPublication.swift in Sources */,
 				4100000000000000000000E2 /* CloudKitBackupStore.swift in Sources */,
+				4100000000000000000000E8 /* CloudBackupSystemAdapters.swift in Sources */,
 				4100000000000000000000D5 /* PhotoKitBackupAssetResolver.swift in Sources */,
 				4100000000000000000000D7 /* ManualBackupService.swift in Sources */,
 				410000000000000000000001 /* CloudBakeOwnerApp.swift in Sources */,
@@ -1042,6 +1049,7 @@
 			files = (
 				4100000000000000000000D4 /* AppSnapshotServiceTests.swift in Sources */,
 				4100000000000000000000E7 /* BackupCoordinatorTests.swift in Sources */,
+				4100000000000000000000E9 /* CloudBackupSystemAdaptersTests.swift in Sources */,
 				4100000000000000000000D2 /* BackupManifestTests.swift in Sources */,
 				4100000000000000000000E5 /* BackupScheduleTests.swift in Sources */,
 				4100000000000000000000E1 /* CloudBackupPublicationTests.swift in Sources */,
