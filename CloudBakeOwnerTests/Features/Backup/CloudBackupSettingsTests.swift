@@ -1,4 +1,5 @@
 import XCTest
+import UserNotifications
 @testable import CloudBakeOwner
 
 @MainActor
@@ -35,6 +36,44 @@ final class CloudBackupSettingsTests: XCTestCase {
         )
         XCTAssertNil(policy.result(for: AutomaticBackupResult.failed(.networkUnavailable)))
         XCTAssertNil(policy.result(for: AutomaticBackupResult.deferred(.waitingForWiFi)))
+    }
+
+    func testDisabledBackupNotificationsDoNotRequestAuthorizationOrDeliver() async {
+        let suiteName = "CloudBackupSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let preferences = CloudBackupNotificationPreferences(defaults: defaults)
+        preferences.isEnabled = false
+        let notificationCenter = CloudBackupNotificationCenterSpy()
+        let sender = SystemCloudBackupNotificationSender(
+            preferences: preferences,
+            notificationCenter: notificationCenter
+        )
+
+        await sender.send(for: .completed)
+
+        XCTAssertEqual(notificationCenter.authorizationRequestCount, 0)
+        XCTAssertTrue(notificationCenter.requests.isEmpty)
+    }
+
+    func testBackupFailureNotificationContainsOnlySafeOperationalCopy() async throws {
+        let suiteName = "CloudBackupSettingsTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let notificationCenter = CloudBackupNotificationCenterSpy()
+        let sender = SystemCloudBackupNotificationSender(
+            preferences: CloudBackupNotificationPreferences(defaults: defaults),
+            notificationCenter: notificationCenter
+        )
+
+        await sender.send(for: .failed(.quotaExceeded))
+
+        let request = try XCTUnwrap(notificationCenter.requests.first)
+        XCTAssertEqual(request.content.title, "CloudBake backup needs attention")
+        XCTAssertEqual(
+            request.content.body,
+            "Open Backup in Settings for safe guidance and try again."
+        )
     }
 
     func testViewModelPresentsSafeFailureGuidanceWithoutPrivateDetails() async {
@@ -137,4 +176,21 @@ private actor CloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
     }
 
     func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {}
+}
+
+private final class CloudBackupNotificationCenterSpy: LocalNotificationCenter {
+    private(set) var authorizationRequestCount = 0
+    private(set) var requests: [UNNotificationRequest] = []
+
+    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
+        authorizationRequestCount += 1
+        return true
+    }
+
+    func pendingNotificationRequests() async -> [UNNotificationRequest] { [] }
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {}
+
+    func add(_ request: UNNotificationRequest) async throws {
+        requests.append(request)
+    }
 }
