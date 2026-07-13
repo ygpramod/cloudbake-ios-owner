@@ -51,8 +51,11 @@ final class UserDefaultsBackupScheduleStore: BackupScheduleStoring, @unchecked S
 
     func save(_ metadata: BackupScheduleMetadata) {
         lock.withLock {
-            guard let data = try? encoder.encode(metadata) else { return }
-            defaults.set(data, forKey: Self.metadataKey)
+            do {
+                defaults.set(try encoder.encode(metadata), forKey: Self.metadataKey)
+            } catch {
+                assertionFailure("Cloud backup schedule metadata could not be encoded: \(error)")
+            }
         }
     }
 }
