@@ -214,6 +214,7 @@ protocol CloudBackupStoring: Sendable {
 
 enum CloudBackupPublicationError: Error, Equatable {
     case generationBecameCurrent
+    case publicationNotAuthorized
 }
 
 struct CloudBackupPublicationResult: Equatable, Sendable {
@@ -236,11 +237,13 @@ actor CloudBackupPublisher {
 
     func publish(
         _ package: AppSnapshotPackage,
-        transferPolicy: CloudBackupTransferPolicy
+        transferPolicy: CloudBackupTransferPolicy,
+        publicationGate: @escaping @Sendable () async -> Bool = { true }
     ) async throws -> CloudBackupPublicationResult {
         let plan = try CloudBackupGenerationPlan.make(package: package)
         await store.configureTransferPolicy(transferPolicy)
         try Task.checkCancellation()
+        try await requirePublicationAuthorization(publicationGate)
         let previousGenerationID = try await store.currentGenerationID()
 
         if previousGenerationID == plan.generationID {
@@ -263,14 +266,18 @@ actor CloudBackupPublisher {
         )
 
         try Task.checkCancellation()
+        try await requirePublicationAuthorization(publicationGate)
         try await store.prepareGeneration(plan)
         for file in plan.files {
             try Task.checkCancellation()
+            try await requirePublicationAuthorization(publicationGate)
             try await store.uploadFile(file, generationID: plan.generationID)
         }
         try Task.checkCancellation()
+        try await requirePublicationAuthorization(publicationGate)
         try await store.verifyGeneration(plan)
         try Task.checkCancellation()
+        try await requirePublicationAuthorization(publicationGate)
         try await store.publishCurrentGeneration(
             plan.generationID,
             replacing: previousGenerationID
@@ -283,6 +290,14 @@ actor CloudBackupPublisher {
             wasAlreadyCurrent: false,
             cleanupPending: prepublicationCleanupPending || postpublicationCleanupPending
         )
+    }
+
+    private func requirePublicationAuthorization(
+        _ publicationGate: @escaping @Sendable () async -> Bool
+    ) async throws {
+        guard await publicationGate() else {
+            throw CloudBackupPublicationError.publicationNotAuthorized
+        }
     }
 
     private func cleanGenerations(

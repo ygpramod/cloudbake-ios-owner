@@ -218,7 +218,8 @@ private struct CellularBackupUITestTrap: AppSnapshotCreating, CloudBackupPublish
 
     func publish(
         _ package: AppSnapshotPackage,
-        transferPolicy: CloudBackupTransferPolicy
+        transferPolicy: CloudBackupTransferPolicy,
+        publicationGate: @escaping @Sendable () async -> Bool
     ) async throws -> CloudBackupPublicationResult {
         fatalError("Automatic backup published on the cellular-only UI test fixture")
     }

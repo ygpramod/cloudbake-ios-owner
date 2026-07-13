@@ -150,6 +150,34 @@ final class CloudBackupPublicationTests: XCTestCase {
         }
     }
 
+    func testPublicationGateClosingAfterVerificationPreservesPreviousPointer() async throws {
+        let fixture = try PublicationFixture()
+        defer { fixture.remove() }
+        let store = FakeCloudBackupStore(
+            currentGenerationID: "generation-old",
+            generationIDs: ["generation-old"]
+        )
+
+        do {
+            _ = try await CloudBackupPublisher(store: store).publish(
+                fixture.package,
+                transferPolicy: .wifiOnly,
+                publicationGate: {
+                    let events = await store.events()
+                    return !events.contains("verify:generation-new")
+                }
+            )
+            XCTFail("Expected publication authorization to close before pointer replacement")
+        } catch let error as CloudBackupPublicationError {
+            XCTAssertEqual(error, .publicationNotAuthorized)
+        }
+
+        let currentGeneration = await store.current()
+        let events = await store.events()
+        XCTAssertEqual(currentGeneration, "generation-old")
+        XCTAssertFalse(events.contains("publish:generation-new"))
+    }
+
     func testAbandonedGenerationEnumerationFailureDoesNotBlockPublication() async throws {
         let fixture = try PublicationFixture()
         defer { fixture.remove() }
