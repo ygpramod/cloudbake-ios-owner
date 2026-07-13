@@ -65,6 +65,7 @@ jobs:
           - feature: core-recipes
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testAppLaunchesToDashboard
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOverdueAutomaticBackupOnCellularDoesNotDelayLaunchOrStartTransfer
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testPrimaryNavigationDestinationsAreReachable
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsShowsInventoryCSVActions
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCSVExportPresentsDestinationPicker
