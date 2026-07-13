@@ -105,6 +105,26 @@ final class ManualBackupServiceTests: XCTestCase {
         }
     }
 
+    func testManualBackupExportRemovesArchiveAndSnapshotStaging() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let snapshot = root.appendingPathComponent("snapshot", isDirectory: true)
+        let archive = root.appendingPathComponent("backup.cloudbakebackup")
+        try FileManager.default.createDirectory(at: snapshot, withIntermediateDirectories: true)
+        try Data("private backup".utf8).write(to: archive)
+        let export = ManualBackupExport(
+            packageURL: archive,
+            stagingDirectoryURL: snapshot,
+            filename: archive.lastPathComponent
+        )
+
+        export.removeStagedFiles()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: archive.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: snapshot.path))
+        try? FileManager.default.removeItem(at: root)
+    }
+
     @MainActor
     func testSettingsPreparationPublishesExportOnlyAfterServiceSucceeds() async throws {
         let database = try AppDatabase.makeInMemory()
@@ -112,6 +132,7 @@ final class ManualBackupServiceTests: XCTestCase {
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         let export = ManualBackupExport(
             packageURL: directory,
+            stagingDirectoryURL: directory.appendingPathComponent("snapshot"),
             filename: "cloudbake-backup.cloudbakebackup"
         )
         let viewModel = SettingsViewModel(

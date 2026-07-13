@@ -11,7 +11,13 @@ extension UTType {
 
 struct ManualBackupExport: Sendable {
     let packageURL: URL
+    let stagingDirectoryURL: URL
     let filename: String
+
+    func removeStagedFiles(fileManager: FileManager = .default) {
+        try? fileManager.removeItem(at: packageURL)
+        try? fileManager.removeItem(at: stagingDirectoryURL)
+    }
 }
 
 protocol ManualBackupPreparing: Sendable {
@@ -73,6 +79,7 @@ actor ManualBackupService: ManualBackupPreparing {
         }
         return ManualBackupExport(
             packageURL: archiveURL,
+            stagingDirectoryURL: package.directoryURL,
             filename: filename
         )
     }

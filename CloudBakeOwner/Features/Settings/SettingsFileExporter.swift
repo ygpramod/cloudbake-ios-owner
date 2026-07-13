@@ -1,9 +1,14 @@
 import SwiftUI
 import UIKit
 
+enum SettingsFileExportResult: Equatable {
+    case exported
+    case cancelled
+}
+
 struct SettingsFileExporter: UIViewControllerRepresentable {
     let fileURL: URL
-    let onCompletion: (Bool) -> Void
+    let onCompletion: (SettingsFileExportResult) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onCompletion: onCompletion)
@@ -25,9 +30,9 @@ struct SettingsFileExporter: UIViewControllerRepresentable {
     ) {}
 
     final class Coordinator: NSObject, UIDocumentPickerDelegate {
-        private let onCompletion: (Bool) -> Void
+        private let onCompletion: (SettingsFileExportResult) -> Void
 
-        init(onCompletion: @escaping (Bool) -> Void) {
+        init(onCompletion: @escaping (SettingsFileExportResult) -> Void) {
             self.onCompletion = onCompletion
         }
 
@@ -35,11 +40,11 @@ struct SettingsFileExporter: UIViewControllerRepresentable {
             _ controller: UIDocumentPickerViewController,
             didPickDocumentsAt urls: [URL]
         ) {
-            onCompletion(!urls.isEmpty)
+            onCompletion(urls.isEmpty ? .cancelled : .exported)
         }
 
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-            onCompletion(false)
+            onCompletion(.cancelled)
         }
     }
 }
