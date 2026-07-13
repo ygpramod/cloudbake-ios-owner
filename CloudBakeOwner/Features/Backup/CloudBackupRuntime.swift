@@ -1,13 +1,23 @@
 import BackgroundTasks
 import Foundation
 
-final class CloudBackupRuntime: @unchecked Sendable {
+final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable {
     private let coordinator: BackupCoordinator
+    private let notificationPreferences: CloudBackupNotificationPreferences
+    private let notificationSender: any CloudBackupNotificationSending
+    private let notificationPolicy = CloudBackupNotificationPolicy()
     private let lock = NSLock()
     private var didStartLaunchCatchUp = false
 
-    init(coordinator: BackupCoordinator) {
+    init(
+        coordinator: BackupCoordinator,
+        notificationPreferences: CloudBackupNotificationPreferences = CloudBackupNotificationPreferences(),
+        notificationSender: (any CloudBackupNotificationSending)? = nil
+    ) {
         self.coordinator = coordinator
+        self.notificationPreferences = notificationPreferences
+        self.notificationSender = notificationSender
+            ?? SystemCloudBackupNotificationSender(preferences: notificationPreferences)
     }
 
     @discardableResult
@@ -34,8 +44,44 @@ final class CloudBackupRuntime: @unchecked Sendable {
         guard shouldStart else { return }
 
         Task(priority: .utility) { [coordinator] in
-            _ = await coordinator.startAndCatchUp()
+            let result = await coordinator.startAndCatchUp()
+            await self.sendNotification(for: result)
         }
+    }
+
+    func currentSettings() async -> CloudBackupSettingsSnapshot {
+        await coordinator.currentSettings(
+            areNotificationsEnabled: notificationPreferences.isEnabled
+        )
+    }
+
+    func setBackupEnabled(_ isEnabled: Bool) async -> CloudBackupSettingsSnapshot {
+        await coordinator.setBackupEnabled(isEnabled)
+        return await currentSettings()
+    }
+
+    func setNotificationsEnabled(_ isEnabled: Bool) async -> CloudBackupSettingsSnapshot {
+        notificationPreferences.isEnabled = isEnabled
+        return await currentSettings()
+    }
+
+    func backUpNow() async -> ManualBackupResult {
+        let result = await coordinator.prepareManualBackup()
+        await sendNotification(for: result)
+        return result
+    }
+
+    func confirmCellularBackup(_ proposal: ManualCellularBackupProposal) async -> ManualBackupResult {
+        let result = await coordinator.confirmManualCellularBackup(
+            proposalID: proposal.id,
+            displayedByteCount: proposal.estimatedUploadByteCount
+        )
+        await sendNotification(for: result)
+        return result
+    }
+
+    func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {
+        await coordinator.cancelManualCellularBackup(proposalID: proposal.id)
     }
 
     static func live(database: AppDatabase) throws -> CloudBackupRuntime {
@@ -114,11 +160,22 @@ final class CloudBackupRuntime: @unchecked Sendable {
     private func handle(_ backgroundTask: BGProcessingTask) {
         let operation = Task(priority: .utility) { [coordinator] in
             let result = await coordinator.requestAutomaticBackup(trigger: .background)
+            await self.sendNotification(for: result)
             backgroundTask.setTaskCompleted(success: result.completedBackgroundTaskSuccessfully)
         }
         backgroundTask.expirationHandler = {
             operation.cancel()
         }
+    }
+
+    private func sendNotification(for result: AutomaticBackupResult) async {
+        guard let notificationResult = notificationPolicy.result(for: result) else { return }
+        await notificationSender.send(for: notificationResult)
+    }
+
+    private func sendNotification(for result: ManualBackupResult) async {
+        guard let notificationResult = notificationPolicy.result(for: result) else { return }
+        await notificationSender.send(for: notificationResult)
     }
 }
 

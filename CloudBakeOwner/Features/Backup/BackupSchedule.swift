@@ -10,6 +10,7 @@ struct BackupScheduleMetadata: Codable, Equatable, Sendable {
     var activeGenerationID: String?
     var retryCount: Int
     var estimatedUploadByteCount: Int64?
+    var lastFailureCategory: String? = nil
 
     static let initial = BackupScheduleMetadata(
         isEnabled: true,
@@ -19,7 +20,8 @@ struct BackupScheduleMetadata: Codable, Equatable, Sendable {
         isOverdue: true,
         activeGenerationID: nil,
         retryCount: 0,
-        estimatedUploadByteCount: nil
+        estimatedUploadByteCount: nil,
+        lastFailureCategory: nil
     )
 }
 

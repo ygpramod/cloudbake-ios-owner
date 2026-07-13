@@ -50,6 +50,26 @@ final class BackupScheduleTests: XCTestCase {
         XCTAssertNil(metadata.lastSuccessAt)
     }
 
+    func testScheduleStoreReadsMetadataWrittenBeforeFailureStatusWasAdded() {
+        let legacyJSON = """
+        {
+          "isEnabled": true,
+          "isOverdue": true,
+          "retryCount": 0
+        }
+        """
+        defaults.set(
+            Data(legacyJSON.utf8),
+            forKey: UserDefaultsBackupScheduleStore.metadataKey
+        )
+
+        let metadata = UserDefaultsBackupScheduleStore(defaults: defaults).load()
+
+        XCTAssertTrue(metadata.isEnabled)
+        XCTAssertTrue(metadata.isOverdue)
+        XCTAssertNil(metadata.lastFailureCategory)
+    }
+
     func testSuccessfulBackupSchedulesTheNextLocalNight() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Asia/Singapore"))
