@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved.
+Implemented.
 
 ## Parent Decisions
 
@@ -49,3 +49,25 @@ Wi-Fi-only. Background expiration cancels safely without changing the current cl
 ## Rollout Notes
 
 Report actual execution and last success; never promise an exact nightly clock time.
+
+## Implementation Notes
+
+- `BackupCoordinator` persists enablement, attempts, success, overdue, retry, active-generation, and
+  prior upload-size metadata. It coalesces concurrent launch and background intents and uses bounded
+  exponential retry after failures or ineligible conditions.
+- Automatic backup requires an available iCloud account, Wi-Fi, normal power/thermal conditions,
+  and sufficient working storage. The storage gate reserves at least 256 MiB and doubles the larger
+  of known app-storage or previous-upload size.
+- Every automatic CloudKit operation explicitly disables cellular access. A manual attempt can
+  enable cellular only after presentation supplies the exact proposal identifier and displayed byte
+  estimate back to the coordinator.
+- `BGProcessingTask` registration uses `com.cloudbake.owner.cloud-backup`. Expiration cancels the
+  active operation, clears staged state, and leaves the previously published CloudKit pointer intact.
+- Launch catch-up starts in an asynchronous utility-priority task. A cellular-only acceptance
+  fixture traps if snapshot creation or publication begins, while proving the dashboard remains
+  responsive.
+
+## Wiki Decision
+
+Updated `wiki/Current-App-Capabilities.md`, `wiki/Business-Concepts.md`, and
+`wiki/Owner-Workflows.md` because best-effort automatic CloudKit backup is now active behavior.

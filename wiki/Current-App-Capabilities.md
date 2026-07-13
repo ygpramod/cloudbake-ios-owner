@@ -171,6 +171,9 @@ The app currently supports:
 126. owner-controlled full-app `.cloudbakebackup` export through the system Files picker, including
     the validated database, app-managed images, lightweight recovery copies of linked Photos assets,
     and custom logo, with last-success status and a default-on weekly reminder that can be disabled.
+127. best-effort automatic disaster-recovery backup to the owner's private CloudKit database, using
+    Wi-Fi-only nightly eligibility, bounded retries, safe overdue launch catch-up, and atomic
+    preservation of the previously successful snapshot.
 
 ## Partially Prepared
 

@@ -153,6 +153,10 @@ where to save it and is responsible for protecting or deleting that copy. Manual
 uses the system Files picker and does not require CloudKit; restore is implemented as a separate
 validated, rollback-protected workflow.
 
+Automatic disaster-recovery backup uses the owner's private CloudKit database. CloudBake retains one
+current validated snapshot, attempts best-effort nightly work on Wi-Fi, and catches up after missed
+execution without blocking app launch. It is backup rather than multi-device synchronization.
+
 It uses the columns `name`, `aliases`, `type`, `unit`, `current_quantity`, `minimum_quantity`,
 `batch_quantity`, `amount`, and `expiry_date`. Aliases are comma-separated inside the CSV field,
 type is Standard or Perishable, and dates use `yyyy-MM-dd`.
