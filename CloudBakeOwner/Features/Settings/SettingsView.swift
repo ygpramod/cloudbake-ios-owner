@@ -470,21 +470,21 @@ struct SettingsView: View {
             viewModel.importRecipeCSV(from: url)
         }
         .sheet(item: $activeFileExport) { export in
-            SettingsFileExporter(fileURL: export.fileURL) { didExport in
+            SettingsFileExporter(fileURL: export.fileURL) { result in
                 activeFileExport = nil
                 switch export.kind {
                 case .inventory:
-                    if !didExport { viewModel.markExportFailed() }
                     try? FileManager.default.removeItem(at: export.fileURL)
                 case .recipes:
-                    if !didExport { viewModel.markRecipeExportFailed() }
                     try? FileManager.default.removeItem(at: export.fileURL)
-                case .manualBackup:
-                    if didExport {
+                case .manualBackup(let backup):
+                    if result == .exported {
                         Task { await viewModel.markManualBackupExported() }
                     }
+                    backup.removeStagedFiles()
                 }
             }
+            .interactiveDismissDisabled()
         }
     }
 
@@ -598,7 +598,7 @@ struct SettingsView: View {
                 guard let export = await viewModel.prepareManualBackup() else { return }
                 activeFileExport = SettingsFileExport(
                     fileURL: export.packageURL,
-                    kind: .manualBackup
+                    kind: .manualBackup(export)
                 )
             }
         }
@@ -664,7 +664,7 @@ private struct SettingsFileExport: Identifiable {
     enum Kind {
         case inventory
         case recipes
-        case manualBackup
+        case manualBackup(ManualBackupExport)
     }
 }
 
