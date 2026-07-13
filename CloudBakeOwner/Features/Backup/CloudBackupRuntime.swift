@@ -4,8 +4,7 @@ import Foundation
 final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable {
     private let coordinator: BackupCoordinator
     private let notificationPreferences: CloudBackupNotificationPreferences
-    private let notificationSender: any CloudBackupNotificationSending
-    private let notificationPolicy = CloudBackupNotificationPolicy()
+    private let notificationDispatcher: CloudBackupNotificationDispatcher
     private let lock = NSLock()
     private var didStartLaunchCatchUp = false
 
@@ -16,8 +15,10 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
     ) {
         self.coordinator = coordinator
         self.notificationPreferences = notificationPreferences
-        self.notificationSender = notificationSender
-            ?? SystemCloudBackupNotificationSender(preferences: notificationPreferences)
+        self.notificationDispatcher = CloudBackupNotificationDispatcher(
+            sender: notificationSender
+                ?? SystemCloudBackupNotificationSender(preferences: notificationPreferences)
+        )
     }
 
     @discardableResult
@@ -45,7 +46,7 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
 
         Task(priority: .utility) { [coordinator] in
             let result = await coordinator.startAndCatchUp()
-            await self.sendNotification(for: result)
+            await self.notificationDispatcher.send(for: result)
         }
     }
 
@@ -67,7 +68,7 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
 
     func backUpNow() async -> ManualBackupResult {
         let result = await coordinator.prepareManualBackup()
-        await sendNotification(for: result)
+        await notificationDispatcher.send(for: result)
         return result
     }
 
@@ -76,7 +77,7 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
             proposalID: proposal.id,
             displayedByteCount: proposal.estimatedUploadByteCount
         )
-        await sendNotification(for: result)
+        await notificationDispatcher.send(for: result)
         return result
     }
 
@@ -160,7 +161,7 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
     private func handle(_ backgroundTask: BGProcessingTask) {
         let operation = Task(priority: .utility) { [coordinator] in
             let result = await coordinator.requestAutomaticBackup(trigger: .background)
-            await self.sendNotification(for: result)
+            await self.notificationDispatcher.send(for: result)
             backgroundTask.setTaskCompleted(success: result.completedBackgroundTaskSuccessfully)
         }
         backgroundTask.expirationHandler = {
@@ -168,15 +169,6 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
         }
     }
 
-    private func sendNotification(for result: AutomaticBackupResult) async {
-        guard let notificationResult = notificationPolicy.result(for: result) else { return }
-        await notificationSender.send(for: notificationResult)
-    }
-
-    private func sendNotification(for result: ManualBackupResult) async {
-        guard let notificationResult = notificationPolicy.result(for: result) else { return }
-        await notificationSender.send(for: notificationResult)
-    }
 }
 
 #if DEBUG
@@ -219,7 +211,8 @@ private struct CellularBackupUITestTrap: AppSnapshotCreating, CloudBackupPublish
     func publish(
         _ package: AppSnapshotPackage,
         transferPolicy: CloudBackupTransferPolicy,
-        publicationGate: @escaping @Sendable () async -> Bool
+        publicationGate: @escaping @Sendable () async -> Bool,
+        stageHandler: @escaping @Sendable (CloudBackupPublicationStage) async -> Void
     ) async throws -> CloudBackupPublicationResult {
         fatalError("Automatic backup published on the cellular-only UI test fixture")
     }

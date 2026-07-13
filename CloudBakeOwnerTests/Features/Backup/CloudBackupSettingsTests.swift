@@ -36,6 +36,22 @@ final class CloudBackupSettingsTests: XCTestCase {
         )
         XCTAssertNil(policy.result(for: AutomaticBackupResult.failed(.networkUnavailable)))
         XCTAssertNil(policy.result(for: AutomaticBackupResult.deferred(.waitingForWiFi)))
+        XCTAssertEqual(
+            policy.result(for: ManualBackupResult.failed(.quotaExceeded)),
+            .failed(.quotaExceeded)
+        )
+        XCTAssertNil(policy.result(for: ManualBackupResult.failed(.cancelled)))
+    }
+
+    func testNotificationDispatcherSuppressesIntentionalManualCancellation() async {
+        let sender = CloudBackupNotificationSenderSpy()
+        let dispatcher = CloudBackupNotificationDispatcher(sender: sender)
+
+        await dispatcher.send(for: ManualBackupResult.failed(.cancelled))
+        await dispatcher.send(for: ManualBackupResult.failed(.quotaExceeded))
+
+        let deliveredResults = await sender.deliveredResults
+        XCTAssertEqual(deliveredResults, [.failed(.quotaExceeded)])
     }
 
     func testDisabledBackupNotificationsDoNotRequestAuthorizationOrDeliver() async {
@@ -93,6 +109,22 @@ final class CloudBackupSettingsTests: XCTestCase {
         )
     }
 
+    func testViewModelPresentsVerificationAsDistinctActiveStatus() async {
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .verifying)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+
+        await viewModel.refresh()
+
+        XCTAssertEqual(viewModel.statusTitle, "Verifying")
+        XCTAssertEqual(
+            viewModel.statusGuidance,
+            "Verifying the uploaded recovery snapshot before making it current."
+        )
+        XCTAssertTrue(viewModel.isBusy)
+    }
+
     func testViewModelRequiresCellularConfirmationWithExactProposal() async {
         let proposal = ManualCellularBackupProposal(
             id: "proposal-1",
@@ -141,6 +173,14 @@ final class CloudBackupSettingsTests: XCTestCase {
             lastSuccessAt: nil,
             estimatedUploadByteCount: nil
         )
+    }
+}
+
+private actor CloudBackupNotificationSenderSpy: CloudBackupNotificationSending {
+    private(set) var deliveredResults: [CloudBackupNotificationResult] = []
+
+    func send(for result: CloudBackupNotificationResult) async {
+        deliveredResults.append(result)
     }
 }
 

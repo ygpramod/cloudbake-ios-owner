@@ -224,6 +224,11 @@ struct CloudBackupPublicationResult: Equatable, Sendable {
     let cleanupPending: Bool
 }
 
+enum CloudBackupPublicationStage: Equatable, Sendable {
+    case uploading
+    case verifying
+}
+
 actor CloudBackupPublisher {
     private let store: any CloudBackupStoring
 
@@ -238,7 +243,8 @@ actor CloudBackupPublisher {
     func publish(
         _ package: AppSnapshotPackage,
         transferPolicy: CloudBackupTransferPolicy,
-        publicationGate: @escaping @Sendable () async -> Bool = { true }
+        publicationGate: @escaping @Sendable () async -> Bool = { true },
+        stageHandler: @escaping @Sendable (CloudBackupPublicationStage) async -> Void = { _ in }
     ) async throws -> CloudBackupPublicationResult {
         let plan = try CloudBackupGenerationPlan.make(package: package)
         await store.configureTransferPolicy(transferPolicy)
@@ -247,6 +253,7 @@ actor CloudBackupPublisher {
         let previousGenerationID = try await store.currentGenerationID()
 
         if previousGenerationID == plan.generationID {
+            await stageHandler(.verifying)
             try await store.verifyGeneration(plan)
             let cleanupPending = await cleanGenerations(except: plan.generationID)
             return CloudBackupPublicationResult(
@@ -267,6 +274,7 @@ actor CloudBackupPublisher {
 
         try Task.checkCancellation()
         try await requirePublicationAuthorization(publicationGate)
+        await stageHandler(.uploading)
         try await store.prepareGeneration(plan)
         for file in plan.files {
             try Task.checkCancellation()
@@ -275,6 +283,7 @@ actor CloudBackupPublisher {
         }
         try Task.checkCancellation()
         try await requirePublicationAuthorization(publicationGate)
+        await stageHandler(.verifying)
         try await store.verifyGeneration(plan)
         try Task.checkCancellation()
         try await requirePublicationAuthorization(publicationGate)
