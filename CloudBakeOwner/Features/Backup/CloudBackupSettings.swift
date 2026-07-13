@@ -8,6 +8,7 @@ enum CloudBackupSettingsState: Equatable, Sendable {
     case waitingForWiFi
     case preparing
     case uploading
+    case verifying
     case awaitingCellularConfirmation
     case successful
     case failed(CloudBackupErrorCategory)
@@ -107,7 +108,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         case .unavailable: "Backup Unavailable"
         case .waitingForWiFi: "Waiting for Wi-Fi"
         case .preparing: "Preparing"
-        case .uploading: "Uploading and Verifying"
+        case .uploading: "Uploading"
+        case .verifying: "Verifying"
         case .awaitingCellularConfirmation: "Confirmation Required"
         case .successful: "Up to Date"
         case .failed: "Backup Failed"
@@ -127,7 +129,9 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         case .preparing:
             "Creating a consistent snapshot of app data and photos."
         case .uploading:
-            "Uploading and verifying the recovery snapshot in your private iCloud storage."
+            "Uploading the recovery snapshot to your private iCloud storage."
+        case .verifying:
+            "Verifying the uploaded recovery snapshot before making it current."
         case .awaitingCellularConfirmation:
             "Approve the estimated transfer size to continue on cellular data."
         case .successful:
@@ -152,7 +156,7 @@ final class CloudBackupSettingsViewModel: ObservableObject {
 
     var isBusy: Bool {
         switch snapshot.state {
-        case .preparing, .uploading, .awaitingCellularConfirmation:
+        case .preparing, .uploading, .verifying, .awaitingCellularConfirmation:
             true
         default:
             false

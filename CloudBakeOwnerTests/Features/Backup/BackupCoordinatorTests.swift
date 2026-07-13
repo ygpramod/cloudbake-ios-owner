@@ -38,6 +38,44 @@ final class BackupCoordinatorTests: XCTestCase {
         XCTAssertEqual(creationCount, 0)
     }
 
+    func testSettingsDistinguishesUploadingFromVerification() async throws {
+        let fixture = CoordinatorFixture(holdsPublication: true)
+        let operation = Task {
+            await fixture.coordinator.prepareManualBackup()
+        }
+        try await fixture.publisher.waitUntilPublicationStarts()
+
+        var settings = await fixture.coordinator.currentSettings(
+            areNotificationsEnabled: true
+        )
+        XCTAssertEqual(settings.state, .uploading)
+
+        await fixture.publisher.reportVerificationStarted()
+        settings = await fixture.coordinator.currentSettings(
+            areNotificationsEnabled: true
+        )
+        XCTAssertEqual(settings.state, .verifying)
+
+        await fixture.publisher.releasePublication()
+        _ = await operation.value
+    }
+
+    func testSettingsReportsPreparingDuringAutomaticSnapshotCreation() async throws {
+        let fixture = CoordinatorFixture(holdsSnapshotCreation: true)
+        let operation = Task {
+            await fixture.coordinator.requestAutomaticBackup(trigger: .background)
+        }
+        try await fixture.snapshotCreator.waitUntilCreationStarts()
+
+        let settings = await fixture.coordinator.currentSettings(
+            areNotificationsEnabled: true
+        )
+        XCTAssertEqual(settings.state, .preparing)
+
+        await fixture.snapshotCreator.releaseCreation()
+        _ = await operation.value
+    }
+
     func testDisablingBackupCancelsPendingCellularPublication() async {
         let fixture = CoordinatorFixture(connection: .cellular)
         guard case .requiresCellularConfirmation(let proposal) = await fixture.coordinator.prepareManualBackup() else {
@@ -508,6 +546,7 @@ private actor FakeSnapshotCreator: AppSnapshotCreating {
 private actor FakeBackupPublisher: CloudBackupPublishing {
     private let holdsPublication: Bool
     private var continuation: CheckedContinuation<Void, Error>?
+    private var stageHandler: (@Sendable (CloudBackupPublicationStage) async -> Void)?
     private(set) var publicationCount = 0
     private(set) var transferPolicies: [CloudBackupTransferPolicy] = []
 
@@ -522,10 +561,13 @@ private actor FakeBackupPublisher: CloudBackupPublishing {
     func publish(
         _ package: AppSnapshotPackage,
         transferPolicy: CloudBackupTransferPolicy,
-        publicationGate: @escaping @Sendable () async -> Bool
+        publicationGate: @escaping @Sendable () async -> Bool,
+        stageHandler: @escaping @Sendable (CloudBackupPublicationStage) async -> Void
     ) async throws -> CloudBackupPublicationResult {
         publicationCount += 1
         transferPolicies.append(transferPolicy)
+        self.stageHandler = stageHandler
+        await stageHandler(.uploading)
         if holdsPublication {
             try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
@@ -560,6 +602,10 @@ private actor FakeBackupPublisher: CloudBackupPublishing {
         } else {
             continuation?.resume()
         }
+    }
+
+    func reportVerificationStarted() async {
+        await stageHandler?(.verifying)
     }
 }
 

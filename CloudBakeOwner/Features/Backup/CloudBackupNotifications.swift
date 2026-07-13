@@ -34,7 +34,7 @@ enum CloudBackupNotificationResult: Equatable, Sendable {
     case failed(CloudBackupErrorCategory)
 }
 
-struct CloudBackupNotificationPolicy {
+struct CloudBackupNotificationPolicy: Sendable {
     func result(for automaticResult: AutomaticBackupResult) -> CloudBackupNotificationResult? {
         switch automaticResult {
         case .published:
@@ -50,9 +50,9 @@ struct CloudBackupNotificationPolicy {
         switch manualResult {
         case .published:
             return .completed
-        case .failed(let category):
+        case .failed(let category) where Self.isActionable(category):
             return .failed(category)
-        case .requiresCellularConfirmation, .busy, .deferred, .invalidCellularApproval:
+        case .failed, .requiresCellularConfirmation, .busy, .deferred, .invalidCellularApproval:
             return nil
         }
     }
@@ -65,6 +65,25 @@ struct CloudBackupNotificationPolicy {
              .temporarilyUnavailable, .unknown:
             false
         }
+    }
+}
+
+struct CloudBackupNotificationDispatcher: Sendable {
+    private let policy = CloudBackupNotificationPolicy()
+    private let sender: any CloudBackupNotificationSending
+
+    init(sender: any CloudBackupNotificationSending) {
+        self.sender = sender
+    }
+
+    func send(for result: AutomaticBackupResult) async {
+        guard let notification = policy.result(for: result) else { return }
+        await sender.send(for: notification)
+    }
+
+    func send(for result: ManualBackupResult) async {
+        guard let notification = policy.result(for: result) else { return }
+        await sender.send(for: notification)
     }
 }
 

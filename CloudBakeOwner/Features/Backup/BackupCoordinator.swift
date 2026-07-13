@@ -84,7 +84,8 @@ protocol CloudBackupPublishing: Sendable {
     func publish(
         _ package: AppSnapshotPackage,
         transferPolicy: CloudBackupTransferPolicy,
-        publicationGate: @escaping @Sendable () async -> Bool
+        publicationGate: @escaping @Sendable () async -> Bool,
+        stageHandler: @escaping @Sendable (CloudBackupPublicationStage) async -> Void
     ) async throws -> CloudBackupPublicationResult
 }
 
@@ -123,6 +124,7 @@ actor BackupCoordinator {
     private let makeProposalID: @Sendable () -> String
 
     private var activeOperation: ActiveOperation?
+    private var activePublicationStage: CloudBackupPublicationStage?
     private var didRecoverStaging = false
     private var preparedManualBackup: PreparedManualBackup?
 
@@ -367,6 +369,9 @@ actor BackupCoordinator {
                 transferPolicy: .wifiOnly,
                 publicationGate: { [weak self] in
                     await self?.isPublicationEnabled() ?? false
+                },
+                stageHandler: { [weak self] stage in
+                    await self?.setPublicationStage(stage)
                 }
             )
             await packageCleaner.removePackage(generationID: createdPackage.generationID)
@@ -401,6 +406,9 @@ actor BackupCoordinator {
                 transferPolicy: transferPolicy,
                 publicationGate: { [weak self] in
                     await self?.isPublicationEnabled() ?? false
+                },
+                stageHandler: { [weak self] stage in
+                    await self?.setPublicationStage(stage)
                 }
             )
             let byteCount = preparedManualBackup?.proposal.estimatedUploadByteCount
@@ -549,7 +557,11 @@ actor BackupCoordinator {
         switch activeOperation {
         case .preparingManual:
             return .preparing
-        case .automatic, .publishingManual, .cancellingManual:
+        case .automatic where activePublicationStage == nil:
+            return .preparing
+        case .automatic, .publishingManual:
+            return activePublicationStage == .verifying ? .verifying : .uploading
+        case .cancellingManual:
             return .uploading
         case .awaitingManualCellularApproval:
             return .awaitingCellularConfirmation
@@ -587,6 +599,11 @@ actor BackupCoordinator {
 
     private func finishOperation() {
         activeOperation = nil
+        activePublicationStage = nil
+    }
+
+    private func setPublicationStage(_ stage: CloudBackupPublicationStage) {
+        activePublicationStage = stage
     }
 
     private func isPublicationEnabled() -> Bool {
