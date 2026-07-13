@@ -152,7 +152,7 @@ final class CloudBackupSettingsTests: XCTestCase {
         let viewModel = CloudBackupSettingsViewModel(service: service)
         await viewModel.refresh()
 
-        await viewModel.setBackupEnabled(false)
+        viewModel.setBackupEnabled(false)
 
         XCTAssertFalse(viewModel.snapshot.isEnabled)
         XCTAssertEqual(viewModel.snapshot.state, .disabled)
@@ -160,6 +160,18 @@ final class CloudBackupSettingsTests: XCTestCase {
             viewModel.actionMessage,
             "Cloud backup is off. Your latest cloud backup is retained."
         )
+    }
+
+    func testDisablingNotificationsUpdatesVisibleStateImmediately() async {
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .enabled)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+        await viewModel.refresh()
+
+        viewModel.setNotificationsEnabled(false)
+
+        XCTAssertFalse(viewModel.snapshot.areNotificationsEnabled)
     }
 
     private func settingsSnapshot(

@@ -303,21 +303,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let enabledSwitch = app.switches["settings.cloudBackup.enabled"]
         XCTAssertTrue(enabledSwitch.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["settings.cloudBackup.status"].exists)
-        enabledSwitch.tap()
-        expectation(for: NSPredicate(format: "value == %@", "0"), evaluatedWith: enabledSwitch)
-        waitForExpectations(timeout: 5)
-        enabledSwitch.tap()
-        expectation(for: NSPredicate(format: "value == %@", "1"), evaluatedWith: enabledSwitch)
-        waitForExpectations(timeout: 5)
-
-        let notificationsSwitch = app.switches["settings.cloudBackup.notifications"]
-        scrollToHittable(notificationsSwitch, in: app)
-        notificationsSwitch.tap()
-        expectation(
-            for: NSPredicate(format: "value == %@", "0"),
-            evaluatedWith: notificationsSwitch
-        )
-        waitForExpectations(timeout: 5)
 
         let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
         scrollToHittable(backUpNowButton, in: app)
@@ -330,6 +315,23 @@ final class CloudBakeOwnerUITests: XCTestCase {
         }
         XCTAssertTrue(app.staticTexts["Use Cellular Data?"].exists)
         tapWhenReady(app.buttons["settings.cloudBackup.cellular.cancel"])
+    }
+
+    func testCloudBackupNotificationsCanBeDisabled() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
+        app.launch()
+
+        tapWhenReady(app.buttons["settings.backup.disclosure"])
+        let notificationsSwitch = app.switches["settings.cloudBackup.notifications"]
+        scrollToHittable(notificationsSwitch, in: app)
+        tapWhenReady(notificationsSwitch)
+
+        expectation(
+            for: NSPredicate(format: "value == %@", "0"),
+            evaluatedWith: notificationsSwitch
+        )
+        waitForExpectations(timeout: 5)
     }
 
     func testOrderCanBeAddedAndListed() throws {

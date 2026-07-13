@@ -9,9 +9,7 @@ struct CloudBackupSettingsCard: View {
                 "Cloud Backup",
                 isOn: Binding(
                     get: { viewModel.snapshot.isEnabled },
-                    set: { isEnabled in
-                        Task { await viewModel.setBackupEnabled(isEnabled) }
-                    }
+                    set: { viewModel.setBackupEnabled($0) }
                 )
             )
             .padding(.vertical, 12)
@@ -58,9 +56,7 @@ struct CloudBackupSettingsCard: View {
                 "Backup Notifications",
                 isOn: Binding(
                     get: { viewModel.snapshot.areNotificationsEnabled },
-                    set: { isEnabled in
-                        Task { await viewModel.setNotificationsEnabled(isEnabled) }
-                    }
+                    set: { viewModel.setNotificationsEnabled($0) }
                 )
             )
             .padding(.vertical, 12)
