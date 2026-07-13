@@ -7,6 +7,8 @@ enum SettingsFileExportResult: Equatable {
 }
 
 struct SettingsFileExporter: UIViewControllerRepresentable {
+    static let accessibilityIdentifier = "settings.fileExporter"
+
     let fileURL: URL
     let onCompletion: (SettingsFileExportResult) -> Void
 
@@ -21,6 +23,7 @@ struct SettingsFileExporter: UIViewControllerRepresentable {
         )
         controller.delegate = context.coordinator
         controller.shouldShowFileExtensions = true
+        controller.view.accessibilityIdentifier = Self.accessibilityIdentifier
         return controller
     }
 
