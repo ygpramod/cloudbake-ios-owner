@@ -1,8 +1,9 @@
 # CloudKit Backup Operations
 
 This runbook governs the private CloudKit schema used by CloudBake disaster-recovery backups.
-RFC-0103 activates best-effort automatic publication; owner-facing status and controls arrive in
-RFC-0104.
+RFC-0103 activates best-effort scheduling but keeps publication behind a fail-closed account
+confirmation gate. Owner-facing status and controls arrive in RFC-0104; RFC-0106 safely authorizes
+live publication for a confirmed iCloud account.
 
 ## Container And Environments
 
@@ -112,7 +113,8 @@ check only through the explicit development harness above.
 The app registers `com.cloudbake.owner.cloud-backup` as an iOS processing task and requests the next
 eligible run after every handled intent. iOS chooses the actual execution time; an earliest-begin
 date is not a promise of an exact nightly run. A missed run remains overdue and catches up
-asynchronously on the next eligible launch.
+asynchronously on the next eligible launch. Until RFC-0106 binds owner confirmation to the detected
+iCloud account, the rollout gate defers before snapshot creation or CloudKit transfer.
 
 Automatic work requires:
 
@@ -122,10 +124,11 @@ Automatic work requires:
 4. sufficient working storage, with at least a 256 MiB reserve,
 5. no active backup operation.
 
-Background expiration cancels the active task. Cancellation can remove only the local staged
-generation and unpublished CloudKit records; it cannot move or clear the current-generation
-pointer. When diagnosing missed execution, inspect the device's power, network, iCloud account, free
-space, and persisted next-eligibility metadata before treating the system scheduler as faulty.
+Background expiration cancels the active task. It cannot publish an incomplete generation or damage
+or clear the last valid pointer. If a fully validated conditional pointer operation was already
+submitted, that atomic publication may still finish before cancellation takes effect. When
+diagnosing missed execution, inspect the device's power, network, iCloud account, free space, and
+persisted next-eligibility metadata before treating the system scheduler as faulty.
 
 ## Failure Safety
 
