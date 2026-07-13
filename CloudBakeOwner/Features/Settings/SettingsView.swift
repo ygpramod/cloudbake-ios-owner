@@ -491,16 +491,19 @@ struct SettingsView: View {
             guard case .success(let urls) = result, let url = urls.first else { return }
             viewModel.importRecipeCSV(from: url)
         }
-        .sheet(isPresented: $isExportingManualBackup) {
-            if let manualBackupExport {
-                ManualBackupFileExporter(fileURL: manualBackupExport.packageURL) { didExport in
-                    isExportingManualBackup = false
-                    if didExport {
-                        Task { await viewModel.markManualBackupExported() }
+        .background {
+            Color.clear
+                .sheet(isPresented: $isExportingManualBackup) {
+                    if let manualBackupExport {
+                        ManualBackupFileExporter(fileURL: manualBackupExport.packageURL) { didExport in
+                            isExportingManualBackup = false
+                            if didExport {
+                                Task { await viewModel.markManualBackupExported() }
+                            }
+                            self.manualBackupExport = nil
+                        }
                     }
-                    self.manualBackupExport = nil
                 }
-            }
         }
     }
 
