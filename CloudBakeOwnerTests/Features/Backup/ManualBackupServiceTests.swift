@@ -34,7 +34,8 @@ final class ManualBackupServiceTests: XCTestCase {
             generationID: "opaque-generation",
             directoryURL: directory,
             manifestURL: directory.appendingPathComponent("manifest.json"),
-            databaseURL: directory.appendingPathComponent("database.sqlite")
+            databaseURL: directory.appendingPathComponent("database.sqlite"),
+            manifest: makeManualBackupManifest()
         )
         let service = ManualBackupService(
             snapshotCreator: ManualBackupSnapshotCreator(package: package),
@@ -85,7 +86,8 @@ final class ManualBackupServiceTests: XCTestCase {
             generationID: "opaque-generation",
             directoryURL: directory,
             manifestURL: directory.appendingPathComponent("manifest.json"),
-            databaseURL: directory.appendingPathComponent("database.sqlite")
+            databaseURL: directory.appendingPathComponent("database.sqlite"),
+            manifest: makeManualBackupManifest()
         )
         let date = Date(timeIntervalSince1970: 1_783_800_000)
         let service = ManualBackupService(
@@ -171,6 +173,21 @@ final class ManualBackupServiceTests: XCTestCase {
         )
         XCTAssertFalse(viewModel.isPreparingBackup)
     }
+}
+
+private func makeManualBackupManifest() -> BackupManifest {
+    BackupManifest(
+        databaseSchemaVersion: "test-schema",
+        minimumCompatibleAppVersion: "1.0",
+        generationID: "opaque-generation",
+        createdAt: Date(timeIntervalSince1970: 1_783_800_000),
+        database: BackupFileDescriptor(
+            relativePath: "database.sqlite",
+            byteCount: 8,
+            sha256: BackupChecksum.sha256(of: Data("database".utf8))
+        ),
+        assets: []
+    )
 }
 
 private struct ManualBackupSnapshotCreator: AppSnapshotCreating {
