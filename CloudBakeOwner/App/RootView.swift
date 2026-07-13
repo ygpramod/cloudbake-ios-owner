@@ -2,12 +2,18 @@ import SwiftUI
 
 struct RootView: View {
     let database: AppDatabase
+    let cloudBackupRuntime: CloudBackupRuntime?
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
     @EnvironmentObject private var orderNavigationRouter: OrderNavigationRouter
     @EnvironmentObject private var inventoryNavigationRouter: InventoryNavigationRouter
     @State private var navigationPath: [AppDestination] = []
     private let maximumSectionHistoryCount = 4
+
+    init(database: AppDatabase, cloudBackupRuntime: CloudBackupRuntime? = nil) {
+        self.database = database
+        self.cloudBackupRuntime = cloudBackupRuntime
+    }
 
     private var selectedDestination: AppDestination {
         navigationPath.last ?? .dashboard
@@ -60,6 +66,7 @@ struct RootView: View {
             navigateToInventoryWhenItemIsPending()
         }
         .task {
+            cloudBackupRuntime?.startLaunchCatchUpIfNeeded()
             navigateToInitialUITestDestination()
             await refreshLocalReminders()
         }
