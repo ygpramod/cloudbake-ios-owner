@@ -117,6 +117,62 @@ final class BackupCoordinatorTests: XCTestCase {
         XCTAssertEqual(creationCount, 0)
     }
 
+    func testCellularConfirmationIsConsumedBeforeEligibilitySuspends() async {
+        let fixture = CoordinatorFixture(connection: .cellular)
+        guard case .requiresCellularConfirmation(let proposal) = await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected a cellular confirmation proposal")
+        }
+        await fixture.environment.holdEligibilityChecks()
+        let firstConfirmation = Task {
+            await fixture.coordinator.confirmManualCellularBackup(
+                proposalID: proposal.id,
+                displayedByteCount: proposal.estimatedUploadByteCount
+            )
+        }
+        let didStartEligibilityCheck = await fixture.environment.waitUntilEligibilityCheckStarts()
+        XCTAssertTrue(didStartEligibilityCheck, "Timed out waiting for eligibility check")
+
+        let duplicate = await fixture.coordinator.confirmManualCellularBackup(
+            proposalID: proposal.id,
+            displayedByteCount: proposal.estimatedUploadByteCount
+        )
+
+        XCTAssertEqual(duplicate, .invalidCellularApproval)
+        await fixture.environment.releaseEligibility()
+        guard case .published = await firstConfirmation.value else {
+            return XCTFail("The first confirmation should publish")
+        }
+        let publicationCount = await fixture.publisher.publicationCount
+        XCTAssertEqual(publicationCount, 1)
+    }
+
+    func testCellularCancellationCannotDeletePackageAfterConfirmationStarts() async {
+        let fixture = CoordinatorFixture(connection: .cellular)
+        guard case .requiresCellularConfirmation(let proposal) = await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected a cellular confirmation proposal")
+        }
+        await fixture.environment.holdEligibilityChecks()
+        let confirmation = Task {
+            await fixture.coordinator.confirmManualCellularBackup(
+                proposalID: proposal.id,
+                displayedByteCount: proposal.estimatedUploadByteCount
+            )
+        }
+        let didStartEligibilityCheck = await fixture.environment.waitUntilEligibilityCheckStarts()
+        XCTAssertTrue(didStartEligibilityCheck, "Timed out waiting for eligibility check")
+
+        await fixture.coordinator.cancelManualCellularBackup(proposalID: proposal.id)
+
+        let removedBeforePublication = await fixture.cleaner.removedGenerationIDs
+        XCTAssertTrue(removedBeforePublication.isEmpty)
+        await fixture.environment.releaseEligibility()
+        guard case .published = await confirmation.value else {
+            return XCTFail("Confirmation should retain and publish its package")
+        }
+        let publicationCount = await fixture.publisher.publicationCount
+        XCTAssertEqual(publicationCount, 1)
+    }
+
     func testCancellationClearsInterruptedStateAndSchedulesRetry() async throws {
         let fixture = CoordinatorFixture(holdsPublication: true)
         let operation = Task {
@@ -380,7 +436,7 @@ private actor FakeBackupEnvironment: BackupConnectivityChecking,
     let hasEligiblePower: Bool
     let hasSufficientStorage: Bool
     let isAuthorized: Bool
-    let holdsEligibility: Bool
+    private var holdsEligibility: Bool
     private var didStartEligibilityCheck = false
     private var eligibilityContinuation: CheckedContinuation<Void, Never>?
 
@@ -423,7 +479,13 @@ private actor FakeBackupEnvironment: BackupConnectivityChecking,
         return didStartEligibilityCheck
     }
 
+    func holdEligibilityChecks() {
+        holdsEligibility = true
+        didStartEligibilityCheck = false
+    }
+
     func releaseEligibility() {
+        holdsEligibility = false
         eligibilityContinuation?.resume()
         eligibilityContinuation = nil
     }

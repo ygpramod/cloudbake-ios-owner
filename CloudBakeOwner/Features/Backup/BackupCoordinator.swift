@@ -99,6 +99,7 @@ actor BackupCoordinator {
         case preparingManual
         case awaitingManualCellularApproval
         case publishingManual
+        case cancellingManual
     }
 
     private struct PreparedManualBackup {
@@ -258,11 +259,13 @@ actor BackupCoordinator {
         proposalID: String,
         displayedByteCount: Int64
     ) async -> ManualBackupResult {
-        guard let preparedManualBackup,
+        guard case .awaitingManualCellularApproval = activeOperation,
+              let preparedManualBackup,
               preparedManualBackup.proposal.id == proposalID,
               preparedManualBackup.proposal.estimatedUploadByteCount == displayedByteCount else {
             return .invalidCellularApproval
         }
+        activeOperation = .publishingManual
 
         let environment = await currentEnvironment(
             estimatedUploadByteCount: scheduleStore.load().estimatedUploadByteCount
@@ -270,7 +273,6 @@ actor BackupCoordinator {
         if let reason = manualDeferralReason(for: environment) {
             return await finishPreparedManualDeferral(reason)
         }
-        activeOperation = .publishingManual
         return await publishManualPackage(
             preparedManualBackup.package,
             transferPolicy: .cellularAllowed,
@@ -279,8 +281,10 @@ actor BackupCoordinator {
     }
 
     func cancelManualCellularBackup(proposalID: String) async {
-        guard let preparedManualBackup,
+        guard case .awaitingManualCellularApproval = activeOperation,
+              let preparedManualBackup,
               preparedManualBackup.proposal.id == proposalID else { return }
+        activeOperation = .cancellingManual
         await packageCleaner.removePackage(generationID: preparedManualBackup.package.generationID)
         self.preparedManualBackup = nil
         clearActiveOperationMetadata()
