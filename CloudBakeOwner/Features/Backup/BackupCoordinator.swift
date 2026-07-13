@@ -324,6 +324,17 @@ actor BackupCoordinator {
         if isEnabled {
             metadata.isOverdue = true
             metadata.nextEligibleAt = now()
+        } else if case .awaitingManualCellularApproval = activeOperation,
+                  let preparedManualBackup {
+            activeOperation = .cancellingManual
+            self.preparedManualBackup = nil
+            metadata.activeGenerationID = nil
+            scheduleStore.save(metadata)
+            await packageCleaner.removePackage(
+                generationID: preparedManualBackup.package.generationID
+            )
+            finishOperation()
+            return
         }
         scheduleStore.save(metadata)
         if isEnabled {

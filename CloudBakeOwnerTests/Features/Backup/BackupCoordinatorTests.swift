@@ -38,6 +38,27 @@ final class BackupCoordinatorTests: XCTestCase {
         XCTAssertEqual(creationCount, 0)
     }
 
+    func testDisablingBackupCancelsPendingCellularPublication() async {
+        let fixture = CoordinatorFixture(connection: .cellular)
+        guard case .requiresCellularConfirmation(let proposal) = await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected a cellular confirmation proposal")
+        }
+
+        await fixture.coordinator.setBackupEnabled(false)
+        let confirmation = await fixture.coordinator.confirmManualCellularBackup(
+            proposalID: proposal.id,
+            displayedByteCount: proposal.estimatedUploadByteCount
+        )
+
+        XCTAssertEqual(confirmation, .invalidCellularApproval)
+        XCTAssertFalse(fixture.scheduleStore.load().isEnabled)
+        XCTAssertNil(fixture.scheduleStore.load().activeGenerationID)
+        let removedGenerationIDs = await fixture.cleaner.removedGenerationIDs
+        XCTAssertEqual(removedGenerationIDs, ["generation-1"])
+        let publicationCount = await fixture.publisher.publicationCount
+        XCTAssertEqual(publicationCount, 0)
+    }
+
     func testEligibleAutomaticBackupPublishesOnceAndSchedulesNextNight() async throws {
         let fixture = CoordinatorFixture()
 
