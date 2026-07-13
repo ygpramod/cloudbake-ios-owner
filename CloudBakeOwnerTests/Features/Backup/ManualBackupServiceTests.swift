@@ -102,6 +102,7 @@ final class ManualBackupServiceTests: XCTestCase {
             XCTFail("Expected archive failure")
         } catch TestError.failed {
             XCTAssertFalse(FileManager.default.fileExists(atPath: expectedArchive.path))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: directory.path))
         }
     }
 

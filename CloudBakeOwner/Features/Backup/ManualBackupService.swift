@@ -75,6 +75,7 @@ actor ManualBackupService: ManualBackupPreparing {
             try archiver.archivePackage(at: package.directoryURL, to: archiveURL)
         } catch {
             try? fileManager.removeItem(at: archiveURL)
+            try? fileManager.removeItem(at: package.directoryURL)
             throw error
         }
         return ManualBackupExport(
