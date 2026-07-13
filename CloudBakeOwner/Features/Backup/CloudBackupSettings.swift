@@ -48,6 +48,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
     @Published private(set) var actionMessage: String?
 
     private let service: any CloudBackupSettingsServing
+    private var backupPreferenceTask: Task<Void, Never>?
+    private var notificationPreferenceTask: Task<Void, Never>?
 
     init(
         service: any CloudBackupSettingsServing,
@@ -61,18 +63,35 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         snapshot = await service.currentSettings()
     }
 
-    func setBackupEnabled(_ isEnabled: Bool) async {
+    func setBackupEnabled(_ isEnabled: Bool) {
         snapshot.isEnabled = isEnabled
         snapshot.state = isEnabled ? .enabled : .disabled
-        snapshot = await service.setBackupEnabled(isEnabled)
         actionMessage = isEnabled
             ? "Cloud backup is enabled. CloudBake will back up when eligible."
             : "Cloud backup is off. Your latest cloud backup is retained."
+
+        backupPreferenceTask?.cancel()
+        backupPreferenceTask = Task { [weak self, service = service] in
+            let persisted = await service.setBackupEnabled(isEnabled)
+            guard !Task.isCancelled,
+                  let self,
+                  self.snapshot.isEnabled == isEnabled else { return }
+            self.snapshot.isEnabled = persisted.isEnabled
+            self.snapshot.state = persisted.state
+        }
     }
 
-    func setNotificationsEnabled(_ isEnabled: Bool) async {
+    func setNotificationsEnabled(_ isEnabled: Bool) {
         snapshot.areNotificationsEnabled = isEnabled
-        snapshot = await service.setNotificationsEnabled(isEnabled)
+
+        notificationPreferenceTask?.cancel()
+        notificationPreferenceTask = Task { [weak self, service = service] in
+            let persisted = await service.setNotificationsEnabled(isEnabled)
+            guard !Task.isCancelled,
+                  let self,
+                  self.snapshot.areNotificationsEnabled == isEnabled else { return }
+            self.snapshot.areNotificationsEnabled = persisted.areNotificationsEnabled
+        }
     }
 
     func backUpNow() async {
