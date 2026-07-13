@@ -69,6 +69,25 @@ can still read it. A future format change must update the backup compatibility c
 
 This check intentionally runs outside CI because CI must not require a personal iCloud account.
 
+Run the anonymous publication and idempotent-retry check on a connected, unlocked development
+iPhone. The compile condition is deliberately absent from project and CI settings, so this test
+cannot write to CloudKit unless an engineer opts in on the command line:
+
+```sh
+xcodebuild test \
+  -project CloudBakeOwner.xcodeproj \
+  -scheme CloudBakeOwnerUnitIntegration \
+  -destination 'platform=iOS,id=<device-udid>' \
+  -only-testing:CloudBakeOwnerTests/CloudKitBackupStoreTests/testDevelopmentContainerPublishesAndRetriesAnonymousSnapshot \
+  DEVELOPMENT_TEAM=4H787CNDS2 \
+  CODE_SIGN_STYLE=Automatic \
+  'OTHER_SWIFT_FLAGS=$(inherited) -DCLOUDBAKE_CLOUDKIT_SMOKE'
+```
+
+The fixture contains only anonymous constant bytes and opaque identifiers. A successful run leaves
+that fixture as the current generation in the signed-in developer's private development database;
+the next successful smoke run replaces it.
+
 1. Sign in to an iPhone with a development iCloud account and install a development-signed build
    whose profile contains `iCloud.com.cloudbake.owner`.
 2. Seed a small local database plus one app-managed photo asset.
