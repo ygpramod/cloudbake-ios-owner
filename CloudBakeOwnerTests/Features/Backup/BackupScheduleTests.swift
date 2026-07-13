@@ -40,11 +40,33 @@ final class BackupScheduleTests: XCTestCase {
         )
     }
 
+    func testCorruptPersistedMetadataFailsClosedWithoutStartingBackup() {
+        defaults.set(Data("not-json".utf8), forKey: UserDefaultsBackupScheduleStore.metadataKey)
+
+        let metadata = UserDefaultsBackupScheduleStore(defaults: defaults).load()
+
+        XCTAssertFalse(metadata.isEnabled)
+        XCTAssertTrue(metadata.isOverdue)
+        XCTAssertNil(metadata.lastSuccessAt)
+    }
+
     func testSuccessfulBackupSchedulesTheNextLocalNight() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Asia/Singapore"))
         let policy = BackupSchedulePolicy(calendar: calendar, nightlyHour: 2)
         let success = try date(2026, 7, 13, 22, calendar: calendar)
+
+        XCTAssertEqual(
+            policy.nextNight(after: success),
+            try date(2026, 7, 14, 2, calendar: calendar)
+        )
+    }
+
+    func testSuccessBeforeNightlyHourDoesNotScheduleAgainTheSameMorning() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Asia/Singapore"))
+        let policy = BackupSchedulePolicy(calendar: calendar, nightlyHour: 2)
+        let success = try date(2026, 7, 13, 1, calendar: calendar)
 
         XCTAssertEqual(
             policy.nextNight(after: success),
@@ -77,7 +99,22 @@ final class BackupScheduleTests: XCTestCase {
         XCTAssertFalse(policy.isAutomaticBackupDue(metadata, at: now))
 
         metadata.isOverdue = true
+        metadata.nextEligibleAt = now
         XCTAssertTrue(policy.isAutomaticBackupDue(metadata, at: now))
+    }
+
+    func testOverdueScheduleWaitsForItsFutureRetryDate() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var metadata = BackupScheduleMetadata.initial
+        metadata.nextEligibleAt = now.addingTimeInterval(60)
+
+        XCTAssertFalse(BackupSchedulePolicy().isAutomaticBackupDue(metadata, at: now))
+        XCTAssertTrue(
+            BackupSchedulePolicy().isAutomaticBackupDue(
+                metadata,
+                at: now.addingTimeInterval(60)
+            )
+        )
     }
 
     func testLargeBackwardClockChangeMakesScheduleOverdue() {
