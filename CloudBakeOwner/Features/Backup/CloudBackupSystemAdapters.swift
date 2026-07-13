@@ -58,6 +58,10 @@ struct CloudKitBackupAccountChecker: BackupAccountChecking {
     }
 }
 
+struct PendingCloudBackupAccountProtectionGate: BackupPublicationAuthorizing {
+    func isPublicationAuthorized() async -> Bool { false }
+}
+
 struct SystemBackupPowerChecker: BackupPowerChecking {
     private let processInfo: ProcessInfo
 
@@ -198,6 +202,22 @@ final class StagedBackupPackageCleaner: BackupSnapshotPackageCleaning, @unchecke
             try fileManager.removeItem(at: packageURL)
         } catch {
             logger.error("Cloud backup staging cleanup failed")
+        }
+    }
+
+    func removeAllPackages() async {
+        guard fileManager.fileExists(atPath: stagingRoot.path) else { return }
+        do {
+            let children = try fileManager.contentsOfDirectory(
+                at: stagingRoot,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+            for child in children {
+                try fileManager.removeItem(at: child)
+            }
+        } catch {
+            logger.error("Cloud backup staging reconciliation failed")
         }
     }
 }

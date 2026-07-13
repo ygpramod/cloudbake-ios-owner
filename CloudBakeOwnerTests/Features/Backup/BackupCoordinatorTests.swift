@@ -86,6 +86,37 @@ final class BackupCoordinatorTests: XCTestCase {
         XCTAssertEqual(publicationCount, 1)
     }
 
+    func testConcurrentTriggersReserveOperationBeforeSuspendedEligibility() async throws {
+        let fixture = CoordinatorFixture(holdsEligibility: true)
+        let first = Task {
+            await fixture.coordinator.requestAutomaticBackup(trigger: .background)
+        }
+        let didStartEligibilityCheck = await fixture.environment.waitUntilEligibilityCheckStarts()
+        XCTAssertTrue(didStartEligibilityCheck, "Timed out waiting for eligibility check")
+
+        let secondAutomatic = await fixture.coordinator.requestAutomaticBackup(trigger: .launchCatchUp)
+        let manual = await fixture.coordinator.prepareManualBackup()
+
+        XCTAssertEqual(secondAutomatic, .coalesced)
+        XCTAssertEqual(manual, .busy)
+        await fixture.environment.releaseEligibility()
+        guard case .published = await first.value else {
+            return XCTFail("The reserved automatic operation should publish")
+        }
+        let publicationCount = await fixture.publisher.publicationCount
+        XCTAssertEqual(publicationCount, 1)
+    }
+
+    func testPublicationWaitsForAccountLifecycleConfirmation() async {
+        let fixture = CoordinatorFixture(isPublicationAuthorized: false)
+
+        let result = await fixture.coordinator.requestAutomaticBackup(trigger: .background)
+
+        XCTAssertEqual(result, .deferred(.accountConfirmationRequired))
+        let creationCount = await fixture.snapshotCreator.creationCount
+        XCTAssertEqual(creationCount, 0)
+    }
+
     func testCancellationClearsInterruptedStateAndSchedulesRetry() async throws {
         let fixture = CoordinatorFixture(holdsPublication: true)
         let operation = Task {
@@ -116,8 +147,24 @@ final class BackupCoordinatorTests: XCTestCase {
             return XCTFail("Expected overdue launch catch-up to publish")
         }
 
+        let removeAllCallCount = await fixture.cleaner.removeAllCallCount
+        XCTAssertEqual(removeAllCallCount, 1)
         let removedGenerationIDs = await fixture.cleaner.removedGenerationIDs
-        XCTAssertEqual(removedGenerationIDs, ["interrupted-generation", "generation-1"])
+        XCTAssertEqual(removedGenerationIDs, ["generation-1"])
+        XCTAssertNil(fixture.scheduleStore.load().activeGenerationID)
+    }
+
+    func testBackgroundRelaunchReconcilesInterruptedAndUntrackedStaging() async {
+        var metadata = BackupScheduleMetadata.initial
+        metadata.activeGenerationID = "interrupted-generation"
+        let fixture = CoordinatorFixture(metadata: metadata)
+
+        guard case .published = await fixture.coordinator.requestAutomaticBackup(trigger: .background) else {
+            return XCTFail("Expected background relaunch to recover and publish")
+        }
+
+        let removeAllCallCount = await fixture.cleaner.removeAllCallCount
+        XCTAssertEqual(removeAllCallCount, 1)
         XCTAssertNil(fixture.scheduleStore.load().activeGenerationID)
     }
 
@@ -173,6 +220,7 @@ private final class CoordinatorFixture {
     let publisher: FakeBackupPublisher
     let scheduler = FakeBackgroundScheduler()
     let cleaner = FakePackageCleaner()
+    let environment: FakeBackupEnvironment
     let coordinator: BackupCoordinator
 
     init(
@@ -181,15 +229,19 @@ private final class CoordinatorFixture {
         account: BackupAccountAvailability = .available,
         hasEligiblePower: Bool = true,
         hasSufficientStorage: Bool = true,
-        holdsPublication: Bool = false
+        isPublicationAuthorized: Bool = true,
+        holdsPublication: Bool = false,
+        holdsEligibility: Bool = false
     ) {
         scheduleStore = InMemoryBackupScheduleStore(metadata: metadata)
         publisher = FakeBackupPublisher(holdsPublication: holdsPublication)
-        let environment = FakeBackupEnvironment(
+        environment = FakeBackupEnvironment(
             connection: connection,
             account: account,
             hasEligiblePower: hasEligiblePower,
-            hasSufficientStorage: hasSufficientStorage
+            hasSufficientStorage: hasSufficientStorage,
+            isPublicationAuthorized: isPublicationAuthorized,
+            holdsEligibility: holdsEligibility
         )
         coordinator = BackupCoordinator(
             snapshotCreator: snapshotCreator,
@@ -197,6 +249,7 @@ private final class CoordinatorFixture {
             scheduleStore: scheduleStore,
             connectivity: environment,
             account: environment,
+            publicationAuthorization: environment,
             power: environment,
             storage: environment,
             backgroundScheduler: scheduler,
@@ -317,20 +370,62 @@ private actor FakeBackupPublisher: CloudBackupPublishing {
     }
 }
 
-private struct FakeBackupEnvironment: BackupConnectivityChecking,
+private actor FakeBackupEnvironment: BackupConnectivityChecking,
     BackupAccountChecking,
+    BackupPublicationAuthorizing,
     BackupPowerChecking,
     BackupStorageChecking {
     let connection: BackupConnection
     let account: BackupAccountAvailability
     let hasEligiblePower: Bool
     let hasSufficientStorage: Bool
+    let isAuthorized: Bool
+    let holdsEligibility: Bool
+    private var didStartEligibilityCheck = false
+    private var eligibilityContinuation: CheckedContinuation<Void, Never>?
+
+    init(
+        connection: BackupConnection,
+        account: BackupAccountAvailability,
+        hasEligiblePower: Bool,
+        hasSufficientStorage: Bool,
+        isPublicationAuthorized: Bool,
+        holdsEligibility: Bool
+    ) {
+        self.connection = connection
+        self.account = account
+        self.hasEligiblePower = hasEligiblePower
+        self.hasSufficientStorage = hasSufficientStorage
+        isAuthorized = isPublicationAuthorized
+        self.holdsEligibility = holdsEligibility
+    }
 
     func currentConnection() async -> BackupConnection { connection }
-    func currentAvailability() async -> BackupAccountAvailability { account }
+    func currentAvailability() async -> BackupAccountAvailability {
+        didStartEligibilityCheck = true
+        if holdsEligibility {
+            await withCheckedContinuation { continuation in
+                eligibilityContinuation = continuation
+            }
+        }
+        return account
+    }
+    func isPublicationAuthorized() async -> Bool { isAuthorized }
     func hasEligiblePowerState() async -> Bool { hasEligiblePower }
     func hasSufficientWorkingStorage(estimatedUploadByteCount: Int64?) async -> Bool {
         hasSufficientStorage
+    }
+
+    func waitUntilEligibilityCheckStarts() async -> Bool {
+        for _ in 0..<1_000 where !didStartEligibilityCheck {
+            await Task.yield()
+        }
+        return didStartEligibilityCheck
+    }
+
+    func releaseEligibility() {
+        eligibilityContinuation?.resume()
+        eligibilityContinuation = nil
     }
 }
 
@@ -345,8 +440,13 @@ private actor FakeBackgroundScheduler: BackupBackgroundScheduling {
 
 private actor FakePackageCleaner: BackupSnapshotPackageCleaning {
     private(set) var removedGenerationIDs: [String] = []
+    private(set) var removeAllCallCount = 0
 
     func removePackage(generationID: String) {
         removedGenerationIDs.append(generationID)
+    }
+
+    func removeAllPackages() {
+        removeAllCallCount += 1
     }
 }

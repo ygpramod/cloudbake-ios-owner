@@ -3,6 +3,11 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class CloudBackupSystemAdaptersTests: XCTestCase {
+    func testAccountProtectionGateKeepsPublicationDormantUntilConfirmationShips() async {
+        let isAuthorized = await PendingCloudBackupAccountProtectionGate().isPublicationAuthorized()
+        XCTAssertFalse(isAuthorized)
+    }
+
     func testPowerPolicyRejectsLowPowerAndElevatedThermalStates() {
         XCTAssertTrue(
             SystemBackupPowerChecker.isEligible(
@@ -65,5 +70,25 @@ final class CloudBackupSystemAdaptersTests: XCTestCase {
                 estimatedUploadByteCount: Int64.max
             )
         )
+    }
+
+    func testStagingReconciliationRemovesBuildingAndFinalizedCrashArtifacts() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(
+            UUID().uuidString,
+            isDirectory: true
+        )
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(
+            at: root.appendingPathComponent("interrupted.building", isDirectory: true),
+            withIntermediateDirectories: true
+        )
+        try FileManager.default.createDirectory(
+            at: root.appendingPathComponent("finalized-before-metadata", isDirectory: true),
+            withIntermediateDirectories: true
+        )
+
+        await StagedBackupPackageCleaner(stagingRoot: root).removeAllPackages()
+
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: root.path), [])
     }
 }

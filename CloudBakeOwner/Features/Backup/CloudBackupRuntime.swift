@@ -80,6 +80,7 @@ final class CloudBackupRuntime: @unchecked Sendable {
             scheduleStore: UserDefaultsBackupScheduleStore(),
             connectivity: NetworkBackupConnectivityChecker(),
             account: CloudKitBackupAccountChecker(),
+            publicationAuthorization: PendingCloudBackupAccountProtectionGate(),
             power: SystemBackupPowerChecker(),
             storage: VolumeBackupStorageChecker(
                 volumeURL: applicationSupport,
@@ -100,6 +101,7 @@ final class CloudBackupRuntime: @unchecked Sendable {
             scheduleStore: CellularBackupUITestScheduleStore(),
             connectivity: environment,
             account: environment,
+            publicationAuthorization: environment,
             power: environment,
             storage: environment,
             backgroundScheduler: CellularBackupUITestNoOp(),
@@ -138,10 +140,12 @@ private final class CellularBackupUITestScheduleStore: BackupScheduleStoring, @u
 
 private struct CellularBackupUITestEnvironment: BackupConnectivityChecking,
     BackupAccountChecking,
+    BackupPublicationAuthorizing,
     BackupPowerChecking,
     BackupStorageChecking {
     func currentConnection() async -> BackupConnection { .cellular }
     func currentAvailability() async -> BackupAccountAvailability { .available }
+    func isPublicationAuthorized() async -> Bool { true }
     func hasEligiblePowerState() async -> Bool { true }
     func hasSufficientWorkingStorage(estimatedUploadByteCount: Int64?) async -> Bool { true }
 }
@@ -167,6 +171,7 @@ private struct CellularBackupUITestNoOp: BackupBackgroundScheduling,
     BackupSnapshotPackageCleaning {
     func schedule(earliestBeginDate: Date) async -> Bool { true }
     func removePackage(generationID: String) async {}
+    func removeAllPackages() async {}
 }
 #endif
 

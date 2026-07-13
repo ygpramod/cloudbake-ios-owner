@@ -13,6 +13,7 @@ enum BackupAccountAvailability: Equatable, Sendable {
 
 enum BackupDeferralReason: Equatable, Sendable {
     case disabled
+    case accountConfirmationRequired
     case waitingForWiFi
     case networkUnavailable
     case iCloudUnavailable
@@ -56,6 +57,10 @@ protocol BackupAccountChecking: Sendable {
     func currentAvailability() async -> BackupAccountAvailability
 }
 
+protocol BackupPublicationAuthorizing: Sendable {
+    func isPublicationAuthorized() async -> Bool
+}
+
 protocol BackupPowerChecking: Sendable {
     func hasEligiblePowerState() async -> Bool
 }
@@ -71,6 +76,7 @@ protocol BackupBackgroundScheduling: Sendable {
 
 protocol BackupSnapshotPackageCleaning: Sendable {
     func removePackage(generationID: String) async
+    func removeAllPackages() async
 }
 
 protocol CloudBackupPublishing: Sendable {
@@ -88,6 +94,13 @@ extension CloudBackupPublisher: CloudBackupPublishing {
 }
 
 actor BackupCoordinator {
+    private enum ActiveOperation {
+        case automatic
+        case preparingManual
+        case awaitingManualCellularApproval
+        case publishingManual
+    }
+
     private struct PreparedManualBackup {
         let proposal: ManualCellularBackupProposal
         let package: AppSnapshotPackage
@@ -98,6 +111,7 @@ actor BackupCoordinator {
     private let scheduleStore: any BackupScheduleStoring
     private let connectivity: any BackupConnectivityChecking
     private let account: any BackupAccountChecking
+    private let publicationAuthorization: any BackupPublicationAuthorizing
     private let power: any BackupPowerChecking
     private let storage: any BackupStorageChecking
     private let backgroundScheduler: any BackupBackgroundScheduling
@@ -106,7 +120,8 @@ actor BackupCoordinator {
     private let now: @Sendable () -> Date
     private let makeProposalID: @Sendable () -> String
 
-    private var isOperationActive = false
+    private var activeOperation: ActiveOperation?
+    private var didRecoverStaging = false
     private var preparedManualBackup: PreparedManualBackup?
 
     init(
@@ -115,6 +130,7 @@ actor BackupCoordinator {
         scheduleStore: any BackupScheduleStoring,
         connectivity: any BackupConnectivityChecking,
         account: any BackupAccountChecking,
+        publicationAuthorization: any BackupPublicationAuthorizing,
         power: any BackupPowerChecking,
         storage: any BackupStorageChecking,
         backgroundScheduler: any BackupBackgroundScheduling,
@@ -128,6 +144,7 @@ actor BackupCoordinator {
         self.scheduleStore = scheduleStore
         self.connectivity = connectivity
         self.account = account
+        self.publicationAuthorization = publicationAuthorization
         self.power = power
         self.storage = storage
         self.backgroundScheduler = backgroundScheduler
@@ -138,25 +155,26 @@ actor BackupCoordinator {
     }
 
     func startAndCatchUp() async -> AutomaticBackupResult {
-        await recoverInterruptedOperationIfNeeded()
         return await requestAutomaticBackup(trigger: .launchCatchUp)
     }
 
     func requestAutomaticBackup(
         trigger _: AutomaticBackupTrigger
     ) async -> AutomaticBackupResult {
-        if isOperationActive {
-            return .coalesced
-        }
+        guard activeOperation == nil else { return .coalesced }
+        activeOperation = .automatic
+        await recoverInterruptedOperationIfNeeded()
 
         let date = now()
         var metadata = schedulePolicy.reconcilingClock(in: scheduleStore.load(), now: date)
         scheduleStore.save(metadata)
         guard metadata.isEnabled else {
+            finishOperation()
             return .deferred(.disabled)
         }
         guard schedulePolicy.isAutomaticBackupDue(metadata, at: date) else {
             await scheduleNextAttempt(from: metadata, fallbackDate: date)
+            finishOperation()
             return .notDue
         }
 
@@ -164,31 +182,36 @@ actor BackupCoordinator {
             metadata = recordDeferral(in: metadata, at: date)
             scheduleStore.save(metadata)
             await scheduleNextAttempt(from: metadata, fallbackDate: date)
+            finishOperation()
             return .deferred(reason)
         }
 
-        isOperationActive = true
         metadata.lastAttemptAt = date
         scheduleStore.save(metadata)
         return await createAndPublishAutomaticBackup(startedAt: date)
     }
 
     func prepareManualBackup() async -> ManualBackupResult {
-        guard !isOperationActive else { return .busy }
+        guard activeOperation == nil else { return .busy }
+        activeOperation = .preparingManual
+        await recoverInterruptedOperationIfNeeded()
 
         let date = now()
         var metadata = schedulePolicy.reconcilingClock(in: scheduleStore.load(), now: date)
         scheduleStore.save(metadata)
-        guard metadata.isEnabled else { return .deferred(.disabled) }
+        guard metadata.isEnabled else {
+            finishOperation()
+            return .deferred(.disabled)
+        }
 
         let environment = await currentEnvironment(
             estimatedUploadByteCount: metadata.estimatedUploadByteCount
         )
         if let reason = manualDeferralReason(for: environment) {
+            finishOperation()
             return .deferred(reason)
         }
 
-        isOperationActive = true
         metadata.lastAttemptAt = date
         scheduleStore.save(metadata)
 
@@ -213,9 +236,11 @@ actor BackupCoordinator {
                     proposal: proposal,
                     package: createdPackage
                 )
+                activeOperation = .awaitingManualCellularApproval
                 return .requiresCellularConfirmation(proposal)
             }
 
+            activeOperation = .publishingManual
             return await publishManualPackage(
                 createdPackage,
                 transferPolicy: .wifiOnly,
@@ -245,6 +270,7 @@ actor BackupCoordinator {
         if let reason = manualDeferralReason(for: environment) {
             return await finishPreparedManualDeferral(reason)
         }
+        activeOperation = .publishingManual
         return await publishManualPackage(
             preparedManualBackup.package,
             transferPolicy: .cellularAllowed,
@@ -356,12 +382,15 @@ actor BackupCoordinator {
     }
 
     private func recoverInterruptedOperationIfNeeded() async {
+        guard !didRecoverStaging else { return }
+        didRecoverStaging = true
+        await packageCleaner.removeAllPackages()
+
         var metadata = schedulePolicy.reconcilingClock(in: scheduleStore.load(), now: now())
-        guard let generationID = metadata.activeGenerationID else {
+        guard metadata.activeGenerationID != nil else {
             scheduleStore.save(metadata)
             return
         }
-        await packageCleaner.removePackage(generationID: generationID)
         metadata.activeGenerationID = nil
         metadata.isOverdue = true
         metadata.retryCount = incrementedRetryCount(metadata.retryCount)
@@ -375,7 +404,8 @@ actor BackupCoordinator {
         connection: BackupConnection,
         account: BackupAccountAvailability,
         hasEligiblePower: Bool,
-        hasSufficientStorage: Bool
+        hasSufficientStorage: Bool,
+        isPublicationAuthorized: Bool
     ) {
         async let connection = connectivity.currentConnection()
         async let accountAvailability = account.currentAvailability()
@@ -383,11 +413,13 @@ actor BackupCoordinator {
         async let hasSufficientStorage = storage.hasSufficientWorkingStorage(
             estimatedUploadByteCount: estimatedUploadByteCount
         )
+        async let isPublicationAuthorized = publicationAuthorization.isPublicationAuthorized()
         return await (
             connection,
             accountAvailability,
             hasEligiblePower,
-            hasSufficientStorage
+            hasSufficientStorage,
+            isPublicationAuthorized
         )
     }
 
@@ -395,6 +427,7 @@ actor BackupCoordinator {
         let environment = await currentEnvironment(
             estimatedUploadByteCount: scheduleStore.load().estimatedUploadByteCount
         )
+        guard environment.isPublicationAuthorized else { return .accountConfirmationRequired }
         guard environment.account == .available else { return .iCloudUnavailable }
         guard environment.hasEligiblePower else { return .powerRestricted }
         guard environment.hasSufficientStorage else { return .insufficientStorage }
@@ -410,9 +443,11 @@ actor BackupCoordinator {
             connection: BackupConnection,
             account: BackupAccountAvailability,
             hasEligiblePower: Bool,
-            hasSufficientStorage: Bool
+            hasSufficientStorage: Bool,
+            isPublicationAuthorized: Bool
         )
     ) -> BackupDeferralReason? {
+        guard environment.isPublicationAuthorized else { return .accountConfirmationRequired }
         guard environment.account == .available else { return .iCloudUnavailable }
         guard environment.hasEligiblePower else { return .powerRestricted }
         guard environment.hasSufficientStorage else { return .insufficientStorage }
@@ -457,7 +492,7 @@ actor BackupCoordinator {
     }
 
     private func finishOperation() {
-        isOperationActive = false
+        activeOperation = nil
     }
 
     private func scheduleNextAttempt(
