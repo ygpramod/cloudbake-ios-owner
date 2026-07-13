@@ -171,6 +171,9 @@ The app currently supports:
 126. owner-controlled full-app `.cloudbakebackup` export through the system Files picker, including
     the validated database, app-managed images, lightweight recovery copies of linked Photos assets,
     and custom logo, with last-success status and a default-on weekly reminder that can be disabled.
+127. collapsed Settings controls for CloudKit disaster recovery, including enabled state, iCloud
+    availability, last-success time, estimated size, safe status guidance, independently configurable
+    notifications, and size-aware cellular confirmation for manual cloud backup.
 
 ## Partially Prepared
 
@@ -189,8 +192,8 @@ The app has domain foundations or partial workflows for:
 11. purchase bill camera import flow,
 12. purchase bill duplicate matching,
 13. recipe ingredient quantity extraction.
-14. best-effort nightly CloudKit scheduling, Wi-Fi enforcement, bounded retries, and overdue launch
-    catch-up; live publication remains fail-closed until account-bound owner confirmation ships.
+14. live CloudKit publication remains fail-closed until account-bound owner confirmation ships;
+    scheduling and owner-facing status and controls are implemented.
 
 These are not all owner-facing workflows yet.
 

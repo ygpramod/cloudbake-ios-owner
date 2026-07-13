@@ -1,9 +1,9 @@
 # CloudKit Backup Operations
 
 This runbook governs the private CloudKit schema used by CloudBake disaster-recovery backups.
-RFC-0103 activates best-effort scheduling but keeps publication behind a fail-closed account
-confirmation gate. Owner-facing status and controls arrive in RFC-0104; RFC-0106 safely authorizes
-live publication for a confirmed iCloud account.
+RFC-0103 activates best-effort scheduling and RFC-0104 adds owner-facing status and controls, while
+publication remains behind a fail-closed account confirmation gate. RFC-0106 safely authorizes live
+publication for a confirmed iCloud account.
 
 ## Container And Environments
 
@@ -105,8 +105,8 @@ the next successful smoke run replaces it.
    in CloudKit record names or diagnostics.
 8. Record the build SHA, device, account environment, timestamps, and result in the release evidence.
 
-The owner-facing backup controls and status are introduced by RFC-0104. Invoke the anonymous smoke
-check only through the explicit development harness above.
+Owner-facing backup controls and status are available in the collapsed Settings Backup section.
+Invoke the anonymous smoke check only through the explicit development harness above.
 
 ## Background Scheduling
 

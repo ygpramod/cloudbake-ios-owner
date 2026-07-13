@@ -324,7 +324,19 @@ the owner's private CloudKit database each eligible night. Automatic transfer is
 deferred by iCloud account, power, thermal, or storage conditions, and catches up asynchronously
 after a missed run. Live publication remains disabled until account-bound owner confirmation is
 implemented, so changing Apple accounts cannot silently disclose local bakery data. iOS decides the
-actual execution time. Backup status and owner controls are added in the next cloud backup slice.
+actual execution time.
+
+Expand **Backup** to see whether cloud backup is enabled, iCloud availability, the latest safe
+status and guidance, the last successful backup time, and the estimated transfer size. Cloud backup
+starts enabled. Turning it off stops future automatic and manual cloud publication but retains the
+latest successful recovery snapshot. Backup notifications are a separate preference; turning them
+off does not turn off backup or hide Settings status.
+
+Choose **Back Up Now** for a manual cloud snapshot. Wi-Fi proceeds without a data-use prompt. On
+cellular, CloudBake displays the estimated transfer size and publishes only after explicit approval.
+Status and notifications use safe operational wording and never include customer, recipe, cost, or
+photo content. Restore and permanent cloud deletion are shown under the collapsed **Data
+Management** section but remain unavailable until their safety slices ship.
 
 ## Order Workflow
 

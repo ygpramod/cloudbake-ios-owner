@@ -159,6 +159,11 @@ missed execution without blocking app launch. Scheduling is implemented, but liv
 disabled until CloudBake can bind explicit owner confirmation to the detected iCloud account. It is
 backup rather than multi-device synchronization.
 
+Cloud backup starts enabled, but the owner can disable future publication without deleting the
+latest successful snapshot. Backup notifications are independently configurable and contain only
+safe operational status, never private customer, recipe, cost, or photo content. A manual transfer
+over cellular requires confirmation of the displayed estimated size.
+
 It uses the columns `name`, `aliases`, `type`, `unit`, `current_quantity`, `minimum_quantity`,
 `batch_quantity`, `amount`, and `expiry_date`. Aliases are comma-separated inside the CSV field,
 type is Standard or Perishable, and dates use `yyyy-MM-dd`.
