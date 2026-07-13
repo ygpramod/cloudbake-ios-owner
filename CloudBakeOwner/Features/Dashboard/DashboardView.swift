@@ -89,7 +89,7 @@ struct DashboardView: View {
                     }
                 }
                 .padding(.horizontal, CloudBakeTheme.Spacing.screenHorizontal + 4)
-                .padding(.top, 29)
+                .padding(.top, 33)
                 .padding(.bottom, CloudBakeTheme.Spacing.bottomNavigationHeight - 8)
             }
         }
