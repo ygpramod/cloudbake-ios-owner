@@ -271,6 +271,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         openDashboardDestination("Settings", in: app)
         tapWhenReady(app.buttons["settings.backup.disclosure"])
         XCTAssertTrue(app.switches["settings.backup.weeklyReminder"].waitForExistence(timeout: 5))
+        scrollToHittable(app.buttons["settings.backup.create"], in: app)
         tapWhenReady(app.buttons["settings.backup.create"])
         tapWhenReady(app.buttons["settings.backup.create.continue"])
 
@@ -278,6 +279,46 @@ final class CloudBakeOwnerUITests: XCTestCase {
         if !saveButton.waitForExistence(timeout: 15) {
             XCTFail("Backup exporter did not appear. Hierarchy: \(app.debugDescription)")
         }
+    }
+
+    func testCloudBackupSettingsRequireCellularConfirmation() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
+        app.launch()
+
+        XCTAssertFalse(app.switches["settings.cloudBackup.enabled"].exists)
+        tapWhenReady(app.buttons["settings.backup.disclosure"])
+
+        let enabledSwitch = app.switches["settings.cloudBackup.enabled"]
+        XCTAssertTrue(enabledSwitch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["settings.cloudBackup.status"].exists)
+        enabledSwitch.tap()
+        expectation(for: NSPredicate(format: "value == %@", "0"), evaluatedWith: enabledSwitch)
+        waitForExpectations(timeout: 5)
+        enabledSwitch.tap()
+        expectation(for: NSPredicate(format: "value == %@", "1"), evaluatedWith: enabledSwitch)
+        waitForExpectations(timeout: 5)
+
+        let notificationsSwitch = app.switches["settings.cloudBackup.notifications"]
+        scrollToHittable(notificationsSwitch, in: app)
+        notificationsSwitch.tap()
+        expectation(
+            for: NSPredicate(format: "value == %@", "0"),
+            evaluatedWith: notificationsSwitch
+        )
+        waitForExpectations(timeout: 5)
+
+        let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
+        scrollToHittable(backUpNowButton, in: app)
+        app.swipeUp()
+        tapWhenReady(backUpNowButton)
+
+        let confirmButton = app.buttons["settings.cloudBackup.cellular.confirm"]
+        if !confirmButton.waitForExistence(timeout: 5) {
+            XCTFail("Cellular confirmation did not appear. Hierarchy: \(app.debugDescription)")
+        }
+        XCTAssertTrue(app.staticTexts["Use Cellular Data?"].exists)
+        tapWhenReady(app.buttons["settings.cloudBackup.cellular.cancel"])
     }
 
     func testOrderCanBeAddedAndListed() throws {
