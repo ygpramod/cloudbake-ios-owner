@@ -14,6 +14,16 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Low inventory"].exists)
     }
 
+    func testOverdueAutomaticBackupOnCellularDoesNotDelayLaunchOrStartTransfer() throws {
+        let app = makeApp()
+        app.launchEnvironment["CLOUDBAKE_TEST_CELLULAR_BACKUP_CATCH_UP"] = "1"
+        app.launch()
+
+        assertDashboardVisible(in: app, timeout: 5)
+        XCTAssertEqual(app.state, .runningForeground)
+        XCTAssertTrue(app.staticTexts["Upcoming orders"].exists)
+    }
+
     func testDashboardDesignsShortcutOpensDesigns() throws {
         let app = makeApp()
         app.launch()
