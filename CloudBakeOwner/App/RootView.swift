@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     let database: AppDatabase
     let cloudBackupRuntime: CloudBackupRuntime?
+    let cloudBackupSettingsService: (any CloudBackupSettingsServing)?
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
     @EnvironmentObject private var orderNavigationRouter: OrderNavigationRouter
@@ -13,6 +14,15 @@ struct RootView: View {
     init(database: AppDatabase, cloudBackupRuntime: CloudBackupRuntime? = nil) {
         self.database = database
         self.cloudBackupRuntime = cloudBackupRuntime
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] == "1" {
+            cloudBackupSettingsService = CloudBackupSettingsUITestService()
+        } else {
+            cloudBackupSettingsService = cloudBackupRuntime
+        }
+        #else
+        cloudBackupSettingsService = cloudBackupRuntime
+        #endif
     }
 
     private var selectedDestination: AppDestination {
@@ -192,7 +202,8 @@ struct RootView: View {
                     repository: repository,
                     recipeRepository: repository,
                     manualBackupService: try? ManualBackupService.live(database: database)
-                )
+                ),
+                cloudBackupService: cloudBackupSettingsService
             )
         case .designs:
             let repository = database.makeCoreDataRepository()

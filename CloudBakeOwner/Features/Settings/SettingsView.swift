@@ -198,6 +198,7 @@ final class SettingsViewModel: ObservableObject {
 
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
+    @StateObject private var cloudBackupViewModel: CloudBackupSettingsViewModel
     @AppStorage(AppSettings.currencySymbolKey) private var selectedCurrencySymbol = AppCurrency.defaultCurrency.symbol
     @AppStorage(AppSettings.logoRevisionKey) private var logoRevision = 0
     @State private var isSelectingCurrency = false
@@ -210,8 +211,16 @@ struct SettingsView: View {
     @State private var isConfirmingManualBackup = false
     @State private var activeFileExport: SettingsFileExport?
 
-    init(viewModel: SettingsViewModel) {
+    init(
+        viewModel: SettingsViewModel,
+        cloudBackupService: (any CloudBackupSettingsServing)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _cloudBackupViewModel = StateObject(
+            wrappedValue: CloudBackupSettingsViewModel(
+                service: cloudBackupService ?? UnavailableCloudBackupSettingsService()
+            )
+        )
     }
 
     var body: some View {
@@ -280,8 +289,11 @@ struct SettingsView: View {
 
             CloudBakeSection {
                 DisclosureGroup(isExpanded: $isBackupExpanded) {
+                    CloudBackupSettingsCard(viewModel: cloudBackupViewModel)
+                        .padding(.top, 12)
+
                     CloudBakeDetailCard {
-                        CloudBakeDetailRow("Last Backup") {
+                        CloudBakeDetailRow("Manual File Backup") {
                             Text(lastBackupDescription)
                         }
 
@@ -322,7 +334,7 @@ struct SettingsView: View {
                         }
                         .disabled(viewModel.isPreparingBackup)
                     }
-                    .padding(.top, 12)
+                    .padding(.top, 8)
                 } label: {
                     settingsDisclosureLabel(
                         "Backup",
@@ -334,6 +346,24 @@ struct SettingsView: View {
             CloudBakeSection {
                 DisclosureGroup(isExpanded: $isDataManagementExpanded) {
                     CloudBakeDetailCard {
+                    unavailableSettingsAction(
+                        title: "Restore from Cloud Backup",
+                        detail: "Full restore will be available in the next recovery slice.",
+                        systemImage: "icloud.and.arrow.down",
+                        accessibilityIdentifier: "settings.cloudBackup.restore"
+                    )
+
+                    CloudBakeDetailDivider()
+
+                    unavailableSettingsAction(
+                        title: "Delete Cloud Backup",
+                        detail: "Cloud deletion will be available after account lifecycle safeguards are added.",
+                        systemImage: "trash",
+                        accessibilityIdentifier: "settings.cloudBackup.delete"
+                    )
+
+                    CloudBakeDetailDivider()
+
                     settingsAction(
                         title: "Import Inventory CSV",
                         detail: "Review merge behavior before choosing a CSV file.",
@@ -398,6 +428,9 @@ struct SettingsView: View {
             }
         }
         .accessibilityIdentifier(AppDestination.settings.screenAccessibilityIdentifier)
+        .task {
+            await cloudBackupViewModel.refresh()
+        }
         .sheet(isPresented: $isSelectingCurrency) {
             CurrencySelectionView(
                 selectedCurrency: selectedCurrency,
@@ -521,6 +554,23 @@ struct SettingsView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    private func unavailableSettingsAction(
+        title: String,
+        detail: String,
+        systemImage: String,
+        accessibilityIdentifier: String
+    ) -> some View {
+        settingsAction(
+            title: title,
+            detail: detail,
+            systemImage: systemImage,
+            accessibilityIdentifier: accessibilityIdentifier,
+            action: {}
+        )
+        .disabled(true)
+        .accessibilityHint("Not available yet")
     }
 
     private func settingsDisclosureLabel(
