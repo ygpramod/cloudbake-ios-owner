@@ -641,51 +641,36 @@ struct SettingsView: View {
     }
 
     private func dismissManualBackupPopupAndPrepare() {
-        withAnimation(.easeInOut(duration: 0.18), completionCriteria: .removed) {
-            isConfirmingManualBackup = false
-        } completion: {
-            Task {
-                guard let export = await viewModel.prepareManualBackup() else { return }
-                activeFileExport = SettingsFileExport(
-                    fileURL: export.packageURL,
-                    kind: .manualBackup(export)
-                )
-            }
+        isConfirmingManualBackup = false
+        Task {
+            guard let export = await viewModel.prepareManualBackup() else { return }
+            activeFileExport = SettingsFileExport(
+                fileURL: export.packageURL,
+                kind: .manualBackup(export)
+            )
         }
     }
 
     private func continueDataOperation(_ operation: SettingsDataOperation) {
         switch operation {
         case .importInventory:
-            dismissDataOperationPopup {
-                isImportingInventory = true
-            }
+            pendingDataOperation = nil
+            isImportingInventory = true
         case .exportInventory:
             let document = viewModel.exportInventoryDocument()
-            dismissDataOperationPopup {
-                if let document {
-                    presentExporter(document: document, kind: .inventory)
-                }
+            pendingDataOperation = nil
+            if let document {
+                presentExporter(document: document, kind: .inventory)
             }
         case .importRecipes:
-            dismissDataOperationPopup {
-                isImportingRecipes = true
-            }
+            pendingDataOperation = nil
+            isImportingRecipes = true
         case .exportRecipes:
             let document = viewModel.exportRecipeDocument()
-            dismissDataOperationPopup {
-                if let document {
-                    presentExporter(document: document, kind: .recipes)
-                }
-            }
-        }
-    }
-
-    private func dismissDataOperationPopup(then action: @escaping @MainActor () -> Void) {
-        withAnimation(.easeInOut(duration: 0.18), completionCriteria: .removed) {
             pendingDataOperation = nil
-        } completion: {
-            action()
+            if let document {
+                presentExporter(document: document, kind: .recipes)
+            }
         }
     }
 

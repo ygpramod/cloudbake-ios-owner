@@ -268,7 +268,10 @@ final class CloudBakeOwnerUITests: XCTestCase {
         }
         tapWhenReady(continueButton)
 
-        XCTAssertTrue(app.buttons["Save"].waitForExistence(timeout: 10))
+        let exporter = app.descendants(matching: .any)["settings.fileExporter"]
+        if !exporter.waitForExistence(timeout: 10) {
+            XCTFail("Inventory exporter did not appear. Hierarchy: \(app.debugDescription)")
+        }
     }
 
     func testManualFullBackupPresentsDestinationPicker() throws {
@@ -283,8 +286,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.buttons["settings.backup.create"])
         tapWhenReady(app.buttons["settings.backup.create.continue"])
 
-        let saveButton = app.buttons["Save"]
-        if !saveButton.waitForExistence(timeout: 15) {
+        let exporter = app.descendants(matching: .any)["settings.fileExporter"]
+        if !exporter.waitForExistence(timeout: 15) {
             XCTFail("Backup exporter did not appear. Hierarchy: \(app.debugDescription)")
         }
     }
