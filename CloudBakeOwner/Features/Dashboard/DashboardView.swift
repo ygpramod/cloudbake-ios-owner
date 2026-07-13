@@ -78,10 +78,10 @@ struct DashboardView: View {
                             DashboardDivider()
 
                             DashboardActionRow(
-                                destination: .more,
-                                title: "Open more tools",
-                                detail: "Recipes, customers, designs, and settings",
-                                systemImage: "ellipsis.circle",
+                                destination: .designs,
+                                title: "Designs",
+                                detail: "Browse and manage cake design photos",
+                                systemImage: "photo.on.rectangle",
                                 tint: CloudBakeTheme.ColorToken.primaryAction
                             )
                         }
@@ -89,7 +89,7 @@ struct DashboardView: View {
                     }
                 }
                 .padding(.horizontal, CloudBakeTheme.Spacing.screenHorizontal + 4)
-                .padding(.top, 8)
+                .padding(.top, 17)
                 .padding(.bottom, CloudBakeTheme.Spacing.bottomNavigationHeight - 8)
             }
         }
