@@ -3,6 +3,23 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class CloudBackupPublicationTests: XCTestCase {
+    func testPublisherAppliesExplicitTransferPolicy() async throws {
+        let fixture = try PublicationFixture()
+        defer { fixture.remove() }
+        let store = FakeCloudBackupStore(
+            currentGenerationID: nil,
+            generationIDs: []
+        )
+
+        _ = try await CloudBackupPublisher(store: store).publish(
+            fixture.package,
+            transferPolicy: .cellularAllowed
+        )
+
+        let policy = await store.configuredTransferPolicy()
+        XCTAssertEqual(policy, .cellularAllowed)
+    }
+
     func testUploadPlanUsesOpaqueDeterministicRecordsAndVerifiedFiles() throws {
         let fixture = try PublicationFixture()
         defer { fixture.remove() }
@@ -313,6 +330,7 @@ private actor FakeCloudBackupStore: CloudBackupStoring {
     private let replacePointerBeforePublishWith: String?
     private var shouldSuspendUpload: Bool
     private var eventLog: [String] = []
+    private var transferPolicy = CloudBackupTransferPolicy.wifiOnly
 
     init(
         currentGenerationID: String?,
@@ -342,6 +360,14 @@ private actor FakeCloudBackupStore: CloudBackupStoring {
                 uploadedRecordNames: ["partial"]
             )
         }
+    }
+
+    func configureTransferPolicy(_ policy: CloudBackupTransferPolicy) {
+        transferPolicy = policy
+    }
+
+    func configuredTransferPolicy() -> CloudBackupTransferPolicy {
+        transferPolicy
     }
 
     func currentGenerationID() async throws -> String? {

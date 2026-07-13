@@ -3,6 +3,15 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class CloudKitBackupStoreTests: XCTestCase {
+    func testOperationPolicyDisablesCellularUnlessExplicitlyApproved() {
+        XCTAssertFalse(
+            CloudKitBackupOperationPolicy.configuration(for: .wifiOnly).allowsCellularAccess
+        )
+        XCTAssertTrue(
+            CloudKitBackupOperationPolicy.configuration(for: .cellularAllowed).allowsCellularAccess
+        )
+    }
+
     func testDevelopmentContainerPublishesAndRetriesAnonymousSnapshot() async throws {
         #if CLOUDBAKE_CLOUDKIT_SMOKE
         #if targetEnvironment(simulator)

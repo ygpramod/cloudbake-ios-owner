@@ -37,10 +37,15 @@ actor CloudKitBackupStore: CloudBackupStoring {
     private let database: CKDatabase
     private let zoneID: CKRecordZone.ID
     private var didPrepareZone = false
+    private var transferPolicy = CloudBackupTransferPolicy.wifiOnly
 
     init(container: CKContainer = CKContainer(identifier: containerIdentifier)) {
         database = container.privateCloudDatabase
         zoneID = CKRecordZone.ID(zoneName: Schema.zoneName, ownerName: CKCurrentUserDefaultName)
+    }
+
+    func configureTransferPolicy(_ policy: CloudBackupTransferPolicy) {
+        transferPolicy = policy
     }
 
     func currentGenerationID() async throws -> String? {
@@ -57,9 +62,8 @@ actor CloudKitBackupStore: CloudBackupStoring {
                 recordType: Schema.generationRecordType,
                 predicate: NSPredicate(value: true)
             )
-            var result = try await database.records(
+            var result = try await queryRecords(
                 matching: query,
-                inZoneWith: zoneID,
                 desiredKeys: [Schema.generationID]
             )
             var generationIDs: Set<String> = []
@@ -73,7 +77,7 @@ actor CloudKitBackupStore: CloudBackupStoring {
                     generationIDs.insert(generationID)
                 }
                 guard let cursor = result.queryCursor else { break }
-                result = try await database.records(
+                result = try await queryRecords(
                     continuingMatchFrom: cursor,
                     desiredKeys: [Schema.generationID]
                 )
@@ -142,7 +146,7 @@ actor CloudKitBackupStore: CloudBackupStoring {
                 let fileIDs = files.map {
                     CKRecord.ID(recordName: $0.recordName, zoneID: zoneID)
                 }
-                let records = try await database.records(for: fileIDs)
+                let records = try await fetchRecords(fileIDs)
                 for file in files {
                     let recordID = CKRecord.ID(recordName: file.recordName, zoneID: zoneID)
                     guard let result = records[recordID] else {
@@ -206,7 +210,7 @@ actor CloudKitBackupStore: CloudBackupStoring {
     private func ensureZoneAndPointer() async throws -> CKRecord {
         if !didPrepareZone {
             let zone = CKRecordZone(zoneID: zoneID)
-            let result = try await database.modifyRecordZones(saving: [zone], deleting: [])
+            let result = try await modifyRecordZones(saving: [zone])
             guard let saveResult = result.saveResults[zoneID] else {
                 throw CloudKitBackupStoreInternalError.corruptResponse
             }
@@ -230,10 +234,9 @@ actor CloudKitBackupStore: CloudBackupStoring {
     }
 
     private func saveRecords(_ records: [CKRecord], atomically: Bool) async throws -> [CKRecord.ID: CKRecord] {
-        let result = try await database.modifyRecords(
+        let result = try await modifyRecords(
             saving: records,
             deleting: [],
-            savePolicy: .ifServerRecordUnchanged,
             atomically: atomically
         )
         var saved: [CKRecord.ID: CKRecord] = [:]
@@ -248,7 +251,7 @@ actor CloudKitBackupStore: CloudBackupStoring {
 
     private func optionalRecord(_ recordID: CKRecord.ID) async throws -> CKRecord? {
         do {
-            let results = try await database.records(for: [recordID])
+            let results = try await fetchRecords([recordID])
             guard let result = results[recordID] else {
                 throw CloudKitBackupStoreInternalError.corruptResponse
             }
@@ -329,10 +332,9 @@ actor CloudKitBackupStore: CloudBackupStoring {
         _ recordIDs: [CKRecord.ID],
         preserving pointer: CKRecord
     ) async throws -> CKRecord {
-        let result = try await database.modifyRecords(
+        let result = try await modifyRecords(
             saving: [pointer],
             deleting: recordIDs,
-            savePolicy: .ifServerRecordUnchanged,
             atomically: true
         )
         try requireSaved(pointer.recordID, from: result.saveResults)
@@ -348,6 +350,133 @@ actor CloudKitBackupStore: CloudBackupStoring {
         return savedPointer
     }
 
+    private func queryRecords(
+        matching query: CKQuery,
+        desiredKeys: [CKRecord.FieldKey]
+    ) async throws -> CloudKitQueryResult {
+        let operation = CKQueryOperation(query: query)
+        operation.zoneID = zoneID
+        operation.desiredKeys = desiredKeys
+        return try await runQueryOperation(operation)
+    }
+
+    private func queryRecords(
+        continuingMatchFrom cursor: CKQueryOperation.Cursor,
+        desiredKeys: [CKRecord.FieldKey]
+    ) async throws -> CloudKitQueryResult {
+        let operation = CKQueryOperation(cursor: cursor)
+        operation.desiredKeys = desiredKeys
+        return try await runQueryOperation(operation)
+    }
+
+    private func runQueryOperation(
+        _ operation: CKQueryOperation
+    ) async throws -> CloudKitQueryResult {
+        let collector = CloudKitQueryResultCollector()
+        operation.configuration = CloudKitBackupOperationPolicy.configuration(for: transferPolicy)
+        operation.recordMatchedBlock = { recordID, result in
+            collector.record(recordID, result: result)
+        }
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                operation.queryResultBlock = { result in
+                    continuation.resume(with: result.map { cursor in
+                        CloudKitQueryResult(
+                            matchResults: collector.results,
+                            queryCursor: cursor
+                        )
+                    })
+                }
+                database.add(operation)
+            }
+        } onCancel: {
+            operation.cancel()
+        }
+    }
+
+    private func fetchRecords(
+        _ recordIDs: [CKRecord.ID]
+    ) async throws -> [CKRecord.ID: Result<CKRecord, Error>] {
+        let operation = CKFetchRecordsOperation(recordIDs: recordIDs)
+        let collector = CloudKitRecordResultCollector()
+        operation.configuration = CloudKitBackupOperationPolicy.configuration(for: transferPolicy)
+        operation.perRecordResultBlock = { recordID, result in
+            collector.record(recordID, result: result)
+        }
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                operation.fetchRecordsResultBlock = { result in
+                    continuation.resume(with: result.map { collector.results })
+                }
+                database.add(operation)
+            }
+        } onCancel: {
+            operation.cancel()
+        }
+    }
+
+    private func modifyRecordZones(
+        saving zones: [CKRecordZone]
+    ) async throws -> CloudKitModifyZonesResult {
+        let operation = CKModifyRecordZonesOperation(
+            recordZonesToSave: zones,
+            recordZoneIDsToDelete: []
+        )
+        let collector = CloudKitZoneResultCollector()
+        operation.configuration = CloudKitBackupOperationPolicy.configuration(for: transferPolicy)
+        operation.perRecordZoneSaveBlock = { zoneID, result in
+            collector.record(zoneID, result: result)
+        }
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                operation.modifyRecordZonesResultBlock = { result in
+                    continuation.resume(with: result.map {
+                        CloudKitModifyZonesResult(saveResults: collector.results)
+                    })
+                }
+                database.add(operation)
+            }
+        } onCancel: {
+            operation.cancel()
+        }
+    }
+
+    private func modifyRecords(
+        saving records: [CKRecord],
+        deleting recordIDs: [CKRecord.ID],
+        atomically: Bool
+    ) async throws -> CloudKitModifyRecordsResult {
+        let operation = CKModifyRecordsOperation(
+            recordsToSave: records,
+            recordIDsToDelete: recordIDs
+        )
+        let collector = CloudKitModifyRecordsResultCollector()
+        operation.savePolicy = .ifServerRecordUnchanged
+        operation.isAtomic = atomically
+        operation.configuration = CloudKitBackupOperationPolicy.configuration(for: transferPolicy)
+        operation.perRecordSaveBlock = { recordID, result in
+            collector.recordSave(recordID, result: result)
+        }
+        operation.perRecordDeleteBlock = { recordID, result in
+            collector.recordDeletion(recordID, result: result)
+        }
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                operation.modifyRecordsResultBlock = { result in
+                    continuation.resume(with: result.map {
+                        CloudKitModifyRecordsResult(
+                            saveResults: collector.saveResults,
+                            deleteResults: collector.deleteResults
+                        )
+                    })
+                }
+                database.add(operation)
+            }
+        } onCancel: {
+            operation.cancel()
+        }
+    }
+
     private func mappedOperation<T>(_ operation: () async throws -> T) async throws -> T {
         let operationID = UUID().uuidString.lowercased()
         do {
@@ -357,6 +486,110 @@ actor CloudKitBackupStore: CloudBackupStoring {
         } catch {
             throw CloudKitBackupErrorMapper.storeError(error, operationID: operationID)
         }
+    }
+}
+
+enum CloudKitBackupOperationPolicy {
+    static func configuration(for policy: CloudBackupTransferPolicy) -> CKOperation.Configuration {
+        let configuration = CKOperation.Configuration()
+        configuration.allowsCellularAccess = policy == .cellularAllowed
+        configuration.qualityOfService = .utility
+        return configuration
+    }
+}
+
+private struct CloudKitQueryResult {
+    let matchResults: [(CKRecord.ID, Result<CKRecord, Error>)]
+    let queryCursor: CKQueryOperation.Cursor?
+}
+
+private struct CloudKitModifyZonesResult {
+    let saveResults: [CKRecordZone.ID: Result<CKRecordZone, Error>]
+}
+
+private struct CloudKitModifyRecordsResult {
+    let saveResults: [CKRecord.ID: Result<CKRecord, Error>]
+    let deleteResults: [CKRecord.ID: Result<Void, Error>]
+}
+
+private final class CloudKitQueryResultCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [(CKRecord.ID, Result<CKRecord, Error>)] = []
+
+    var results: [(CKRecord.ID, Result<CKRecord, Error>)] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
+    }
+
+    func record(_ recordID: CKRecord.ID, result: Result<CKRecord, Error>) {
+        lock.lock()
+        storage.append((recordID, result))
+        lock.unlock()
+    }
+}
+
+private final class CloudKitRecordResultCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [CKRecord.ID: Result<CKRecord, Error>] = [:]
+
+    var results: [CKRecord.ID: Result<CKRecord, Error>] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
+    }
+
+    func record(_ recordID: CKRecord.ID, result: Result<CKRecord, Error>) {
+        lock.lock()
+        storage[recordID] = result
+        lock.unlock()
+    }
+}
+
+private final class CloudKitZoneResultCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [CKRecordZone.ID: Result<CKRecordZone, Error>] = [:]
+
+    var results: [CKRecordZone.ID: Result<CKRecordZone, Error>] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
+    }
+
+    func record(_ zoneID: CKRecordZone.ID, result: Result<CKRecordZone, Error>) {
+        lock.lock()
+        storage[zoneID] = result
+        lock.unlock()
+    }
+}
+
+private final class CloudKitModifyRecordsResultCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var saved: [CKRecord.ID: Result<CKRecord, Error>] = [:]
+    private var deleted: [CKRecord.ID: Result<Void, Error>] = [:]
+
+    var saveResults: [CKRecord.ID: Result<CKRecord, Error>] {
+        lock.lock()
+        defer { lock.unlock() }
+        return saved
+    }
+
+    var deleteResults: [CKRecord.ID: Result<Void, Error>] {
+        lock.lock()
+        defer { lock.unlock() }
+        return deleted
+    }
+
+    func recordSave(_ recordID: CKRecord.ID, result: Result<CKRecord, Error>) {
+        lock.lock()
+        saved[recordID] = result
+        lock.unlock()
+    }
+
+    func recordDeletion(_ recordID: CKRecord.ID, result: Result<Void, Error>) {
+        lock.lock()
+        deleted[recordID] = result
+        lock.unlock()
     }
 }
 

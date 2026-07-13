@@ -192,7 +192,13 @@ struct CloudBackupStoreError: Error, Equatable, Sendable {
     let operationID: String
 }
 
+enum CloudBackupTransferPolicy: Equatable, Sendable {
+    case wifiOnly
+    case cellularAllowed
+}
+
 protocol CloudBackupStoring: Sendable {
+    func configureTransferPolicy(_ policy: CloudBackupTransferPolicy) async
     func currentGenerationID() async throws -> String?
     func generationIDs() async throws -> Set<String>
     func prepareGeneration(_ plan: CloudBackupGenerationPlan) async throws
@@ -225,7 +231,15 @@ actor CloudBackupPublisher {
     }
 
     func publish(_ package: AppSnapshotPackage) async throws -> CloudBackupPublicationResult {
+        try await publish(package, transferPolicy: .wifiOnly)
+    }
+
+    func publish(
+        _ package: AppSnapshotPackage,
+        transferPolicy: CloudBackupTransferPolicy
+    ) async throws -> CloudBackupPublicationResult {
         let plan = try CloudBackupGenerationPlan.make(package: package)
+        await store.configureTransferPolicy(transferPolicy)
         try Task.checkCancellation()
         let previousGenerationID = try await store.currentGenerationID()
 
