@@ -25,7 +25,7 @@
 		4100000000000000000000D8 /* ManualBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D8 /* ManualBackupServiceTests.swift */; };
 		4100000000000000000000D9 /* ManualBackupReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D9 /* ManualBackupReminderScheduler.swift */; };
 		4100000000000000000000DA /* ManualBackupReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000DA /* ManualBackupReminderSchedulerTests.swift */; };
-		4100000000000000000000DC /* ManualBackupFileExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000DC /* ManualBackupFileExporter.swift */; };
+		4100000000000000000000DC /* SettingsFileExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000DC /* SettingsFileExporter.swift */; };
 		410000000000000000000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000004 /* DashboardView.swift */; };
 		410000000000000000000005 /* PlaceholderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000005 /* PlaceholderScreen.swift */; };
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
@@ -203,7 +203,7 @@
 		4200000000000000000000D8 /* ManualBackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualBackupServiceTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000D9 /* ManualBackupReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualBackupReminderScheduler.swift; sourceTree = "<group>"; };
 		4200000000000000000000DA /* ManualBackupReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/ManualBackupReminderSchedulerTests.swift; sourceTree = "<group>"; };
-		4200000000000000000000DC /* ManualBackupFileExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualBackupFileExporter.swift; sourceTree = "<group>"; };
+		4200000000000000000000DC /* SettingsFileExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFileExporter.swift; sourceTree = "<group>"; };
 		420000000000000000000011 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		420000000000000000000012 /* AppDatabaseMigrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseMigrations.swift; sourceTree = "<group>"; };
 		420000000000000000000013 /* HealthCheckRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckRepository.swift; sourceTree = "<group>"; };
@@ -465,7 +465,7 @@
 			isa = PBXGroup;
 			children = (
 				420000000000000000000081 /* InventoryCSVService.swift */,
-				4200000000000000000000DC /* ManualBackupFileExporter.swift */,
+				4200000000000000000000DC /* SettingsFileExporter.swift */,
 				420000000000000000000082 /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -996,7 +996,7 @@
 				4100000000000000000000AE /* ReminderView.swift in Sources */,
 				4100000000000000000000AF /* ReminderViewModel.swift in Sources */,
 				410000000000000000000081 /* InventoryCSVService.swift in Sources */,
-				4100000000000000000000DC /* ManualBackupFileExporter.swift in Sources */,
+				4100000000000000000000DC /* SettingsFileExporter.swift in Sources */,
 				410000000000000000000082 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

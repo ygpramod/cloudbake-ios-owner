@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-struct ManualBackupFileExporter: UIViewControllerRepresentable {
+struct SettingsFileExporter: UIViewControllerRepresentable {
     let fileURL: URL
     let onCompletion: (Bool) -> Void
 
@@ -43,4 +43,3 @@ struct ManualBackupFileExporter: UIViewControllerRepresentable {
         }
     }
 }
-
