@@ -1,7 +1,8 @@
 # CloudKit Backup Operations
 
-This runbook governs the private CloudKit schema used by CloudBake disaster-recovery backups. The
-backup implementation remains dormant until the scheduling and Settings slices activate it.
+This runbook governs the private CloudKit schema used by CloudBake disaster-recovery backups.
+RFC-0103 activates best-effort automatic publication; owner-facing status and controls arrive in
+RFC-0104.
 
 ## Container And Environments
 
@@ -103,8 +104,28 @@ the next successful smoke run replaces it.
    in CloudKit record names or diagnostics.
 8. Record the build SHA, device, account environment, timestamps, and result in the release evidence.
 
-The owner-facing backup controls and status are introduced by later slices; until then, invoke this
-check only through a development harness or targeted integration tooling.
+The owner-facing backup controls and status are introduced by RFC-0104. Invoke the anonymous smoke
+check only through the explicit development harness above.
+
+## Background Scheduling
+
+The app registers `com.cloudbake.owner.cloud-backup` as an iOS processing task and requests the next
+eligible run after every handled intent. iOS chooses the actual execution time; an earliest-begin
+date is not a promise of an exact nightly run. A missed run remains overdue and catches up
+asynchronously on the next eligible launch.
+
+Automatic work requires:
+
+1. Wi-Fi; all automatic `CKOperation` instances set cellular access to false,
+2. an available iCloud account,
+3. Low Power Mode off and a nominal or fair thermal state,
+4. sufficient working storage, with at least a 256 MiB reserve,
+5. no active backup operation.
+
+Background expiration cancels the active task. Cancellation can remove only the local staged
+generation and unpublished CloudKit records; it cannot move or clear the current-generation
+pointer. When diagnosing missed execution, inspect the device's power, network, iCloud account, free
+space, and persisted next-eligibility metadata before treating the system scheduler as faulty.
 
 ## Failure Safety
 
