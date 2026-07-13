@@ -30,7 +30,8 @@ Run reliable best-effort nightly backups without making iCloud or networking par
 `BackupCoordinator` consumes injected clock, connectivity, account-status, background-task, snapshot,
 and cloud-store protocols. Persist last attempt, last success, overdue state, next eligibility, and
 active generation. Treat triggers as intents and coalesce redundant work. Automatic work is always
-Wi-Fi-only. Background expiration cancels safely without changing the current cloud snapshot.
+Wi-Fi-only. Background expiration cancels safely without publishing an incomplete generation or
+damaging the current pointer; an already-submitted atomic publication may finish.
 
 ## Test Plan
 
@@ -44,7 +45,8 @@ Wi-Fi-only. Background expiration cancels safely without changing the current cl
 - Eligible automatic work publishes at most one necessary snapshot per night.
 - Missed background execution catches up without delaying app launch.
 - Automatic backup cannot transfer over cellular.
-- Termination and expiration preserve the previous successful snapshot.
+- Termination and expiration preserve a complete valid snapshot, either the previous generation or
+  a fully validated atomic publication that had already been submitted.
 
 ## Rollout Notes
 
@@ -58,11 +60,15 @@ Report actual execution and last success; never promise an exact nightly clock t
 - Automatic backup requires an available iCloud account, Wi-Fi, normal power/thermal conditions,
   and sufficient working storage. The storage gate reserves at least 256 MiB and doubles the larger
   of known app-storage or previous-upload size.
+- Publication remains protected by a fail-closed account-confirmation rollout gate. RFC-0106 must
+  bind confirmation to a privacy-safe iCloud account fingerprint before live automatic or manual
+  publication is authorized, preventing a silent upload after an Apple-account change.
 - Every automatic CloudKit operation explicitly disables cellular access. A manual attempt can
   enable cellular only after presentation supplies the exact proposal identifier and displayed byte
   estimate back to the coordinator.
 - `BGProcessingTask` registration uses `com.cloudbake.owner.cloud-backup`. Expiration cancels the
-  active operation, clears staged state, and leaves the previously published CloudKit pointer intact.
+  active operation and later reconciles staging. It cannot publish an incomplete generation or
+  damage the valid pointer, though an already-submitted atomic publication may finish.
 - Launch catch-up starts in an asynchronous utility-priority task. A cellular-only acceptance
   fixture traps if snapshot creation or publication begins, while proving the dashboard remains
   responsive.
@@ -70,4 +76,5 @@ Report actual execution and last success; never promise an exact nightly clock t
 ## Wiki Decision
 
 Updated `wiki/Current-App-Capabilities.md`, `wiki/Business-Concepts.md`, and
-`wiki/Owner-Workflows.md` because best-effort automatic CloudKit backup is now active behavior.
+`wiki/Owner-Workflows.md` to distinguish implemented scheduling from account-protected publication
+that remains dormant until RFC-0106.

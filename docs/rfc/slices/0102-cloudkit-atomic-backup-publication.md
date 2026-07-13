@@ -71,8 +71,9 @@ Keep publication inaccessible to owners until scheduling and status controls shi
 - `docs/cloudkit-backup-operations.md` records the private schema, development-to-production process,
   signing requirements, and manual development-container smoke checklist. CI remains independent of
   personal iCloud accounts.
-- The app target declares the CloudKit container entitlement. RFC-0103 activates publication through
-  best-effort Wi-Fi-only scheduling; RFC-0104 adds owner-facing status and controls.
+- The app target declares the CloudKit container entitlement. RFC-0103 adds best-effort Wi-Fi-only
+  scheduling behind an account-protection gate; RFC-0104 adds status and controls, and RFC-0106
+  authorizes live publication only after account-bound confirmation.
 
 ## Wiki Decision
 

@@ -319,11 +319,12 @@ owner can disable that reminder independently. Cancelling the Files picker or an
 not update the last-backup date. Full package restore is the next recovery slice; until it ships,
 retain the package and use iPhone or encrypted Finder backup for device-level recovery.
 
-CloudBake also attempts one best-effort automatic disaster-recovery backup to the owner's private
-CloudKit database each eligible night. Automatic transfer is Wi-Fi-only, can be deferred by iCloud
-account, power, thermal, or storage conditions, and catches up asynchronously after a missed run.
-iOS decides the actual execution time. Backup status and owner controls are added in the next cloud
-backup slice.
+CloudBake has the scheduling foundation for one best-effort automatic disaster-recovery backup to
+the owner's private CloudKit database each eligible night. Automatic transfer is Wi-Fi-only, can be
+deferred by iCloud account, power, thermal, or storage conditions, and catches up asynchronously
+after a missed run. Live publication remains disabled until account-bound owner confirmation is
+implemented, so changing Apple accounts cannot silently disclose local bakery data. iOS decides the
+actual execution time. Backup status and owner controls are added in the next cloud backup slice.
 
 ## Order Workflow
 

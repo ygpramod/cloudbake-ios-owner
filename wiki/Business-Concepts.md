@@ -153,9 +153,11 @@ where to save it and is responsible for protecting or deleting that copy. Manual
 uses the system Files picker and does not require CloudKit; restore is implemented as a separate
 validated, rollback-protected workflow.
 
-Automatic disaster-recovery backup uses the owner's private CloudKit database. CloudBake retains one
-current validated snapshot, attempts best-effort nightly work on Wi-Fi, and catches up after missed
-execution without blocking app launch. It is backup rather than multi-device synchronization.
+Automatic disaster-recovery backup is designed to use the owner's private CloudKit database,
+retain one current validated snapshot, attempt best-effort nightly work on Wi-Fi, and catch up after
+missed execution without blocking app launch. Scheduling is implemented, but live publication stays
+disabled until CloudBake can bind explicit owner confirmation to the detected iCloud account. It is
+backup rather than multi-device synchronization.
 
 It uses the columns `name`, `aliases`, `type`, `unit`, `current_quantity`, `minimum_quantity`,
 `batch_quantity`, `amount`, and `expiry_date`. Aliases are comma-separated inside the CSV field,
