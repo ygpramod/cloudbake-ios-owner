@@ -83,7 +83,8 @@ protocol CloudBackupPublishing: Sendable {
     func estimatedUploadByteCount(for package: AppSnapshotPackage) async throws -> Int64
     func publish(
         _ package: AppSnapshotPackage,
-        transferPolicy: CloudBackupTransferPolicy
+        transferPolicy: CloudBackupTransferPolicy,
+        publicationGate: @escaping @Sendable () async -> Bool
     ) async throws -> CloudBackupPublicationResult
 }
 
@@ -358,9 +359,15 @@ actor BackupCoordinator {
             guard await connectivity.currentConnection() == .wifi else {
                 throw BackupCoordinatorError.wifiBecameUnavailable
             }
+            guard scheduleStore.load().isEnabled else {
+                throw BackupCoordinatorError.backupDisabled
+            }
             let result = try await publisher.publish(
                 createdPackage,
-                transferPolicy: .wifiOnly
+                transferPolicy: .wifiOnly,
+                publicationGate: { [weak self] in
+                    await self?.isPublicationEnabled() ?? false
+                }
             )
             await packageCleaner.removePackage(generationID: createdPackage.generationID)
             recordSuccess(at: now(), estimatedUploadByteCount: byteCount)
@@ -386,9 +393,15 @@ actor BackupCoordinator {
     ) async -> ManualBackupResult {
         do {
             try Task.checkCancellation()
+            guard scheduleStore.load().isEnabled else {
+                throw BackupCoordinatorError.backupDisabled
+            }
             let result = try await publisher.publish(
                 package,
-                transferPolicy: transferPolicy
+                transferPolicy: transferPolicy,
+                publicationGate: { [weak self] in
+                    await self?.isPublicationEnabled() ?? false
+                }
             )
             let byteCount = preparedManualBackup?.proposal.estimatedUploadByteCount
                 ?? scheduleStore.load().estimatedUploadByteCount
@@ -576,6 +589,10 @@ actor BackupCoordinator {
         activeOperation = nil
     }
 
+    private func isPublicationEnabled() -> Bool {
+        scheduleStore.load().isEnabled
+    }
+
     private func scheduleNextAttempt(
         from metadata: BackupScheduleMetadata,
         fallbackDate: Date
@@ -587,7 +604,12 @@ actor BackupCoordinator {
 
     private func errorCategory(for error: Error) -> CloudBackupErrorCategory {
         if error is CancellationError { return .cancelled }
-        if error is BackupCoordinatorError { return .networkUnavailable }
+        if let error = error as? BackupCoordinatorError {
+            return error == .backupDisabled ? .cancelled : .networkUnavailable
+        }
+        if error as? CloudBackupPublicationError == .publicationNotAuthorized {
+            return .cancelled
+        }
         if let error = error as? CloudBackupStoreError { return error.category }
         return .unknown
     }
@@ -597,6 +619,7 @@ actor BackupCoordinator {
     }
 }
 
-private enum BackupCoordinatorError: Error {
+private enum BackupCoordinatorError: Error, Equatable {
     case wifiBecameUnavailable
+    case backupDisabled
 }

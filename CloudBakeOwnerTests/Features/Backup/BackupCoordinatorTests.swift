@@ -59,6 +59,55 @@ final class BackupCoordinatorTests: XCTestCase {
         XCTAssertEqual(publicationCount, 0)
     }
 
+    func testDisablingBackupWhileAutomaticUploadIsHeldPreventsPublication() async throws {
+        let fixture = CoordinatorFixture(holdsPublication: true)
+        let operation = Task {
+            await fixture.coordinator.requestAutomaticBackup(trigger: .background)
+        }
+        try await fixture.publisher.waitUntilPublicationStarts()
+
+        await fixture.coordinator.setBackupEnabled(false)
+        await fixture.publisher.releasePublication()
+
+        let result = await operation.value
+        XCTAssertEqual(result, .failed(.cancelled))
+        XCTAssertNil(fixture.scheduleStore.load().lastSuccessAt)
+        XCTAssertFalse(fixture.scheduleStore.load().isEnabled)
+    }
+
+    func testDisablingBackupWhileManualUploadIsHeldPreventsPublication() async throws {
+        let fixture = CoordinatorFixture(holdsPublication: true)
+        let operation = Task {
+            await fixture.coordinator.prepareManualBackup()
+        }
+        try await fixture.publisher.waitUntilPublicationStarts()
+
+        await fixture.coordinator.setBackupEnabled(false)
+        await fixture.publisher.releasePublication()
+
+        let result = await operation.value
+        XCTAssertEqual(result, .failed(.cancelled))
+        XCTAssertNil(fixture.scheduleStore.load().lastSuccessAt)
+        XCTAssertFalse(fixture.scheduleStore.load().isEnabled)
+    }
+
+    func testDisablingBackupWhileManualSnapshotIsHeldStopsBeforeUpload() async throws {
+        let fixture = CoordinatorFixture(holdsSnapshotCreation: true)
+        let operation = Task {
+            await fixture.coordinator.prepareManualBackup()
+        }
+        try await fixture.snapshotCreator.waitUntilCreationStarts()
+
+        await fixture.coordinator.setBackupEnabled(false)
+        await fixture.snapshotCreator.releaseCreation()
+
+        let result = await operation.value
+        XCTAssertEqual(result, .failed(.cancelled))
+        let publicationCount = await fixture.publisher.publicationCount
+        XCTAssertEqual(publicationCount, 0)
+        XCTAssertNil(fixture.scheduleStore.load().lastSuccessAt)
+    }
+
     func testEligibleAutomaticBackupPublishesOnceAndSchedulesNextNight() async throws {
         let fixture = CoordinatorFixture()
 
@@ -329,7 +378,7 @@ final class BackupCoordinatorTests: XCTestCase {
 private final class CoordinatorFixture {
     let now = Date(timeIntervalSince1970: 1_800_000_000)
     let scheduleStore: InMemoryBackupScheduleStore
-    let snapshotCreator = FakeSnapshotCreator()
+    let snapshotCreator: FakeSnapshotCreator
     let publisher: FakeBackupPublisher
     let scheduler = FakeBackgroundScheduler()
     let cleaner = FakePackageCleaner()
@@ -344,9 +393,11 @@ private final class CoordinatorFixture {
         hasSufficientStorage: Bool = true,
         isPublicationAuthorized: Bool = true,
         holdsPublication: Bool = false,
-        holdsEligibility: Bool = false
+        holdsEligibility: Bool = false,
+        holdsSnapshotCreation: Bool = false
     ) {
         scheduleStore = InMemoryBackupScheduleStore(metadata: metadata)
+        snapshotCreator = FakeSnapshotCreator(holdsCreation: holdsSnapshotCreation)
         publisher = FakeBackupPublisher(holdsPublication: holdsPublication)
         environment = FakeBackupEnvironment(
             connection: connection,
@@ -401,10 +452,21 @@ private final class InMemoryBackupScheduleStore: BackupScheduleStoring, @uncheck
 }
 
 private actor FakeSnapshotCreator: AppSnapshotCreating {
+    private let holdsCreation: Bool
+    private var continuation: CheckedContinuation<Void, Never>?
     private(set) var creationCount = 0
+
+    init(holdsCreation: Bool) {
+        self.holdsCreation = holdsCreation
+    }
 
     func createSnapshot() async throws -> AppSnapshotPackage {
         creationCount += 1
+        if holdsCreation {
+            await withCheckedContinuation { continuation in
+                self.continuation = continuation
+            }
+        }
         let generationID = "generation-\(creationCount)"
         let root = URL(fileURLWithPath: "/tmp/\(generationID)", isDirectory: true)
         let manifest = BackupManifest(
@@ -427,6 +489,20 @@ private actor FakeSnapshotCreator: AppSnapshotCreating {
             manifest: manifest
         )
     }
+
+    func waitUntilCreationStarts() async throws {
+        for _ in 0..<1_000 where creationCount == 0 {
+            await Task.yield()
+        }
+        if creationCount == 0 {
+            throw XCTSkip("Timed out waiting for fake snapshot creation")
+        }
+    }
+
+    func releaseCreation() {
+        continuation?.resume()
+        continuation = nil
+    }
 }
 
 private actor FakeBackupPublisher: CloudBackupPublishing {
@@ -445,7 +521,8 @@ private actor FakeBackupPublisher: CloudBackupPublishing {
 
     func publish(
         _ package: AppSnapshotPackage,
-        transferPolicy: CloudBackupTransferPolicy
+        transferPolicy: CloudBackupTransferPolicy,
+        publicationGate: @escaping @Sendable () async -> Bool
     ) async throws -> CloudBackupPublicationResult {
         publicationCount += 1
         transferPolicies.append(transferPolicy)
@@ -455,6 +532,9 @@ private actor FakeBackupPublisher: CloudBackupPublishing {
             }
         }
         try Task.checkCancellation()
+        guard await publicationGate() else {
+            throw CloudBackupPublicationError.publicationNotAuthorized
+        }
         return CloudBackupPublicationResult(
             generationID: package.generationID,
             replacedGenerationID: "previous-generation",
