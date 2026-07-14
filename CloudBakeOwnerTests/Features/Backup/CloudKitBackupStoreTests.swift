@@ -3,6 +3,70 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class CloudKitBackupStoreTests: XCTestCase {
+    func testCloudDeletionDeletesWholeZoneAndVerifiesAbsence() async throws {
+        let lifecycle = CloudBackupZoneLifecycleSpy(
+            deletionOutcome: .deleted,
+            zoneExistsAfterDeletion: false
+        )
+        let store = CloudKitBackupStore(zoneLifecycle: lifecycle)
+
+        try await store.deleteAllBackupData()
+
+        let deletedZoneNames = await lifecycle.deletedZoneNames
+        let verifiedZoneNames = await lifecycle.verifiedZoneNames
+        XCTAssertEqual(deletedZoneNames, ["CloudBakeBackup"])
+        XCTAssertEqual(verifiedZoneNames, ["CloudBakeBackup"])
+    }
+
+    func testCloudDeletionIsIdempotentWhenZoneIsAlreadyMissing() async throws {
+        let lifecycle = CloudBackupZoneLifecycleSpy(
+            deletionOutcome: .alreadyMissing,
+            zoneExistsAfterDeletion: false
+        )
+        let store = CloudKitBackupStore(zoneLifecycle: lifecycle)
+
+        try await store.deleteAllBackupData()
+
+        let deletionCount = await lifecycle.deletionCount
+        let verificationCount = await lifecycle.verificationCount
+        XCTAssertEqual(deletionCount, 1)
+        XCTAssertEqual(verificationCount, 1)
+    }
+
+    func testCloudDeletionFailsWhenZoneSurvivesVerification() async {
+        let lifecycle = CloudBackupZoneLifecycleSpy(
+            deletionOutcome: .deleted,
+            zoneExistsAfterDeletion: true
+        )
+        let store = CloudKitBackupStore(zoneLifecycle: lifecycle)
+
+        do {
+            try await store.deleteAllBackupData()
+            XCTFail("Expected surviving backup zone to fail verification")
+        } catch let error as CloudBackupStoreError {
+            XCTAssertEqual(error.category, .corruptRemoteData)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testCloudDeletionKeepsVerificationInterruptionAmbiguous() async {
+        let lifecycle = CloudBackupZoneLifecycleSpy(
+            deletionOutcome: .deleted,
+            verificationError: CKError(.networkFailure)
+        )
+        let store = CloudKitBackupStore(zoneLifecycle: lifecycle)
+
+        do {
+            try await store.deleteAllBackupData()
+            XCTFail("Expected interrupted verification to fail")
+        } catch let error as CloudBackupStoreError {
+            XCTAssertEqual(error.category, .networkUnavailable)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func testOperationPolicyDisablesCellularUnlessExplicitlyApproved() {
         XCTAssertFalse(
             CloudKitBackupOperationPolicy.configuration(for: .wifiOnly).allowsCellularAccess
@@ -52,6 +116,12 @@ final class CloudKitBackupStoreTests: XCTestCase {
             try Data(contentsOf: restoreURL.appendingPathComponent("database.sqlite")),
             try Data(contentsOf: fixture.package.databaseURL)
         )
+
+        try await store.deleteAllBackupData()
+        let snapshotAfterDeletion = try await store.inspectCurrentSnapshot(
+            currentAppVersion: "1.0"
+        )
+        XCTAssertNil(snapshotAfterDeletion)
         #endif
         #else
         throw XCTSkip("Pass -DCLOUDBAKE_CLOUDKIT_SMOKE explicitly to run the device smoke test.")
@@ -231,6 +301,38 @@ final class CloudKitBackupStoreTests: XCTestCase {
         )
         XCTAssertEqual(files.last?.originalAssetPath, "OrderPhotos/cake.jpg")
         XCTAssertEqual(CloudRestoreFilePlan.totalByteCount(files), 60)
+    }
+}
+
+private actor CloudBackupZoneLifecycleSpy: CloudBackupZoneLifecycle {
+    private let deletionOutcome: CloudBackupZoneDeletionOutcome
+    private let zoneExistsAfterDeletion: Bool
+    private let verificationError: Error?
+    private(set) var deletedZoneNames: [String] = []
+    private(set) var verifiedZoneNames: [String] = []
+
+    init(
+        deletionOutcome: CloudBackupZoneDeletionOutcome,
+        zoneExistsAfterDeletion: Bool = false,
+        verificationError: Error? = nil
+    ) {
+        self.deletionOutcome = deletionOutcome
+        self.zoneExistsAfterDeletion = zoneExistsAfterDeletion
+        self.verificationError = verificationError
+    }
+
+    var deletionCount: Int { deletedZoneNames.count }
+    var verificationCount: Int { verifiedZoneNames.count }
+
+    func deleteZone(_ zoneID: CKRecordZone.ID) async throws -> CloudBackupZoneDeletionOutcome {
+        deletedZoneNames.append(zoneID.zoneName)
+        return deletionOutcome
+    }
+
+    func zoneExists(_ zoneID: CKRecordZone.ID) async throws -> Bool {
+        verifiedZoneNames.append(zoneID.zoneName)
+        if let verificationError { throw verificationError }
+        return zoneExistsAfterDeletion
     }
 }
 
