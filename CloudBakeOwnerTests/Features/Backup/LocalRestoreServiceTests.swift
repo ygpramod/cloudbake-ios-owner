@@ -9,11 +9,11 @@ final class LocalRestoreServiceTests: XCTestCase {
             code: CocoaError.fileWriteOutOfSpace.rawValue
         )
         XCTAssertEqual(
-            LocalRestorePreparationErrorMapper.category(for: noSpace),
+            RestoreLocalFileErrorMapper.category(for: noSpace),
             .insufficientStorage
         )
         XCTAssertEqual(
-            LocalRestorePreparationErrorMapper.category(for: CocoaError(.fileReadUnknown)),
+            RestoreLocalFileErrorMapper.category(for: CocoaError(.fileReadUnknown)),
             .unknown
         )
     }
