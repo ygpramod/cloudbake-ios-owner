@@ -175,6 +175,24 @@ extension CloudBakeOwnerUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
+        tapHeaderAction(
+            identifier,
+            in: app,
+            waitingFor: destination,
+            timeout: timeout,
+            file: file,
+            line: line
+        )
+    }
+
+    func tapHeaderAction(
+        _ identifier: String,
+        in app: XCUIApplication,
+        waitingFor destination: XCUIElement? = nil,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
         let directAction = app.buttons[identifier]
         if directAction.waitForExistence(timeout: 1), directAction.isHittable {
             tapWhenReady(directAction, timeout: timeout, file: file, line: line)
@@ -187,7 +205,7 @@ extension CloudBakeOwnerUITests {
         guard let destination else { return }
         XCTAssertTrue(
             destination.waitForExistence(timeout: timeout),
-            "Inventory header action did not reach its destination. Hierarchy: \(app.debugDescription)",
+            "Header action did not reach its destination. Hierarchy: \(app.debugDescription)",
             file: file,
             line: line
         )
