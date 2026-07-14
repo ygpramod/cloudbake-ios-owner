@@ -4,11 +4,14 @@ struct RootView: View {
     let database: AppDatabase
     let cloudBackupRuntime: CloudBackupRuntime?
     let cloudBackupSettingsService: (any CloudBackupSettingsServing)?
+    let cloudRestoreSettingsService: (any CloudRestoreSettingsServing)?
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
     @EnvironmentObject private var orderNavigationRouter: OrderNavigationRouter
     @EnvironmentObject private var inventoryNavigationRouter: InventoryNavigationRouter
     @State private var navigationPath: [AppDestination] = []
+    @State private var restoredDataRevision = 0
+    @StateObject private var emptyRestoreViewModel: CloudRestoreSettingsViewModel
     private let maximumSectionHistoryCount = 4
 
     init(database: AppDatabase, cloudBackupRuntime: CloudBackupRuntime? = nil) {
@@ -20,9 +23,24 @@ struct RootView: View {
         } else {
             cloudBackupSettingsService = cloudBackupRuntime
         }
+        let restoreService: (any CloudRestoreSettingsServing)?
+        if ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_EMPTY_RESTORE"] == "1"
+            || ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CLOUD_RESTORE_SETTINGS"] == "1"
+            || ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] != nil {
+            restoreService = CloudRestoreSettingsUITestService()
+        } else {
+            restoreService = cloudBackupRuntime
+        }
         #else
         cloudBackupSettingsService = cloudBackupRuntime
+        let restoreService: (any CloudRestoreSettingsServing)? = cloudBackupRuntime
         #endif
+        cloudRestoreSettingsService = restoreService
+        _emptyRestoreViewModel = StateObject(
+            wrappedValue: CloudRestoreSettingsViewModel(
+                service: restoreService ?? UnavailableCloudRestoreSettingsService()
+            )
+        )
     }
 
     private var selectedDestination: AppDestination {
@@ -37,6 +55,7 @@ struct RootView: View {
                         destinationView(for: destination)
                     }
             }
+            .id(restoredDataRevision)
             .background(NativeBackSwipeEnabler().frame(width: 0, height: 0))
 
             CloudBakeBottomNavigation(
@@ -48,6 +67,10 @@ struct RootView: View {
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .ignoresSafeArea(.container, edges: .bottom)
+        .cloudRestorePrompts(
+            viewModel: emptyRestoreViewModel,
+            offersStartFresh: true
+        )
         .onAppear {
             navigateToOrdersWhenNotificationIsPending()
             navigateToOrdersWhenNewOrderIsPending()
@@ -76,9 +99,22 @@ struct RootView: View {
             navigateToInventoryWhenItemIsPending()
         }
         .task {
-            cloudBackupRuntime?.startLaunchCatchUpIfNeeded()
+            await prepareInitialRestoreOrBackup()
             navigateToInitialUITestDestination()
             await refreshLocalReminders()
+        }
+        .onChange(of: emptyRestoreViewModel.didChooseStartFresh) { _, didChoose in
+            if didChoose {
+                cloudBackupRuntime?.startLaunchCatchUpIfNeeded()
+            }
+        }
+        .onChange(of: emptyRestoreViewModel.didCompleteRestore) { _, didComplete in
+            if didComplete {
+                refreshAfterRestore()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .cloudBakeRestoreDidComplete)) { _ in
+            refreshAfterRestore()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else {
@@ -203,7 +239,8 @@ struct RootView: View {
                     recipeRepository: repository,
                     manualBackupService: try? ManualBackupService.live(database: database)
                 ),
-                cloudBackupService: cloudBackupSettingsService
+                cloudBackupService: cloudBackupSettingsService,
+                cloudRestoreService: cloudRestoreSettingsService
             )
         case .designs:
             let repository = database.makeCoreDataRepository()
@@ -229,6 +266,23 @@ struct RootView: View {
             repository: repository
         ).refreshReminders()
         await ManualBackupReminderScheduler().refreshReminder()
+    }
+
+    private func prepareInitialRestoreOrBackup() async {
+        guard cloudRestoreSettingsService != nil,
+              (try? database.hasOwnerData()) == false else {
+            cloudBackupRuntime?.startLaunchCatchUpIfNeeded()
+            return
+        }
+        let isOfferingRestore = await emptyRestoreViewModel.inspect()
+        if !isOfferingRestore {
+            cloudBackupRuntime?.startLaunchCatchUpIfNeeded()
+        }
+    }
+
+    private func refreshAfterRestore() {
+        navigationPath.removeAll()
+        restoredDataRevision += 1
     }
 }
 

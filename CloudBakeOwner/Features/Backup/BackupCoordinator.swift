@@ -124,6 +124,7 @@ actor BackupCoordinator {
     private let makeProposalID: @Sendable () -> String
 
     private var activeOperation: ActiveOperation?
+    private var isRestoreSessionActive = false
     private var activePublicationStage: CloudBackupPublicationStage?
     private var didRecoverStaging = false
     private var preparedManualBackup: PreparedManualBackup?
@@ -165,7 +166,7 @@ actor BackupCoordinator {
     func requestAutomaticBackup(
         trigger _: AutomaticBackupTrigger
     ) async -> AutomaticBackupResult {
-        guard activeOperation == nil else { return .coalesced }
+        guard activeOperation == nil, !isRestoreSessionActive else { return .coalesced }
         activeOperation = .automatic
         await recoverInterruptedOperationIfNeeded()
 
@@ -196,7 +197,7 @@ actor BackupCoordinator {
     }
 
     func prepareManualBackup() async -> ManualBackupResult {
-        guard activeOperation == nil else { return .busy }
+        guard activeOperation == nil, !isRestoreSessionActive else { return .busy }
         activeOperation = .preparingManual
         await recoverInterruptedOperationIfNeeded()
 
@@ -297,6 +298,16 @@ actor BackupCoordinator {
 
     func currentScheduleMetadata() -> BackupScheduleMetadata {
         scheduleStore.load()
+    }
+
+    func beginRestoreSession() -> Bool {
+        guard activeOperation == nil, !isRestoreSessionActive else { return false }
+        isRestoreSessionActive = true
+        return true
+    }
+
+    func endRestoreSession() {
+        isRestoreSessionActive = false
     }
 
     func currentSettings(

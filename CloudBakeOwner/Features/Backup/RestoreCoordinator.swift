@@ -217,6 +217,9 @@ actor RestoreCoordinator {
     }
 
     func proceed(proposalID: String, approval: RestoreApproval) async -> RestoreResult {
+        guard stage == .awaitingConfirmation || stage == .awaitingBrokenAssetDecision else {
+            return .busy
+        }
         guard var active, active.proposal.id == proposalID else {
             return .invalidApproval
         }

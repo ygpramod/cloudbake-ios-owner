@@ -1,8 +1,9 @@
 import BackgroundTasks
 import Foundation
 
-final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable {
+final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettingsServing, @unchecked Sendable {
     private let coordinator: BackupCoordinator
+    private let restoreCoordinator: RestoreCoordinator?
     private let notificationPreferences: CloudBackupNotificationPreferences
     private let notificationDispatcher: CloudBackupNotificationDispatcher
     private let lock = NSLock()
@@ -10,10 +11,12 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
 
     init(
         coordinator: BackupCoordinator,
+        restoreCoordinator: RestoreCoordinator? = nil,
         notificationPreferences: CloudBackupNotificationPreferences = CloudBackupNotificationPreferences(),
         notificationSender: (any CloudBackupNotificationSending)? = nil
     ) {
         self.coordinator = coordinator
+        self.restoreCoordinator = restoreCoordinator
         self.notificationPreferences = notificationPreferences
         self.notificationDispatcher = CloudBackupNotificationDispatcher(
             sender: notificationSender
@@ -85,6 +88,35 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
         await coordinator.cancelManualCellularBackup(proposalID: proposal.id)
     }
 
+    func inspectRestore() async -> RestoreResult {
+        guard let restoreCoordinator else {
+            return .failed(RestoreFailure(category: .iCloudUnavailable, didRollBack: false))
+        }
+        guard await coordinator.beginRestoreSession() else { return .busy }
+        let result = await restoreCoordinator.inspect()
+        await releaseRestoreSessionIfTerminal(result)
+        return result
+    }
+
+    func proceedRestore(proposalID: String, approval: RestoreApproval) async -> RestoreResult {
+        guard let restoreCoordinator else {
+            return .failed(RestoreFailure(category: .iCloudUnavailable, didRollBack: false))
+        }
+        let result = await restoreCoordinator.proceed(proposalID: proposalID, approval: approval)
+        if result == .completed {
+            await MainActor.run {
+                NotificationCenter.default.post(name: .cloudBakeRestoreDidComplete, object: nil)
+            }
+        }
+        await releaseRestoreSessionIfTerminal(result)
+        return result
+    }
+
+    func cancelRestore(proposalID: String) async {
+        await restoreCoordinator?.cancel(proposalID: proposalID)
+        await coordinator.endRestoreSession()
+    }
+
     static func live(database: AppDatabase) throws -> CloudBackupRuntime {
         let fileManager = FileManager.default
         let applicationSupport = try fileManager.url(
@@ -121,11 +153,12 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
         )
         let cloudStore = CloudKitBackupStore()
         let publisher = CloudBackupPublisher(store: cloudStore)
+        let connectivity = NetworkBackupConnectivityChecker()
         let coordinator = BackupCoordinator(
             snapshotCreator: snapshotService,
             publisher: publisher,
             scheduleStore: UserDefaultsBackupScheduleStore(),
-            connectivity: NetworkBackupConnectivityChecker(),
+            connectivity: connectivity,
             account: CloudKitBackupAccountChecker(),
             publicationAuthorization: PendingCloudBackupAccountProtectionGate(),
             power: SystemBackupPowerChecker(),
@@ -136,7 +169,28 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
             backgroundScheduler: SystemBackupBackgroundScheduler(),
             packageCleaner: StagedBackupPackageCleaner(stagingRoot: stagingRoot)
         )
-        return CloudBackupRuntime(coordinator: coordinator)
+        let localRestore = LocalRestoreService(
+            database: database,
+            snapshotCreator: snapshotService,
+            appStorageRoot: appStorageRoot,
+            activationRoot: applicationSupport.appendingPathComponent(
+                InterruptedRestoreRecovery.directoryName,
+                isDirectory: true
+            )
+        )
+        let restoreCoordinator = RestoreCoordinator(
+            cloud: cloudStore,
+            local: localRestore,
+            connectivity: connectivity,
+            stagingRoot: caches
+                .appendingPathComponent("CloudBakeOwner", isDirectory: true)
+                .appendingPathComponent("CloudRestoreStaging", isDirectory: true),
+            currentAppVersion: currentVersion
+        )
+        return CloudBackupRuntime(
+            coordinator: coordinator,
+            restoreCoordinator: restoreCoordinator
+        )
     }
 
     #if DEBUG
@@ -169,6 +223,20 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, @unchecked Sendable 
         }
     }
 
+    private func releaseRestoreSessionIfTerminal(_ result: RestoreResult) async {
+        switch result {
+        case .completed, .noBackup, .invalidApproval, .failed:
+            await coordinator.endRestoreSession()
+        case .ready, .requiresReplacementConfirmation, .requiresCellularConfirmation,
+             .requiresBrokenAssetDecision, .busy:
+            break
+        }
+    }
+
+}
+
+extension Notification.Name {
+    static let cloudBakeRestoreDidComplete = Notification.Name("CloudBakeRestoreDidComplete")
 }
 
 #if DEBUG
