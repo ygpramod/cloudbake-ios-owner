@@ -969,6 +969,72 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         )
     }
 
+    func testRepeatedShiftedSnapshotMarksPauseWithoutFinalResult() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+        _ = accumulator.merge([
+            segment("flour", at: 0, duration: 0.3),
+            segment("800", at: 0.4, duration: 0.2)
+        ])
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("flour", at: 1.5, duration: 0.3),
+                segment("800", at: 1.9, duration: 0.2)
+            ]),
+            "flour 800"
+        )
+
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("sugar", at: 0, duration: 0.3),
+                segment("100", at: 0.4, duration: 0.2)
+            ]),
+            "flour 800\nsugar 100"
+        )
+    }
+
+    func testFullSnapshotCorrectionReplacesTheActiveUtterance() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+        _ = accumulator.merge([
+            segment("flower", at: 0, duration: 0.3),
+            segment("800", at: 0.4, duration: 0.2)
+        ])
+
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("flour", at: 0, duration: 0.3),
+                segment("800", at: 0.4, duration: 0.2),
+                segment("grams", at: 0.7, duration: 0.3)
+            ]),
+            "flour 800 grams"
+        )
+    }
+
+    func testFinalCorrectionReplacesAndCompletesTheActiveUtterance() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+        _ = accumulator.merge([
+            segment("flour", at: 0, duration: 0.3),
+            segment("eight", at: 0.4, duration: 0.2)
+        ])
+
+        XCTAssertEqual(
+            accumulator.merge(
+                [
+                    segment("flour", at: 0, duration: 0.3),
+                    segment("800", at: 0.4, duration: 0.2)
+                ],
+                isFinal: true
+            ),
+            "flour 800"
+        )
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("sugar", at: 0, duration: 0.3),
+                segment("100", at: 0.4, duration: 0.2)
+            ]),
+            "flour 800\nsugar 100"
+        )
+    }
+
     func testOverlappingRevisionReplacesOnlyTheAffectedSuffix() {
         var accumulator = VoiceInventoryTranscriptAccumulator()
         _ = accumulator.merge([
