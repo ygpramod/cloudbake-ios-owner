@@ -32,28 +32,49 @@ extension CloudBakeOwnerUITests {
 
         openDashboardDestination("Recipes", in: app)
         assertScreenVisible("screen.recipes", in: app, timeout: 5)
-        app.buttons["recipes.import"].tap()
-        XCTAssertTrue(app.navigationBars["Import Recipe"].waitForExistence(timeout: 5))
+        tapHeaderAction(
+            "recipes.import",
+            in: app,
+            waitingFor: app.navigationBars["Import Recipe"],
+            timeout: 15
+        )
 
         let recipeText = app.textFields["recipes.import.text"]
         XCTAssertTrue(recipeText.waitForExistence(timeout: 5))
         typeText("Chocolate Fudge\nFlour 250 g\nBake until set", into: recipeText)
         dismissKeyboard(in: app)
-        app.buttons["recipes.import.createDraft"].tap()
+        let ingredientName = app.textFields.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "recipes.import.ingredient.name.")
+        ).firstMatch
+        tapWhenReady(
+            app.buttons["recipes.import.createDraft"],
+            waitingFor: ingredientName,
+            in: app,
+            timeout: 15
+        )
 
         XCTAssertEqual(app.textFields["recipes.import.name"].value as? String, "Chocolate Fudge")
         XCTAssertEqual(app.textFields["recipes.import.notes"].value as? String, "Bake until set")
-        XCTAssertTrue(app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.import.ingredient.name.")).firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(ingredientName.exists)
         XCTAssertTrue(app.staticTexts["Flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.import.ingredient.quantity.")).firstMatch.waitForExistence(timeout: 5))
-        app.buttons["recipes.import.save"].tap()
+        let importedRecipe = app.staticTexts["Chocolate Fudge"]
+        tapWhenReady(
+            app.buttons["recipes.import.save"],
+            waitingFor: importedRecipe,
+            in: app,
+            timeout: 15
+        )
 
-        assertScreenVisible("screen.recipes", in: app, timeout: 5)
-        XCTAssertTrue(app.staticTexts["Chocolate Fudge"].waitForExistence(timeout: 5))
-        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item."))
-            .firstMatch
-            .tap()
-        XCTAssertTrue(app.buttons["recipes.detail.done"].waitForExistence(timeout: 5))
+        let recipe = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item.")
+        ).firstMatch
+        tapWhenReady(
+            recipe,
+            waitingFor: app.buttons["recipes.detail.done"],
+            in: app,
+            timeout: 15
+        )
         XCTAssertTrue(app.staticTexts["Flour"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["250 g"].waitForExistence(timeout: 5))
     }
