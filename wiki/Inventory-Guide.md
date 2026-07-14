@@ -180,10 +180,12 @@ Use Add Inventory by Voice to speak several item, quantity, and unit phrases, su
 language; CloudBake does not upload the audio or transcript and does not fall back to server speech
 recognition. Manual transcript editing remains available when listening is unavailable.
 
-Create Drafts turns complete phrases into editable inventory rows. Saved inventory names and
-aliases match automatically. For an unknown spoken item, choose whether to map it to a searchable,
-unit-compatible existing item or create new inventory. Mapping also saves the spoken name as an
-alias for future recognition. Review quantity, unit, minimum quantity, and expiry before saving.
+Create Drafts turns complete phrases into editable inventory rows. A unique exact saved inventory
+name or alias matches automatically; partial and ambiguous matches require a decision. For an
+unknown spoken item, choose whether to map it to searchable, unit-compatible existing inventory or
+create new inventory. Mapping also saves the spoken name as an alias for future recognition.
+Review quantity, unit, minimum quantity, and expiry before saving. One save commits all drafts and
+stock batches together or leaves inventory unchanged if any part fails.
 
 ## Stock Adjustment
 

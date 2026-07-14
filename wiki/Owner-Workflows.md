@@ -230,8 +230,10 @@ on-device recognition in the current iPhone language. It never uploads the audio
 
 Choose Create Drafts, review the parsed rows, and decide how every unknown item should be saved.
 Map an unknown name to searchable, unit-compatible inventory to add stock and preserve the spoken
-name as an alias, or create a new item. Saving is disabled until the transcript produces drafts and
-every unknown item has a destination.
+name as an alias, or create a new item. Only one exact saved name or alias matches automatically;
+partial and ambiguous matches require a decision. Editing a draft name rechecks that destination.
+Saving is disabled until the transcript produces drafts and every unknown item has a destination,
+then commits the complete voice import atomically.
 
 ## Review Stock History
 
