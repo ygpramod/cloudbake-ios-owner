@@ -344,6 +344,104 @@ final class CloudBakeOwnerUITests: XCTestCase {
         waitForExpectations(timeout: 5)
     }
 
+    func testEmptyInstallationOffersRestoreOrStartFresh() throws {
+        let app = makeApp()
+        app.launchEnvironment["CLOUDBAKE_TEST_EMPTY_RESTORE"] = "1"
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Restore Cloud Backup?"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["settings.cloudRestore.confirm"].exists)
+        let startFreshButton = app.buttons["settings.cloudRestore.startFresh"]
+        tapWhenReady(startFreshButton)
+
+        XCTAssertTrue(startFreshButton.waitForNonExistence(timeout: 5))
+        assertDashboardVisible(in: app)
+    }
+
+    func testEmptyInstallationRestoresCompatibleBackupOnWiFi() throws {
+        let app = makeApp()
+        app.launchEnvironment["CLOUDBAKE_TEST_EMPTY_RESTORE"] = "1"
+        app.launch()
+
+        let restoreButton = app.buttons["settings.cloudRestore.confirm"]
+        tapWhenReady(restoreButton)
+
+        XCTAssertTrue(restoreButton.waitForNonExistence(timeout: 5))
+        assertDashboardVisible(in: app)
+    }
+
+    func testCloudRestoreRequiresDestructiveCellularAndBrokenAssetChoices() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_RESTORE_SETTINGS"] = "1"
+        app.launchEnvironment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] = "1"
+        app.launch()
+
+        assertScreenVisible("screen.settings", in: app)
+        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+
+        let restoreButton = app.buttons["settings.cloudBackup.restore"]
+        scrollToHittable(restoreButton, in: app)
+        tapWhenReady(restoreButton)
+
+        XCTAssertTrue(app.staticTexts["Replace Local Data?"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["settings.cloudRestore.replace.confirm"])
+
+        XCTAssertTrue(app.staticTexts["Use Cellular Data?"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["settings.cloudRestore.cellular.confirm"])
+
+        XCTAssertTrue(app.staticTexts["Some Photos Are Unavailable"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["settings.cloudRestore.assets.remove"])
+
+        XCTAssertTrue(
+            app.staticTexts["settings.cloudRestore.message"].waitForExistence(timeout: 5)
+        )
+        XCTAssertEqual(
+            app.staticTexts["settings.cloudRestore.message"].label,
+            "Cloud backup restored successfully."
+        )
+    }
+
+    func testCloudRestoreExplainsWhenAppUpdateIsRequired() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] = "update-required"
+        app.launchEnvironment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] = "1"
+        app.launch()
+
+        assertScreenVisible("screen.settings", in: app)
+        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let restoreButton = app.buttons["settings.cloudBackup.restore"]
+        scrollToHittable(restoreButton, in: app)
+        tapWhenReady(restoreButton)
+
+        let message = app.staticTexts["settings.cloudRestore.message"]
+        XCTAssertTrue(message.waitForExistence(timeout: 5))
+        XCTAssertEqual(
+            message.label,
+            "Update CloudBake to version 2.0 or later before restoring this backup."
+        )
+    }
+
+    func testCloudRestoreReportsSuccessfulRollbackAfterActivationFailure() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] = "rollback"
+        app.launchEnvironment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] = "1"
+        app.launch()
+
+        assertScreenVisible("screen.settings", in: app)
+        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let restoreButton = app.buttons["settings.cloudBackup.restore"]
+        scrollToHittable(restoreButton, in: app)
+        tapWhenReady(restoreButton)
+        tapWhenReady(app.buttons["settings.cloudRestore.replace.confirm"])
+
+        let message = app.staticTexts["settings.cloudRestore.message"]
+        XCTAssertTrue(message.waitForExistence(timeout: 5))
+        XCTAssertEqual(
+            message.label,
+            "Restore failed, and CloudBake returned to your previous local data."
+        )
+    }
+
     func testOrderCanBeAddedAndListed() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15

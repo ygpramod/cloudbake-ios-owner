@@ -71,6 +71,11 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCSVExportPresentsDestinationPicker
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupSettingsRequireCellularConfirmation
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupNotificationsCanBeDisabled
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testEmptyInstallationOffersRestoreOrStartFresh
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testEmptyInstallationRestoresCompatibleBackupOnWiFi
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreRequiresDestructiveCellularAndBrokenAssetChoices
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreExplainsWhenAppUpdateIsRequired
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreReportsSuccessfulRollbackAfterActivationFailure
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipesCanBeAdded
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
