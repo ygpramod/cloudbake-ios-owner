@@ -100,9 +100,12 @@ struct VoiceInventoryTranscriptionSegment: Equatable {
 
 struct VoiceInventoryTranscriptAccumulator {
     private static let newUtterancePause: TimeInterval = 0.75
+    private static let recognitionTimingTolerance: TimeInterval = 0.35
 
     private var baselineTranscript = ""
     private var ignoredRecognitionKey = ""
+    private var ignoredRecognitionFirstSegmentKey = ""
+    private var ignoredRecognitionEndTime: TimeInterval?
     private var completedUtterances: [[VoiceInventoryTranscriptionSegment]] = []
     private var activeSegments: [VoiceInventoryTranscriptionSegment] = []
 
@@ -156,17 +159,21 @@ struct VoiceInventoryTranscriptAccumulator {
 
     mutating func reset() {
         baselineTranscript = ""
-        ignoredRecognitionKey = ""
+        clearIgnoredRecognition()
         completedUtterances = []
         activeSegments = []
     }
 
     mutating func rebase(to transcript: String) {
-        let recognizedKey = recognitionKey(
-            for: completedUtterances.flatMap { $0 } + activeSegments
-        )
+        let recognizedSegments = completedUtterances.flatMap { $0 } + activeSegments
+        let recognizedKey = recognitionKey(for: recognizedSegments)
         if !recognizedKey.isEmpty {
+            if ignoredRecognitionKey.isEmpty {
+                ignoredRecognitionFirstSegmentKey = recognizedSegments.first
+                    .map { recognitionKey(for: [$0]) } ?? ""
+            }
             ignoredRecognitionKey += recognizedKey
+            ignoredRecognitionEndTime = recognizedSegments.last?.endTime
         }
         baselineTranscript = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         completedUtterances = []
@@ -184,7 +191,17 @@ struct VoiceInventoryTranscriptAccumulator {
             return []
         }
         guard incomingKey.hasPrefix(ignoredRecognitionKey) else {
-            ignoredRecognitionKey = ""
+            if hasIgnoredRecognitionTimelinePrefix(in: incomingSegments) {
+                if let newUtteranceIndex = newUtteranceIndex(in: incomingSegments) {
+                    return Array(incomingSegments.dropFirst(newUtteranceIndex))
+                }
+                if let ignoredRecognitionEndTime,
+                   incomingSegments.last?.endTime ?? 0
+                    <= ignoredRecognitionEndTime + Self.recognitionTimingTolerance {
+                    return []
+                }
+            }
+            clearIgnoredRecognition()
             return incomingSegments
         }
 
@@ -197,6 +214,36 @@ struct VoiceInventoryTranscriptAccumulator {
             return true
         }.count
         return Array(incomingSegments.dropFirst(ignoredSegmentCount))
+    }
+
+    private func hasIgnoredRecognitionTimelinePrefix(
+        in incomingSegments: [VoiceInventoryTranscriptionSegment]
+    ) -> Bool {
+        guard let firstSegment = incomingSegments.first else {
+            return false
+        }
+        return recognitionKey(for: [firstSegment]) == ignoredRecognitionFirstSegmentKey
+    }
+
+    private func newUtteranceIndex(
+        in incomingSegments: [VoiceInventoryTranscriptionSegment]
+    ) -> Int? {
+        guard let ignoredRecognitionEndTime else {
+            return nil
+        }
+        return incomingSegments.indices.dropFirst().first { index in
+            let precedingSegment = incomingSegments[incomingSegments.index(before: index)]
+            let nextSegment = incomingSegments[index]
+            return nextSegment.startTime - precedingSegment.endTime >= Self.newUtterancePause
+                && abs(precedingSegment.endTime - ignoredRecognitionEndTime)
+                    <= Self.recognitionTimingTolerance
+        }
+    }
+
+    private mutating func clearIgnoredRecognition() {
+        ignoredRecognitionKey = ""
+        ignoredRecognitionFirstSegmentKey = ""
+        ignoredRecognitionEndTime = nil
     }
 
     private func recognitionKey(

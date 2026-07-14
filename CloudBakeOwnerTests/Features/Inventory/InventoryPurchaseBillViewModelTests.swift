@@ -1104,6 +1104,28 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         )
     }
 
+    func testLexicalCorrectionBeforeNewSpeechPreservesTheEditedBaseline() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+        _ = accumulator.merge([
+            segment("Sugar", at: 0, duration: 0.3),
+            segment("three", at: 0.4, duration: 0.3)
+        ])
+        accumulator.rebase(to: "Brown sugar 250 g")
+
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("Sugar", at: 0, duration: 0.3),
+                segment("3", at: 0.4, duration: 0.1),
+                segment("00", at: 0.55, duration: 0.15),
+                segment("g", at: 0.8, duration: 0.1),
+                segment("Flour", at: 1.7, duration: 0.3),
+                segment("800", at: 2.1, duration: 0.2),
+                segment("g", at: 2.4, duration: 0.1)
+            ]),
+            "Brown sugar 250 g\nFlour 800 g"
+        )
+    }
+
     func testShorterStaleCallbackCannotReplaceAnEditedBaseline() {
         var accumulator = VoiceInventoryTranscriptAccumulator()
         _ = accumulator.merge([
