@@ -2,9 +2,9 @@ import Foundation
 import GRDB
 
 final class AppDatabase {
-    private let writer: any DatabaseWriter
+    private let writer: DatabaseQueue
 
-    init(writer: any DatabaseWriter) {
+    init(writer: DatabaseQueue) {
         self.writer = writer
     }
 
@@ -38,7 +38,16 @@ final class AppDatabase {
         )
         let cloudBakeDirectory = applicationSupportURL.appendingPathComponent("CloudBakeOwner", isDirectory: true)
         try FileManager.default.createDirectory(at: cloudBakeDirectory, withIntermediateDirectories: true)
-        return try open(at: cloudBakeDirectory.appendingPathComponent("cloudbake-owner.sqlite"))
+        let databaseURL = cloudBakeDirectory.appendingPathComponent("cloudbake-owner.sqlite")
+        try InterruptedRestoreRecovery.recoverIfNeeded(
+            appStorageRoot: cloudBakeDirectory,
+            databaseURL: databaseURL,
+            activationRoot: applicationSupportURL.appendingPathComponent(
+                InterruptedRestoreRecovery.directoryName,
+                isDirectory: true
+            )
+        )
+        return try open(at: databaseURL)
     }
 
     static func open(at databaseURL: URL) throws -> AppDatabase {
@@ -64,6 +73,47 @@ final class AppDatabase {
     func writeBackupSnapshot(to destinationURL: URL) throws {
         let destination = try DatabaseQueue(path: destinationURL.path)
         try writer.backup(to: destination)
+    }
+
+    func replaceContents(from sourceURL: URL) throws {
+        let source = try DatabaseQueue(path: sourceURL.path, configuration: Self.configuration())
+        try source.backup(to: writer)
+        try source.close()
+    }
+
+    func hasOwnerData() throws -> Bool {
+        try writer.read { db in
+            let tables = [
+                "inventory_items", "recipes", "cake_designs", "customers", "orders",
+                "inventory_transactions", "pricing_rules"
+            ]
+            for table in tables where try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \(table)") ?? 0 > 0 {
+                return true
+            }
+            return false
+        }
+    }
+
+    func assetReferences() throws -> [String] {
+        try writer.read { db in
+            let designs = try String.fetchAll(
+                db,
+                sql: "SELECT photo_reference FROM cake_designs WHERE photo_reference IS NOT NULL"
+            )
+            let orders = try String.fetchAll(
+                db,
+                sql: "SELECT local_photo_path FROM order_photos"
+            )
+            return Array(Set(designs + orders)).sorted()
+        }
+    }
+
+    func verifyIntegrity() throws {
+        try LocalRestoreService.verifyIntegrity(of: writer)
+    }
+
+    func close() throws {
+        try writer.close()
     }
 
     private func seedCustomerFixtureIfRequested() throws {

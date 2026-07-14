@@ -269,7 +269,8 @@ private actor FakeLocalRestoreService: LocalRestoreServing {
         PreparedRestoreSnapshot(
             directoryURL: snapshot.directoryURL,
             manifest: snapshot.manifest,
-            brokenAssets: brokenAssets
+            brokenAssets: brokenAssets,
+            ignoredBrokenAssets: []
         )
     }
 
@@ -281,7 +282,8 @@ private actor FakeLocalRestoreService: LocalRestoreServing {
         return PreparedRestoreSnapshot(
             directoryURL: snapshot.directoryURL,
             manifest: snapshot.manifest,
-            brokenAssets: []
+            brokenAssets: [],
+            ignoredBrokenAssets: decision == .ignore ? snapshot.brokenAssets : []
         )
     }
 

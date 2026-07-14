@@ -20,7 +20,7 @@ struct DownloadedRestoreSnapshot: Equatable, Sendable {
     let brokenAssets: [BrokenRestoreAsset]
 }
 
-struct BrokenRestoreAsset: Equatable, Sendable {
+struct BrokenRestoreAsset: Equatable, Hashable, Sendable {
     let originalRelativePath: String
 }
 
@@ -28,6 +28,7 @@ struct PreparedRestoreSnapshot: Equatable, Sendable {
     let directoryURL: URL
     let manifest: BackupManifest
     let brokenAssets: [BrokenRestoreAsset]
+    let ignoredBrokenAssets: [BrokenRestoreAsset]
 }
 
 enum BrokenRestoreAssetDecision: Equatable, Sendable {
