@@ -59,9 +59,9 @@ Update wiki privacy and owner-workflow documentation before release.
   confirmed fingerprint immediately before CloudKit writes, so an account change cannot reuse a
   stale approval.
 - Permanent deletion removes the dedicated private CloudKit backup zone, which includes the
-  pointer, current generation, abandoned generations, database, manifest, and assets. A missing
-  zone is treated as an already-complete deletion, and successful deletion is verified before the
-  local backup preference is disabled.
+  pointer, current generation, abandoned generations, database, manifest, and assets. The local
+  backup preference is disabled before remote deletion begins. A missing zone is treated as an
+  already-complete deletion, and CloudBake verifies the zone is absent before reporting success.
 - Once destructive deletion starts, backup remains disabled even if remote completion cannot be
   verified because of interruption or network failure. The owner can safely retry the idempotent
   deletion or explicitly enable backup to publish again.
