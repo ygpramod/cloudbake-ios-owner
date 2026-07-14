@@ -411,6 +411,34 @@ final class BackupCoordinatorTests: XCTestCase {
         let transferPolicies = await fixture.publisher.transferPolicies
         XCTAssertEqual(transferPolicies, [.wifiOnly])
     }
+
+    func testRestoreSessionBlocksBackupUntilItEnds() async {
+        let fixture = CoordinatorFixture()
+
+        let beganRestore = await fixture.coordinator.beginRestoreSession()
+        let automaticResult = await fixture.coordinator.requestAutomaticBackup(trigger: .background)
+        let manualResult = await fixture.coordinator.prepareManualBackup()
+
+        XCTAssertTrue(beganRestore)
+        XCTAssertEqual(automaticResult, .coalesced)
+        XCTAssertEqual(manualResult, .busy)
+
+        await fixture.coordinator.endRestoreSession()
+
+        guard case .published = await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected backup to resume after the restore session ended")
+        }
+    }
+
+    func testSecondRestoreSessionCannotStartConcurrently() async {
+        let fixture = CoordinatorFixture()
+
+        let firstSession = await fixture.coordinator.beginRestoreSession()
+        let secondSession = await fixture.coordinator.beginRestoreSession()
+
+        XCTAssertTrue(firstSession)
+        XCTAssertFalse(secondSession)
+    }
 }
 
 private final class CoordinatorFixture {

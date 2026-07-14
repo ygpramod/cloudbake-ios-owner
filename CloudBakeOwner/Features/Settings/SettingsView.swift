@@ -199,6 +199,7 @@ final class SettingsViewModel: ObservableObject {
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @StateObject private var cloudBackupViewModel: CloudBackupSettingsViewModel
+    @StateObject private var cloudRestoreViewModel: CloudRestoreSettingsViewModel
     @AppStorage(AppSettings.currencySymbolKey) private var selectedCurrencySymbol = AppCurrency.defaultCurrency.symbol
     @AppStorage(AppSettings.logoRevisionKey) private var logoRevision = 0
     @State private var isSelectingCurrency = false
@@ -213,12 +214,18 @@ struct SettingsView: View {
 
     init(
         viewModel: SettingsViewModel,
-        cloudBackupService: (any CloudBackupSettingsServing)? = nil
+        cloudBackupService: (any CloudBackupSettingsServing)? = nil,
+        cloudRestoreService: (any CloudRestoreSettingsServing)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _cloudBackupViewModel = StateObject(
             wrappedValue: CloudBackupSettingsViewModel(
                 service: cloudBackupService ?? UnavailableCloudBackupSettingsService()
+            )
+        )
+        _cloudRestoreViewModel = StateObject(
+            wrappedValue: CloudRestoreSettingsViewModel(
+                service: cloudRestoreService ?? UnavailableCloudRestoreSettingsService()
             )
         )
     }
@@ -346,14 +353,27 @@ struct SettingsView: View {
             CloudBakeSection {
                 DisclosureGroup(isExpanded: $isDataManagementExpanded) {
                     CloudBakeDetailCard {
-                    unavailableSettingsAction(
-                        title: "Restore from Cloud Backup",
-                        detail: "Full restore will be available in the next recovery slice.",
-                        systemImage: "icloud.and.arrow.down",
-                        accessibilityIdentifier: "settings.cloudBackup.restore"
-                    )
+                        settingsAction(
+                            title: cloudRestoreViewModel.isWorking
+                                ? "Inspecting Cloud Backup…"
+                                : "Restore from Cloud Backup",
+                            detail: "Inspect and restore one complete, validated recovery snapshot.",
+                            systemImage: "icloud.and.arrow.down",
+                            accessibilityIdentifier: "settings.cloudBackup.restore"
+                        ) {
+                            Task { await cloudRestoreViewModel.inspect() }
+                        }
+                        .disabled(cloudRestoreViewModel.isWorking)
 
-                    CloudBakeDetailDivider()
+                        if let restoreMessage = cloudRestoreViewModel.actionMessage {
+                            Text(restoreMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .padding(.bottom, 12)
+                                .accessibilityIdentifier("settings.cloudRestore.message")
+                        }
+
+                        CloudBakeDetailDivider()
 
                     unavailableSettingsAction(
                         title: "Delete Cloud Backup",
@@ -428,6 +448,7 @@ struct SettingsView: View {
             }
         }
         .accessibilityIdentifier(AppDestination.settings.screenAccessibilityIdentifier)
+        .cloudRestorePrompts(viewModel: cloudRestoreViewModel)
         .task {
             await cloudBackupViewModel.refresh()
         }

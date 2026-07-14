@@ -224,6 +224,75 @@ final class CloudBackupSettingsTests: XCTestCase {
         XCTAssertTrue(viewModel.snapshot.areNotificationsEnabled)
     }
 
+    func testRestoreViewModelPreservesRequiredConfirmationOrder() async throws {
+        let service = CloudRestoreSettingsServiceSpy()
+        let viewModel = CloudRestoreSettingsViewModel(service: service)
+
+        let didFindBackup = await viewModel.inspect()
+        XCTAssertTrue(didFindBackup)
+        guard case .replace(let proposal) = viewModel.prompt else {
+            return XCTFail("Expected replacement confirmation")
+        }
+
+        await viewModel.confirmReplacement()
+        guard case .cellular = viewModel.prompt else {
+            return XCTFail("Expected cellular confirmation")
+        }
+
+        await viewModel.confirmCellular()
+        guard case .brokenAssets(let brokenProposal) = viewModel.prompt else {
+            return XCTFail("Expected broken asset decision")
+        }
+        XCTAssertEqual(brokenProposal.assets.count, 1)
+
+        await viewModel.resolveBrokenAssets(.removeReferences)
+
+        XCTAssertTrue(viewModel.didCompleteRestore)
+        XCTAssertEqual(viewModel.actionMessage, "Cloud backup restored successfully.")
+        let approvals = await service.recordedApprovals
+        XCTAssertEqual(
+            approvals,
+            [
+                .replaceExistingData,
+                .useCellular(displayedByteCount: proposal.snapshot.totalByteCount),
+                .brokenAssets(.removeReferences)
+            ]
+        )
+    }
+
+    func testStartFreshCancelsRestoreWithoutChangingBackup() async {
+        let service = CloudRestoreSettingsServiceSpy(startsWithEmptyInstallation: true)
+        let viewModel = CloudRestoreSettingsViewModel(service: service)
+
+        _ = await viewModel.inspect()
+        await viewModel.startFresh()
+
+        XCTAssertTrue(viewModel.didChooseStartFresh)
+        XCTAssertFalse(viewModel.didCompleteRestore)
+        XCTAssertNil(viewModel.prompt)
+        let cancelledProposalIDs = await service.cancelledProposalIDs
+        XCTAssertEqual(cancelledProposalIDs, ["restore-proposal"])
+    }
+
+    func testRestoreViewModelExplainsUpdateRequirement() async {
+        let service = CloudRestoreSettingsServiceSpy(
+            inspectionResult: .failed(
+                RestoreFailure(
+                    category: .updateRequired(minimumVersion: "2.0"),
+                    didRollBack: false
+                )
+            )
+        )
+        let viewModel = CloudRestoreSettingsViewModel(service: service)
+
+        _ = await viewModel.inspect()
+
+        XCTAssertEqual(
+            viewModel.actionMessage,
+            "Update CloudBake to version 2.0 or later before restoring this backup."
+        )
+    }
+
     private func settingsSnapshot(
         state: CloudBackupSettingsState
     ) -> CloudBackupSettingsSnapshot {
@@ -235,6 +304,66 @@ final class CloudBackupSettingsTests: XCTestCase {
             lastSuccessAt: nil,
             estimatedUploadByteCount: nil
         )
+    }
+}
+
+private actor CloudRestoreSettingsServiceSpy: CloudRestoreSettingsServing {
+    private let proposal: RestoreProposal
+    private let inspectionResult: RestoreResult?
+    private let startsWithEmptyInstallation: Bool
+    private(set) var recordedApprovals: [RestoreApproval] = []
+    private(set) var cancelledProposalIDs: [String] = []
+
+    init(
+        startsWithEmptyInstallation: Bool = false,
+        inspectionResult: RestoreResult? = nil
+    ) {
+        self.startsWithEmptyInstallation = startsWithEmptyInstallation
+        self.inspectionResult = inspectionResult
+        proposal = RestoreProposal(
+            id: "restore-proposal",
+            snapshot: CloudRestoreSnapshot(
+                generationID: "generation-1",
+                createdAt: Date(timeIntervalSince1970: 1_800_000_000),
+                totalByteCount: 4_000_000,
+                assetCount: 12,
+                compatibility: .compatible,
+                integrity: .verified
+            ),
+            replacesExistingData: !startsWithEmptyInstallation
+        )
+    }
+
+    func inspectRestore() async -> RestoreResult {
+        if let inspectionResult { return inspectionResult }
+        return startsWithEmptyInstallation
+            ? .ready(proposal)
+            : .requiresReplacementConfirmation(proposal)
+    }
+
+    func proceedRestore(proposalID: String, approval: RestoreApproval) async -> RestoreResult {
+        guard proposalID == proposal.id else { return .invalidApproval }
+        recordedApprovals.append(approval)
+        switch approval {
+        case .replaceExistingData:
+            return .requiresCellularConfirmation(proposal)
+        case .useCellular(let displayedByteCount)
+            where displayedByteCount == proposal.snapshot.totalByteCount:
+            return .requiresBrokenAssetDecision(
+                BrokenRestoreAssetProposal(
+                    restoreProposalID: proposal.id,
+                    assets: [BrokenRestoreAsset(originalRelativePath: "OrderPhotos/missing.jpg")]
+                )
+            )
+        case .brokenAssets:
+            return .completed
+        default:
+            return .invalidApproval
+        }
+    }
+
+    func cancelRestore(proposalID: String) async {
+        cancelledProposalIDs.append(proposalID)
     }
 }
 
