@@ -337,9 +337,9 @@ actor BackupCoordinator {
         guard activeOperation == nil, !isRestoreSessionActive else { return .busy }
         guard let deleter else { return .failed(.unknown) }
         activeOperation = .deletingCloudBackup
-        let wasEnabled = scheduleStore.load().isEnabled
         var deletionMetadata = scheduleStore.load()
         deletionMetadata.isEnabled = false
+        deletionMetadata.deletionNeedsRetryCategory = CloudBackupErrorCategory.unknown.rawValue
         scheduleStore.save(deletionMetadata)
         do {
             try await deleter.deleteAllBackupData()
@@ -352,13 +352,14 @@ actor BackupCoordinator {
             metadata.retryCount = 0
             metadata.estimatedUploadByteCount = nil
             metadata.lastFailureCategory = nil
+            metadata.deletionNeedsRetryCategory = nil
             scheduleStore.save(metadata)
             finishOperation()
             return .deleted
         } catch {
             let category = errorCategory(for: error)
             var metadata = scheduleStore.load()
-            metadata.isEnabled = wasEnabled
+            metadata.deletionNeedsRetryCategory = category.rawValue
             scheduleStore.save(metadata)
             finishOperation()
             return .failed(category)
@@ -443,6 +444,7 @@ actor BackupCoordinator {
         guard metadata.isEnabled != isEnabled else { return }
         metadata.isEnabled = isEnabled
         if isEnabled {
+            metadata.deletionNeedsRetryCategory = nil
             metadata.isOverdue = true
             metadata.nextEligibleAt = now()
         } else if case .awaitingManualAccountApproval = activeOperation {
@@ -692,6 +694,9 @@ actor BackupCoordinator {
             return .deleting
         case nil:
             break
+        }
+        if let rawCategory = metadata.deletionNeedsRetryCategory {
+            return .deletionNeedsRetry(CloudBackupErrorCategory(rawValue: rawCategory))
         }
         guard metadata.isEnabled else { return .disabled }
         guard accountAvailability == .available else { return .unavailable }

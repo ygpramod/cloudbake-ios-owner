@@ -12,6 +12,7 @@ enum CloudBackupSettingsState: Equatable, Sendable {
     case awaitingCellularConfirmation
     case awaitingAccountConfirmation
     case deleting
+    case deletionNeedsRetry(CloudBackupErrorCategory?)
     case successful
     case failed(CloudBackupErrorCategory)
 }
@@ -164,7 +165,7 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         case .busy:
             deletionMessage = "Another backup or restore operation is in progress."
         case .failed(let category):
-            deletionMessage = Self.failureGuidance(for: category)
+            deletionMessage = Self.deletionFailureGuidance(for: category)
         }
         snapshot = await service.currentSettings()
     }
@@ -188,6 +189,7 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         case .awaitingCellularConfirmation: "Confirmation Required"
         case .awaitingAccountConfirmation: "Account Confirmation Required"
         case .deleting: "Deleting Backup"
+        case .deletionNeedsRetry: "Deletion Needs Retry"
         case .successful: "Up to Date"
         case .failed: "Backup Failed"
         }
@@ -215,6 +217,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             "Confirm this iCloud account before CloudBake publishes any local data."
         case .deleting:
             "Removing the complete recovery backup from private iCloud storage."
+        case .deletionNeedsRetry(let category):
+            Self.deletionFailureGuidance(for: category ?? .unknown)
         case .successful:
             "The latest complete recovery snapshot is safely stored in iCloud."
         case .failed(let category):
@@ -319,6 +323,19 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             "Try again later. Your previous backup and local data are unchanged."
         }
     }
+
+    private static func deletionFailureGuidance(for category: CloudBackupErrorCategory) -> String {
+        switch category {
+        case .authenticationRequired, .iCloudUnavailable:
+            "Cloud deletion could not be verified. Backup remains off. Check iCloud and retry deletion."
+        case .networkUnavailable, .temporarilyUnavailable, .cancelled:
+            "Cloud deletion could not be verified. Backup remains off. Check the connection and retry deletion."
+        case .permissionDenied:
+            "Cloud deletion could not be verified. Backup remains off. Check iCloud access and retry deletion."
+        case .quotaExceeded, .conflict, .corruptRemoteData, .unknown:
+            "Cloud deletion could not be verified. Backup remains off. Retry deletion before enabling backup."
+        }
+    }
 }
 
 struct UnavailableCloudBackupSettingsService: CloudBackupSettingsServing {
@@ -421,7 +438,8 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
 
     func deleteCloudBackup() async -> CloudBackupDeletionResult {
         if deletionFails {
-            snapshot.state = .failed(.temporarilyUnavailable)
+            snapshot.isEnabled = false
+            snapshot.state = .deletionNeedsRetry(.temporarilyUnavailable)
             return .failed(.temporarilyUnavailable)
         }
         snapshot.isEnabled = false

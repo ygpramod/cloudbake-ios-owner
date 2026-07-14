@@ -324,12 +324,24 @@ final class BackupCoordinatorTests: XCTestCase {
 
         let failure = await fixture.coordinator.deleteCloudBackup()
         XCTAssertEqual(failure, .failed(.temporarilyUnavailable))
-        XCTAssertTrue(fixture.scheduleStore.load().isEnabled)
+        XCTAssertFalse(fixture.scheduleStore.load().isEnabled)
         XCTAssertNotNil(fixture.scheduleStore.load().lastSuccessAt)
+        XCTAssertEqual(
+            fixture.scheduleStore.load().deletionNeedsRetryCategory,
+            CloudBackupErrorCategory.temporarilyUnavailable.rawValue
+        )
+        let failedSettings = await fixture.coordinator.currentSettings(
+            areNotificationsEnabled: true
+        )
+        XCTAssertEqual(
+            failedSettings.state,
+            .deletionNeedsRetry(.temporarilyUnavailable)
+        )
 
         let retry = await fixture.coordinator.deleteCloudBackup()
         XCTAssertEqual(retry, .deleted)
         XCTAssertFalse(fixture.scheduleStore.load().isEnabled)
+        XCTAssertNil(fixture.scheduleStore.load().deletionNeedsRetryCategory)
         let deletionCount = await deleter.deletionCount
         XCTAssertEqual(deletionCount, 2)
     }

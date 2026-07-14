@@ -177,9 +177,9 @@ final class CloudBackupSettingsTests: XCTestCase {
         XCTAssertFalse(viewModel.isConfirmingDeletion)
         XCTAssertEqual(
             viewModel.deletionMessage,
-            "Check the connection and try again. Your previous backup is unchanged."
+            "Cloud deletion could not be verified. Backup remains off. Check the connection and retry deletion."
         )
-        XCTAssertTrue(viewModel.snapshot.isEnabled)
+        XCTAssertFalse(viewModel.snapshot.isEnabled)
     }
 
     func testDisablingBackupExplainsThatLatestSnapshotIsRetained() async {
@@ -633,9 +633,9 @@ private actor CloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
     func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {}
 
     func deleteCloudBackup() async -> CloudBackupDeletionResult {
+        snapshot.isEnabled = false
+        snapshot.state = .disabled
         if deletionResult == .deleted {
-            snapshot.isEnabled = false
-            snapshot.state = .disabled
             snapshot.lastSuccessAt = nil
         }
         return deletionResult
