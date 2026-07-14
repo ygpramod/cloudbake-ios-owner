@@ -123,6 +123,7 @@ enum VoiceInventoryDraftParser {
         var name = text.trimmingCharacters(
             in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ",;."))
         )
+        name = name.split(whereSeparator: \Character.isWhitespace).joined(separator: " ")
         if name.lowercased().hasPrefix("and ") {
             name = String(name.dropFirst(4)).trimmingCharacters(in: .whitespacesAndNewlines)
         }

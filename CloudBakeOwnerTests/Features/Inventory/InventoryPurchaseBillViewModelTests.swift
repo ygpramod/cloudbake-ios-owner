@@ -940,6 +940,35 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         )
     }
 
+    func testRepeatedFinalUtteranceIsNotDuplicatedAndResetSpeechAppends() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+        _ = accumulator.merge([
+            segment("flour", at: 0, duration: 0.3),
+            segment("800", at: 0.4, duration: 0.2),
+            segment("grams", at: 0.7, duration: 0.3)
+        ])
+
+        XCTAssertEqual(
+            accumulator.merge(
+                [
+                    segment("flour", at: 1.5, duration: 0.3),
+                    segment("800", at: 1.9, duration: 0.2),
+                    segment("grams", at: 2.2, duration: 0.3)
+                ],
+                isFinal: true
+            ),
+            "flour 800 grams"
+        )
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("strawberry", at: 0, duration: 0.5),
+                segment("100", at: 0.6, duration: 0.2),
+                segment("grams", at: 0.9, duration: 0.3)
+            ]),
+            "flour 800 grams\nstrawberry 100 grams"
+        )
+    }
+
     func testOverlappingRevisionReplacesOnlyTheAffectedSuffix() {
         var accumulator = VoiceInventoryTranscriptAccumulator()
         _ = accumulator.merge([
@@ -954,6 +983,31 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
                 segment("grams", at: 1.2, duration: 0.3)
             ]),
             "cake flour 800 grams"
+        )
+    }
+
+    func testParserNormalizesAPauseInsideAMultiWordItemName() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+        _ = accumulator.merge([
+            segment("cake", at: 0, duration: 0.3)
+        ])
+        let transcript = accumulator.merge([
+            segment("flour", at: 1.2, duration: 0.3),
+            segment("800", at: 1.6, duration: 0.2),
+            segment("grams", at: 1.9, duration: 0.3)
+        ])
+
+        XCTAssertEqual(transcript, "cake\nflour 800 grams")
+        XCTAssertEqual(
+            VoiceInventoryDraftParser.items(from: transcript),
+            [
+                ParsedVoiceInventoryItem(
+                    name: "cake flour",
+                    sourcePhrase: "cake flour 800 grams",
+                    quantity: 800,
+                    unit: .gram
+                )
+            ]
         )
     }
 

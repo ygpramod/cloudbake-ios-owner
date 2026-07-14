@@ -100,25 +100,78 @@ struct VoiceInventoryTranscriptionSegment: Equatable {
 struct VoiceInventoryTranscriptAccumulator {
     private static let newUtterancePause: TimeInterval = 0.75
 
-    private(set) var segments: [VoiceInventoryTranscriptionSegment] = []
+    private var completedUtterances: [[VoiceInventoryTranscriptionSegment]] = []
+    private var activeSegments: [VoiceInventoryTranscriptionSegment] = []
 
-    mutating func merge(_ incomingSegments: [VoiceInventoryTranscriptionSegment]) -> String {
+    mutating func merge(
+        _ incomingSegments: [VoiceInventoryTranscriptionSegment],
+        isFinal: Bool = false
+    ) -> String {
         guard let updateStartTime = incomingSegments.first?.startTime else {
             return transcript
         }
 
-        segments.removeAll { segment in
-            segment.endTime > updateStartTime || abs(segment.startTime - updateStartTime) < 0.01
+        if activeSegments.isEmpty {
+            activeSegments = incomingSegments
+        } else if words(in: incomingSegments) == words(in: activeSegments) {
+            // On-device recognition can repeat a finalized utterance with reset timestamps.
+        } else if isCumulativeRevision(incomingSegments) {
+            activeSegments = incomingSegments
+        } else if let activeStartTime = activeSegments.first?.startTime,
+                  updateStartTime > activeStartTime + 0.01 {
+            activeSegments.removeAll { segment in
+                segment.endTime > updateStartTime || abs(segment.startTime - updateStartTime) < 0.01
+            }
+            activeSegments.append(contentsOf: incomingSegments)
+        } else {
+            completeActiveUtterance()
+            activeSegments = incomingSegments
         }
-        segments.append(contentsOf: incomingSegments)
-        return transcript
+
+        let updatedTranscript = transcript
+        if isFinal {
+            completeActiveUtterance()
+        }
+        return updatedTranscript
     }
 
     mutating func reset() {
-        segments = []
+        completedUtterances = []
+        activeSegments = []
+    }
+
+    private mutating func completeActiveUtterance() {
+        guard !activeSegments.isEmpty else {
+            return
+        }
+        completedUtterances.append(activeSegments)
+        activeSegments = []
+    }
+
+    private func isCumulativeRevision(
+        _ incomingSegments: [VoiceInventoryTranscriptionSegment]
+    ) -> Bool {
+        let incomingWords = words(in: incomingSegments)
+        let activeWords = words(in: activeSegments)
+        return incomingWords.starts(with: activeWords) || activeWords.starts(with: incomingWords)
+    }
+
+    private func words(in segments: [VoiceInventoryTranscriptionSegment]) -> [String] {
+        segments.map {
+            $0.text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        }
     }
 
     private var transcript: String {
+        (completedUtterances + [activeSegments])
+            .filter { !$0.isEmpty }
+            .map(formattedTranscript(from:))
+            .joined(separator: "\n")
+    }
+
+    private func formattedTranscript(
+        from segments: [VoiceInventoryTranscriptionSegment]
+    ) -> String {
         var result = ""
         var priorEndTime: TimeInterval?
         for segment in segments {
@@ -214,7 +267,10 @@ final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecogniz
                             duration: $0.duration
                         )
                     }
-                    guard let transcript = self?.transcriptAccumulator.merge(segments),
+                    guard let transcript = self?.transcriptAccumulator.merge(
+                        segments,
+                        isFinal: result.isFinal
+                    ),
                           !transcript.isEmpty else {
                         return
                     }
