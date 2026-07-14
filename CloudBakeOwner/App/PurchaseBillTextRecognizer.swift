@@ -87,6 +87,59 @@ protocol VoiceInventorySpeechRecognizing: AnyObject {
     func stop()
 }
 
+struct VoiceInventoryTranscriptionSegment: Equatable {
+    let text: String
+    let startTime: TimeInterval
+    let duration: TimeInterval
+
+    var endTime: TimeInterval {
+        startTime + duration
+    }
+}
+
+struct VoiceInventoryTranscriptAccumulator {
+    private static let newUtterancePause: TimeInterval = 0.75
+
+    private(set) var segments: [VoiceInventoryTranscriptionSegment] = []
+
+    mutating func merge(_ incomingSegments: [VoiceInventoryTranscriptionSegment]) -> String {
+        guard let updateStartTime = incomingSegments.first?.startTime else {
+            return transcript
+        }
+
+        segments.removeAll { segment in
+            segment.endTime > updateStartTime || abs(segment.startTime - updateStartTime) < 0.01
+        }
+        segments.append(contentsOf: incomingSegments)
+        return transcript
+    }
+
+    mutating func reset() {
+        segments = []
+    }
+
+    private var transcript: String {
+        var result = ""
+        var priorEndTime: TimeInterval?
+        for segment in segments {
+            let text = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else {
+                continue
+            }
+            if let priorEndTime,
+               segment.startTime - priorEndTime >= Self.newUtterancePause {
+                result += "\n\(text)"
+            } else if result.isEmpty || text.first?.isPunctuation == true {
+                result += text
+            } else {
+                result += " \(text)"
+            }
+            priorEndTime = segment.endTime
+        }
+        return result
+    }
+}
+
 @MainActor
 final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecognizing {
     private let speechRecognizer: SFSpeechRecognizer?
@@ -94,6 +147,7 @@ final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecogniz
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var isInputTapInstalled = false
+    private var transcriptAccumulator = VoiceInventoryTranscriptAccumulator()
 
     init(locale: Locale = .current) {
         speechRecognizer = SFSpeechRecognizer(locale: locale)
@@ -124,6 +178,7 @@ final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecogniz
         }
 
         stop()
+        transcriptAccumulator.reset()
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.requiresOnDeviceRecognition = true
@@ -152,7 +207,18 @@ final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecogniz
                     guard self?.request === request else {
                         return
                     }
-                    onTranscript(result.bestTranscription.formattedString)
+                    let segments = result.bestTranscription.segments.map {
+                        VoiceInventoryTranscriptionSegment(
+                            text: $0.substring,
+                            startTime: $0.timestamp,
+                            duration: $0.duration
+                        )
+                    }
+                    guard let transcript = self?.transcriptAccumulator.merge(segments),
+                          !transcript.isEmpty else {
+                        return
+                    }
+                    onTranscript(transcript)
                 }
             }
             if error != nil {
