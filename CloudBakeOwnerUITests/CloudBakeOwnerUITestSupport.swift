@@ -175,23 +175,19 @@ extension CloudBakeOwnerUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        let deadline = Date().addingTimeInterval(timeout)
-        repeat {
-            let directAction = app.buttons[identifier]
-            if directAction.waitForExistence(timeout: 1), directAction.isHittable {
-                tapWhenReady(directAction, timeout: timeout, file: file, line: line)
-            } else {
-                let moreActionsButton = app.buttons["screen.actions.more"]
-                tapWhenReady(moreActionsButton, timeout: timeout, file: file, line: line)
-                tapWhenReady(app.buttons[identifier], timeout: timeout, file: file, line: line)
-            }
+        let directAction = app.buttons[identifier]
+        if directAction.waitForExistence(timeout: 1), directAction.isHittable {
+            tapWhenReady(directAction, timeout: timeout, file: file, line: line)
+        } else {
+            let moreActionsButton = app.buttons["screen.actions.more"]
+            tapWhenReady(moreActionsButton, timeout: timeout, file: file, line: line)
+            tapWhenReady(app.buttons[identifier], timeout: timeout, file: file, line: line)
+        }
 
-            guard let destination else { return }
-            if destination.waitForExistence(timeout: min(3, timeout)) { return }
-        } while Date() < deadline
-
-        XCTFail(
-            "Inventory header action did not reach its destination.",
+        guard let destination else { return }
+        XCTAssertTrue(
+            destination.waitForExistence(timeout: timeout),
+            "Inventory header action did not reach its destination. Hierarchy: \(app.debugDescription)",
             file: file,
             line: line
         )
@@ -349,18 +345,9 @@ extension CloudBakeOwnerUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        let deadline = Date().addingTimeInterval(timeout)
-        repeat {
-            tapWhenReady(
-                element,
-                timeout: min(5, timeout),
-                file: file,
-                line: line
-            )
-            if destination.waitForExistence(timeout: min(3, timeout)) { return }
-        } while element.exists && element.isHittable && Date() < deadline
-
-        XCTFail(
+        tapWhenReady(element, timeout: timeout, file: file, line: line)
+        XCTAssertTrue(
+            destination.waitForExistence(timeout: timeout),
             "Tap did not reach the expected destination. Hierarchy: \(app.debugDescription)",
             file: file,
             line: line
