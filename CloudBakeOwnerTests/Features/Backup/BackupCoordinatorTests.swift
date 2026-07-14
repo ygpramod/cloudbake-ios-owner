@@ -439,6 +439,43 @@ final class BackupCoordinatorTests: XCTestCase {
         XCTAssertTrue(firstSession)
         XCTAssertFalse(secondSession)
     }
+
+    func testUnrecoveredRestoreFailureKeepsEveryBackupPathBlocked() async {
+        let fixture = CoordinatorFixture()
+        let runtime = CloudBackupRuntime(coordinator: fixture.coordinator)
+        let beganRestore = await fixture.coordinator.beginRestoreSession()
+        XCTAssertTrue(beganRestore)
+
+        await runtime.finishRestoreSessionIfSafe(
+            after: .failed(
+                RestoreFailure(category: .activationFailed, didRollBack: false)
+            )
+        )
+
+        let automaticResult = await fixture.coordinator.requestAutomaticBackup(trigger: .background)
+        let manualResult = await fixture.coordinator.prepareManualBackup()
+        let publicationCount = await fixture.publisher.publicationCount
+        XCTAssertEqual(automaticResult, .coalesced)
+        XCTAssertEqual(manualResult, .busy)
+        XCTAssertEqual(publicationCount, 0)
+    }
+
+    func testRolledBackRestoreFailureReleasesBackupSession() async {
+        let fixture = CoordinatorFixture()
+        let runtime = CloudBackupRuntime(coordinator: fixture.coordinator)
+        let beganRestore = await fixture.coordinator.beginRestoreSession()
+        XCTAssertTrue(beganRestore)
+
+        await runtime.finishRestoreSessionIfSafe(
+            after: .failed(
+                RestoreFailure(category: .activationFailed, didRollBack: true)
+            )
+        )
+
+        guard case .published = await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected backup to resume after successful restore rollback")
+        }
+    }
 }
 
 private final class CoordinatorFixture {

@@ -105,7 +105,7 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
             await coordinator.endRestoreSession()
             return result
         }
-        await releaseRestoreSessionIfTerminal(result)
+        await finishRestoreSessionIfSafe(after: result)
         return result
     }
 
@@ -114,7 +114,7 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
             return .failed(RestoreFailure(category: .iCloudUnavailable, didRollBack: false))
         }
         let result = await restoreCoordinator.proceed(proposalID: proposalID, approval: approval)
-        await releaseRestoreSessionIfTerminal(result)
+        await finishRestoreSessionIfSafe(after: result)
         if result == .completed {
             await MainActor.run {
                 NotificationCenter.default.post(name: .cloudBakeRestoreDidComplete, object: nil)
@@ -235,10 +235,14 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
         }
     }
 
-    private func releaseRestoreSessionIfTerminal(_ result: RestoreResult) async {
+    func finishRestoreSessionIfSafe(after result: RestoreResult) async {
         switch result {
-        case .completed, .noBackup, .failed:
+        case .completed, .noBackup:
             await coordinator.endRestoreSession()
+        case .failed(let failure):
+            if !failure.requiresRecoveryRestart {
+                await coordinator.endRestoreSession()
+            }
         case .ready, .requiresReplacementConfirmation, .requiresCellularConfirmation,
              .requiresBrokenAssetDecision, .busy, .invalidApproval:
             break
