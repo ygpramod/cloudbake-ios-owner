@@ -62,7 +62,7 @@ struct BackupAssetDescriptor: Codable, Equatable, Sendable {
     let file: BackupFileDescriptor
 }
 
-enum BackupManifestCompatibility: Equatable {
+enum BackupManifestCompatibility: Equatable, Sendable {
     case compatible
     case unsupportedFormat(found: Int, supported: Int)
     case appUpdateRequired(minimumVersion: String)
