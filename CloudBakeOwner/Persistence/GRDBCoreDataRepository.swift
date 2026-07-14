@@ -22,6 +22,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     OrderPhotoRepository,
     InventoryTransactionRepository,
     InventoryStockBatchRepository,
+    VoiceInventoryImportRepository,
     ExpiredStockDisposalRepository,
     PricingRuleRepository {
     let writer: any DatabaseWriter

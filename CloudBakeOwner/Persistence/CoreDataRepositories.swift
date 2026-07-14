@@ -144,6 +144,13 @@ protocol InventoryStockBatchRepository {
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch]
 }
 
+protocol VoiceInventoryImportRepository {
+    func saveVoiceInventoryImport(
+        items: [InventoryItem],
+        batches: [InventoryStockBatch]
+    ) throws
+}
+
 protocol ExpiredStockDisposalRepository {
     func saveExpiredStockDisposal(
         item: InventoryItem,

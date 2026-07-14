@@ -262,15 +262,10 @@ private struct PurchaseBillDraftRow: View {
 struct VoiceInventoryImportView: View {
     @ObservedObject var viewModel: InventoryListViewModel
     @Binding var isPresented: Bool
-    @State private var isListening = false
-    @State private var isRequestingPermission = false
-    @State private var recognitionStartTask: Task<Void, Never>?
-    @State private var recognitionError: String?
+    @StateObject private var recognitionSession: VoiceInventoryRecognitionSession
     @State private var pendingUnknownDraftId: String?
     @State private var mappingDraftId: String?
     @State private var inventorySearch = ""
-
-    private let recognizer: any VoiceInventorySpeechRecognizing
 
     @MainActor
     init(
@@ -292,7 +287,9 @@ struct VoiceInventoryImportView: View {
     ) {
         self.viewModel = viewModel
         _isPresented = isPresented
-        self.recognizer = recognizer
+        _recognitionSession = StateObject(
+            wrappedValue: VoiceInventoryRecognitionSession(recognizer: recognizer)
+        )
     }
 
     var body: some View {
@@ -308,11 +305,14 @@ struct VoiceInventoryImportView: View {
                     .accessibilityIdentifier("inventory.voice.transcript")
 
                 Button {
-                    isListening ? stopListening() : startListening()
+                    recognitionSession.isListening ? stopListening() : startListening()
                 } label: {
-                    Label(listeningButtonTitle, systemImage: isListening ? "stop.fill" : "mic.fill")
+                    Label(
+                        listeningButtonTitle,
+                        systemImage: recognitionSession.isListening ? "stop.fill" : "mic.fill"
+                    )
                 }
-                .disabled(isRequestingPermission)
+                .disabled(recognitionSession.isRequestingPermission)
                 .accessibilityIdentifier("inventory.voice.listen")
 
                 Button {
@@ -333,6 +333,9 @@ struct VoiceInventoryImportView: View {
                         VoiceInventoryDraftRow(
                             draft: $draft,
                             destinationName: destinationName(for: draft.destination),
+                            onNameChange: { name in
+                                viewModel.updateVoiceInventoryDraftName(draft.id, name: name)
+                            },
                             onResolve: {
                                 pendingUnknownDraftId = draft.id
                             }
@@ -341,7 +344,7 @@ struct VoiceInventoryImportView: View {
                 }
             }
 
-            if let message = recognitionError ?? viewModel.errorMessage {
+            if let message = recognitionSession.errorMessage ?? viewModel.errorMessage {
                 Section {
                     Text(message)
                         .foregroundStyle(.red)
@@ -365,7 +368,7 @@ struct VoiceInventoryImportView: View {
                         isPresented = false
                     }
                 }
-                .disabled(viewModel.voiceInventoryDrafts.isEmpty)
+                .disabled(!viewModel.canSaveVoiceInventoryDrafts)
                 .accessibilityIdentifier("inventory.voice.save")
             }
         }
@@ -485,61 +488,27 @@ struct VoiceInventoryImportView: View {
     }
 
     private func startListening() {
-        recognitionError = nil
-        isRequestingPermission = true
-        recognitionStartTask = Task {
-            defer {
-                isRequestingPermission = false
-                recognitionStartTask = nil
-            }
-            guard await recognizer.requestPermission() else {
-                guard !Task.isCancelled else {
-                    return
-                }
-                recognitionError = VoiceInventoryRecognitionError.permissionDenied.localizedDescription
-                return
-            }
-            guard !Task.isCancelled else {
-                return
-            }
-            do {
-                try recognizer.start(
-                    onTranscript: { transcript in
-                        viewModel.voiceInventoryTranscript = transcript
-                    },
-                    onError: { error in
-                        stopListening()
-                        recognitionError = error.localizedDescription
-                    }
-                )
-                isListening = true
-            } catch let error as VoiceInventoryRecognitionError {
-                recognitionError = error.localizedDescription
-            } catch {
-                recognitionError = VoiceInventoryRecognitionError.recognitionFailed.localizedDescription
-            }
+        recognitionSession.start { transcript in
+            viewModel.voiceInventoryTranscript = transcript
         }
     }
 
     private func stopListening() {
-        recognitionStartTask?.cancel()
-        recognitionStartTask = nil
-        isRequestingPermission = false
-        recognizer.stop()
-        isListening = false
+        recognitionSession.stop()
     }
 
     private var listeningButtonTitle: String {
-        if isRequestingPermission {
+        if recognitionSession.isRequestingPermission {
             return "Requesting Access"
         }
-        return isListening ? "Stop Listening" : "Start Listening"
+        return recognitionSession.isListening ? "Stop Listening" : "Start Listening"
     }
 }
 
 private struct VoiceInventoryDraftRow: View {
     @Binding var draft: VoiceInventoryDraft
     let destinationName: String
+    let onNameChange: (String) -> Void
     let onResolve: () -> Void
 
     var body: some View {
@@ -555,7 +524,13 @@ private struct VoiceInventoryDraftRow: View {
                     .accessibilityIdentifier("inventory.voice.draft.resolve.\(draft.id)")
             }
 
-            TextField("Name", text: $draft.name)
+            TextField(
+                "Name",
+                text: Binding(
+                    get: { draft.name },
+                    set: onNameChange
+                )
+            )
                 .textInputAutocapitalization(.words)
                 .accessibilityIdentifier("inventory.voice.draft.name.\(draft.id)")
 

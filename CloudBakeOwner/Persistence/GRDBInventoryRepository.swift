@@ -122,6 +122,20 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func saveVoiceInventoryImport(
+        items: [InventoryItem],
+        batches: [InventoryStockBatch]
+    ) throws {
+        try writer.write { db in
+            for item in items {
+                try save(item, in: db)
+            }
+            for batch in batches {
+                try save(batch, in: db)
+            }
+        }
+    }
+
     func saveExpiredStockDisposal(
         item: InventoryItem,
         batches: [InventoryStockBatch],
