@@ -175,6 +175,10 @@ The app currently supports:
 127. collapsed Settings controls for CloudKit disaster recovery, including enabled state, iCloud
     availability, last-success time, estimated size, safe status guidance, independently configurable
     notifications, and size-aware cellular confirmation for manual cloud backup.
+128. owner-initiated full restore from the latest compatible CloudKit recovery snapshot, including
+    preflight date, size, integrity, and compatibility inspection; Start Fresh on empty installs;
+    destructive replacement and cellular confirmation; broken-photo resolution; staged migration;
+    atomic activation; rollback; and interrupted-activation recovery.
 
 ## Partially Prepared
 

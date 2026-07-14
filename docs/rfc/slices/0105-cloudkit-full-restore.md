@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved.
+Implemented.
 
 ## Parent Decisions
 
@@ -54,3 +54,22 @@ under a short maintenance boundary. Startup detects and resolves interrupted act
 
 Prove restore using a production-like CloudKit snapshot before release; backup is incomplete until
 restore is demonstrated.
+
+## Implementation Notes
+
+- `RestoreCoordinator` owns inspection and the ordered owner-confirmation state machine. Backup and
+  restore sessions are mutually exclusive.
+- `CloudKitBackupStore` inspects the current generation without downloading every asset, then
+  downloads into isolated staging and verifies manifest metadata, byte counts, and checksums.
+- `LocalRestoreService` migrates and validates the staged database, prepares app-managed assets,
+  supports both broken-asset decisions, creates a rollback snapshot for populated installations,
+  and replaces the active GRDB contents atomically. Startup recovery rolls back an interrupted
+  activation before the app opens its database.
+- Empty installations offer **Restore Backup** and **Start Fresh**. Populated installations show the
+  snapshot date, size, asset count, and integrity before destructive confirmation. Cellular transfer
+  and broken assets require their own explicit decisions.
+- Focused unit, integration, and acceptance coverage proves confirmation ordering, compatibility,
+  CloudKit inspection/download, migration, activation rollback, interruption recovery, Start Fresh,
+  Wi-Fi restore, cellular approval, broken-asset handling, update-required copy, and rollback copy.
+- A production-like device restore remains a release-readiness activity because it requires a real
+  current snapshot in the owner's private CloudKit database.
