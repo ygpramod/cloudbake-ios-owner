@@ -348,10 +348,12 @@ of the displayed size.
 CloudBake downloads and validates the complete database and app-managed photos in staging, migrates
 compatible older data, and activates it only after verification. If photos are missing or damaged,
 choose **Ignore Broken Photos** to retain their references or **Remove Photo References** to clean
-them from the restored database. Activation failure returns to the pre-restore local snapshot, and
-the next launch completes rollback if the app was interrupted. A backup from a newer incompatible
-app version is not restored; CloudBake asks the owner to update. Permanent cloud deletion remains
-unavailable until its account-lifecycle safety slice ships.
+them from the restored database. Network, iCloud, cancellation, and local storage errors do not
+mislabel photos as broken. Activation failure returns to the pre-restore local snapshot, and the
+next launch completes rollback if the app was interrupted. After success, CloudBake reloads the
+restored data, refreshes local reminders, and resumes backup catch-up. A backup from a newer
+incompatible app version is not restored; CloudBake asks the owner to update. Permanent cloud
+deletion remains unavailable until its account-lifecycle safety slice ships.
 
 ## Order Workflow
 

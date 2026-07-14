@@ -178,7 +178,8 @@ The app currently supports:
 128. owner-initiated full restore from the latest compatible CloudKit recovery snapshot, including
     preflight date, size, integrity, and compatibility inspection; Start Fresh on empty installs;
     destructive replacement and cellular confirmation; broken-photo resolution; staged migration;
-    atomic activation; rollback; and interrupted-activation recovery.
+    atomic activation; repeatable interrupted-activation recovery; session-safe cancellation; and
+    post-restore reminder and backup reconciliation.
 
 ## Partially Prepared
 

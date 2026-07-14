@@ -61,10 +61,17 @@ restore is demonstrated.
   restore sessions are mutually exclusive.
 - `CloudKitBackupStore` inspects the current generation without downloading every asset, then
   downloads into isolated staging and verifies manifest metadata, byte counts, and checksums.
+  Only genuinely missing or corrupt photo payloads enter the broken-photo decision; transient
+  CloudKit, cancellation, and local storage failures stop restore for a safe retry.
 - `LocalRestoreService` migrates and validates the staged database, prepares app-managed assets,
   supports both broken-asset decisions, creates a rollback snapshot for populated installations,
   and replaces the active GRDB contents atomically. Startup recovery rolls back an interrupted
-  activation before the app opens its database.
+  activation before the app opens its database. The phase-aware activation journal makes recovery
+  repeatable at every database and asset replacement boundary.
+- Cancellation owns and awaits the active restore operation before releasing the shared
+  backup/restore session. Once atomic activation begins, completion or rollback wins over dismissal.
+- Successful activation reloads visible app state, refreshes local reminders, and starts a fresh
+  backup catch-up after the restore session is released.
 - Empty installations offer **Restore Backup** and **Start Fresh**. Populated installations show the
   snapshot date, size, asset count, and integrity before destructive confirmation. Cellular transfer
   and broken assets require their own explicit decisions.
