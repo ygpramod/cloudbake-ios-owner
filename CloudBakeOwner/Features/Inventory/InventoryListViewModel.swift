@@ -66,6 +66,8 @@ final class InventoryListViewModel: ObservableObject {
     @Published var purchaseBillRecognizedText = ""
     @Published var purchaseBillDrafts: [PurchaseBillInventoryDraft] = []
     @Published private(set) var isRecognizingPurchaseBill = false
+    @Published var voiceInventoryTranscript = ""
+    @Published var voiceInventoryDrafts: [VoiceInventoryDraft] = []
     @Published private(set) var historyItem: InventoryItem?
     @Published private(set) var historyTransactions: [InventoryTransaction] = []
 
@@ -897,6 +899,169 @@ final class InventoryListViewModel: ObservableObject {
         resetPurchaseBillDrafts()
     }
 
+    func createVoiceInventoryDrafts() -> Bool {
+        let parsedItems = VoiceInventoryDraftParser.items(from: voiceInventoryTranscript)
+        guard !parsedItems.isEmpty else {
+            voiceInventoryDrafts = []
+            errorMessage = "Say an item name, quantity, and unit, such as Flour 800 grams."
+            return false
+        }
+
+        voiceInventoryDrafts = parsedItems.map { parsedItem in
+            let matchedItem = InventoryDuplicateMatcher.matchingItem(
+                named: parsedItem.name,
+                in: items,
+                excludingItemId: nil
+            )
+            return VoiceInventoryDraft(
+                id: idGenerator(),
+                sourcePhrase: parsedItem.sourcePhrase,
+                name: parsedItem.name,
+                quantityText: parsedItem.quantity.formatted(),
+                unit: parsedItem.unit,
+                minimumQuantityText: "0",
+                hasExpiryDate: true,
+                expiryDate: matchedItem.map(defaultExpiryDate(for:)) ?? defaultExpiryDate(for: .standard),
+                expiryUsesDefault: true,
+                destination: matchedItem.map { .existingItem($0.id) } ?? .unresolved
+            )
+        }
+        errorMessage = nil
+        return true
+    }
+
+    func resolveVoiceInventoryDraftAsNew(_ draftId: String) {
+        guard let index = voiceInventoryDrafts.firstIndex(where: { $0.id == draftId }) else {
+            return
+        }
+        voiceInventoryDrafts[index].destination = .newItem
+        if voiceInventoryDrafts[index].expiryUsesDefault {
+            voiceInventoryDrafts[index].expiryDate = defaultExpiryDate(for: .standard)
+        }
+    }
+
+    func mapVoiceInventoryDraft(_ draftId: String, to inventoryItemId: String) {
+        guard let index = voiceInventoryDrafts.firstIndex(where: { $0.id == draftId }),
+              let item = items.first(where: { $0.id == inventoryItemId }) else {
+            return
+        }
+        voiceInventoryDrafts[index].destination = .existingItem(item.id)
+        if voiceInventoryDrafts[index].expiryUsesDefault {
+            voiceInventoryDrafts[index].expiryDate = defaultExpiryDate(for: item)
+        }
+    }
+
+    func saveVoiceInventoryDrafts() -> Bool {
+        guard !voiceInventoryDrafts.isEmpty else {
+            errorMessage = "Create at least one voice inventory draft."
+            return false
+        }
+        guard !voiceInventoryDrafts.contains(where: { $0.destination == .unresolved }) else {
+            errorMessage = "Choose whether each new item should be mapped or created."
+            return false
+        }
+
+        let now = dateProvider()
+        var itemsToSave: [InventoryItem] = []
+        var batchesToSave: [InventoryStockBatch] = []
+        var plannedExistingItems: [String: InventoryItem] = [:]
+
+        for draft in voiceInventoryDrafts {
+            let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty,
+                  let quantity = parsedQuantity(from: draft.quantityText), quantity > 0,
+                  let minimumQuantity = parsedQuantity(from: draft.minimumQuantityText), minimumQuantity >= 0 else {
+                errorMessage = "Each voice draft needs a name, positive quantity, and valid minimum quantity."
+                return false
+            }
+
+            switch draft.destination {
+            case .unresolved:
+                errorMessage = "Choose whether each new item should be mapped or created."
+                return false
+            case .existingItem(let itemId):
+                guard let existingItem = items.first(where: { $0.id == itemId }),
+                      let itemQuantity = draft.unit.convertedQuantity(quantity, to: existingItem.unit) else {
+                    errorMessage = "Draft unit must be compatible with the mapped inventory item."
+                    return false
+                }
+                let currentItem = plannedExistingItems[itemId] ?? existingItem
+                plannedExistingItems[itemId] = InventoryItem(
+                    id: currentItem.id,
+                    name: currentItem.name,
+                    aliases: aliasesAddingVoiceName(name, to: currentItem),
+                    type: currentItem.type,
+                    defaultExpiryDays: currentItem.defaultExpiryDays,
+                    unit: currentItem.unit,
+                    currentQuantity: currentItem.currentQuantity + itemQuantity,
+                    minimumQuantity: currentItem.minimumQuantity,
+                    earliestExpiryAt: currentItem.earliestExpiryAt,
+                    hasExpiredStock: currentItem.hasExpiredStock,
+                    hasExpiringSoonStock: currentItem.hasExpiringSoonStock,
+                    createdAt: currentItem.createdAt,
+                    updatedAt: now
+                )
+                batchesToSave.append(
+                    InventoryStockBatch(
+                        id: idGenerator(),
+                        inventoryItemId: itemId,
+                        remainingQuantity: itemQuantity,
+                        expiresAt: draft.hasExpiryDate ? draft.expiryDate : nil,
+                        amount: nil,
+                        createdAt: now,
+                        updatedAt: now
+                    )
+                )
+            case .newItem:
+                let itemId = idGenerator()
+                itemsToSave.append(
+                    InventoryItem(
+                        id: itemId,
+                        name: name,
+                        unit: draft.unit,
+                        currentQuantity: quantity,
+                        minimumQuantity: minimumQuantity,
+                        createdAt: now,
+                        updatedAt: now
+                    )
+                )
+                batchesToSave.append(
+                    InventoryStockBatch(
+                        id: idGenerator(),
+                        inventoryItemId: itemId,
+                        remainingQuantity: quantity,
+                        expiresAt: draft.hasExpiryDate ? draft.expiryDate : nil,
+                        amount: nil,
+                        createdAt: now,
+                        updatedAt: now
+                    )
+                )
+            }
+        }
+
+        do {
+            itemsToSave.append(contentsOf: plannedExistingItems.values)
+            for item in itemsToSave {
+                try repository.save(item)
+            }
+            for batch in batchesToSave {
+                try saveOrCombineStockBatch(batch, updatedAt: now)
+            }
+            errorMessage = nil
+            load()
+            return true
+        } catch {
+            errorMessage = "Voice inventory drafts could not be saved."
+            return false
+        }
+    }
+
+    func cancelVoiceInventoryImport() {
+        voiceInventoryTranscript = ""
+        voiceInventoryDrafts = []
+        errorMessage = nil
+    }
+
     func refreshPurchaseBillDraftMatch(draftId: String) {
         guard let draftIndex = purchaseBillDrafts.firstIndex(where: { $0.id == draftId }) else {
             return
@@ -1070,6 +1235,15 @@ final class InventoryListViewModel: ObservableObject {
         purchaseBillRecognizedText = ""
         purchaseBillDrafts = []
         errorMessage = nil
+    }
+
+    private func aliasesAddingVoiceName(_ voiceName: String, to item: InventoryItem) -> [String] {
+        let voiceKey = TextInputFormatting.normalizedSearchKey(voiceName)
+        let existingKeys = Set(([item.name] + item.aliases).map(TextInputFormatting.normalizedSearchKey))
+        guard !voiceKey.isEmpty, !existingKeys.contains(voiceKey) else {
+            return item.aliases
+        }
+        return InventoryAliases.aliases(from: (item.aliases + [voiceName]).joined(separator: "\n"))
     }
 
     func selectDraftType(_ type: InventoryItemType) {
