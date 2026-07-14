@@ -616,6 +616,18 @@ final class VoiceInventoryDraftParserTests: XCTestCase {
         XCTAssertEqual(VoiceInventoryDraftParser.items(from: "flour and strawberries"), [])
         XCTAssertEqual(VoiceInventoryDraftParser.items(from: "flour 0 grams"), [])
     }
+
+    func testParserTreatsPausedUtteranceLinesAsSeparateItems() {
+        XCTAssertEqual(
+            VoiceInventoryDraftParser.items(
+                from: "flour 800 grams\nstrawberry 100 grams"
+            ),
+            [
+                ParsedVoiceInventoryItem(name: "flour", sourcePhrase: "flour 800 grams", quantity: 800, unit: .gram),
+                ParsedVoiceInventoryItem(name: "strawberry", sourcePhrase: "strawberry 100 grams", quantity: 100, unit: .gram)
+            ]
+        )
+    }
 }
 
 @MainActor
@@ -886,5 +898,74 @@ final class VoiceInventoryRecognitionSessionTests: XCTestCase {
         XCTAssertEqual(recognizer.startCount, 1)
         XCTAssertEqual(recognizer.stopCount, 1)
         XCTAssertFalse(session.isListening)
+    }
+}
+
+final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
+    func testRevisedPartialResultReplacesTheCurrentUtterance() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("flour", at: 0, duration: 0.3),
+                segment("800", at: 0.4, duration: 0.2)
+            ]),
+            "flour 800"
+        )
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("flour", at: 0, duration: 0.3),
+                segment("800", at: 0.4, duration: 0.2),
+                segment("grams", at: 0.7, duration: 0.3)
+            ]),
+            "flour 800 grams"
+        )
+    }
+
+    func testNewUtteranceAfterSilenceAppendsToTheExistingTranscript() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+        _ = accumulator.merge([
+            segment("flour", at: 0, duration: 0.3),
+            segment("800", at: 0.4, duration: 0.2),
+            segment("grams", at: 0.7, duration: 0.3)
+        ])
+
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("strawberry", at: 2.2, duration: 0.5),
+                segment("100", at: 2.8, duration: 0.2),
+                segment("grams", at: 3.1, duration: 0.3)
+            ]),
+            "flour 800 grams\nstrawberry 100 grams"
+        )
+    }
+
+    func testOverlappingRevisionReplacesOnlyTheAffectedSuffix() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+        _ = accumulator.merge([
+            segment("cake", at: 0, duration: 0.3),
+            segment("flower", at: 0.4, duration: 0.4)
+        ])
+
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("flour", at: 0.4, duration: 0.4),
+                segment("800", at: 0.9, duration: 0.2),
+                segment("grams", at: 1.2, duration: 0.3)
+            ]),
+            "cake flour 800 grams"
+        )
+    }
+
+    private func segment(
+        _ text: String,
+        at startTime: TimeInterval,
+        duration: TimeInterval
+    ) -> VoiceInventoryTranscriptionSegment {
+        VoiceInventoryTranscriptionSegment(
+            text: text,
+            startTime: startTime,
+            duration: duration
+        )
     }
 }
