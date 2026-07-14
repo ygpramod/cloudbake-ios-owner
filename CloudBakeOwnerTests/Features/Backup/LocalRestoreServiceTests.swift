@@ -3,6 +3,37 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class LocalRestoreServiceTests: XCTestCase {
+    func testLogoOnlyInstallationRequiresReplacementConfirmation() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let appStorageRoot = root.appendingPathComponent("CloudBakeOwner", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: appStorageRoot, withIntermediateDirectories: true)
+        let database = try AppDatabase.open(
+            at: appStorageRoot.appendingPathComponent("cloudbake-owner.sqlite")
+        )
+        defer { try? database.close() }
+        let service = LocalRestoreService(
+            database: database,
+            snapshotCreator: UnusedRestoreSnapshotCreator(),
+            appStorageRoot: appStorageRoot,
+            activationRoot: root.appendingPathComponent("Activation", isDirectory: true)
+        )
+
+        let initiallyHasData = try await service.hasOwnerData()
+        XCTAssertFalse(initiallyHasData)
+
+        let logoURL = appStorageRoot.appendingPathComponent("Branding/custom-logo.jpg")
+        try FileManager.default.createDirectory(
+            at: logoURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("custom-logo".utf8).write(to: logoURL)
+
+        let hasLogoData = try await service.hasOwnerData()
+        XCTAssertTrue(hasLogoData)
+    }
+
     func testPreparationErrorsKeepStorageAndTransientFailuresFatal() {
         let noSpace = NSError(
             domain: NSCocoaErrorDomain,
@@ -472,6 +503,12 @@ private struct FixedSnapshotCreator: AppSnapshotCreating {
     let package: AppSnapshotPackage
 
     func createSnapshot() async throws -> AppSnapshotPackage { package }
+}
+
+private struct UnusedRestoreSnapshotCreator: AppSnapshotCreating {
+    func createSnapshot() async throws -> AppSnapshotPackage {
+        fatalError("Snapshot creation is not expected in this test")
+    }
 }
 
 private struct InjectedRestoreFailure: Error {}

@@ -60,7 +60,14 @@ actor LocalRestoreService: LocalRestoreServing {
     }
 
     func hasOwnerData() async throws -> Bool {
-        try database.hasOwnerData()
+        try OwnerInstallationState(
+            database: database,
+            logoStore: AppLogoStore(
+                fileURL: appStorageRoot
+                    .appendingPathComponent("Branding", isDirectory: true)
+                    .appendingPathComponent("custom-logo.jpg")
+            )
+        ).hasRestorableData()
     }
 
     func createRollbackSnapshot() async throws -> AppSnapshotPackage {
