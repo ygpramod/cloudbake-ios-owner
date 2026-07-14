@@ -32,7 +32,7 @@ In scope:
 
 Out of scope:
 
-- custom per-item expiry duration,
+- custom per-item expiry duration (introduced later by RFC-0109),
 - recipe planning beyond active orders already stored in CloudBake,
 - purchase bill type inference,
 - supplier-level shelf-life rules.

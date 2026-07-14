@@ -44,6 +44,9 @@ expiry on, and the owner can turn it off before saving. The owner can correct a 
 or expiry date from inventory detail.
 
 Perishable inventory defaults new stock expiry to four days from the add or adjustment date.
+Each inventory item can override its type default with a positive whole number of days. The app
+applies that default when initial stock, adjusted stock, or a matched purchase-bill draft receives
+an expiry date. The owner can still change or remove the expiry date for an individual batch.
 
 The app uses expiry to warn the owner one month before expiry and to decide which batch should be
 consumed first.
@@ -169,9 +172,10 @@ destructively confirmed operation that removes the complete private CloudKit bac
 abandoned generations—while preserving all local app data and photos. Backup remains disabled after
 successful deletion, or after an unverified deletion attempt, until the owner enables it again.
 
-It uses the columns `name`, `aliases`, `type`, `unit`, `current_quantity`, `minimum_quantity`,
-`batch_quantity`, `amount`, and `expiry_date`. Aliases are comma-separated inside the CSV field,
-type is Standard or Perishable, and dates use `yyyy-MM-dd`.
+It uses the columns `name`, `aliases`, `type`, `default_expiry_days`, `unit`, `current_quantity`,
+`minimum_quantity`, `batch_quantity`, `amount`, and `expiry_date`. Aliases are comma-separated
+inside the CSV field, type is Standard or Perishable, default expiry days is blank or a positive
+whole number, and dates use `yyyy-MM-dd`.
 
 CSV import can create new inventory items or update matching active items by name and unit. Updating
 from CSV replaces the matched item's stock batches, so it should be treated as a deliberate data

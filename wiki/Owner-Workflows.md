@@ -75,6 +75,10 @@ When starting quantity is entered, expiry is selected by default but can be turn
 saving. Standard inventory defaults expiry to one month from the add date. Perishable inventory
 defaults the expiry date to four days from the add date.
 
+Enter Default Expiry (Days) when this item should use a different shelf life. It must be a positive
+whole number. CloudBake uses it for future initial stock, stock adjustments, and matched
+purchase-bill drafts; each batch expiry can still be changed or removed before saving.
+
 ## View Inventory
 
 Tap an inventory row to view the item.
@@ -96,12 +100,13 @@ visible delete action when a mistaken batch should be deleted.
 
 ## Edit Inventory
 
-Use edit inventory when the item name or minimum quantity needs correction.
+Use edit inventory when the item name, minimum quantity, or default expiry days needs correction.
 
 Editing is reached from the inventory detail view.
 
-Current quantity should be changed through stock adjustment or stock consumption. Unit and item-level
-expiry are not edited from item edit mode.
+Current quantity should be changed through stock adjustment or stock consumption. Unit and existing
+batch expiry dates are not edited from item edit mode. Changing default expiry days affects future
+stock only.
 
 ## Adjust Stock
 
@@ -120,8 +125,8 @@ as kg for a flour item stored in grams or liters for a cream item stored in ml.
 
 Each adjustment selects an expiry date by default, can be saved without expiry when the owner turns
 expiry off, and creates a separate stock batch. This keeps older and newer stock distinct when their
-expiry dates differ. Perishable inventory defaults the adjustment expiry date to four days from the
-adjustment date.
+expiry dates differ. An item-level default expiry overrides the type default; otherwise Perishable
+inventory uses four days and Standard inventory uses one month from the adjustment date.
 
 Each adjustment can also capture an optional amount. If the added stock has the same expiry date
 and amount as an existing batch, CloudBake combines the quantities. If either differs, CloudBake
@@ -230,13 +235,15 @@ recipes start reducing inventory automatically.
 Use Settings when inventory data needs to move into or out of CloudBake.
 
 Inventory CSV export saves active inventory and stock batches with name, aliases, inventory type,
-unit, current quantity, minimum quantity, batch quantity, amount, and expiry date.
+default expiry days, unit, current quantity, minimum quantity, batch quantity, amount, and expiry
+date.
 
 Inventory CSV import creates new active inventory items or updates matching active items by name
 and unit. When an imported row matches an existing item, the imported stock batches replace that
-item's aliases, inventory type, and saved stock batches so the CSV can be used as a deliberate
-correction source. Import requires the `aliases` and `type` columns. The owner should review the CSV
-before import because there is no separate conflict review screen yet.
+item's aliases, inventory type, default expiry days, and saved stock batches so the CSV can be used
+as a deliberate correction source. Import requires the `aliases`, `type`, and
+`default_expiry_days` columns. The owner should review the CSV before import because there is no
+separate conflict review screen yet.
 
 ## Import And Export Recipe CSV
 
