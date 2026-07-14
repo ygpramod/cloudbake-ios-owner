@@ -119,6 +119,21 @@ final class CloudKitBackupStoreTests: XCTestCase {
         )
     }
 
+    func testOnlyGenuineRemoteCorruptionIsClassifiedAsBrokenAsset() {
+        XCTAssertTrue(
+            CloudRestoreAssetFailureClassifier.isBrokenAsset(CKError(.unknownItem))
+        )
+        XCTAssertFalse(
+            CloudRestoreAssetFailureClassifier.isBrokenAsset(CKError(.networkFailure))
+        )
+        XCTAssertFalse(
+            CloudRestoreAssetFailureClassifier.isBrokenAsset(CKError(.serviceUnavailable))
+        )
+        XCTAssertFalse(
+            CloudRestoreAssetFailureClassifier.isBrokenAsset(CancellationError())
+        )
+    }
+
     func testLargeBackupIsSplitWithinCloudKitOperationLimits() {
         let fileCount = 2_002
         let values = Array(0..<fileCount)

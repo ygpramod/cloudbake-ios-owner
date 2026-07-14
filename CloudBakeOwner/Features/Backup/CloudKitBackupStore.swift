@@ -266,7 +266,7 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
                                 withIntermediateDirectories: true
                             )
                             try fileManager.copyItem(at: sourceURL, to: destinationURL)
-                        } catch {
+                        } catch where CloudRestoreAssetFailureClassifier.isBrokenAsset(error) {
                             guard file.role == .asset, let originalPath = file.originalAssetPath else {
                                 throw error
                             }
@@ -345,7 +345,7 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
                         expected: file,
                         generationID: generationID
                     )
-                } catch {
+                } catch where CloudRestoreAssetFailureClassifier.isBrokenAsset(error) {
                     guard file.role == .asset else { throw error }
                     brokenAssetCount += 1
                 }
@@ -747,6 +747,23 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
         } catch {
             throw CloudKitBackupErrorMapper.storeError(error, operationID: operationID)
         }
+    }
+}
+
+enum CloudRestoreAssetFailureClassifier {
+    static func isBrokenAsset(_ error: Error) -> Bool {
+        if let internalError = error as? CloudKitBackupStoreInternalError {
+            switch internalError {
+            case .corruptRecord, .corruptResponse:
+                return true
+            case .pointerConflict, .invalidPlan:
+                return false
+            }
+        }
+        if let storeError = error as? CloudBackupStoreError {
+            return storeError.category == .corruptRemoteData
+        }
+        return CloudKitBackupErrorMapper.category(for: error) == .corruptRemoteData
     }
 }
 

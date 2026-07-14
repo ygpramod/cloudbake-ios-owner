@@ -1,6 +1,33 @@
 import Foundation
 import GRDB
 
+private struct BrokenLocalRestoreAssetError: Error {}
+
+enum LocalRestorePreparationErrorMapper {
+    static func category(for error: Error) -> RestoreFailureCategory {
+        let nsError = error as NSError
+        if nsError.domain == NSCocoaErrorDomain,
+           nsError.code == CocoaError.fileWriteOutOfSpace.rawValue {
+            return .insufficientStorage
+        }
+        if nsError.domain == NSPOSIXErrorDomain,
+           nsError.code == Int(POSIXErrorCode.ENOSPC.rawValue) {
+            return .insufficientStorage
+        }
+        return .unknown
+    }
+
+    static func isMissingFile(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == NSCocoaErrorDomain {
+            return nsError.code == CocoaError.fileNoSuchFile.rawValue
+                || nsError.code == CocoaError.fileReadNoSuchFile.rawValue
+        }
+        return nsError.domain == NSPOSIXErrorDomain
+            && nsError.code == Int(POSIXErrorCode.ENOENT.rawValue)
+    }
+}
+
 actor LocalRestoreService: LocalRestoreServing {
     static let preparedDirectoryName = "Prepared"
     static let preparedDatabaseName = "database.sqlite"
@@ -45,10 +72,9 @@ actor LocalRestoreService: LocalRestoreServing {
             Self.preparedDirectoryName,
             isDirectory: true
         )
-        try removeIfPresent(preparedRoot)
-        try fileManager.createDirectory(at: preparedRoot, withIntermediateDirectories: true)
-
         do {
+            try removeIfPresent(preparedRoot)
+            try fileManager.createDirectory(at: preparedRoot, withIntermediateDirectories: true)
             try validateManifest(snapshot.manifest, in: snapshot.directoryURL)
             let preparedDatabaseURL = preparedRoot.appendingPathComponent(Self.preparedDatabaseName)
             try fileManager.copyItem(
@@ -69,7 +95,7 @@ actor LocalRestoreService: LocalRestoreServing {
                 }
                 do {
                     try stageAsset(asset, from: snapshot.directoryURL, to: preparedAssetsRoot)
-                } catch {
+                } catch is BrokenLocalRestoreAssetError {
                     broken.insert(BrokenRestoreAsset(originalRelativePath: asset.originalRelativePath))
                 }
             }
@@ -82,7 +108,10 @@ actor LocalRestoreService: LocalRestoreServing {
         } catch {
             try? fileManager.removeItem(at: preparedRoot)
             if error is RestoreOperationError { throw error }
-            throw RestoreOperationError(category: .corruptBackup, didRollBack: false)
+            throw RestoreOperationError(
+                category: LocalRestorePreparationErrorMapper.category(for: error),
+                didRollBack: false
+            )
         }
     }
 
@@ -233,7 +262,7 @@ actor LocalRestoreService: LocalRestoreServing {
         from packageRoot: URL,
         to preparedAssetsRoot: URL
     ) throws {
-        try validateFile(asset.file, in: packageRoot)
+        try validateAssetFile(asset.file, in: packageRoot)
         let destination = preparedAssetsRoot
             .appendingPathComponent(asset.originalRelativePath)
             .standardizedFileURL
@@ -256,15 +285,51 @@ actor LocalRestoreService: LocalRestoreServing {
             throw RestoreOperationError(category: .corruptBackup, didRollBack: false)
         }
         let fileURL = root.appendingPathComponent(descriptor.relativePath).standardizedFileURL
-        let values = try fileURL.resourceValues(
-            forKeys: [.fileSizeKey, .isRegularFileKey, .isSymbolicLinkKey]
-        )
-        guard fileURL.path.hasPrefix(root.standardizedFileURL.path + "/"),
-              values.isRegularFile == true,
-              values.isSymbolicLink != true,
-              Int64(values.fileSize ?? -1) == descriptor.byteCount,
-              try BackupChecksum.sha256(of: fileURL) == descriptor.sha256 else {
+        do {
+            let values = try fileURL.resourceValues(
+                forKeys: [.fileSizeKey, .isRegularFileKey, .isSymbolicLinkKey]
+            )
+            guard fileURL.path.hasPrefix(root.standardizedFileURL.path + "/"),
+                  values.isRegularFile == true,
+                  values.isSymbolicLink != true,
+                  Int64(values.fileSize ?? -1) == descriptor.byteCount,
+                  try BackupChecksum.sha256(of: fileURL) == descriptor.sha256 else {
+                throw RestoreOperationError(category: .corruptBackup, didRollBack: false)
+            }
+        } catch {
             throw RestoreOperationError(category: .corruptBackup, didRollBack: false)
+        }
+    }
+
+    private func validateAssetFile(
+        _ descriptor: BackupFileDescriptor,
+        in root: URL
+    ) throws {
+        guard descriptor.byteCount >= 0,
+              BackupPath.isSafeRelativePath(descriptor.relativePath) else {
+            throw RestoreOperationError(category: .corruptBackup, didRollBack: false)
+        }
+        let fileURL = root.appendingPathComponent(descriptor.relativePath).standardizedFileURL
+        guard fileURL.path.hasPrefix(root.standardizedFileURL.path + "/") else {
+            throw RestoreOperationError(category: .corruptBackup, didRollBack: false)
+        }
+        do {
+            let values = try fileURL.resourceValues(
+                forKeys: [.fileSizeKey, .isRegularFileKey, .isSymbolicLinkKey]
+            )
+            guard values.isRegularFile == true,
+                  values.isSymbolicLink != true,
+                  Int64(values.fileSize ?? -1) == descriptor.byteCount,
+                  try BackupChecksum.sha256(of: fileURL) == descriptor.sha256 else {
+                throw BrokenLocalRestoreAssetError()
+            }
+        } catch let error as BrokenLocalRestoreAssetError {
+            throw error
+        } catch {
+            if LocalRestorePreparationErrorMapper.isMissingFile(error) {
+                throw BrokenLocalRestoreAssetError()
+            }
+            throw error
         }
     }
 
