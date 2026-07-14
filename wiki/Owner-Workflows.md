@@ -222,6 +222,17 @@ add/edit form.
 
 Manual bill text entry remains available when an image is unclear.
 
+## Add Inventory By Voice
+
+Open the Inventory header actions and choose Add Inventory by Voice. Start listening and speak
+items as `name quantity unit`, or type directly into the editable transcript. CloudBake uses only
+on-device recognition in the current iPhone language. It never uploads the audio or transcript.
+
+Choose Create Drafts, review the parsed rows, and decide how every unknown item should be saved.
+Map an unknown name to searchable, unit-compatible inventory to add stock and preserve the spoken
+name as an alias, or create a new item. Saving is disabled until the transcript produces drafts and
+every unknown item has a destination.
+
 ## Review Stock History
 
 Use stock history when the owner needs to understand why an item's quantity changed.
