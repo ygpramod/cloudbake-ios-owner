@@ -39,6 +39,7 @@ actor LocalRestoreService: LocalRestoreServing {
     private let activationRoot: URL
     private let didReplaceDatabase: @Sendable () throws -> Void
     private let activationCheckpoint: @Sendable (RestoreActivationCheckpoint) throws -> Void
+    private let databasePreparer: @Sendable (URL) throws -> Void
     private let fileManager: FileManager
 
     init(
@@ -48,6 +49,7 @@ actor LocalRestoreService: LocalRestoreServing {
         activationRoot: URL,
         didReplaceDatabase: @escaping @Sendable () throws -> Void = {},
         activationCheckpoint: @escaping @Sendable (RestoreActivationCheckpoint) throws -> Void = { _ in },
+        databasePreparer: (@Sendable (URL) throws -> Void)? = nil,
         fileManager: FileManager = .default
     ) {
         self.database = database
@@ -56,6 +58,7 @@ actor LocalRestoreService: LocalRestoreServing {
         self.activationRoot = activationRoot.standardizedFileURL
         self.didReplaceDatabase = didReplaceDatabase
         self.activationCheckpoint = activationCheckpoint
+        self.databasePreparer = databasePreparer ?? Self.migrateAndValidateDatabase
         self.fileManager = fileManager
     }
 
@@ -88,7 +91,7 @@ actor LocalRestoreService: LocalRestoreServing {
                 at: snapshot.directoryURL.appendingPathComponent(snapshot.manifest.database.relativePath),
                 to: preparedDatabaseURL
             )
-            try migrateAndValidateDatabase(at: preparedDatabaseURL)
+            try databasePreparer(preparedDatabaseURL)
 
             var broken = Set(snapshot.brokenAssets)
             let preparedAssetsRoot = preparedRoot.appendingPathComponent(
@@ -340,13 +343,16 @@ actor LocalRestoreService: LocalRestoreServing {
         }
     }
 
-    private func migrateAndValidateDatabase(at databaseURL: URL) throws {
+    private static func migrateAndValidateDatabase(at databaseURL: URL) throws {
         do {
             let queue = try DatabaseQueue(path: databaseURL.path)
             try AppDatabaseMigrations.makeMigrator().migrate(queue)
             try Self.verifyIntegrity(of: queue)
             try queue.close()
         } catch {
+            if RestoreLocalFileErrorMapper.category(for: error) == .insufficientStorage {
+                throw RestoreOperationError(category: .insufficientStorage, didRollBack: false)
+            }
             throw RestoreOperationError(category: .migrationFailed, didRollBack: false)
         }
     }

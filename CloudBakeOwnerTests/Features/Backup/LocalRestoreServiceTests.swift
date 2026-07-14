@@ -49,6 +49,19 @@ final class LocalRestoreServiceTests: XCTestCase {
         )
     }
 
+    func testDatabasePreparationReportsStorageExhaustion() async throws {
+        let fixture = try LocalRestoreFixture(failDatabasePreparationWithNoSpace: true)
+        defer { fixture.remove() }
+        let downloaded = try fixture.makeDownloadedSnapshot(includeAsset: true)
+
+        do {
+            _ = try await fixture.service.prepare(downloaded)
+            XCTFail("Expected database preparation to stop when storage is exhausted")
+        } catch let error as RestoreOperationError {
+            XCTAssertEqual(error, RestoreOperationError(category: .insufficientStorage, didRollBack: false))
+        }
+    }
+
     func testPreparedSnapshotAtomicallyReplacesDatabaseAndAssets() async throws {
         let fixture = try LocalRestoreFixture()
         defer { fixture.remove() }
@@ -293,7 +306,8 @@ private final class LocalRestoreFixture: @unchecked Sendable {
 
     init(
         failAfterDatabaseReplacement: Bool = false,
-        failAt checkpointToFail: RestoreActivationCheckpoint? = nil
+        failAt checkpointToFail: RestoreActivationCheckpoint? = nil,
+        failDatabasePreparationWithNoSpace: Bool = false
     ) throws {
         root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         appStorageRoot = root.appendingPathComponent("CloudBakeOwner", isDirectory: true)
@@ -305,6 +319,12 @@ private final class LocalRestoreFixture: @unchecked Sendable {
         try activeDatabase.makeCoreDataRepository().save(customer(id: "local-customer"))
         try write(Data("local-photo".utf8), to: photoPath)
         let snapshotCreator = FixedSnapshotCreator(package: try makeRollbackSnapshot())
+        let databasePreparer: (@Sendable (URL) throws -> Void)?
+        if failDatabasePreparationWithNoSpace {
+            databasePreparer = { _ in throw CocoaError(.fileWriteOutOfSpace) }
+        } else {
+            databasePreparer = nil
+        }
         service = LocalRestoreService(
             database: activeDatabase,
             snapshotCreator: snapshotCreator,
@@ -315,7 +335,8 @@ private final class LocalRestoreFixture: @unchecked Sendable {
             },
             activationCheckpoint: { checkpoint in
                 if checkpoint == checkpointToFail { throw InjectedRestoreFailure() }
-            }
+            },
+            databasePreparer: databasePreparer
         )
     }
 
