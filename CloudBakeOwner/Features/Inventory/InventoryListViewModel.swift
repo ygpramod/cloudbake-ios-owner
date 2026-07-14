@@ -833,7 +833,7 @@ final class InventoryListViewModel: ObservableObject {
                             id: idGenerator(),
                             inventoryItemId: existingItem.id,
                             remainingQuantity: itemQuantity,
-                            expiresAt: draft.expiryDate,
+                            expiresAt: draft.hasExpiryDate ? draft.expiryDate : nil,
                             amount: nil,
                             createdAt: now,
                             updatedAt: now
@@ -863,7 +863,7 @@ final class InventoryListViewModel: ObservableObject {
                         id: idGenerator(),
                         inventoryItemId: itemId,
                         remainingQuantity: currentQuantity,
-                        expiresAt: draft.expiryDate,
+                        expiresAt: draft.hasExpiryDate ? draft.expiryDate : nil,
                         amount: nil,
                         createdAt: now,
                         updatedAt: now
@@ -902,6 +902,10 @@ final class InventoryListViewModel: ObservableObject {
             for: purchaseBillDrafts[draftIndex],
             inventoryItems: items
         )
+        if purchaseBillDrafts[draftIndex].expiryUsesDefault {
+            purchaseBillDrafts[draftIndex].expiryDate = matchedItem.map(defaultExpiryDate(for:))
+                ?? defaultExpiryDate(for: .standard)
+        }
         purchaseBillDrafts[draftIndex].matchedInventoryItemId = matchedItem?.id
         purchaseBillDrafts[draftIndex].matchedInventoryItemName = matchedItem?.name
     }
