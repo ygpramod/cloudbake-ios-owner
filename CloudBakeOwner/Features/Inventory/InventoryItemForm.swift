@@ -49,8 +49,13 @@ struct InventoryItemForm: View {
                     Text("Default Expiry (Days)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    TextField("Use type default", text: $viewModel.draftDefaultExpiryDays)
+                    TextField(
+                        "Default Expiry (Days)",
+                        text: $viewModel.draftDefaultExpiryDays,
+                        prompt: Text("Use type default")
+                    )
                         .keyboardType(.numberPad)
+                        .accessibilityLabel("Default Expiry (Days)")
                         .accessibilityIdentifier("inventory.form.defaultExpiryDays")
                         .onChange(of: viewModel.draftDefaultExpiryDays) { _, _ in
                             viewModel.updateDraftExpiryFromDefault()

@@ -115,8 +115,6 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0107: Manual Full App Backup
 - Slice RFC-0108: Manual Full App Restore
 - Slice RFC-0109: Inventory Default Expiry Days
-- Slice RFC-0105: CloudKit Full Restore
-- Slice RFC-0106: Cloud Backup Account And Deletion Lifecycle
 
 ## Base RFCs
 
