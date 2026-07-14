@@ -315,6 +315,27 @@ final class CloudBackupSettingsTests: XCTestCase {
         )
     }
 
+    func testUnrecoverableActivationFailureRequestsAppWideRecoveryBlock() async {
+        let service = CloudRestoreSettingsServiceSpy(
+            inspectionResult: .failed(
+                RestoreFailure(category: .activationFailed, didRollBack: false)
+            )
+        )
+        let viewModel = CloudRestoreSettingsViewModel(service: service)
+        let notification = expectation(
+            forNotification: .cloudBakeRestoreRecoveryRequired,
+            object: nil
+        )
+
+        _ = await viewModel.inspect()
+
+        await fulfillment(of: [notification], timeout: 1)
+        XCTAssertEqual(
+            viewModel.actionMessage,
+            "Restore failed. Reopen CloudBake to complete recovery before making changes."
+        )
+    }
+
     private func settingsSnapshot(
         state: CloudBackupSettingsState
     ) -> CloudBackupSettingsSnapshot {

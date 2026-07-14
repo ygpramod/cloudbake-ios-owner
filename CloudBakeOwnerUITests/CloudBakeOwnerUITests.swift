@@ -442,6 +442,26 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
     }
 
+    func testCloudRestoreBlocksAppWhenRollbackCannotBeGuaranteed() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] = "recovery-required"
+        app.launchEnvironment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] = "1"
+        app.launch()
+
+        assertScreenVisible("screen.settings", in: app)
+        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let restoreButton = app.buttons["settings.cloudBackup.restore"]
+        scrollToHittable(restoreButton, in: app)
+        tapWhenReady(restoreButton)
+        tapWhenReady(app.buttons["settings.cloudRestore.replace.confirm"])
+
+        XCTAssertTrue(
+            app.staticTexts["Reopen CloudBake to Finish Recovery"].waitForExistence(timeout: 5)
+        )
+        XCTAssertTrue(app.staticTexts["restore.recoveryRequired.message"].exists)
+        XCTAssertFalse(app.buttons["bottom.navigation.dashboard"].isEnabled)
+    }
+
     func testOrderCanBeAddedAndListed() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15

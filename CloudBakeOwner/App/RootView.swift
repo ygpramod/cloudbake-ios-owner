@@ -11,6 +11,7 @@ struct RootView: View {
     @EnvironmentObject private var inventoryNavigationRouter: InventoryNavigationRouter
     @State private var navigationPath: [AppDestination] = []
     @State private var restoredDataRevision = 0
+    @State private var isRestoreRecoveryRequired = false
     @StateObject private var emptyRestoreViewModel: CloudRestoreSettingsViewModel
     private let maximumSectionHistoryCount = 4
 
@@ -71,6 +72,20 @@ struct RootView: View {
             viewModel: emptyRestoreViewModel,
             offersStartFresh: true
         )
+        .disabled(isRestoreRecoveryRequired)
+        .cloudBakeCenteredPopup(
+            isPresented: isRestoreRecoveryRequired,
+            title: "Reopen CloudBake to Finish Recovery",
+            subtitle: "CloudBake has stopped access to your data because restore could not return safely to the previous state. Close and reopen the app before making changes.",
+            systemImage: "exclamationmark.triangle",
+            showsCancelButton: false,
+            onCancel: {}
+        ) {
+            Text("No changes can be made until CloudBake is reopened.")
+                .font(.subheadline.weight(.semibold))
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("restore.recoveryRequired.message")
+        }
         .onAppear {
             navigateToOrdersWhenNotificationIsPending()
             navigateToOrdersWhenNewOrderIsPending()
@@ -115,6 +130,9 @@ struct RootView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .cloudBakeRestoreDidComplete)) { _ in
             Task { await refreshAfterRestore() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .cloudBakeRestoreRecoveryRequired)) { _ in
+            isRestoreRecoveryRequired = true
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else {

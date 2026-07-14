@@ -122,6 +122,12 @@ final class CloudRestoreSettingsViewModel: ObservableObject {
         case .failed(let failure):
             prompt = nil
             actionMessage = Self.message(for: failure)
+            if failure.requiresRecoveryRestart {
+                NotificationCenter.default.post(
+                    name: .cloudBakeRestoreRecoveryRequired,
+                    object: nil
+                )
+            }
         }
     }
 
@@ -152,6 +158,13 @@ final class CloudRestoreSettingsViewModel: ObservableObject {
         case .unknown:
             "CloudBake could not restore this backup. Your local data was not changed."
         }
+    }
+}
+
+private extension RestoreFailure {
+    var requiresRecoveryRestart: Bool {
+        guard !didRollBack else { return false }
+        return category == .activationFailed || category == .verificationFailed
     }
 }
 
@@ -208,6 +221,11 @@ actor CloudRestoreSettingsUITestService: CloudRestoreSettingsServing {
             if ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] == "rollback" {
                 return .failed(
                     RestoreFailure(category: .activationFailed, didRollBack: true)
+                )
+            }
+            if ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] == "recovery-required" {
+                return .failed(
+                    RestoreFailure(category: .activationFailed, didRollBack: false)
                 )
             }
             replacementApproved = true
