@@ -227,12 +227,32 @@ private struct PurchaseBillDraftRow: View {
                     .accessibilityIdentifier("inventory.purchaseBill.draft.minimum.\(draft.id)")
             }
 
-            DatePicker(
-                "Expiry Date",
-                selection: $draft.expiryDate,
-                displayedComponents: .date
+            Toggle(
+                "Has Expiry Date",
+                isOn: Binding(
+                    get: { draft.hasExpiryDate },
+                    set: { hasExpiryDate in
+                        draft.hasExpiryDate = hasExpiryDate
+                        draft.expiryUsesDefault = false
+                    }
+                )
             )
-            .accessibilityIdentifier("inventory.purchaseBill.draft.expiry.\(draft.id)")
+            .accessibilityIdentifier("inventory.purchaseBill.draft.hasExpiryDate.\(draft.id)")
+
+            if draft.hasExpiryDate {
+                DatePicker(
+                    "Expiry Date",
+                    selection: Binding(
+                        get: { draft.expiryDate },
+                        set: { expiryDate in
+                            draft.expiryDate = expiryDate
+                            draft.expiryUsesDefault = false
+                        }
+                    ),
+                    displayedComponents: .date
+                )
+                .accessibilityIdentifier("inventory.purchaseBill.draft.expiry.\(draft.id)")
+            }
         }
         .padding(.vertical, 4)
         .accessibilityIdentifier("inventory.purchaseBill.draft.\(draft.id)")

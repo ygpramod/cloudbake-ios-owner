@@ -184,6 +184,85 @@ extension InventoryListViewModelTests {
         XCTAssertNil(viewModel.purchaseBillDrafts.first?.matchedInventoryItemName)
     }
 
+    func testRefreshPurchaseBillDraftMatchAppliesMatchedItemDefaultExpiry() {
+        let repository = FakeInventoryItemRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
+        repository.items = [
+            InventoryItem(
+                id: "inventory-strawberry",
+                name: "Strawberry",
+                defaultExpiryDays: 2,
+                unit: .gram,
+                currentQuantity: 0,
+                minimumQuantity: 0,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        let viewModel = InventoryListViewModel(repository: repository, dateProvider: { now })
+        viewModel.load()
+        viewModel.purchaseBillDrafts = [
+            PurchaseBillInventoryDraft(
+                id: "draft-strawberry",
+                sourceLine: "Strawberries 100 g",
+                name: "Strawberries",
+                quantityText: "100",
+                unit: .gram,
+                minimumQuantityText: "0",
+                expiryDate: calendar.date(byAdding: .month, value: 1, to: now)!,
+                isSelected: true
+            )
+        ]
+
+        viewModel.purchaseBillDrafts[0].name = "Strawberry"
+        viewModel.refreshPurchaseBillDraftMatch(draftId: "draft-strawberry")
+
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.matchedInventoryItemId, "inventory-strawberry")
+        XCTAssertEqual(
+            viewModel.purchaseBillDrafts.first?.expiryDate,
+            calendar.date(byAdding: .day, value: 2, to: now)
+        )
+    }
+
+    func testRefreshPurchaseBillDraftMatchPreservesOwnerEditedExpiry() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        let ownerExpiry = Date(timeIntervalSince1970: 1_801_000_000)
+        repository.items = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake flour",
+                defaultExpiryDays: 2,
+                unit: .gram,
+                currentQuantity: 0,
+                minimumQuantity: 0,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        let viewModel = InventoryListViewModel(repository: repository, dateProvider: { now })
+        viewModel.load()
+        viewModel.purchaseBillDrafts = [
+            PurchaseBillInventoryDraft(
+                id: "draft-flour",
+                sourceLine: "Flour 100 g",
+                name: "Cake flour",
+                quantityText: "100",
+                unit: .gram,
+                minimumQuantityText: "0",
+                expiryDate: ownerExpiry,
+                isSelected: true,
+                expiryUsesDefault: false
+            )
+        ]
+
+        viewModel.refreshPurchaseBillDraftMatch(draftId: "draft-flour")
+
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.matchedInventoryItemId, "inventory-flour")
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.expiryDate, ownerExpiry)
+    }
+
     func testCreatePurchaseBillDraftsShowsErrorWhenNoBakingItemsMatch() {
         let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
         viewModel.purchaseBillRecognizedText = "Laundry Detergent 1 L"
@@ -310,6 +389,35 @@ extension InventoryListViewModelTests {
         )
         XCTAssertEqual(viewModel.purchaseBillDrafts.count, 2)
         XCTAssertEqual(viewModel.items, repository.items)
+    }
+
+    func testSavePurchaseBillDraftsCanCreateStockWithoutExpiry() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        var ids = ["inventory-flour", "batch-flour"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.purchaseBillDrafts = [
+            PurchaseBillInventoryDraft(
+                id: "draft-flour",
+                sourceLine: "Cake Flour 1 kg",
+                name: "Cake Flour",
+                quantityText: "1",
+                unit: .kilogram,
+                minimumQuantityText: "0",
+                expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
+                isSelected: true,
+                hasExpiryDate: false,
+                expiryUsesDefault: false
+            )
+        ]
+
+        XCTAssertTrue(viewModel.savePurchaseBillDrafts())
+
+        XCTAssertNil(repository.batches.first?.expiresAt)
     }
 
     func testSavePurchaseBillDraftsRejectsInvalidQuantityWithoutSaving() {

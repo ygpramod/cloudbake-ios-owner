@@ -11,6 +11,8 @@ struct PurchaseBillInventoryDraft: Identifiable, Equatable {
     var isSelected: Bool
     var matchedInventoryItemId: String? = nil
     var matchedInventoryItemName: String? = nil
+    var hasExpiryDate: Bool = true
+    var expiryUsesDefault: Bool = true
 }
 
 enum InventoryPurchaseBillDraftBuilder {
