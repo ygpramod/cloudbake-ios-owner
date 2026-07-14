@@ -102,7 +102,7 @@ struct VoiceInventoryTranscriptAccumulator {
     private static let newUtterancePause: TimeInterval = 0.75
 
     private var baselineTranscript = ""
-    private var ignoredRecognitionWords: [String] = []
+    private var ignoredRecognitionKey = ""
     private var completedUtterances: [[VoiceInventoryTranscriptionSegment]] = []
     private var activeSegments: [VoiceInventoryTranscriptionSegment] = []
 
@@ -156,15 +156,17 @@ struct VoiceInventoryTranscriptAccumulator {
 
     mutating func reset() {
         baselineTranscript = ""
-        ignoredRecognitionWords = []
+        ignoredRecognitionKey = ""
         completedUtterances = []
         activeSegments = []
     }
 
     mutating func rebase(to transcript: String) {
-        let recognizedWords = words(in: completedUtterances.flatMap { $0 } + activeSegments)
-        if !recognizedWords.isEmpty {
-            ignoredRecognitionWords.append(contentsOf: recognizedWords)
+        let recognizedKey = recognitionKey(
+            for: completedUtterances.flatMap { $0 } + activeSegments
+        )
+        if !recognizedKey.isEmpty {
+            ignoredRecognitionKey += recognizedKey
         }
         baselineTranscript = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         completedUtterances = []
@@ -174,15 +176,37 @@ struct VoiceInventoryTranscriptAccumulator {
     private mutating func segmentsAfterRebase(
         from incomingSegments: [VoiceInventoryTranscriptionSegment]
     ) -> [VoiceInventoryTranscriptionSegment] {
-        guard !ignoredRecognitionWords.isEmpty else {
+        guard !ignoredRecognitionKey.isEmpty else {
             return incomingSegments
         }
-        let incomingWords = words(in: incomingSegments)
-        guard incomingWords.starts(with: ignoredRecognitionWords) else {
-            ignoredRecognitionWords = []
+        let incomingKey = recognitionKey(for: incomingSegments)
+        if ignoredRecognitionKey.hasPrefix(incomingKey) {
+            return []
+        }
+        guard incomingKey.hasPrefix(ignoredRecognitionKey) else {
+            ignoredRecognitionKey = ""
             return incomingSegments
         }
-        return Array(incomingSegments.dropFirst(ignoredRecognitionWords.count))
+
+        var consumedCharacterCount = 0
+        let ignoredSegmentCount = incomingSegments.prefix { segment in
+            guard consumedCharacterCount < ignoredRecognitionKey.count else {
+                return false
+            }
+            consumedCharacterCount += recognitionKey(for: [segment]).count
+            return true
+        }.count
+        return Array(incomingSegments.dropFirst(ignoredSegmentCount))
+    }
+
+    private func recognitionKey(
+        for segments: [VoiceInventoryTranscriptionSegment]
+    ) -> String {
+        segments
+            .map(\.text)
+            .joined()
+            .lowercased()
+            .filter { $0.isLetter || $0.isNumber }
     }
 
     private mutating func completeActiveUtterance() {
