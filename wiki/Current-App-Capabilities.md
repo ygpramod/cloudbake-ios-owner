@@ -200,8 +200,6 @@ The app has domain foundations or partial workflows for:
 11. purchase bill camera import flow,
 12. purchase bill duplicate matching,
 13. recipe ingredient quantity extraction.
-14. live CloudKit publication remains fail-closed until account-bound owner confirmation ships;
-    scheduling and owner-facing status and controls are implemented.
 
 These are not all owner-facing workflows yet.
 

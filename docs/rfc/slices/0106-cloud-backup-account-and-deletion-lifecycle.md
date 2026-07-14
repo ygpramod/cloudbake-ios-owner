@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved.
+Implemented.
 
 ## Parent Decisions
 
@@ -50,3 +50,16 @@ abandoned generations. It is distinct from disabling backup, which retains the l
 ## Rollout Notes
 
 Update wiki privacy and owner-workflow documentation before release.
+
+## Implementation Notes
+
+- CloudBake derives a SHA-256 account fingerprint from the private CloudKit user record and
+  container identifier. It never persists the raw record name or Apple ID.
+- First publication to an unrecognized account requires confirmation. Publication revalidates the
+  confirmed fingerprint immediately before CloudKit writes, so an account change cannot reuse a
+  stale approval.
+- Permanent deletion removes the dedicated private CloudKit backup zone, which includes the
+  pointer, current generation, abandoned generations, database, manifest, and assets. A missing
+  zone is treated as an already-complete deletion, and successful deletion is verified before the
+  local backup preference is disabled.
+- Local database and photo storage are outside the cloud deletion boundary and remain unchanged.

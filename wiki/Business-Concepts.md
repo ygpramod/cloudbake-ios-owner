@@ -155,14 +155,19 @@ validated, rollback-protected workflow.
 
 Automatic disaster-recovery backup is designed to use the owner's private CloudKit database,
 retain one current validated snapshot, attempt best-effort nightly work on Wi-Fi, and catch up after
-missed execution without blocking app launch. Scheduling is implemented, but live publication stays
-disabled until CloudBake can bind explicit owner confirmation to the detected iCloud account. It is
-backup rather than multi-device synchronization.
+missed execution without blocking app launch. CloudBake stores only an opaque fingerprint for
+account-change detection and requires explicit owner confirmation before the first publication to
+each newly detected iCloud account. It is backup rather than multi-device synchronization.
 
 Cloud backup starts enabled, but the owner can disable future publication without deleting the
 latest successful snapshot. Backup notifications are independently configurable and contain only
 safe operational status, never private customer, recipe, cost, or photo content. A manual transfer
 over cellular requires confirmation of the displayed estimated size.
+
+Disabling cloud backup retains the latest recovery snapshot. Permanent deletion is a separate,
+destructively confirmed operation that removes the complete private CloudKit backup—including
+abandoned generations—while preserving all local app data and photos. Backup remains disabled after
+successful deletion until the owner enables it again.
 
 It uses the columns `name`, `aliases`, `type`, `unit`, `current_quantity`, `minimum_quantity`,
 `batch_quantity`, `amount`, and `expiry_date`. Aliases are comma-separated inside the CSV field,

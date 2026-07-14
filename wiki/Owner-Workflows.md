@@ -320,12 +320,12 @@ not update the last-backup date. Direct import of a `.cloudbakebackup` file is n
 available, so retain the package and use iPhone or encrypted Finder backup as an additional
 device-level recovery option.
 
-CloudBake has the scheduling foundation for one best-effort automatic disaster-recovery backup to
+CloudBake provides one best-effort automatic disaster-recovery backup to
 the owner's private CloudKit database each eligible night. Automatic transfer is Wi-Fi-only, can be
 deferred by iCloud account, power, thermal, or storage conditions, and catches up asynchronously
-after a missed run. Live publication remains disabled until account-bound owner confirmation is
-implemented, so changing Apple accounts cannot silently disclose local bakery data. iOS decides the
-actual execution time.
+after a missed run. Before the first publication to the current iCloud account, CloudBake asks the
+owner to confirm that account. A changed Apple account requires fresh confirmation, and unavailable
+or changed accounts never alter local bakery data. iOS decides the actual execution time.
 
 Expand **Backup** to see whether cloud backup is enabled, iCloud availability, the latest safe
 status and guidance, the last successful backup time, and the estimated transfer size. Cloud backup
@@ -337,6 +337,12 @@ Choose **Back Up Now** for a manual cloud snapshot. Wi-Fi proceeds without a dat
 cellular, CloudBake displays the estimated transfer size and publishes only after explicit approval.
 Status and notifications use safe operational wording and never include customer, recipe, cost, or
 photo content.
+
+Expand **Data Management** and choose **Delete Cloud Backup** to permanently remove CloudBake's
+complete recovery backup from the current private iCloud account. A destructive confirmation is
+required. Successful deletion removes current and abandoned backup generations, leaves all local
+data and photos unchanged, and turns cloud backup off until the owner explicitly enables it again.
+Turning backup off by itself is different: it retains the latest cloud snapshot.
 
 Expand **Data Management** and choose **Restore from Cloud Backup** to inspect the latest recovery
 snapshot. CloudBake shows its date, size, photo count, integrity, and compatibility before any
