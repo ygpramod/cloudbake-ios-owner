@@ -341,6 +341,47 @@ final class CloudBakeOwnerUITests: XCTestCase {
         waitForExpectations(timeout: 5)
     }
 
+    func testCloudBackupRequiresConfirmationBeforeUsingCurrentICloudAccount() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_ACCOUNT_CONFIRMATION"] = "1"
+        app.launch()
+
+        tapWhenReady(app.buttons["settings.backup.disclosure"])
+        let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
+        scrollToHittable(backUpNowButton, in: app)
+        app.swipeUp()
+        tapWhenReady(backUpNowButton)
+
+        let confirmButton = app.buttons["settings.cloudBackup.account.confirm"]
+        if !confirmButton.waitForExistence(timeout: 5) {
+            XCTFail("Account confirmation did not appear. Hierarchy: \(app.debugDescription)")
+        }
+        tapWhenReady(confirmButton)
+        XCTAssertTrue(app.staticTexts["settings.cloudBackup.status"].waitForExistence(timeout: 5))
+    }
+
+    func testCloudBackupDeletionRequiresConfirmationAndPreservesSettingsScreen() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
+        app.launch()
+
+        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let deleteButton = app.buttons["settings.cloudBackup.delete"]
+        scrollToHittable(deleteButton, in: app)
+        tapWhenReady(deleteButton)
+
+        XCTAssertTrue(app.staticTexts["Delete Cloud Backup?"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["settings.cloudBackup.delete.cancel"])
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 5))
+
+        tapWhenReady(deleteButton)
+        tapWhenReady(app.buttons["settings.cloudBackup.delete.confirm"])
+        XCTAssertTrue(
+            app.staticTexts["settings.cloudBackup.delete.message"].waitForExistence(timeout: 5)
+        )
+    }
+
     func testEmptyInstallationOffersRestoreOrStartFresh() throws {
         let app = makeApp()
         app.launchEnvironment["CLOUDBAKE_TEST_EMPTY_RESTORE"] = "1"
