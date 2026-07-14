@@ -52,6 +52,8 @@ final class RestoreCoordinatorTests: XCTestCase {
         XCTAssertEqual(restored, .completed)
         let transferPolicies = await fixture.cloud.transferPolicies
         XCTAssertEqual(transferPolicies, [.cellularAllowed])
+        let appVersions = await fixture.cloud.downloadAppVersions
+        XCTAssertEqual(appVersions, ["1.0"])
     }
 
     func testReplacementConfirmationPrecedesCellularConfirmation() async {
@@ -275,6 +277,7 @@ private actor FakeCloudRestoreService: CloudRestoreServing {
     let root: URL
     private(set) var downloadCount = 0
     private(set) var transferPolicies: [CloudBackupTransferPolicy] = []
+    private(set) var downloadAppVersions: [String] = []
     private let downloadGate: RestoreTestGate
 
     init(snapshot: CloudRestoreSnapshot, root: URL, suspendDownload: Bool) {
@@ -290,10 +293,12 @@ private actor FakeCloudRestoreService: CloudRestoreServing {
     func downloadCurrentSnapshot(
         _ snapshot: CloudRestoreSnapshot,
         to directoryURL: URL,
+        currentAppVersion: String,
         transferPolicy: CloudBackupTransferPolicy
     ) async throws -> DownloadedRestoreSnapshot {
         downloadCount += 1
         transferPolicies.append(transferPolicy)
+        downloadAppVersions.append(currentAppVersion)
         await downloadGate.waitIfClosed()
         return DownloadedRestoreSnapshot(
             directoryURL: directoryURL,

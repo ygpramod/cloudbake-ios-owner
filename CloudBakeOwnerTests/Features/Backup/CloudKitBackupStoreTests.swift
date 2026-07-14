@@ -43,6 +43,7 @@ final class CloudKitBackupStoreTests: XCTestCase {
         let restored = try await store.downloadCurrentSnapshot(
             inspection,
             to: restoreURL,
+            currentAppVersion: "1.0",
             transferPolicy: .wifiOnly
         )
         XCTAssertEqual(restored.manifest, fixture.package.manifest)
@@ -131,6 +132,47 @@ final class CloudKitBackupStoreTests: XCTestCase {
         )
         XCTAssertFalse(
             CloudRestoreAssetFailureClassifier.isBrokenAsset(CancellationError())
+        )
+    }
+
+    func testDownloadApprovalRejectsChangedDisclosedSnapshotMetadata() {
+        let approved = CloudRestoreSnapshot(
+            generationID: "generation-1",
+            createdAt: Date(timeIntervalSince1970: 1_800_000_000),
+            totalByteCount: 4_096,
+            assetCount: 2,
+            compatibility: .compatible,
+            integrity: .verified
+        )
+        XCTAssertTrue(
+            CloudRestoreDownloadApproval.matches(approved: approved, current: approved)
+        )
+
+        let changedSize = CloudRestoreSnapshot(
+            generationID: approved.generationID,
+            createdAt: approved.createdAt,
+            totalByteCount: approved.totalByteCount + 1,
+            assetCount: approved.assetCount,
+            compatibility: approved.compatibility,
+            integrity: approved.integrity
+        )
+        XCTAssertFalse(
+            CloudRestoreDownloadApproval.matches(approved: approved, current: changedSize)
+        )
+
+        let changedCompatibility = CloudRestoreSnapshot(
+            generationID: approved.generationID,
+            createdAt: approved.createdAt,
+            totalByteCount: approved.totalByteCount,
+            assetCount: approved.assetCount,
+            compatibility: .appUpdateRequired(minimumVersion: "2.0"),
+            integrity: approved.integrity
+        )
+        XCTAssertFalse(
+            CloudRestoreDownloadApproval.matches(
+                approved: approved,
+                current: changedCompatibility
+            )
         )
     }
 

@@ -105,6 +105,7 @@ protocol CloudRestoreServing: Sendable {
     func downloadCurrentSnapshot(
         _ snapshot: CloudRestoreSnapshot,
         to directoryURL: URL,
+        currentAppVersion: String,
         transferPolicy: CloudBackupTransferPolicy
     ) async throws -> DownloadedRestoreSnapshot
 }
@@ -341,6 +342,7 @@ actor RestoreCoordinator {
             let downloaded = try await cloud.downloadCurrentSnapshot(
                 active.proposal.snapshot,
                 to: downloadDirectory,
+                currentAppVersion: currentAppVersion,
                 transferPolicy: transferPolicy
             )
             active.downloaded = downloaded
