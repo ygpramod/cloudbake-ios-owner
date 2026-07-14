@@ -131,8 +131,48 @@ extension GRDBCoreDataRepository {
                 try save(item, in: db)
             }
             for batch in batches {
-                try save(batch, in: db)
+                let existingBatches = try inventoryStockBatches(
+                    inventoryItemId: batch.inventoryItemId,
+                    in: db
+                )
+                if let existingBatch = existingBatches.first(where: {
+                    voiceInventoryBatchesCanCombine($0, batch)
+                }) {
+                    try save(
+                        InventoryStockBatch(
+                            id: existingBatch.id,
+                            inventoryItemId: existingBatch.inventoryItemId,
+                            remainingQuantity: existingBatch.remainingQuantity + batch.remainingQuantity,
+                            expiresAt: existingBatch.expiresAt,
+                            amount: existingBatch.amount,
+                            createdAt: existingBatch.createdAt,
+                            updatedAt: batch.updatedAt
+                        ),
+                        in: db
+                    )
+                } else {
+                    try save(batch, in: db)
+                }
             }
+        }
+    }
+
+    private func voiceInventoryBatchesCanCombine(
+        _ left: InventoryStockBatch,
+        _ right: InventoryStockBatch
+    ) -> Bool {
+        guard left.inventoryItemId == right.inventoryItemId,
+              left.amount == nil,
+              right.amount == nil else {
+            return false
+        }
+        switch (left.expiresAt, right.expiresAt) {
+        case (.none, .none):
+            return true
+        case (.some(let leftExpiry), .some(let rightExpiry)):
+            return Calendar.current.isDate(leftExpiry, inSameDayAs: rightExpiry)
+        case (.none, .some), (.some, .none):
+            return false
         }
     }
 
