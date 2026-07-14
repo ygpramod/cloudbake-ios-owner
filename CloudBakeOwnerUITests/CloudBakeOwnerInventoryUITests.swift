@@ -237,4 +237,30 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(billText.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["inventory.purchaseBill.createDrafts"].waitForExistence(timeout: 5))
     }
+
+    func testVoiceInventoryDraftsCanUpdateExistingAndCreateUnknownItems() throws {
+        let app = makeApp(initialDestination: "inventory")
+        app.launchEnvironment["CLOUDBAKE_SEED_INVENTORY_FIXTURE"] = "1"
+        app.launch()
+
+        tapInventoryHeaderAction(
+            "inventory.voice.add",
+            in: app,
+            waitingFor: app.navigationBars["Add by Voice"]
+        )
+
+        let transcript = app.textViews["inventory.voice.transcript"]
+        XCTAssertTrue(transcript.waitForExistence(timeout: 5))
+        typeText("Cake flour 800 grams, strawberry 100 grams", into: transcript)
+        dismissKeyboard(in: app)
+        tapWhenReady(app.buttons["inventory.voice.createDrafts"])
+
+        XCTAssertTrue(app.staticTexts["Inventory Item Not Found"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["inventory.voice.unknown.create"])
+        tapWhenReady(app.buttons["inventory.voice.save"])
+
+        XCTAssertTrue(app.staticTexts["Current Quantity: 1,050 g"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["strawberry"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Current Quantity: 100 g"].waitForExistence(timeout: 5))
+    }
 }
