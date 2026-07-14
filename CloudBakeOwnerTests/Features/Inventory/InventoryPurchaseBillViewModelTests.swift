@@ -695,11 +695,14 @@ extension InventoryListViewModelTests {
         viewModel.voiceInventoryTranscript = "Plain Flour 800 grams"
         XCTAssertTrue(viewModel.createVoiceInventoryDrafts())
 
+        viewModel.voiceInventoryDrafts[0].minimumQuantityText = "invalid"
         viewModel.mapVoiceInventoryDraft("draft-flour", to: "inventory-flour")
+        XCTAssertFalse(viewModel.voiceInventoryDrafts[0].showsMinimumQuantity)
         XCTAssertTrue(viewModel.saveVoiceInventoryDrafts())
 
         XCTAssertEqual(repository.items.first?.aliases, ["Maida", "Plain Flour"])
         XCTAssertEqual(repository.items.first?.currentQuantity, 900)
+        XCTAssertEqual(repository.items.first?.minimumQuantity, 25)
         XCTAssertEqual(repository.batches.first?.remainingQuantity, 800)
     }
 
