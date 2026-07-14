@@ -361,7 +361,8 @@ restored data, refreshes local reminders, and resumes backup catch-up. A backup 
 incompatible app version is not restored; CloudBake asks the owner to update. Permanent cloud
 deletion remains unavailable until its account-lifecycle safety slice ships. If CloudBake cannot
 guarantee rollback, it blocks all app interaction and asks the owner to close and reopen the app so
-startup recovery can finish before any further changes.
+startup recovery can finish before any further changes. Automatic and manual cloud backup also
+remain blocked, preventing unrecovered state from replacing the last safe cloud snapshot.
 
 ## Order Workflow
 
