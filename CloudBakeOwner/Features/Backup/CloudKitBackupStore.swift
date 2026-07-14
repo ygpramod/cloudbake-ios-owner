@@ -1,6 +1,46 @@
 import CloudKit
 import Foundation
 
+enum CloudBackupZoneDeletionOutcome: Equatable, Sendable {
+    case deleted
+    case alreadyMissing
+}
+
+protocol CloudBackupZoneLifecycle: Sendable {
+    func deleteZone(_ zoneID: CKRecordZone.ID) async throws -> CloudBackupZoneDeletionOutcome
+    func zoneExists(_ zoneID: CKRecordZone.ID) async throws -> Bool
+}
+
+struct CloudKitBackupZoneLifecycle: CloudBackupZoneLifecycle, @unchecked Sendable {
+    private let database: CKDatabase
+
+    init(database: CKDatabase) {
+        self.database = database
+    }
+
+    func deleteZone(_ zoneID: CKRecordZone.ID) async throws -> CloudBackupZoneDeletionOutcome {
+        do {
+            _ = try await database.deleteRecordZone(withID: zoneID)
+            return .deleted
+        } catch let error as CKError where Self.isMissingZone(error) {
+            return .alreadyMissing
+        }
+    }
+
+    func zoneExists(_ zoneID: CKRecordZone.ID) async throws -> Bool {
+        do {
+            _ = try await database.recordZone(for: zoneID)
+            return true
+        } catch let error as CKError where Self.isMissingZone(error) {
+            return false
+        }
+    }
+
+    private static func isMissingZone(_ error: CKError) -> Bool {
+        error.code == .zoneNotFound || error.code == .unknownItem
+    }
+}
+
 actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing, CloudBackupDeleting {
     static let containerIdentifier = "iCloud.com.cloudbake.owner"
 
@@ -35,12 +75,18 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing, CloudBackupD
     static let recordFetchLimit = 400
 
     private let database: CKDatabase
+    private let zoneLifecycle: any CloudBackupZoneLifecycle
     private let zoneID: CKRecordZone.ID
     private var didPrepareZone = false
     private var transferPolicy = CloudBackupTransferPolicy.wifiOnly
 
-    init(container: CKContainer = CKContainer(identifier: containerIdentifier)) {
-        database = container.privateCloudDatabase
+    init(
+        container: CKContainer = CKContainer(identifier: containerIdentifier),
+        zoneLifecycle: (any CloudBackupZoneLifecycle)? = nil
+    ) {
+        let database = container.privateCloudDatabase
+        self.database = database
+        self.zoneLifecycle = zoneLifecycle ?? CloudKitBackupZoneLifecycle(database: database)
         zoneID = CKRecordZone.ID(zoneName: Schema.zoneName, ownerName: CKCurrentUserDefaultName)
     }
 
@@ -210,18 +256,10 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing, CloudBackupD
     func deleteAllBackupData() async throws {
         transferPolicy = .cellularAllowed
         try await mappedOperation {
-            do {
-                _ = try await database.deleteRecordZone(withID: zoneID)
-            } catch let error as CKError where Self.isMissingZone(error) {
-                didPrepareZone = false
-                return
-            }
+            _ = try await zoneLifecycle.deleteZone(zoneID)
             didPrepareZone = false
-            do {
-                _ = try await database.recordZone(for: zoneID)
+            if try await zoneLifecycle.zoneExists(zoneID) {
                 throw CloudKitBackupStoreInternalError.deletionNotVerified
-            } catch let error as CKError where Self.isMissingZone(error) {
-                return
             }
         }
     }
@@ -515,10 +553,6 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing, CloudBackupD
         } catch let error as CKError where error.code == .serverRecordChanged {
             return try await requiredRecord(pointerID)
         }
-    }
-
-    private static func isMissingZone(_ error: CKError) -> Bool {
-        error.code == .zoneNotFound || error.code == .unknownItem
     }
 
     private func saveRecords(_ records: [CKRecord], atomically: Bool) async throws -> [CKRecord.ID: CKRecord] {
