@@ -1,4 +1,5 @@
 import AVFoundation
+import Combine
 import CoreGraphics
 import Foundation
 import Speech
@@ -145,10 +146,10 @@ final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecogniz
             throw VoiceInventoryRecognitionError.audioUnavailable
         }
 
-        task = speechRecognizer.recognitionTask(with: request) { result, error in
+        task = speechRecognizer.recognitionTask(with: request) { [weak self] result, error in
             if let result {
                 Task { @MainActor in
-                    guard self.request === request else {
+                    guard self?.request === request else {
                         return
                     }
                     onTranscript(result.bestTranscription.formattedString)
@@ -156,7 +157,7 @@ final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecogniz
             }
             if error != nil {
                 Task { @MainActor in
-                    guard self.request === request else {
+                    guard self?.request === request else {
                         return
                     }
                     onError(.recognitionFailed)
@@ -178,5 +179,68 @@ final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecogniz
         request = nil
         task = nil
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+}
+
+@MainActor
+final class VoiceInventoryRecognitionSession: ObservableObject {
+    @Published private(set) var isListening = false
+    @Published private(set) var isRequestingPermission = false
+    @Published private(set) var errorMessage: String?
+
+    private let recognizer: any VoiceInventorySpeechRecognizing
+    private var startTask: Task<Void, Never>?
+
+    init(recognizer: any VoiceInventorySpeechRecognizing) {
+        self.recognizer = recognizer
+    }
+
+    func start(onTranscript: @escaping @MainActor (String) -> Void) {
+        guard !isListening, !isRequestingPermission else {
+            return
+        }
+        errorMessage = nil
+        isRequestingPermission = true
+        startTask = Task { [weak self] in
+            guard let self else {
+                return
+            }
+            defer {
+                isRequestingPermission = false
+                startTask = nil
+            }
+            guard await recognizer.requestPermission() else {
+                guard !Task.isCancelled else {
+                    return
+                }
+                errorMessage = VoiceInventoryRecognitionError.permissionDenied.localizedDescription
+                return
+            }
+            guard !Task.isCancelled else {
+                return
+            }
+            do {
+                try recognizer.start(
+                    onTranscript: onTranscript,
+                    onError: { [weak self] error in
+                        self?.stop()
+                        self?.errorMessage = error.localizedDescription
+                    }
+                )
+                isListening = true
+            } catch let error as VoiceInventoryRecognitionError {
+                errorMessage = error.localizedDescription
+            } catch {
+                errorMessage = VoiceInventoryRecognitionError.recognitionFailed.localizedDescription
+            }
+        }
+    }
+
+    func stop() {
+        startTask?.cancel()
+        startTask = nil
+        isRequestingPermission = false
+        recognizer.stop()
+        isListening = false
     }
 }

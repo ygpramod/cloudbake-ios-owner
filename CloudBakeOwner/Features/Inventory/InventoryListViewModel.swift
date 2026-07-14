@@ -71,13 +71,13 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var historyItem: InventoryItem?
     @Published private(set) var historyTransactions: [InventoryTransaction] = []
 
-    private let repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & ExpiredStockDisposalRepository
+    private let repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & VoiceInventoryImportRepository & ExpiredStockDisposalRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private var acknowledgedDuplicateNameKey: String?
 
     init(
-        repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & ExpiredStockDisposalRepository,
+        repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & VoiceInventoryImportRepository & ExpiredStockDisposalRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init
     ) {
@@ -103,6 +103,11 @@ final class InventoryListViewModel: ObservableObject {
                     .contains { $0.contains(query) }
             )
         }
+    }
+
+    var canSaveVoiceInventoryDrafts: Bool {
+        !voiceInventoryDrafts.isEmpty
+            && !voiceInventoryDrafts.contains { $0.destination == .unresolved }
     }
 
     var stockAdjustmentPreview: InventoryStockMutationPreview? {
@@ -908,11 +913,7 @@ final class InventoryListViewModel: ObservableObject {
         }
 
         voiceInventoryDrafts = parsedItems.map { parsedItem in
-            let matchedItem = InventoryDuplicateMatcher.matchingItem(
-                named: parsedItem.name,
-                in: items,
-                excludingItemId: nil
-            )
+            let matchedItem = uniqueExactVoiceInventoryMatch(named: parsedItem.name)
             return VoiceInventoryDraft(
                 id: idGenerator(),
                 sourcePhrase: parsedItem.sourcePhrase,
@@ -928,6 +929,20 @@ final class InventoryListViewModel: ObservableObject {
         }
         errorMessage = nil
         return true
+    }
+
+    func updateVoiceInventoryDraftName(_ draftId: String, name: String) {
+        guard let index = voiceInventoryDrafts.firstIndex(where: { $0.id == draftId }) else {
+            return
+        }
+        let matchedItem = uniqueExactVoiceInventoryMatch(named: name)
+        voiceInventoryDrafts[index].name = name
+        voiceInventoryDrafts[index].destination = matchedItem.map { .existingItem($0.id) } ?? .unresolved
+        if voiceInventoryDrafts[index].expiryUsesDefault {
+            voiceInventoryDrafts[index].expiryDate = matchedItem.map(defaultExpiryDate(for:))
+                ?? defaultExpiryDate(for: .standard)
+        }
+        errorMessage = nil
     }
 
     func resolveVoiceInventoryDraftAsNew(_ draftId: String) {
@@ -1041,12 +1056,7 @@ final class InventoryListViewModel: ObservableObject {
 
         do {
             itemsToSave.append(contentsOf: plannedExistingItems.values)
-            for item in itemsToSave {
-                try repository.save(item)
-            }
-            for batch in batchesToSave {
-                try saveOrCombineStockBatch(batch, updatedAt: now)
-            }
+            try repository.saveVoiceInventoryImport(items: itemsToSave, batches: batchesToSave)
             errorMessage = nil
             load()
             return true
@@ -1244,6 +1254,19 @@ final class InventoryListViewModel: ObservableObject {
             return item.aliases
         }
         return InventoryAliases.aliases(from: (item.aliases + [voiceName]).joined(separator: "\n"))
+    }
+
+    private func uniqueExactVoiceInventoryMatch(named name: String) -> InventoryItem? {
+        let nameKey = InventoryDuplicateMatcher.duplicateKey(for: name)
+        guard !nameKey.isEmpty else {
+            return nil
+        }
+        let matches = items.filter { item in
+            ([item.name] + item.aliases).contains {
+                InventoryDuplicateMatcher.duplicateKey(for: $0) == nameKey
+            }
+        }
+        return matches.count == 1 ? matches[0] : nil
     }
 
     func selectDraftType(_ type: InventoryItemType) {

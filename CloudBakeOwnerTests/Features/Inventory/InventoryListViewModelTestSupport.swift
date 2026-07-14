@@ -34,12 +34,13 @@ enum FakeRepositoryError: Error {
     case requestedFailure
 }
 
-final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository, ExpiredStockDisposalRepository {
+final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository, VoiceInventoryImportRepository, ExpiredStockDisposalRepository {
     var items: [InventoryItem] = []
     var transactions: [InventoryTransaction] = []
     var batches: [InventoryStockBatch] = []
     var shouldFailBatchCorrectionSave = false
     var shouldFailBatchCorrectionDelete = false
+    var shouldFailVoiceInventoryImportAfterItemSave = false
 
     func save(_ item: InventoryItem) throws {
         if let existingIndex = items.firstIndex(where: { $0.id == item.id }) {
@@ -115,6 +116,29 @@ final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTrans
         try save(item)
         self.batches.removeAll { $0.inventoryItemId == item.id }
         self.batches.append(contentsOf: batches)
+    }
+
+    func saveVoiceInventoryImport(
+        items: [InventoryItem],
+        batches: [InventoryStockBatch]
+    ) throws {
+        let originalItems = self.items
+        let originalBatches = self.batches
+        do {
+            for item in items {
+                try save(item)
+            }
+            if shouldFailVoiceInventoryImportAfterItemSave {
+                throw FakeRepositoryError.requestedFailure
+            }
+            for batch in batches {
+                try save(batch)
+            }
+        } catch {
+            self.items = originalItems
+            self.batches = originalBatches
+            throw error
+        }
     }
 
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {

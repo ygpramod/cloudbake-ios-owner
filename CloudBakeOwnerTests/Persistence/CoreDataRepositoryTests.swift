@@ -1859,6 +1859,34 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchInventoryItem(id: item.id)?.earliestExpiryAt, older.expiresAt)
     }
 
+    func testVoiceInventoryImportRollsBackItemsWhenABatchFails() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 800,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let invalidBatch = InventoryStockBatch(
+            id: "batch-invalid",
+            inventoryItemId: "missing-inventory",
+            remainingQuantity: 800,
+            expiresAt: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        XCTAssertThrowsError(
+            try repository.saveVoiceInventoryImport(items: [item], batches: [invalidBatch])
+        )
+        XCTAssertNil(try repository.fetchInventoryItem(id: item.id))
+        XCTAssertEqual(try repository.fetchInventoryStockBatches(inventoryItemId: item.id), [])
+    }
+
     func testExpiredRemainingBatchMarksInventoryItemAsLowStock() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_020_000)

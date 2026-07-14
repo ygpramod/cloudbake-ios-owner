@@ -719,4 +719,168 @@ extension InventoryListViewModelTests {
         XCTAssertFalse(viewModel.saveVoiceInventoryDrafts())
         XCTAssertEqual(viewModel.errorMessage, "Choose whether each new item should be mapped or created.")
     }
+
+    func testEditingMatchedVoiceDraftNameReevaluatesItsDestination() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        repository.items = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake Flour",
+                unit: .gram,
+                currentQuantity: 100,
+                minimumQuantity: 25,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        let viewModel = InventoryListViewModel(repository: repository, idGenerator: { "draft-flour" })
+        viewModel.load()
+        viewModel.voiceInventoryTranscript = "Cake Flour 800 grams"
+        XCTAssertTrue(viewModel.createVoiceInventoryDrafts())
+        XCTAssertEqual(viewModel.voiceInventoryDrafts[0].destination, .existingItem("inventory-flour"))
+
+        viewModel.updateVoiceInventoryDraftName("draft-flour", name: "Almond Flour")
+
+        XCTAssertEqual(viewModel.voiceInventoryDrafts[0].destination, .unresolved)
+        XCTAssertFalse(viewModel.canSaveVoiceInventoryDrafts)
+        XCTAssertFalse(viewModel.saveVoiceInventoryDrafts())
+        XCTAssertEqual(repository.items[0].currentQuantity, 100)
+        XCTAssertEqual(repository.items[0].aliases, [])
+    }
+
+    func testVoiceDraftRequiresDecisionForAmbiguousExactAlias() {
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-cake-flour",
+                name: "Cake Flour",
+                aliases: ["Bakers Flour"],
+                unit: .gram,
+                currentQuantity: 100,
+                minimumQuantity: 25,
+                createdAt: now,
+                updatedAt: now
+            ),
+            InventoryItem(
+                id: "inventory-bread-flour",
+                name: "Bread Flour",
+                aliases: ["Bakers Flour"],
+                unit: .gram,
+                currentQuantity: 100,
+                minimumQuantity: 25,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        let viewModel = InventoryListViewModel(repository: repository, idGenerator: { "draft-flour" })
+        viewModel.load()
+        viewModel.voiceInventoryTranscript = "Bakers Flour 800 grams"
+
+        XCTAssertTrue(viewModel.createVoiceInventoryDrafts())
+        XCTAssertEqual(viewModel.voiceInventoryDrafts[0].destination, .unresolved)
+        XCTAssertFalse(viewModel.canSaveVoiceInventoryDrafts)
+    }
+
+    func testVoiceInventoryImportRollsBackWhenAtomicSaveFails() {
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake Flour",
+                unit: .gram,
+                currentQuantity: 100,
+                minimumQuantity: 25,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        repository.shouldFailVoiceInventoryImportAfterItemSave = true
+        var ids = ["draft-flour", "batch-flour"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.load()
+        viewModel.voiceInventoryTranscript = "Cake Flour 800 grams"
+        XCTAssertTrue(viewModel.createVoiceInventoryDrafts())
+
+        XCTAssertFalse(viewModel.saveVoiceInventoryDrafts())
+
+        XCTAssertEqual(repository.items[0].currentQuantity, 100)
+        XCTAssertEqual(repository.items[0].aliases, [])
+        XCTAssertEqual(repository.batches, [])
+    }
+}
+
+@MainActor
+private final class FakeVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecognizing {
+    var permissionContinuation: CheckedContinuation<Bool, Never>?
+    var startCount = 0
+    var stopCount = 0
+
+    func requestPermission() async -> Bool {
+        await withCheckedContinuation { continuation in
+            permissionContinuation = continuation
+        }
+    }
+
+    func start(
+        onTranscript: @escaping @MainActor (String) -> Void,
+        onError: @escaping @MainActor (VoiceInventoryRecognitionError) -> Void
+    ) throws {
+        startCount += 1
+    }
+
+    func stop() {
+        stopCount += 1
+    }
+
+    func completePermission(_ allowed: Bool) {
+        permissionContinuation?.resume(returning: allowed)
+        permissionContinuation = nil
+    }
+}
+
+@MainActor
+final class VoiceInventoryRecognitionSessionTests: XCTestCase {
+    func testStoppingWhilePermissionIsPendingPreventsRecordingFromStarting() async {
+        let recognizer = FakeVoiceInventorySpeechRecognizer()
+        let session = VoiceInventoryRecognitionSession(recognizer: recognizer)
+        session.start(onTranscript: { _ in })
+        while recognizer.permissionContinuation == nil {
+            await Task.yield()
+        }
+
+        session.stop()
+        recognizer.completePermission(true)
+        await Task.yield()
+
+        XCTAssertEqual(recognizer.startCount, 0)
+        XCTAssertEqual(recognizer.stopCount, 1)
+        XCTAssertFalse(session.isListening)
+        XCTAssertFalse(session.isRequestingPermission)
+    }
+
+    func testSessionStopsTheSameRecognizerThatItStarted() async {
+        let recognizer = FakeVoiceInventorySpeechRecognizer()
+        let session = VoiceInventoryRecognitionSession(recognizer: recognizer)
+        session.start(onTranscript: { _ in })
+        while recognizer.permissionContinuation == nil {
+            await Task.yield()
+        }
+        recognizer.completePermission(true)
+        while recognizer.startCount == 0 {
+            await Task.yield()
+        }
+
+        session.stop()
+
+        XCTAssertEqual(recognizer.startCount, 1)
+        XCTAssertEqual(recognizer.stopCount, 1)
+        XCTAssertFalse(session.isListening)
+    }
 }

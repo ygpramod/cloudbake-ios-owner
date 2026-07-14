@@ -292,7 +292,7 @@ struct InventoryListView: View {
     }
 }
 
-private final class PreviewInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository, ExpiredStockDisposalRepository {
+private final class PreviewInventoryItemRepository: InventoryItemRepository, InventoryTransactionRepository, InventoryStockBatchRepository, VoiceInventoryImportRepository, ExpiredStockDisposalRepository {
     private var items: [InventoryItem] = [
         InventoryItem(
             id: "preview-flour",
@@ -373,6 +373,15 @@ private final class PreviewInventoryItemRepository: InventoryItemRepository, Inv
         try save(item)
         self.batches.removeAll { $0.inventoryItemId == item.id }
         self.batches.append(contentsOf: batches)
+    }
+
+    func saveVoiceInventoryImport(items: [InventoryItem], batches: [InventoryStockBatch]) throws {
+        for item in items {
+            try save(item)
+        }
+        for batch in batches {
+            try save(batch)
+        }
     }
 
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch] {
