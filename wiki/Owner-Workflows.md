@@ -342,8 +342,9 @@ Expand **Data Management** and choose **Restore from Cloud Backup** to inspect t
 snapshot. CloudBake shows its date, size, photo count, integrity, and compatibility before any
 download. A new empty installation offers **Restore Backup** or **Start Fresh** and never restores
 automatically. Replacing an installation that already contains owner data requires a separate
-destructive confirmation and a local rollback snapshot. Cellular transfer also requires approval
-of the displayed size.
+destructive confirmation and a local rollback snapshot. A selected custom logo also counts as
+owner data even when no business records exist. Cellular transfer also requires approval of the
+displayed size.
 
 CloudBake downloads and validates the complete database and app-managed photos in staging, migrates
 compatible older data, and activates it only after verification. If photos are missing or damaged,
@@ -353,7 +354,9 @@ mislabel photos as broken. Activation failure returns to the pre-restore local s
 next launch completes rollback if the app was interrupted. After success, CloudBake reloads the
 restored data, refreshes local reminders, and resumes backup catch-up. A backup from a newer
 incompatible app version is not restored; CloudBake asks the owner to update. Permanent cloud
-deletion remains unavailable until its account-lifecycle safety slice ships.
+deletion remains unavailable until its account-lifecycle safety slice ships. If CloudBake cannot
+guarantee rollback, it blocks all app interaction and asks the owner to close and reopen the app so
+startup recovery can finish before any further changes.
 
 ## Order Workflow
 
