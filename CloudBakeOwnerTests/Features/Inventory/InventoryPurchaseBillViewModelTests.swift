@@ -835,6 +835,7 @@ private final class FakeVoiceInventorySpeechRecognizer: VoiceInventorySpeechReco
     var onStart: (() -> Void)?
     var startCount = 0
     var stopCount = 0
+    var rebasedTranscript: String?
 
     func requestPermission() async -> Bool {
         await withCheckedContinuation { continuation in
@@ -853,6 +854,10 @@ private final class FakeVoiceInventorySpeechRecognizer: VoiceInventorySpeechReco
 
     func stop() {
         stopCount += 1
+    }
+
+    func rebaseTranscript(to transcript: String) {
+        rebasedTranscript = transcript
     }
 
     func completePermission(_ allowed: Bool) {
@@ -888,16 +893,26 @@ final class VoiceInventoryRecognitionSessionTests: XCTestCase {
         let recognitionStarted = expectation(description: "Recognition started")
         recognizer.onPermissionRequest = { permissionRequested.fulfill() }
         recognizer.onStart = { recognitionStarted.fulfill() }
-        session.start(onTranscript: { _ in })
+        session.start(baselineTranscript: "Edited sugar 300 g", onTranscript: { _ in })
         await fulfillment(of: [permissionRequested], timeout: 1)
         recognizer.completePermission(true)
         await fulfillment(of: [recognitionStarted], timeout: 1)
 
+        XCTAssertEqual(recognizer.rebasedTranscript, "Edited sugar 300 g")
         session.stop()
 
         XCTAssertEqual(recognizer.startCount, 1)
         XCTAssertEqual(recognizer.stopCount, 1)
         XCTAssertFalse(session.isListening)
+    }
+
+    func testSessionRebasesTheRecognizerToTheEditedTranscript() {
+        let recognizer = FakeVoiceInventorySpeechRecognizer()
+        let session = VoiceInventoryRecognitionSession(recognizer: recognizer)
+
+        session.rebaseTranscript(to: "Edited sugar 300 g")
+
+        XCTAssertEqual(recognizer.rebasedTranscript, "Edited sugar 300 g")
     }
 }
 
@@ -1060,6 +1075,31 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
                     unit: .gram
                 )
             ]
+        )
+    }
+
+    func testEditedTranscriptBecomesTheBaselineForLaterSpeech() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+        _ = accumulator.merge(
+            [
+                segment("Sugar", at: 0, duration: 0.3),
+                segment("300", at: 0.4, duration: 0.2),
+                segment("g", at: 0.7, duration: 0.1)
+            ],
+            isFinal: true
+        )
+        accumulator.rebase(to: "Brown sugar 250 g")
+
+        XCTAssertEqual(
+            accumulator.merge([
+                segment("Sugar", at: 0, duration: 0.3),
+                segment("300", at: 0.4, duration: 0.2),
+                segment("g", at: 0.7, duration: 0.1),
+                segment("Flour", at: 1.7, duration: 0.3),
+                segment("800", at: 2.1, duration: 0.2),
+                segment("g", at: 2.4, duration: 0.1)
+            ]),
+            "Brown sugar 250 g\nFlour 800 g"
         )
     }
 

@@ -299,7 +299,7 @@ struct VoiceInventoryImportView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                TextEditor(text: $viewModel.voiceInventoryTranscript)
+                TextEditor(text: voiceTranscriptBinding)
                     .frame(minHeight: 110)
                     .accessibilityLabel("Recognized inventory")
                     .accessibilityIdentifier("inventory.voice.transcript")
@@ -488,9 +488,19 @@ struct VoiceInventoryImportView: View {
     }
 
     private func startListening() {
-        recognitionSession.start { transcript in
+        recognitionSession.start(baselineTranscript: viewModel.voiceInventoryTranscript) { transcript in
             viewModel.voiceInventoryTranscript = transcript
         }
+    }
+
+    private var voiceTranscriptBinding: Binding<String> {
+        Binding(
+            get: { viewModel.voiceInventoryTranscript },
+            set: { transcript in
+                viewModel.voiceInventoryTranscript = transcript
+                recognitionSession.rebaseTranscript(to: transcript)
+            }
+        )
     }
 
     private func stopListening() {

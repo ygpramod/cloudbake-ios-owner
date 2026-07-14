@@ -84,6 +84,7 @@ protocol VoiceInventorySpeechRecognizing: AnyObject {
         onTranscript: @escaping @MainActor (String) -> Void,
         onError: @escaping @MainActor (VoiceInventoryRecognitionError) -> Void
     ) throws
+    func rebaseTranscript(to transcript: String)
     func stop()
 }
 
@@ -100,13 +101,19 @@ struct VoiceInventoryTranscriptionSegment: Equatable {
 struct VoiceInventoryTranscriptAccumulator {
     private static let newUtterancePause: TimeInterval = 0.75
 
+    private var baselineTranscript = ""
+    private var ignoredRecognitionWords: [String] = []
     private var completedUtterances: [[VoiceInventoryTranscriptionSegment]] = []
     private var activeSegments: [VoiceInventoryTranscriptionSegment] = []
 
     mutating func merge(
-        _ incomingSegments: [VoiceInventoryTranscriptionSegment],
+        _ rawIncomingSegments: [VoiceInventoryTranscriptionSegment],
         isFinal: Bool = false
     ) -> String {
+        let incomingSegments = segmentsAfterRebase(from: rawIncomingSegments)
+        guard !incomingSegments.isEmpty else {
+            return transcript
+        }
         guard let updateStartTime = incomingSegments.first?.startTime else {
             return transcript
         }
@@ -117,7 +124,9 @@ struct VoiceInventoryTranscriptAccumulator {
             let activeStartTime = activeSegments.first?.startTime ?? updateStartTime
             let repeatedOnResetTimeline = abs(updateStartTime - activeStartTime) >= 0.5
             if isFinal || repeatedOnResetTimeline {
-                completeActiveUtterance()
+                let updatedTranscript = transcript
+                rebase(to: updatedTranscript)
+                return updatedTranscript
             }
             return transcript
         } else if isFinal {
@@ -140,14 +149,40 @@ struct VoiceInventoryTranscriptAccumulator {
 
         let updatedTranscript = transcript
         if isFinal {
-            completeActiveUtterance()
+            rebase(to: updatedTranscript)
         }
         return updatedTranscript
     }
 
     mutating func reset() {
+        baselineTranscript = ""
+        ignoredRecognitionWords = []
         completedUtterances = []
         activeSegments = []
+    }
+
+    mutating func rebase(to transcript: String) {
+        let recognizedWords = words(in: completedUtterances.flatMap { $0 } + activeSegments)
+        if !recognizedWords.isEmpty {
+            ignoredRecognitionWords.append(contentsOf: recognizedWords)
+        }
+        baselineTranscript = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        completedUtterances = []
+        activeSegments = []
+    }
+
+    private mutating func segmentsAfterRebase(
+        from incomingSegments: [VoiceInventoryTranscriptionSegment]
+    ) -> [VoiceInventoryTranscriptionSegment] {
+        guard !ignoredRecognitionWords.isEmpty else {
+            return incomingSegments
+        }
+        let incomingWords = words(in: incomingSegments)
+        guard incomingWords.starts(with: ignoredRecognitionWords) else {
+            ignoredRecognitionWords = []
+            return incomingSegments
+        }
+        return Array(incomingSegments.dropFirst(ignoredRecognitionWords.count))
     }
 
     private mutating func completeActiveUtterance() {
@@ -173,9 +208,12 @@ struct VoiceInventoryTranscriptAccumulator {
     }
 
     private var transcript: String {
-        (completedUtterances + [activeSegments])
+        let recognizedTranscript = (completedUtterances + [activeSegments])
             .filter { !$0.isEmpty }
             .map(formattedTranscript(from:))
+            .joined(separator: "\n")
+        return [baselineTranscript, recognizedTranscript]
+            .filter { !$0.isEmpty }
             .joined(separator: "\n")
     }
 
@@ -321,6 +359,10 @@ final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecogniz
         task = nil
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
+
+    func rebaseTranscript(to transcript: String) {
+        transcriptAccumulator.rebase(to: transcript)
+    }
 }
 
 @MainActor
@@ -336,7 +378,10 @@ final class VoiceInventoryRecognitionSession: ObservableObject {
         self.recognizer = recognizer
     }
 
-    func start(onTranscript: @escaping @MainActor (String) -> Void) {
+    func start(
+        baselineTranscript: String = "",
+        onTranscript: @escaping @MainActor (String) -> Void
+    ) {
         guard !isListening, !isRequestingPermission else {
             return
         }
@@ -368,6 +413,7 @@ final class VoiceInventoryRecognitionSession: ObservableObject {
                         self?.errorMessage = error.localizedDescription
                     }
                 )
+                recognizer.rebaseTranscript(to: baselineTranscript)
                 isListening = true
             } catch let error as VoiceInventoryRecognitionError {
                 errorMessage = error.localizedDescription
@@ -383,5 +429,9 @@ final class VoiceInventoryRecognitionSession: ObservableObject {
         isRequestingPermission = false
         recognizer.stop()
         isListening = false
+    }
+
+    func rebaseTranscript(to transcript: String) {
+        recognizer.rebaseTranscript(to: transcript)
     }
 }
