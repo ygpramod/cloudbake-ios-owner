@@ -332,6 +332,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.buttons["settings.backup.disclosure"])
         let notificationsSwitch = app.switches["settings.cloudBackup.notifications"]
         scrollToHittable(notificationsSwitch, in: app)
+        let settingsScroll = app.scrollViews["screen.settings"]
+        XCTAssertTrue(settingsScroll.waitForExistence(timeout: 5))
+        settingsScroll.swipeUp()
         tapWhenReady(notificationsSwitch)
 
         expectation(
