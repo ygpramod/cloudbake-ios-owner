@@ -984,9 +984,8 @@ final class InventoryListViewModel: ObservableObject {
         for draft in voiceInventoryDrafts {
             let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty,
-                  let quantity = parsedQuantity(from: draft.quantityText), quantity > 0,
-                  let minimumQuantity = parsedQuantity(from: draft.minimumQuantityText), minimumQuantity >= 0 else {
-                errorMessage = "Each voice draft needs a name, positive quantity, and valid minimum quantity."
+                  let quantity = parsedQuantity(from: draft.quantityText), quantity > 0 else {
+                errorMessage = "Each voice draft needs a name and positive quantity."
                 return false
             }
 
@@ -1028,6 +1027,11 @@ final class InventoryListViewModel: ObservableObject {
                     )
                 )
             case .newItem:
+                guard let minimumQuantity = parsedQuantity(from: draft.minimumQuantityText),
+                      minimumQuantity >= 0 else {
+                    errorMessage = "Each new inventory draft needs a valid minimum quantity."
+                    return false
+                }
                 let itemId = idGenerator()
                 itemsToSave.append(
                     InventoryItem(
