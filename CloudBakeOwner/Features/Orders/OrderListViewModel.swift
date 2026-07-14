@@ -1545,7 +1545,7 @@ final class OrderListViewModel: ObservableObject {
     }
 
     private func shouldRecordRecipeUsage(from currentStatus: OrderStatus, to newStatus: OrderStatus) -> Bool {
-        currentStatus == .confirmed && (newStatus == .ready || newStatus == .completed)
+        currentStatus.recordsRecipeUsage(whenChangingTo: newStatus)
     }
 
     private func recipeUsageErrorMessage(for error: OrderRecipeUsageError) -> String {

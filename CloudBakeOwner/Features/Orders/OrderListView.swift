@@ -377,8 +377,7 @@ private struct OrderStatusChangeRequest: Identifiable {
     let status: OrderStatus
 
     var requiresInventoryDeductionConfirmation: Bool {
-        order.status == .confirmed &&
-            (status == .ready || status == .completed) &&
+        order.status.recordsRecipeUsage(whenChangingTo: status) &&
             order.recipeId != nil
     }
 }
