@@ -184,6 +184,12 @@ final class CloudBackupSettingsTests: XCTestCase {
         viewModel.setBackupEnabled(false)
         await service.waitForBackupCallCount(1)
         viewModel.setBackupEnabled(true)
+        await Task.yield()
+        let callCountBeforeRelease = await service.backupCallCount()
+        XCTAssertEqual(callCountBeforeRelease, 1)
+        await service.releaseBackupCall(false)
+        await service.waitForBackupCallCount(2)
+        await service.releaseBackupCall(true)
         await service.waitForBackupCompletionCount(2)
 
         let persisted = await service.currentSettings()
@@ -203,6 +209,12 @@ final class CloudBackupSettingsTests: XCTestCase {
         viewModel.setNotificationsEnabled(false)
         await service.waitForNotificationCallCount(1)
         viewModel.setNotificationsEnabled(true)
+        await Task.yield()
+        let callCountBeforeRelease = await service.notificationCallCount()
+        XCTAssertEqual(callCountBeforeRelease, 1)
+        await service.releaseNotificationCall(false)
+        await service.waitForNotificationCallCount(2)
+        await service.releaseNotificationCall(true)
         await service.waitForNotificationCompletionCount(2)
 
         let persisted = await service.currentSettings()
@@ -236,6 +248,10 @@ private actor DelayedCloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
     private var notificationCallWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
     private var backupCompletionWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
     private var notificationCompletionWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    private var backupReleasePermits: [Bool: Int] = [:]
+    private var notificationReleasePermits: [Bool: Int] = [:]
+    private var backupReleaseWaiters: [Bool: [CheckedContinuation<Void, Never>]] = [:]
+    private var notificationReleaseWaiters: [Bool: [CheckedContinuation<Void, Never>]] = [:]
 
     init(snapshot: CloudBackupSettingsSnapshot) {
         self.snapshot = snapshot
@@ -243,13 +259,15 @@ private actor DelayedCloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
 
     var backupValues: [Bool] { backupCalls }
     var notificationValues: [Bool] { notificationCalls }
+    func backupCallCount() -> Int { backupCalls.count }
+    func notificationCallCount() -> Int { notificationCalls.count }
 
     func currentSettings() async -> CloudBackupSettingsSnapshot { snapshot }
 
     func setBackupEnabled(_ isEnabled: Bool) async -> CloudBackupSettingsSnapshot {
         backupCalls.append(isEnabled)
         resumeSatisfiedWaiters(&backupCallWaiters, currentCount: backupCalls.count)
-        await nonCancellableDelay(isEnabled ? 0 : 100_000_000)
+        await waitForBackupRelease(isEnabled)
         snapshot.isEnabled = isEnabled
         snapshot.state = isEnabled ? .enabled : .disabled
         backupCompletions += 1
@@ -260,7 +278,7 @@ private actor DelayedCloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
     func setNotificationsEnabled(_ isEnabled: Bool) async -> CloudBackupSettingsSnapshot {
         notificationCalls.append(isEnabled)
         resumeSatisfiedWaiters(&notificationCallWaiters, currentCount: notificationCalls.count)
-        await nonCancellableDelay(isEnabled ? 0 : 100_000_000)
+        await waitForNotificationRelease(isEnabled)
         snapshot.areNotificationsEnabled = isEnabled
         notificationCompletions += 1
         resumeSatisfiedWaiters(
@@ -298,6 +316,18 @@ private actor DelayedCloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
         }
     }
 
+    func releaseBackupCall(_ value: Bool) {
+        release(value, permits: &backupReleasePermits, waiters: &backupReleaseWaiters)
+    }
+
+    func releaseNotificationCall(_ value: Bool) {
+        release(
+            value,
+            permits: &notificationReleasePermits,
+            waiters: &notificationReleaseWaiters
+        )
+    }
+
     func backUpNow() async -> ManualBackupResult { .deferred(.disabled) }
 
     func confirmCellularBackup(_ proposal: ManualCellularBackupProposal) async -> ManualBackupResult {
@@ -315,14 +345,36 @@ private actor DelayedCloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
         satisfied.forEach { $0.continuation.resume() }
     }
 
-    private func nonCancellableDelay(_ nanoseconds: UInt64) async {
-        guard nanoseconds > 0 else { return }
+    private func waitForBackupRelease(_ value: Bool) async {
+        if backupReleasePermits[value, default: 0] > 0 {
+            backupReleasePermits[value, default: 0] -= 1
+            return
+        }
         await withCheckedContinuation { continuation in
-            DispatchQueue.global().asyncAfter(
-                deadline: .now() + .nanoseconds(Int(nanoseconds))
-            ) {
-                continuation.resume()
-            }
+            backupReleaseWaiters[value, default: []].append(continuation)
+        }
+    }
+
+    private func waitForNotificationRelease(_ value: Bool) async {
+        if notificationReleasePermits[value, default: 0] > 0 {
+            notificationReleasePermits[value, default: 0] -= 1
+            return
+        }
+        await withCheckedContinuation { continuation in
+            notificationReleaseWaiters[value, default: []].append(continuation)
+        }
+    }
+
+    private func release(
+        _ value: Bool,
+        permits: inout [Bool: Int],
+        waiters: inout [Bool: [CheckedContinuation<Void, Never>]]
+    ) {
+        if let continuation = waiters[value]?.first {
+            waiters[value]?.removeFirst()
+            continuation.resume()
+        } else {
+            permits[value, default: 0] += 1
         }
     }
 }
