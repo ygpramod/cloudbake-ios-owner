@@ -357,6 +357,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         if !confirmButton.waitForExistence(timeout: 5) {
             XCTFail("Account confirmation did not appear. Hierarchy: \(app.debugDescription)")
         }
+        tapWhenReady(app.buttons["settings.cloudBackup.account.cancel"])
+        tapWhenReady(backUpNowButton)
+        XCTAssertTrue(confirmButton.waitForExistence(timeout: 5))
         tapWhenReady(confirmButton)
         XCTAssertTrue(app.staticTexts["settings.cloudBackup.status"].waitForExistence(timeout: 5))
     }
@@ -380,6 +383,24 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(
             app.staticTexts["settings.cloudBackup.delete.message"].waitForExistence(timeout: 5)
         )
+    }
+
+    func testCloudBackupDeletionFailureKeepsBackupDisabledAndRetryable() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_DELETE_FAILURE"] = "1"
+        app.launch()
+
+        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let deleteButton = app.buttons["settings.cloudBackup.delete"]
+        scrollToHittable(deleteButton, in: app)
+        tapWhenReady(deleteButton)
+        tapWhenReady(app.buttons["settings.cloudBackup.delete.confirm"])
+
+        let message = app.staticTexts["settings.cloudBackup.delete.message"]
+        XCTAssertTrue(message.waitForExistence(timeout: 5))
+        XCTAssertTrue(message.label.contains("Backup remains off"))
+        XCTAssertTrue(deleteButton.exists)
     }
 
     func testEmptyInstallationOffersRestoreOrStartFresh() throws {
