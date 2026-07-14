@@ -270,7 +270,7 @@ struct RootView: View {
 
     private func prepareInitialRestoreOrBackup() async {
         guard cloudRestoreSettingsService != nil,
-              (try? database.hasOwnerData()) == false else {
+              (try? OwnerInstallationState(database: database).hasRestorableData()) == false else {
             cloudBackupRuntime?.startLaunchCatchUpIfNeeded()
             return
         }

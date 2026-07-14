@@ -30,6 +30,14 @@ struct AppLogoStore {
         return UIImage(data: data)
     }
 
+    var hasCustomLogo: Bool {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return false }
+        let values = try? fileURL.resourceValues(
+            forKeys: [.isRegularFileKey, .isSymbolicLinkKey]
+        )
+        return values?.isRegularFile == true && values?.isSymbolicLink != true
+    }
+
     func save(_ image: UIImage) throws {
         let directory = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(
@@ -57,6 +65,20 @@ struct AppLogoStore {
             .appendingPathComponent("CloudBakeOwner", isDirectory: true)
             .appendingPathComponent("Branding", isDirectory: true)
             .appendingPathComponent("custom-logo.jpg")
+    }
+}
+
+struct OwnerInstallationState {
+    let database: AppDatabase
+    let logoStore: AppLogoStore
+
+    init(database: AppDatabase, logoStore: AppLogoStore = AppLogoStore()) {
+        self.database = database
+        self.logoStore = logoStore
+    }
+
+    func hasRestorableData() throws -> Bool {
+        try database.hasOwnerData() || logoStore.hasCustomLogo
     }
 }
 
