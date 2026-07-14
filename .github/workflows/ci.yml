@@ -76,6 +76,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreRequiresDestructiveCellularAndBrokenAssetChoices
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreExplainsWhenAppUpdateIsRequired
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreReportsSuccessfulRollbackAfterActivationFailure
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreBlocksAppWhenRollbackCannotBeGuaranteed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipesCanBeAdded
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
