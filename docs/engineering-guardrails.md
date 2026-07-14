@@ -156,6 +156,14 @@ enum ScreenState {
 - Prefer consolidating repeated UI setup into fewer meaningful owner journeys instead of adding a new
   end-to-end test for every slice.
 - Tests should be deterministic and not depend on wall-clock time unless time is injected.
+- Acceptance actions should wait for the semantic destination they trigger instead of relying on
+  sleeps or assuming that a synthetic tap completed a transition.
+- Modal and nested scroll views should have stable accessibility identifiers; XCUITests must scroll
+  the visible container rather than whichever scroll view happens to be returned first.
+- When a workflow presents Apple-owned UI, assert CloudBake's presentation boundary with an
+  app-owned identifier and keep detailed payload behavior in unit or integration coverage.
+- Do not normalize recurring acceptance failures through retries. Reproduce the affected test in
+  repeated local iterations and fix the synchronization, accessibility, or production-state cause.
 - Bugs should usually be fixed by first adding a failing test.
 - Prefer testing logic outside SwiftUI views. If logic is hard to test, move it behind a view model,
   service, repository, formatter, validator, or pure function.
