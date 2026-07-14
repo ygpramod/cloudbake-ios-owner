@@ -1887,6 +1887,67 @@ final class CoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchInventoryStockBatches(inventoryItemId: item.id), [])
     }
 
+    func testVoiceInventoryImportAtomicallyCombinesEquivalentBatches() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let expiry = Date(timeIntervalSince1970: 1_800_279_200)
+        let originalItem = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 100,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let updatedItem = InventoryItem(
+            id: originalItem.id,
+            name: originalItem.name,
+            unit: originalItem.unit,
+            currentQuantity: 300,
+            minimumQuantity: originalItem.minimumQuantity,
+            createdAt: originalItem.createdAt,
+            updatedAt: timestamp.addingTimeInterval(100)
+        )
+        let existingBatch = InventoryStockBatch(
+            id: "batch-existing",
+            inventoryItemId: originalItem.id,
+            remainingQuantity: 100,
+            expiresAt: expiry,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let firstVoiceBatch = InventoryStockBatch(
+            id: "batch-voice-one",
+            inventoryItemId: originalItem.id,
+            remainingQuantity: 100,
+            expiresAt: expiry,
+            createdAt: timestamp.addingTimeInterval(100),
+            updatedAt: timestamp.addingTimeInterval(100)
+        )
+        let secondVoiceBatch = InventoryStockBatch(
+            id: "batch-voice-two",
+            inventoryItemId: originalItem.id,
+            remainingQuantity: 100,
+            expiresAt: expiry,
+            createdAt: timestamp.addingTimeInterval(100),
+            updatedAt: timestamp.addingTimeInterval(100)
+        )
+        try repository.save(originalItem)
+        try repository.save(existingBatch)
+
+        try repository.saveVoiceInventoryImport(
+            items: [updatedItem],
+            batches: [firstVoiceBatch, secondVoiceBatch]
+        )
+
+        XCTAssertEqual(try repository.fetchInventoryItem(id: originalItem.id)?.currentQuantity, 300)
+        let batches = try repository.fetchInventoryStockBatches(inventoryItemId: originalItem.id)
+        XCTAssertEqual(batches.count, 1)
+        XCTAssertEqual(batches[0].id, existingBatch.id)
+        XCTAssertEqual(batches[0].remainingQuantity, 300)
+    }
+
     func testExpiredRemainingBatchMarksInventoryItemAsLowStock() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_020_000)

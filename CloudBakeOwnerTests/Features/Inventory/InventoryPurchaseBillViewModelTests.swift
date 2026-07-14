@@ -819,12 +819,15 @@ extension InventoryListViewModelTests {
 @MainActor
 private final class FakeVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecognizing {
     var permissionContinuation: CheckedContinuation<Bool, Never>?
+    var onPermissionRequest: (() -> Void)?
+    var onStart: (() -> Void)?
     var startCount = 0
     var stopCount = 0
 
     func requestPermission() async -> Bool {
         await withCheckedContinuation { continuation in
             permissionContinuation = continuation
+            onPermissionRequest?()
         }
     }
 
@@ -833,6 +836,7 @@ private final class FakeVoiceInventorySpeechRecognizer: VoiceInventorySpeechReco
         onError: @escaping @MainActor (VoiceInventoryRecognitionError) -> Void
     ) throws {
         startCount += 1
+        onStart?()
     }
 
     func stop() {
@@ -850,10 +854,10 @@ final class VoiceInventoryRecognitionSessionTests: XCTestCase {
     func testStoppingWhilePermissionIsPendingPreventsRecordingFromStarting() async {
         let recognizer = FakeVoiceInventorySpeechRecognizer()
         let session = VoiceInventoryRecognitionSession(recognizer: recognizer)
+        let permissionRequested = expectation(description: "Permission requested")
+        recognizer.onPermissionRequest = { permissionRequested.fulfill() }
         session.start(onTranscript: { _ in })
-        while recognizer.permissionContinuation == nil {
-            await Task.yield()
-        }
+        await fulfillment(of: [permissionRequested], timeout: 1)
 
         session.stop()
         recognizer.completePermission(true)
@@ -868,14 +872,14 @@ final class VoiceInventoryRecognitionSessionTests: XCTestCase {
     func testSessionStopsTheSameRecognizerThatItStarted() async {
         let recognizer = FakeVoiceInventorySpeechRecognizer()
         let session = VoiceInventoryRecognitionSession(recognizer: recognizer)
+        let permissionRequested = expectation(description: "Permission requested")
+        let recognitionStarted = expectation(description: "Recognition started")
+        recognizer.onPermissionRequest = { permissionRequested.fulfill() }
+        recognizer.onStart = { recognitionStarted.fulfill() }
         session.start(onTranscript: { _ in })
-        while recognizer.permissionContinuation == nil {
-            await Task.yield()
-        }
+        await fulfillment(of: [permissionRequested], timeout: 1)
         recognizer.completePermission(true)
-        while recognizer.startCount == 0 {
-            await Task.yield()
-        }
+        await fulfillment(of: [recognitionStarted], timeout: 1)
 
         session.stop()
 
