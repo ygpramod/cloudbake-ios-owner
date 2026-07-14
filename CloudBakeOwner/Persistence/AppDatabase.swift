@@ -15,6 +15,7 @@ final class AppDatabase {
             try database.seedOrderCustomerLinkFixtureIfRequested()
             try database.seedCompletedOrderFixtureIfRequested()
             try database.seedOrderReminderFixtureIfRequested()
+            try database.seedOrderStatusFailureFixtureIfRequested()
             try database.seedInventoryFixtureIfRequested()
             try database.seedExpiredInventoryFixtureIfRequested()
             try database.seedProjectedDemandFixtureIfRequested()
@@ -349,6 +350,40 @@ final class AppDatabase {
                 fulfillmentType: .pickup,
                 deliveryAddress: nil,
                 cakeNotes: "Boxed",
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+    }
+
+    private func seedOrderStatusFailureFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_ORDER_STATUS_FAILURE_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let recipe = Recipe(
+            id: "recipe-ui-fixture-no-ingredients",
+            name: "Unfinished recipe",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(recipe)
+        try repository.save(
+            Order(
+                id: "order-ui-fixture-status-failure",
+                customerId: nil,
+                cakeDesignId: nil,
+                recipeId: recipe.id,
+                title: "Status failure cake",
+                customerName: "Amy",
+                status: .confirmed,
+                dueAt: Date(timeIntervalSince1970: 1_800_140_000),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
                 createdAt: timestamp,
                 updatedAt: timestamp
             )
