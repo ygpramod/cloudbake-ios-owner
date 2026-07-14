@@ -83,6 +83,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsDueRemindersAndReminderPlan
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsProjectedIngredientShortageAcrossActiveOrders
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderIngredientCostShowsPartialTotalAndMissingPriceWarning
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderStatusFailureIsShownImmediatelyFromDetail
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeEditedFromDetail
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrderAppearsInCompletedTab

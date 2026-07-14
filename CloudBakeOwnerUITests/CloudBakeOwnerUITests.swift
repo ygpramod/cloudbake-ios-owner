@@ -1100,6 +1100,33 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Current Quantity: 500 g"].waitForExistence(timeout: transitionTimeout))
     }
 
+    func testOrderStatusFailureIsShownImmediatelyFromDetail() throws {
+        let app = makeApp(initialDestination: "orders")
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_STATUS_FAILURE_FIXTURE"] = "1"
+        app.launch()
+
+        assertScreenVisible("screen.orders", in: app)
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Status failure cake"
+            )
+        ).firstMatch
+        tapWhenReady(orderRow)
+
+        assertExistsAfterScrolling(app.buttons["orders.detail.statusMenu"], in: app)
+        tapWhenReady(app.buttons["orders.detail.statusMenu"])
+        tapExisting(app.buttons["Ready"])
+        tapExisting(app.buttons["orders.detail.confirmInventoryDeduction"])
+
+        let error = app.staticTexts["orders.detail.statusChangeError"]
+        XCTAssertTrue(error.waitForExistence(timeout: 5))
+        XCTAssertEqual(error.label, "Recipe has no ingredients to deduct.")
+        tapWhenReady(app.buttons["orders.detail.statusChangeError.dismiss"])
+        XCTAssertTrue(app.staticTexts["orders.detail.status"].label.contains("Confirmed"))
+    }
+
     func testOrderCalendarViewShowsOrders() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
