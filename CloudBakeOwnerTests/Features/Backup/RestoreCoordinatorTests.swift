@@ -211,7 +211,8 @@ private actor FakeCloudRestoreService: CloudRestoreServing {
         transferPolicies.append(transferPolicy)
         return DownloadedRestoreSnapshot(
             directoryURL: directoryURL,
-            manifest: Self.manifest(generationID: snapshot.generationID)
+            manifest: Self.manifest(generationID: snapshot.generationID),
+            brokenAssets: []
         )
     }
 

@@ -1,7 +1,7 @@
 import CloudKit
 import Foundation
 
-actor CloudKitBackupStore: CloudBackupStoring {
+actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
     static let containerIdentifier = "iCloud.com.cloudbake.owner"
 
     private enum Schema {
@@ -207,6 +207,265 @@ actor CloudKitBackupStore: CloudBackupStoring {
         }
     }
 
+    func inspectCurrentSnapshot(currentAppVersion: String) async throws -> CloudRestoreSnapshot? {
+        transferPolicy = .cellularAllowed
+        return try await mappedOperation {
+            try await inspectCurrentSnapshotDetails(currentAppVersion: currentAppVersion)?.snapshot
+        }
+    }
+
+    func downloadCurrentSnapshot(
+        _ snapshot: CloudRestoreSnapshot,
+        to directoryURL: URL,
+        transferPolicy: CloudBackupTransferPolicy
+    ) async throws -> DownloadedRestoreSnapshot {
+        self.transferPolicy = transferPolicy
+        return try await mappedOperation {
+            guard let details = try await inspectCurrentSnapshotDetails(
+                currentAppVersion: "999999"
+            ), details.snapshot.generationID == snapshot.generationID else {
+                throw CloudKitBackupStoreInternalError.pointerConflict
+            }
+
+            let fileManager = FileManager.default
+            let buildingURL = directoryURL
+                .deletingLastPathComponent()
+                .appendingPathComponent("\(directoryURL.lastPathComponent).downloading", isDirectory: true)
+            try removeIfPresent(buildingURL, fileManager: fileManager)
+            try removeIfPresent(directoryURL, fileManager: fileManager)
+            try fileManager.createDirectory(at: buildingURL, withIntermediateDirectories: true)
+
+            do {
+                var brokenAssets: [BrokenRestoreAsset] = []
+                for files in CloudKitBackupBatching.chunks(
+                    details.files,
+                    maximumCount: Self.recordFetchLimit
+                ) {
+                    let recordIDs = files.map { restoreFileRecordID($0.recordName) }
+                    let records = try await fetchRecords(recordIDs)
+                    for file in files {
+                        do {
+                            let recordID = restoreFileRecordID(file.recordName)
+                            guard let result = records[recordID] else {
+                                throw CloudKitBackupStoreInternalError.corruptRecord
+                            }
+                            let record = try result.get()
+                            let sourceURL = try verifiedPayloadURL(
+                                record,
+                                expected: file,
+                                generationID: details.snapshot.generationID
+                            )
+                            let destinationURL = buildingURL
+                                .appendingPathComponent(file.relativePath)
+                                .standardizedFileURL
+                            guard destinationURL.path.hasPrefix(buildingURL.standardizedFileURL.path + "/") else {
+                                throw CloudKitBackupStoreInternalError.invalidPlan
+                            }
+                            try fileManager.createDirectory(
+                                at: destinationURL.deletingLastPathComponent(),
+                                withIntermediateDirectories: true
+                            )
+                            try fileManager.copyItem(at: sourceURL, to: destinationURL)
+                        } catch {
+                            guard file.role == .asset, let originalPath = file.originalAssetPath else {
+                                throw error
+                            }
+                            brokenAssets.append(BrokenRestoreAsset(originalRelativePath: originalPath))
+                        }
+                    }
+                }
+                try fileManager.moveItem(at: buildingURL, to: directoryURL)
+                return DownloadedRestoreSnapshot(
+                    directoryURL: directoryURL,
+                    manifest: details.manifest,
+                    brokenAssets: brokenAssets.sorted { $0.originalRelativePath < $1.originalRelativePath }
+                )
+            } catch {
+                try? fileManager.removeItem(at: buildingURL)
+                throw error
+            }
+        }
+    }
+
+    private func inspectCurrentSnapshotDetails(
+        currentAppVersion: String
+    ) async throws -> CloudRestoreSnapshotDetails? {
+        let pointer = try await ensureZoneAndPointer()
+        guard let generationID = nonEmptyString(pointer[Schema.generationID]) else { return nil }
+        guard BackupPath.isSafeIdentifier(generationID) else {
+            throw CloudKitBackupStoreInternalError.corruptRecord
+        }
+
+        let generation = try await requiredRecord(generationRecordID(generationID))
+        let manifestRecordName = "\(generationID)-manifest"
+        let manifestRecord = try await requiredRecord(restoreFileRecordID(manifestRecordName))
+        let manifestFile = try restoreManifestFilePlan(
+            from: manifestRecord,
+            generationID: generationID,
+            recordName: manifestRecordName
+        )
+        let manifestURL = try verifiedPayloadURL(
+            manifestRecord,
+            expected: manifestFile,
+            generationID: generationID
+        )
+        let manifest = try decodeManifest(at: manifestURL)
+        let files = try CloudRestoreFilePlan.make(
+            manifest: manifest,
+            manifestFile: manifestFile
+        )
+        guard let uploadByteCount = CloudRestoreFilePlan.totalByteCount(files),
+              generationMatches(
+                generation,
+                manifest: manifest,
+                fileCount: files.count,
+                uploadByteCount: uploadByteCount
+              ) else {
+            throw CloudKitBackupStoreInternalError.corruptRecord
+        }
+
+        var brokenAssetCount = 0
+        for batch in CloudKitBackupBatching.chunks(
+            Array(files.dropFirst()),
+            maximumCount: Self.recordFetchLimit
+        ) {
+            let recordIDs = batch.map { restoreFileRecordID($0.recordName) }
+            let records = try await fetchRecords(
+                recordIDs,
+                desiredKeys: CloudRestoreFilePlan.metadataKeys
+            )
+            for file in batch {
+                let recordID = restoreFileRecordID(file.recordName)
+                do {
+                    guard let result = records[recordID] else {
+                        throw CloudKitBackupStoreInternalError.corruptRecord
+                    }
+                    try verifyFileMetadata(
+                        try result.get(),
+                        expected: file,
+                        generationID: generationID
+                    )
+                } catch {
+                    guard file.role == .asset else { throw error }
+                    brokenAssetCount += 1
+                }
+            }
+        }
+
+        return CloudRestoreSnapshotDetails(
+            snapshot: CloudRestoreSnapshot(
+                generationID: generationID,
+                createdAt: manifest.createdAt,
+                totalByteCount: manifest.totalByteCount,
+                assetCount: manifest.assets.count,
+                compatibility: manifest.compatibility(currentAppVersion: currentAppVersion),
+                integrity: brokenAssetCount == 0
+                    ? .verified
+                    : .brokenAssets(count: brokenAssetCount)
+            ),
+            manifest: manifest,
+            files: files
+        )
+    }
+
+    private func decodeManifest(at fileURL: URL) throws -> BackupManifest {
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode(BackupManifest.self, from: Data(contentsOf: fileURL))
+        } catch {
+            throw CloudKitBackupStoreInternalError.corruptRecord
+        }
+    }
+
+    private func generationMatches(
+        _ record: CKRecord,
+        manifest: BackupManifest,
+        fileCount: Int,
+        uploadByteCount: Int64
+    ) -> Bool {
+        guard let createdAt = record[Schema.createdAt] as? Date else { return false }
+        return nonEmptyString(record[Schema.generationID]) == manifest.generationID
+            && abs(createdAt.timeIntervalSince(manifest.createdAt)) < 1
+            && integer(record[Schema.formatVersion]) == Int64(manifest.formatVersion)
+            && nonEmptyString(record[Schema.databaseSchemaVersion]) == manifest.databaseSchemaVersion
+            && nonEmptyString(record[Schema.minimumCompatibleAppVersion]) == manifest.minimumCompatibleAppVersion
+            && integer(record[Schema.payloadByteCount]) == manifest.totalByteCount
+            && integer(record[Schema.uploadByteCount]) == uploadByteCount
+            && integer(record[Schema.fileCount]) == Int64(fileCount)
+            && nonEmptyString(record[Schema.lifecycleState]) == Schema.uploadingState
+    }
+
+    private func verifyFileMetadata(
+        _ record: CKRecord,
+        expected: CloudRestoreFilePlan,
+        generationID: String
+    ) throws {
+        guard nonEmptyString(record[Schema.generationID]) == generationID,
+              nonEmptyString(record[Schema.role]) == expected.role.rawValue,
+              nonEmptyString(record[Schema.relativePath]) == expected.relativePath,
+              integer(record[Schema.byteCount]) == expected.byteCount,
+              nonEmptyString(record[Schema.sha256]) == expected.sha256,
+              let generationReference = record[Schema.generationReference] as? CKRecord.Reference,
+              generationReference.recordID == generationRecordID(generationID),
+              generationReference.action == .deleteSelf else {
+            throw CloudKitBackupStoreInternalError.corruptRecord
+        }
+    }
+
+    private func verifiedPayloadURL(
+        _ record: CKRecord,
+        expected: CloudRestoreFilePlan,
+        generationID: String
+    ) throws -> URL {
+        try verifyFileMetadata(record, expected: expected, generationID: generationID)
+        guard let asset = record[Schema.payload] as? CKAsset,
+              let fileURL = asset.fileURL else {
+            throw CloudKitBackupStoreInternalError.corruptRecord
+        }
+        let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+        guard (attributes[.size] as? NSNumber)?.int64Value == expected.byteCount,
+              try BackupChecksum.sha256(of: fileURL) == expected.sha256 else {
+            throw CloudKitBackupStoreInternalError.corruptRecord
+        }
+        return fileURL
+    }
+
+    private func restoreManifestFilePlan(
+        from record: CKRecord,
+        generationID: String,
+        recordName: String
+    ) throws -> CloudRestoreFilePlan {
+        guard nonEmptyString(record[Schema.generationID]) == generationID,
+              nonEmptyString(record[Schema.role]) == CloudBackupFileRole.manifest.rawValue,
+              nonEmptyString(record[Schema.relativePath]) == AppSnapshotService.manifestFilename,
+              let byteCount = integer(record[Schema.byteCount]), byteCount >= 0,
+              let sha256 = nonEmptyString(record[Schema.sha256]),
+              let generationReference = record[Schema.generationReference] as? CKRecord.Reference,
+              generationReference.recordID == generationRecordID(generationID),
+              generationReference.action == .deleteSelf else {
+            throw CloudKitBackupStoreInternalError.corruptRecord
+        }
+        return CloudRestoreFilePlan(
+            recordName: recordName,
+            role: .manifest,
+            relativePath: AppSnapshotService.manifestFilename,
+            byteCount: byteCount,
+            sha256: sha256,
+            originalAssetPath: nil
+        )
+    }
+
+    private func restoreFileRecordID(_ recordName: String) -> CKRecord.ID {
+        CKRecord.ID(recordName: recordName, zoneID: zoneID)
+    }
+
+    private func removeIfPresent(_ url: URL, fileManager: FileManager) throws {
+        if fileManager.fileExists(atPath: url.path) {
+            try fileManager.removeItem(at: url)
+        }
+    }
+
     private func ensureZoneAndPointer() async throws -> CKRecord {
         if !didPrepareZone {
             let zone = CKRecordZone(zoneID: zoneID)
@@ -395,9 +654,11 @@ actor CloudKitBackupStore: CloudBackupStoring {
     }
 
     private func fetchRecords(
-        _ recordIDs: [CKRecord.ID]
+        _ recordIDs: [CKRecord.ID],
+        desiredKeys: [CKRecord.FieldKey]? = nil
     ) async throws -> [CKRecord.ID: Result<CKRecord, Error>] {
         let operation = CKFetchRecordsOperation(recordIDs: recordIDs)
+        operation.desiredKeys = desiredKeys
         let collector = CloudKitRecordResultCollector()
         operation.configuration = CloudKitBackupOperationPolicy.configuration(for: transferPolicy)
         operation.perRecordResultBlock = { recordID, result in
@@ -486,6 +747,92 @@ actor CloudKitBackupStore: CloudBackupStoring {
         } catch {
             throw CloudKitBackupErrorMapper.storeError(error, operationID: operationID)
         }
+    }
+}
+
+private struct CloudRestoreSnapshotDetails {
+    let snapshot: CloudRestoreSnapshot
+    let manifest: BackupManifest
+    let files: [CloudRestoreFilePlan]
+}
+
+struct CloudRestoreFilePlan: Equatable, Sendable {
+    let recordName: String
+    let role: CloudBackupFileRole
+    let relativePath: String
+    let byteCount: Int64
+    let sha256: String
+    let originalAssetPath: String?
+
+    static func make(
+        manifest: BackupManifest,
+        manifestFile: CloudRestoreFilePlan
+    ) throws -> [CloudRestoreFilePlan] {
+        guard BackupPath.isSafeIdentifier(manifest.generationID),
+              manifestFile.recordName == "\(manifest.generationID)-manifest",
+              manifestFile.role == .manifest,
+              manifestFile.relativePath == AppSnapshotService.manifestFilename,
+              manifestFile.byteCount >= 0,
+              !manifestFile.sha256.isEmpty,
+              BackupManifest.calculatedTotalByteCount(
+                database: manifest.database,
+                assets: manifest.assets
+              ) == manifest.totalByteCount else {
+            throw CloudBackupPlanError.manifestMismatch
+        }
+        let databasePlan = try make(
+            recordName: "\(manifest.generationID)-database",
+            role: .database,
+            descriptor: manifest.database,
+            originalAssetPath: nil
+        )
+        let assets = try manifest.assets.enumerated().map { index, asset in
+            guard BackupPath.isSafeRelativePath(asset.originalRelativePath) else {
+                throw CloudBackupPlanError.unsafeFilePath(asset.originalRelativePath)
+            }
+            return try make(
+                recordName: String(format: "%@-asset-%06d", manifest.generationID, index),
+                role: .asset,
+                descriptor: asset.file,
+                originalAssetPath: asset.originalRelativePath
+            )
+        }
+        return [manifestFile, databasePlan] + assets
+    }
+
+    static func totalByteCount(_ files: [CloudRestoreFilePlan]) -> Int64? {
+        var total: Int64 = 0
+        for file in files {
+            let addition = total.addingReportingOverflow(file.byteCount)
+            guard file.byteCount >= 0, !addition.overflow else { return nil }
+            total = addition.partialValue
+        }
+        return total
+    }
+
+    static let metadataKeys: [CKRecord.FieldKey] = [
+        "generationID", "generationReference", "role", "relativePath", "byteCount", "sha256"
+    ]
+
+    private static func make(
+        recordName: String,
+        role: CloudBackupFileRole,
+        descriptor: BackupFileDescriptor,
+        originalAssetPath: String?
+    ) throws -> CloudRestoreFilePlan {
+        guard CloudBackupRecordName.isSafe(recordName),
+              BackupPath.isSafeRelativePath(descriptor.relativePath),
+              descriptor.byteCount >= 0 else {
+            throw CloudBackupPlanError.invalidRecordName
+        }
+        return CloudRestoreFilePlan(
+            recordName: recordName,
+            role: role,
+            relativePath: descriptor.relativePath,
+            byteCount: descriptor.byteCount,
+            sha256: descriptor.sha256,
+            originalAssetPath: originalAssetPath
+        )
     }
 }
 
