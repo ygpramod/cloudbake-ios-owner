@@ -70,11 +70,11 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             ? "Cloud backup is enabled. CloudBake will back up when eligible."
             : "Cloud backup is off. Your latest cloud backup is retained."
 
-        backupPreferenceTask?.cancel()
+        let precedingUpdate = backupPreferenceTask
         backupPreferenceTask = Task { [weak self, service = service] in
+            await precedingUpdate?.value
             let persisted = await service.setBackupEnabled(isEnabled)
-            guard !Task.isCancelled,
-                  let self,
+            guard let self,
                   self.snapshot.isEnabled == isEnabled else { return }
             self.snapshot.isEnabled = persisted.isEnabled
             self.snapshot.state = persisted.state
@@ -84,11 +84,11 @@ final class CloudBackupSettingsViewModel: ObservableObject {
     func setNotificationsEnabled(_ isEnabled: Bool) {
         snapshot.areNotificationsEnabled = isEnabled
 
-        notificationPreferenceTask?.cancel()
+        let precedingUpdate = notificationPreferenceTask
         notificationPreferenceTask = Task { [weak self, service = service] in
+            await precedingUpdate?.value
             let persisted = await service.setNotificationsEnabled(isEnabled)
-            guard !Task.isCancelled,
-                  let self,
+            guard let self,
                   self.snapshot.areNotificationsEnabled == isEnabled else { return }
             self.snapshot.areNotificationsEnabled = persisted.areNotificationsEnabled
         }

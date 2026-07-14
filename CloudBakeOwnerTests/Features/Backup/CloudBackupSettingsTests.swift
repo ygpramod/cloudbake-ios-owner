@@ -174,6 +174,44 @@ final class CloudBackupSettingsTests: XCTestCase {
         XCTAssertFalse(viewModel.snapshot.areNotificationsEnabled)
     }
 
+    func testRapidBackupPreferenceChangesPersistLatestChoiceInOrder() async {
+        let service = DelayedCloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .enabled)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+        await viewModel.refresh()
+
+        viewModel.setBackupEnabled(false)
+        await service.waitForBackupCallCount(1)
+        viewModel.setBackupEnabled(true)
+        await service.waitForBackupCompletionCount(2)
+
+        let persisted = await service.currentSettings()
+        let persistedValues = await service.backupValues
+        XCTAssertTrue(persisted.isEnabled)
+        XCTAssertEqual(persistedValues, [false, true])
+        XCTAssertTrue(viewModel.snapshot.isEnabled)
+    }
+
+    func testRapidNotificationPreferenceChangesPersistLatestChoiceInOrder() async {
+        let service = DelayedCloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .enabled)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+        await viewModel.refresh()
+
+        viewModel.setNotificationsEnabled(false)
+        await service.waitForNotificationCallCount(1)
+        viewModel.setNotificationsEnabled(true)
+        await service.waitForNotificationCompletionCount(2)
+
+        let persisted = await service.currentSettings()
+        let persistedValues = await service.notificationValues
+        XCTAssertTrue(persisted.areNotificationsEnabled)
+        XCTAssertEqual(persistedValues, [false, true])
+        XCTAssertTrue(viewModel.snapshot.areNotificationsEnabled)
+    }
+
     private func settingsSnapshot(
         state: CloudBackupSettingsState
     ) -> CloudBackupSettingsSnapshot {
@@ -185,6 +223,107 @@ final class CloudBackupSettingsTests: XCTestCase {
             lastSuccessAt: nil,
             estimatedUploadByteCount: nil
         )
+    }
+}
+
+private actor DelayedCloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
+    private var snapshot: CloudBackupSettingsSnapshot
+    private var backupCalls: [Bool] = []
+    private var notificationCalls: [Bool] = []
+    private var backupCompletions = 0
+    private var notificationCompletions = 0
+    private var backupCallWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    private var notificationCallWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    private var backupCompletionWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    private var notificationCompletionWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+
+    init(snapshot: CloudBackupSettingsSnapshot) {
+        self.snapshot = snapshot
+    }
+
+    var backupValues: [Bool] { backupCalls }
+    var notificationValues: [Bool] { notificationCalls }
+
+    func currentSettings() async -> CloudBackupSettingsSnapshot { snapshot }
+
+    func setBackupEnabled(_ isEnabled: Bool) async -> CloudBackupSettingsSnapshot {
+        backupCalls.append(isEnabled)
+        resumeSatisfiedWaiters(&backupCallWaiters, currentCount: backupCalls.count)
+        await nonCancellableDelay(isEnabled ? 0 : 100_000_000)
+        snapshot.isEnabled = isEnabled
+        snapshot.state = isEnabled ? .enabled : .disabled
+        backupCompletions += 1
+        resumeSatisfiedWaiters(&backupCompletionWaiters, currentCount: backupCompletions)
+        return snapshot
+    }
+
+    func setNotificationsEnabled(_ isEnabled: Bool) async -> CloudBackupSettingsSnapshot {
+        notificationCalls.append(isEnabled)
+        resumeSatisfiedWaiters(&notificationCallWaiters, currentCount: notificationCalls.count)
+        await nonCancellableDelay(isEnabled ? 0 : 100_000_000)
+        snapshot.areNotificationsEnabled = isEnabled
+        notificationCompletions += 1
+        resumeSatisfiedWaiters(
+            &notificationCompletionWaiters,
+            currentCount: notificationCompletions
+        )
+        return snapshot
+    }
+
+    func waitForBackupCallCount(_ count: Int) async {
+        guard backupCalls.count < count else { return }
+        await withCheckedContinuation { continuation in
+            backupCallWaiters.append((count, continuation))
+        }
+    }
+
+    func waitForNotificationCallCount(_ count: Int) async {
+        guard notificationCalls.count < count else { return }
+        await withCheckedContinuation { continuation in
+            notificationCallWaiters.append((count, continuation))
+        }
+    }
+
+    func waitForBackupCompletionCount(_ count: Int) async {
+        guard backupCompletions < count else { return }
+        await withCheckedContinuation { continuation in
+            backupCompletionWaiters.append((count, continuation))
+        }
+    }
+
+    func waitForNotificationCompletionCount(_ count: Int) async {
+        guard notificationCompletions < count else { return }
+        await withCheckedContinuation { continuation in
+            notificationCompletionWaiters.append((count, continuation))
+        }
+    }
+
+    func backUpNow() async -> ManualBackupResult { .deferred(.disabled) }
+
+    func confirmCellularBackup(_ proposal: ManualCellularBackupProposal) async -> ManualBackupResult {
+        .deferred(.disabled)
+    }
+
+    func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {}
+
+    private func resumeSatisfiedWaiters(
+        _ waiters: inout [(count: Int, continuation: CheckedContinuation<Void, Never>)],
+        currentCount: Int
+    ) {
+        let satisfied = waiters.filter { $0.count <= currentCount }
+        waiters.removeAll { $0.count <= currentCount }
+        satisfied.forEach { $0.continuation.resume() }
+    }
+
+    private func nonCancellableDelay(_ nanoseconds: UInt64) async {
+        guard nanoseconds > 0 else { return }
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().asyncAfter(
+                deadline: .now() + .nanoseconds(Int(nanoseconds))
+            ) {
+                continuation.resume()
+            }
+        }
     }
 }
 
