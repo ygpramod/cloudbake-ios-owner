@@ -157,6 +157,7 @@ enum InventoryStockOperation {
             name: item.name,
             aliases: item.aliases,
             type: item.type,
+            defaultExpiryDays: item.defaultExpiryDays,
             unit: item.unit,
             currentQuantity: currentQuantity,
             minimumQuantity: item.minimumQuantity,

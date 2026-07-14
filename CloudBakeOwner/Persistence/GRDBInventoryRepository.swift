@@ -152,12 +152,13 @@ extension GRDBCoreDataRepository {
         try db.execute(
             sql: """
                 INSERT INTO inventory_items
-                (id, name, aliases_json, inventory_type, unit, current_quantity, minimum_quantity, created_at_unix_time, updated_at_unix_time, archived_at_unix_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, name, aliases_json, inventory_type, default_expiry_days, unit, current_quantity, minimum_quantity, created_at_unix_time, updated_at_unix_time, archived_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 aliases_json = excluded.aliases_json,
                 inventory_type = excluded.inventory_type,
+                default_expiry_days = excluded.default_expiry_days,
                 unit = excluded.unit,
                 current_quantity = excluded.current_quantity,
                 minimum_quantity = excluded.minimum_quantity,
@@ -170,6 +171,7 @@ extension GRDBCoreDataRepository {
                 item.name,
                 inventoryAliasesJSON(item.aliases),
                 item.type.rawValue,
+                item.defaultExpiryDays,
                 item.unit.rawValue,
                 item.currentQuantity,
                 item.minimumQuantity,

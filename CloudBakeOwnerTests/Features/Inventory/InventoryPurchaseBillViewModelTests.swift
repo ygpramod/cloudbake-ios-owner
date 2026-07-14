@@ -47,19 +47,23 @@ extension InventoryListViewModelTests {
 
     func testCreatePurchaseBillDraftsMarksExistingInventoryMatches() {
         let repository = FakeInventoryItemRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
         let existingItem = InventoryItem(
             id: "inventory-flour",
             name: "Cake flour",
+            defaultExpiryDays: 45,
             unit: .gram,
             currentQuantity: 500,
             minimumQuantity: 250,
-            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
-            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            createdAt: now,
+            updatedAt: now
         )
         repository.items = [existingItem]
         let viewModel = InventoryListViewModel(
             repository: repository,
-            idGenerator: { "draft-flour" }
+            idGenerator: { "draft-flour" },
+            dateProvider: { now }
         )
         viewModel.load()
         viewModel.purchaseBillRecognizedText = "Cake Flour 1 kg"
@@ -68,6 +72,10 @@ extension InventoryListViewModelTests {
 
         XCTAssertEqual(viewModel.purchaseBillDrafts.first?.matchedInventoryItemId, "inventory-flour")
         XCTAssertEqual(viewModel.purchaseBillDrafts.first?.matchedInventoryItemName, "Cake flour")
+        XCTAssertEqual(
+            viewModel.purchaseBillDrafts.first?.expiryDate,
+            calendar.date(byAdding: .day, value: 45, to: now)
+        )
     }
 
     func testCreatePurchaseBillDraftsUsesInventoryAliases() {

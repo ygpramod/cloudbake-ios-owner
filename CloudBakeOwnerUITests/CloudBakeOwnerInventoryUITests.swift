@@ -180,11 +180,24 @@ extension CloudBakeOwnerUITests {
         XCTAssertFalse(app.textFields["inventory.form.currentQuantity"].exists)
         XCTAssertFalse(app.buttons["inventory.form.unit"].exists)
 
+        let formScroll = app.descendants(matching: .any)["inventory.form.scroll"]
+        let defaultExpiryDaysField = app.textFields["inventory.form.defaultExpiryDays"]
+        scrollToHittable(defaultExpiryDaysField, in: app, scrollContainer: formScroll, timeout: 5)
+        typeText("45", into: defaultExpiryDaysField)
+        dismissKeyboard(in: app)
+
         let minimumQuantityField = app.textFields["inventory.form.minimumQuantity"]
+        scrollToHittable(minimumQuantityField, in: app, scrollContainer: formScroll, timeout: 5)
         minimumQuantityField.tap()
         minimumQuantityField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3))
         minimumQuantityField.typeText("600")
         app.buttons["inventory.form.save"].tap()
+        XCTAssertTrue(app.buttons["inventory.detail.done"].waitForExistence(timeout: 5))
+
+        app.buttons["inventory.detail.edit"].tap()
+        XCTAssertTrue(defaultExpiryDaysField.waitForExistence(timeout: 5))
+        XCTAssertEqual(defaultExpiryDaysField.value as? String, "45")
+        app.buttons["Cancel"].tap()
         XCTAssertTrue(app.buttons["inventory.detail.done"].waitForExistence(timeout: 5))
 
         scrollToHittable(adjustButton, in: app, timeout: 5)

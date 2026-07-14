@@ -45,6 +45,21 @@ struct InventoryItemForm: View {
                     viewModel.selectDraftType(newType)
                 }
 
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Default Expiry (Days)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("Use type default", text: $viewModel.draftDefaultExpiryDays)
+                        .keyboardType(.numberPad)
+                        .accessibilityIdentifier("inventory.form.defaultExpiryDays")
+                        .onChange(of: viewModel.draftDefaultExpiryDays) { _, _ in
+                            viewModel.updateDraftExpiryFromDefault()
+                        }
+                    Text("Leave blank to use the inventory type default. You can still change or remove a batch expiry before saving stock.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 if showsUnit {
                     Picker("Unit", selection: $viewModel.draftUnit) {
                         ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
