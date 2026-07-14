@@ -342,6 +342,8 @@ Expand **Data Management** and choose **Delete Cloud Backup** to permanently rem
 complete recovery backup from the current private iCloud account. A destructive confirmation is
 required. Successful deletion removes current and abandoned backup generations, leaves all local
 data and photos unchanged, and turns cloud backup off until the owner explicitly enables it again.
+If deletion cannot be verified, CloudBake reports that uncertainty and keeps backup off so an
+automatic run cannot silently recreate the backup. The owner can retry deletion safely.
 Turning backup off by itself is different: it retains the latest cloud snapshot.
 
 Expand **Data Management** and choose **Restore from Cloud Backup** to inspect the latest recovery

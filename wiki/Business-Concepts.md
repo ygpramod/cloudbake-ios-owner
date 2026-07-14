@@ -167,7 +167,7 @@ over cellular requires confirmation of the displayed estimated size.
 Disabling cloud backup retains the latest recovery snapshot. Permanent deletion is a separate,
 destructively confirmed operation that removes the complete private CloudKit backup—including
 abandoned generations—while preserving all local app data and photos. Backup remains disabled after
-successful deletion until the owner enables it again.
+successful deletion, or after an unverified deletion attempt, until the owner enables it again.
 
 It uses the columns `name`, `aliases`, `type`, `unit`, `current_quantity`, `minimum_quantity`,
 `batch_quantity`, `amount`, and `expiry_date`. Aliases are comma-separated inside the CSV field,

@@ -62,4 +62,7 @@ Update wiki privacy and owner-workflow documentation before release.
   pointer, current generation, abandoned generations, database, manifest, and assets. A missing
   zone is treated as an already-complete deletion, and successful deletion is verified before the
   local backup preference is disabled.
+- Once destructive deletion starts, backup remains disabled even if remote completion cannot be
+  verified because of interruption or network failure. The owner can safely retry the idempotent
+  deletion or explicitly enable backup to publish again.
 - Local database and photo storage are outside the cloud deletion boundary and remain unchanged.
