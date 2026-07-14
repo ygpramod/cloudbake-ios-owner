@@ -75,6 +75,21 @@ struct CloudBackupSettingsCard: View {
             }
         }
         .cloudBakeCenteredPopup(
+            isPresented: viewModel.pendingAccountProposal != nil,
+            title: "Use This iCloud Account?",
+            subtitle: "CloudBake will publish a complete recovery backup to the private iCloud account currently signed in on this iPhone. Confirm only if this is the intended account.",
+            systemImage: "person.crop.circle.badge.checkmark",
+            cancelAccessibilityIdentifier: "settings.cloudBackup.account.cancel",
+            onCancel: {
+                Task { await viewModel.cancelAccountBackup() }
+            }
+        ) {
+            centeredPopupButton("Confirm iCloud Account") {
+                Task { await viewModel.confirmAccountBackup() }
+            }
+            .accessibilityIdentifier("settings.cloudBackup.account.confirm")
+        }
+        .cloudBakeCenteredPopup(
             isPresented: viewModel.pendingCellularProposal != nil,
             title: "Use Cellular Data?",
             subtitle: cellularConfirmationDescription,

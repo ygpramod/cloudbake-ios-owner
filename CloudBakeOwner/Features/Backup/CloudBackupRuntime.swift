@@ -82,6 +82,16 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
         return result
     }
 
+    func confirmAccountBackup(_ proposal: ManualAccountBackupProposal) async -> ManualBackupResult {
+        let result = await coordinator.confirmManualAccountBackup(proposalID: proposal.id)
+        await notificationDispatcher.send(for: result)
+        return result
+    }
+
+    func cancelAccountBackup(_ proposal: ManualAccountBackupProposal) async {
+        await coordinator.cancelManualAccountBackup(proposalID: proposal.id)
+    }
+
     func confirmCellularBackup(_ proposal: ManualCellularBackupProposal) async -> ManualBackupResult {
         let result = await coordinator.confirmManualCellularBackup(
             proposalID: proposal.id,
@@ -93,6 +103,10 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
 
     func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {
         await coordinator.cancelManualCellularBackup(proposalID: proposal.id)
+    }
+
+    func deleteCloudBackup() async -> CloudBackupDeletionResult {
+        await coordinator.deleteCloudBackup()
     }
 
     func inspectRestore() async -> RestoreResult {
@@ -166,20 +180,22 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
         let cloudStore = CloudKitBackupStore()
         let publisher = CloudBackupPublisher(store: cloudStore)
         let connectivity = NetworkBackupConnectivityChecker()
+        let accountChecker = CloudKitBackupAccountChecker()
         let coordinator = BackupCoordinator(
             snapshotCreator: snapshotService,
             publisher: publisher,
             scheduleStore: UserDefaultsBackupScheduleStore(),
             connectivity: connectivity,
-            account: CloudKitBackupAccountChecker(),
-            publicationAuthorization: PendingCloudBackupAccountProtectionGate(),
+            account: accountChecker,
+            publicationAuthorization: CloudBackupAccountProtectionGate(account: accountChecker),
             power: SystemBackupPowerChecker(),
             storage: VolumeBackupStorageChecker(
                 volumeURL: applicationSupport,
                 appStorageRoot: appStorageRoot
             ),
             backgroundScheduler: SystemBackupBackgroundScheduler(),
-            packageCleaner: StagedBackupPackageCleaner(stagingRoot: stagingRoot)
+            packageCleaner: StagedBackupPackageCleaner(stagingRoot: stagingRoot),
+            deleter: cloudStore
         )
         let localRestore = LocalRestoreService(
             database: database,

@@ -11,6 +11,16 @@ enum BackupAccountAvailability: Equatable, Sendable {
     case unavailable
 }
 
+struct ManualAccountBackupProposal: Equatable, Sendable {
+    let id: String
+    fileprivate let accountFingerprint: String
+
+    init(id: String, accountFingerprint: String) {
+        self.id = id
+        self.accountFingerprint = accountFingerprint
+    }
+}
+
 enum BackupDeferralReason: Equatable, Sendable {
     case disabled
     case accountConfirmationRequired
@@ -42,10 +52,17 @@ struct ManualCellularBackupProposal: Equatable, Sendable {
 
 enum ManualBackupResult: Equatable, Sendable {
     case published(CloudBackupPublicationResult)
+    case requiresAccountConfirmation(ManualAccountBackupProposal)
     case requiresCellularConfirmation(ManualCellularBackupProposal)
     case busy
     case deferred(BackupDeferralReason)
     case invalidCellularApproval
+    case failed(CloudBackupErrorCategory)
+}
+
+enum CloudBackupDeletionResult: Equatable, Sendable {
+    case deleted
+    case busy
     case failed(CloudBackupErrorCategory)
 }
 
@@ -55,10 +72,24 @@ protocol BackupConnectivityChecking: Sendable {
 
 protocol BackupAccountChecking: Sendable {
     func currentAvailability() async -> BackupAccountAvailability
+    func currentFingerprint() async -> String?
+}
+
+extension BackupAccountChecking {
+    func currentFingerprint() async -> String? { nil }
 }
 
 protocol BackupPublicationAuthorizing: Sendable {
     func isPublicationAuthorized() async -> Bool
+    func authorizePublication(for accountFingerprint: String) async -> Bool
+}
+
+extension BackupPublicationAuthorizing {
+    func authorizePublication(for accountFingerprint: String) async -> Bool { false }
+}
+
+protocol CloudBackupDeleting: Sendable {
+    func deleteAllBackupData() async throws
 }
 
 protocol BackupPowerChecking: Sendable {
@@ -100,8 +131,10 @@ actor BackupCoordinator {
         case automatic
         case preparingManual
         case awaitingManualCellularApproval
+        case awaitingManualAccountApproval
         case publishingManual
         case cancellingManual
+        case deletingCloudBackup
     }
 
     private struct PreparedManualBackup {
@@ -119,6 +152,7 @@ actor BackupCoordinator {
     private let storage: any BackupStorageChecking
     private let backgroundScheduler: any BackupBackgroundScheduling
     private let packageCleaner: any BackupSnapshotPackageCleaning
+    private let deleter: (any CloudBackupDeleting)?
     private let schedulePolicy: BackupSchedulePolicy
     private let now: @Sendable () -> Date
     private let makeProposalID: @Sendable () -> String
@@ -128,6 +162,7 @@ actor BackupCoordinator {
     private var activePublicationStage: CloudBackupPublicationStage?
     private var didRecoverStaging = false
     private var preparedManualBackup: PreparedManualBackup?
+    private var pendingAccountProposal: ManualAccountBackupProposal?
 
     init(
         snapshotCreator: any AppSnapshotCreating,
@@ -140,6 +175,7 @@ actor BackupCoordinator {
         storage: any BackupStorageChecking,
         backgroundScheduler: any BackupBackgroundScheduling,
         packageCleaner: any BackupSnapshotPackageCleaning,
+        deleter: (any CloudBackupDeleting)? = nil,
         schedulePolicy: BackupSchedulePolicy = BackupSchedulePolicy(),
         now: @escaping @Sendable () -> Date = { Date() },
         makeProposalID: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() }
@@ -154,6 +190,7 @@ actor BackupCoordinator {
         self.storage = storage
         self.backgroundScheduler = backgroundScheduler
         self.packageCleaner = packageCleaner
+        self.deleter = deleter
         self.schedulePolicy = schedulePolicy
         self.now = now
         self.makeProposalID = makeProposalID
@@ -212,6 +249,17 @@ actor BackupCoordinator {
         let environment = await currentEnvironment(
             estimatedUploadByteCount: metadata.estimatedUploadByteCount
         )
+        if !environment.isPublicationAuthorized,
+           environment.account == .available,
+           let fingerprint = await account.currentFingerprint() {
+            let proposal = ManualAccountBackupProposal(
+                id: makeProposalID(),
+                accountFingerprint: fingerprint
+            )
+            pendingAccountProposal = proposal
+            activeOperation = .awaitingManualAccountApproval
+            return .requiresAccountConfirmation(proposal)
+        }
         if let reason = manualDeferralReason(for: environment) {
             finishOperation()
             return .deferred(reason)
@@ -256,6 +304,64 @@ actor BackupCoordinator {
                 await packageCleaner.removePackage(generationID: package.generationID)
             }
             return await finishManualFailure(error, startedAt: date)
+        }
+    }
+
+    func confirmManualAccountBackup(proposalID: String) async -> ManualBackupResult {
+        guard case .awaitingManualAccountApproval = activeOperation,
+              let proposal = pendingAccountProposal,
+              proposal.id == proposalID else {
+            return .deferred(.accountConfirmationRequired)
+        }
+        guard await account.currentFingerprint() == proposal.accountFingerprint,
+              await publicationAuthorization.authorizePublication(
+                for: proposal.accountFingerprint
+              ) else {
+            pendingAccountProposal = nil
+            finishOperation()
+            return .deferred(.accountConfirmationRequired)
+        }
+        pendingAccountProposal = nil
+        finishOperation()
+        return await prepareManualBackup()
+    }
+
+    func cancelManualAccountBackup(proposalID: String) {
+        guard case .awaitingManualAccountApproval = activeOperation,
+              pendingAccountProposal?.id == proposalID else { return }
+        pendingAccountProposal = nil
+        finishOperation()
+    }
+
+    func deleteCloudBackup() async -> CloudBackupDeletionResult {
+        guard activeOperation == nil, !isRestoreSessionActive else { return .busy }
+        guard let deleter else { return .failed(.unknown) }
+        activeOperation = .deletingCloudBackup
+        let wasEnabled = scheduleStore.load().isEnabled
+        var deletionMetadata = scheduleStore.load()
+        deletionMetadata.isEnabled = false
+        scheduleStore.save(deletionMetadata)
+        do {
+            try await deleter.deleteAllBackupData()
+            var metadata = scheduleStore.load()
+            metadata.isEnabled = false
+            metadata.lastSuccessAt = nil
+            metadata.nextEligibleAt = nil
+            metadata.isOverdue = false
+            metadata.activeGenerationID = nil
+            metadata.retryCount = 0
+            metadata.estimatedUploadByteCount = nil
+            metadata.lastFailureCategory = nil
+            scheduleStore.save(metadata)
+            finishOperation()
+            return .deleted
+        } catch {
+            let category = errorCategory(for: error)
+            var metadata = scheduleStore.load()
+            metadata.isEnabled = wasEnabled
+            scheduleStore.save(metadata)
+            finishOperation()
+            return .failed(category)
         }
     }
 
@@ -332,12 +438,16 @@ actor BackupCoordinator {
     }
 
     func setBackupEnabled(_ isEnabled: Bool) async {
+        if case .deletingCloudBackup? = activeOperation { return }
         var metadata = scheduleStore.load()
         guard metadata.isEnabled != isEnabled else { return }
         metadata.isEnabled = isEnabled
         if isEnabled {
             metadata.isOverdue = true
             metadata.nextEligibleAt = now()
+        } else if case .awaitingManualAccountApproval = activeOperation {
+            pendingAccountProposal = nil
+            finishOperation()
         } else if case .awaitingManualCellularApproval = activeOperation,
                   let preparedManualBackup {
             activeOperation = .cancellingManual
@@ -511,8 +621,8 @@ actor BackupCoordinator {
         let environment = await currentEnvironment(
             estimatedUploadByteCount: scheduleStore.load().estimatedUploadByteCount
         )
-        guard environment.isPublicationAuthorized else { return .accountConfirmationRequired }
         guard environment.account == .available else { return .iCloudUnavailable }
+        guard environment.isPublicationAuthorized else { return .accountConfirmationRequired }
         guard environment.hasEligiblePower else { return .powerRestricted }
         guard environment.hasSufficientStorage else { return .insufficientStorage }
         switch environment.connection {
@@ -531,8 +641,8 @@ actor BackupCoordinator {
             isPublicationAuthorized: Bool
         )
     ) -> BackupDeferralReason? {
-        guard environment.isPublicationAuthorized else { return .accountConfirmationRequired }
         guard environment.account == .available else { return .iCloudUnavailable }
+        guard environment.isPublicationAuthorized else { return .accountConfirmationRequired }
         guard environment.hasEligiblePower else { return .powerRestricted }
         guard environment.hasSufficientStorage else { return .insufficientStorage }
         return environment.connection == .unavailable ? .networkUnavailable : nil
@@ -576,6 +686,10 @@ actor BackupCoordinator {
             return .uploading
         case .awaitingManualCellularApproval:
             return .awaitingCellularConfirmation
+        case .awaitingManualAccountApproval:
+            return .awaitingAccountConfirmation
+        case .deletingCloudBackup:
+            return .deleting
         case nil:
             break
         }
@@ -617,8 +731,9 @@ actor BackupCoordinator {
         activePublicationStage = stage
     }
 
-    private func isPublicationEnabled() -> Bool {
-        scheduleStore.load().isEnabled
+    private func isPublicationEnabled() async -> Bool {
+        guard scheduleStore.load().isEnabled else { return false }
+        return await publicationAuthorization.isPublicationAuthorized()
     }
 
     private func scheduleNextAttempt(

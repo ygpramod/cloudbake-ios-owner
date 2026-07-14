@@ -375,12 +375,22 @@ struct SettingsView: View {
 
                         CloudBakeDetailDivider()
 
-                    unavailableSettingsAction(
+                    settingsAction(
                         title: "Delete Cloud Backup",
-                        detail: "Cloud deletion will be available after account lifecycle safeguards are added.",
+                        detail: "Permanently remove the complete recovery backup from iCloud. Local data stays on this iPhone.",
                         systemImage: "trash",
                         accessibilityIdentifier: "settings.cloudBackup.delete"
-                    )
+                    ) {
+                        cloudBackupViewModel.requestCloudBackupDeletion()
+                    }
+
+                    if let deletionMessage = cloudBackupViewModel.deletionMessage {
+                        Text(deletionMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .padding(.bottom, 12)
+                            .accessibilityIdentifier("settings.cloudBackup.delete.message")
+                    }
 
                     CloudBakeDetailDivider()
 
@@ -449,6 +459,19 @@ struct SettingsView: View {
         }
         .accessibilityIdentifier(AppDestination.settings.screenAccessibilityIdentifier)
         .cloudRestorePrompts(viewModel: cloudRestoreViewModel)
+        .cloudBakeCenteredPopup(
+            isPresented: cloudBackupViewModel.isConfirmingDeletion,
+            title: "Delete Cloud Backup?",
+            subtitle: "This permanently removes CloudBake's complete recovery backup from the current iCloud account. Your database and photos on this iPhone will not be changed. Cloud backup will be turned off after deletion.",
+            systemImage: "trash",
+            cancelAccessibilityIdentifier: "settings.cloudBackup.delete.cancel",
+            onCancel: { cloudBackupViewModel.cancelCloudBackupDeletion() }
+        ) {
+            centeredPopupButton("Delete Cloud Backup", role: .destructive) {
+                Task { await cloudBackupViewModel.confirmCloudBackupDeletion() }
+            }
+            .accessibilityIdentifier("settings.cloudBackup.delete.confirm")
+        }
         .task {
             await cloudBackupViewModel.refresh()
         }

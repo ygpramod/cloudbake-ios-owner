@@ -52,7 +52,8 @@ struct CloudBackupNotificationPolicy: Sendable {
             return .completed
         case .failed(let category) where Self.isActionable(category):
             return .failed(category)
-        case .failed, .requiresCellularConfirmation, .busy, .deferred, .invalidCellularApproval:
+        case .failed, .requiresAccountConfirmation, .requiresCellularConfirmation,
+             .busy, .deferred, .invalidCellularApproval:
             return nil
         }
     }
