@@ -1,5 +1,6 @@
 import BackgroundTasks
 import CloudKit
+import CryptoKit
 import Foundation
 import Network
 import os
@@ -56,10 +57,46 @@ struct CloudKitBackupAccountChecker: BackupAccountChecking {
             return .unavailable
         }
     }
+
+    func currentFingerprint() async -> String? {
+        guard await currentAvailability() == .available else { return nil }
+        do {
+            let recordID = try await container.userRecordID()
+            let identity = "\(CloudKitBackupStore.containerIdentifier)|\(recordID.recordName)"
+            return SHA256.hash(data: Data(identity.utf8))
+                .map { String(format: "%02x", $0) }
+                .joined()
+        } catch {
+            return nil
+        }
+    }
 }
 
-struct PendingCloudBackupAccountProtectionGate: BackupPublicationAuthorizing {
-    func isPublicationAuthorized() async -> Bool { false }
+actor CloudBackupAccountProtectionGate: BackupPublicationAuthorizing {
+    static let confirmedFingerprintKey = "cloudBackup.confirmedAccountFingerprint"
+
+    private let account: any BackupAccountChecking
+    private let defaults: UserDefaults
+
+    init(
+        account: any BackupAccountChecking,
+        defaults: UserDefaults = .standard
+    ) {
+        self.account = account
+        self.defaults = defaults
+    }
+
+    func isPublicationAuthorized() async -> Bool {
+        guard let currentFingerprint = await account.currentFingerprint() else { return false }
+        return defaults.string(forKey: Self.confirmedFingerprintKey) == currentFingerprint
+    }
+
+    func authorizePublication(for accountFingerprint: String) async -> Bool {
+        guard !accountFingerprint.isEmpty,
+              await account.currentFingerprint() == accountFingerprint else { return false }
+        defaults.set(accountFingerprint, forKey: Self.confirmedFingerprintKey)
+        return true
+    }
 }
 
 struct SystemBackupPowerChecker: BackupPowerChecking {

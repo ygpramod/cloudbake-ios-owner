@@ -1,7 +1,7 @@
 import CloudKit
 import Foundation
 
-actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
+actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing, CloudBackupDeleting {
     static let containerIdentifier = "iCloud.com.cloudbake.owner"
 
     private enum Schema {
@@ -204,6 +204,25 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
 
             _ = try await deleteRecords([generation.recordID], preserving: pointer)
             return true
+        }
+    }
+
+    func deleteAllBackupData() async throws {
+        transferPolicy = .cellularAllowed
+        try await mappedOperation {
+            do {
+                _ = try await database.deleteRecordZone(withID: zoneID)
+            } catch let error as CKError where Self.isMissingZone(error) {
+                didPrepareZone = false
+                return
+            }
+            didPrepareZone = false
+            do {
+                _ = try await database.recordZone(for: zoneID)
+                throw CloudKitBackupStoreInternalError.deletionNotVerified
+            } catch let error as CKError where Self.isMissingZone(error) {
+                return
+            }
         }
     }
 
@@ -498,6 +517,10 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
         }
     }
 
+    private static func isMissingZone(_ error: CKError) -> Bool {
+        error.code == .zoneNotFound || error.code == .unknownItem
+    }
+
     private func saveRecords(_ records: [CKRecord], atomically: Bool) async throws -> [CKRecord.ID: CKRecord] {
         let result = try await modifyRecords(
             saving: records,
@@ -771,7 +794,7 @@ enum CloudRestoreAssetFailureClassifier {
     static func isBrokenAsset(_ error: Error) -> Bool {
         if let internalError = error as? CloudKitBackupStoreInternalError {
             switch internalError {
-            case .corruptRecord, .corruptResponse:
+            case .corruptRecord, .corruptResponse, .deletionNotVerified:
                 return true
             case .pointerConflict, .invalidPlan:
                 return false
@@ -988,7 +1011,7 @@ enum CloudKitBackupErrorMapper {
             switch internalError {
             case .pointerConflict:
                 return .conflict
-            case .corruptRecord, .corruptResponse:
+            case .corruptRecord, .corruptResponse, .deletionNotVerified:
                 return .corruptRemoteData
             case .invalidPlan:
                 return .unknown
@@ -1046,6 +1069,7 @@ private enum CloudKitBackupStoreInternalError: Error {
     case corruptRecord
     case corruptResponse
     case invalidPlan
+    case deletionNotVerified
 }
 
 enum CloudKitBackupBatching {

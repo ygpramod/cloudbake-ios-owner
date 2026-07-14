@@ -10,6 +10,8 @@ enum CloudBackupSettingsState: Equatable, Sendable {
     case uploading
     case verifying
     case awaitingCellularConfirmation
+    case awaitingAccountConfirmation
+    case deleting
     case successful
     case failed(CloudBackupErrorCategory)
 }
@@ -37,15 +39,31 @@ protocol CloudBackupSettingsServing: Sendable {
     func setBackupEnabled(_ isEnabled: Bool) async -> CloudBackupSettingsSnapshot
     func setNotificationsEnabled(_ isEnabled: Bool) async -> CloudBackupSettingsSnapshot
     func backUpNow() async -> ManualBackupResult
+    func confirmAccountBackup(_ proposal: ManualAccountBackupProposal) async -> ManualBackupResult
+    func cancelAccountBackup(_ proposal: ManualAccountBackupProposal) async
     func confirmCellularBackup(_ proposal: ManualCellularBackupProposal) async -> ManualBackupResult
     func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async
+    func deleteCloudBackup() async -> CloudBackupDeletionResult
+}
+
+extension CloudBackupSettingsServing {
+    func confirmAccountBackup(_ proposal: ManualAccountBackupProposal) async -> ManualBackupResult {
+        .deferred(.accountConfirmationRequired)
+    }
+
+    func cancelAccountBackup(_ proposal: ManualAccountBackupProposal) async {}
+
+    func deleteCloudBackup() async -> CloudBackupDeletionResult { .failed(.unknown) }
 }
 
 @MainActor
 final class CloudBackupSettingsViewModel: ObservableObject {
     @Published private(set) var snapshot: CloudBackupSettingsSnapshot
     @Published private(set) var pendingCellularProposal: ManualCellularBackupProposal?
+    @Published private(set) var pendingAccountProposal: ManualAccountBackupProposal?
+    @Published var isConfirmingDeletion = false
     @Published private(set) var actionMessage: String?
+    @Published private(set) var deletionMessage: String?
 
     private let service: any CloudBackupSettingsServing
     private var backupPreferenceTask: Task<Void, Never>?
@@ -113,6 +131,44 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         await handle(result)
     }
 
+    func confirmAccountBackup() async {
+        guard let proposal = pendingAccountProposal else { return }
+        pendingAccountProposal = nil
+        snapshot.state = .preparing
+        let result = await service.confirmAccountBackup(proposal)
+        await handle(result)
+    }
+
+    func cancelAccountBackup() async {
+        guard let proposal = pendingAccountProposal else { return }
+        pendingAccountProposal = nil
+        await service.cancelAccountBackup(proposal)
+        snapshot = await service.currentSettings()
+    }
+
+    func requestCloudBackupDeletion() {
+        deletionMessage = nil
+        isConfirmingDeletion = true
+    }
+
+    func cancelCloudBackupDeletion() {
+        isConfirmingDeletion = false
+    }
+
+    func confirmCloudBackupDeletion() async {
+        isConfirmingDeletion = false
+        snapshot.state = .deleting
+        switch await service.deleteCloudBackup() {
+        case .deleted:
+            deletionMessage = "Cloud backup deleted. All local data remains on this iPhone."
+        case .busy:
+            deletionMessage = "Another backup or restore operation is in progress."
+        case .failed(let category):
+            deletionMessage = Self.failureGuidance(for: category)
+        }
+        snapshot = await service.currentSettings()
+    }
+
     func cancelCellularBackup() async {
         guard let proposal = pendingCellularProposal else { return }
         pendingCellularProposal = nil
@@ -130,6 +186,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         case .uploading: "Uploading"
         case .verifying: "Verifying"
         case .awaitingCellularConfirmation: "Confirmation Required"
+        case .awaitingAccountConfirmation: "Account Confirmation Required"
+        case .deleting: "Deleting Backup"
         case .successful: "Up to Date"
         case .failed: "Backup Failed"
         }
@@ -153,6 +211,10 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             "Verifying the uploaded recovery snapshot before making it current."
         case .awaitingCellularConfirmation:
             "Approve the estimated transfer size to continue on cellular data."
+        case .awaitingAccountConfirmation:
+            "Confirm this iCloud account before CloudBake publishes any local data."
+        case .deleting:
+            "Removing the complete recovery backup from private iCloud storage."
         case .successful:
             "The latest complete recovery snapshot is safely stored in iCloud."
         case .failed(let category):
@@ -175,7 +237,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
 
     var isBusy: Bool {
         switch snapshot.state {
-        case .preparing, .uploading, .verifying, .awaitingCellularConfirmation:
+        case .preparing, .uploading, .verifying, .awaitingCellularConfirmation,
+             .awaitingAccountConfirmation, .deleting:
             true
         default:
             false
@@ -186,6 +249,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         switch result {
         case .published:
             actionMessage = "Cloud backup completed successfully."
+        case .requiresAccountConfirmation(let proposal):
+            pendingAccountProposal = proposal
         case .requiresCellularConfirmation(let proposal):
             pendingCellularProposal = proposal
         case .busy:
@@ -200,6 +265,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         snapshot = await service.currentSettings()
         if pendingCellularProposal != nil {
             snapshot.state = .awaitingCellularConfirmation
+        } else if pendingAccountProposal != nil {
+            snapshot.state = .awaitingAccountConfirmation
         }
     }
 
@@ -259,10 +326,15 @@ struct UnavailableCloudBackupSettingsService: CloudBackupSettingsServing {
     func setBackupEnabled(_ isEnabled: Bool) async -> CloudBackupSettingsSnapshot { .unavailable }
     func setNotificationsEnabled(_ isEnabled: Bool) async -> CloudBackupSettingsSnapshot { .unavailable }
     func backUpNow() async -> ManualBackupResult { .deferred(.iCloudUnavailable) }
+    func confirmAccountBackup(_ proposal: ManualAccountBackupProposal) async -> ManualBackupResult {
+        .deferred(.iCloudUnavailable)
+    }
+    func cancelAccountBackup(_ proposal: ManualAccountBackupProposal) async {}
     func confirmCellularBackup(_ proposal: ManualCellularBackupProposal) async -> ManualBackupResult {
         .deferred(.iCloudUnavailable)
     }
     func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {}
+    func deleteCloudBackup() async -> CloudBackupDeletionResult { .failed(.iCloudUnavailable) }
 }
 
 #if DEBUG
@@ -275,6 +347,12 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
         lastSuccessAt: Date(timeIntervalSince1970: 1_788_739_200),
         estimatedUploadByteCount: 4_000_000
     )
+    private let requiresAccountConfirmation = ProcessInfo.processInfo.environment[
+        "CLOUDBAKE_TEST_CLOUD_BACKUP_ACCOUNT_CONFIRMATION"
+    ] == "1"
+    private let deletionFails = ProcessInfo.processInfo.environment[
+        "CLOUDBAKE_TEST_CLOUD_BACKUP_DELETE_FAILURE"
+    ] == "1"
 
     func currentSettings() async -> CloudBackupSettingsSnapshot { snapshot }
 
@@ -290,6 +368,15 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
     }
 
     func backUpNow() async -> ManualBackupResult {
+        if requiresAccountConfirmation {
+            snapshot.state = .awaitingAccountConfirmation
+            return .requiresAccountConfirmation(
+                ManualAccountBackupProposal(
+                    id: "ui-test-account-proposal",
+                    accountFingerprint: "ui-test-account"
+                )
+            )
+        }
         let proposal = ManualCellularBackupProposal(
             id: "ui-test-proposal",
             generationID: "ui-test-generation",
@@ -297,6 +384,22 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
         )
         snapshot.state = .awaitingCellularConfirmation
         return .requiresCellularConfirmation(proposal)
+    }
+
+    func confirmAccountBackup(_ proposal: ManualAccountBackupProposal) async -> ManualBackupResult {
+        snapshot.state = .successful
+        return .published(
+            CloudBackupPublicationResult(
+                generationID: "ui-test-generation",
+                replacedGenerationID: nil,
+                wasAlreadyCurrent: false,
+                cleanupPending: false
+            )
+        )
+    }
+
+    func cancelAccountBackup(_ proposal: ManualAccountBackupProposal) async {
+        snapshot.state = .enabled
     }
 
     func confirmCellularBackup(_ proposal: ManualCellularBackupProposal) async -> ManualBackupResult {
@@ -314,6 +417,18 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
 
     func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {
         snapshot.state = .enabled
+    }
+
+    func deleteCloudBackup() async -> CloudBackupDeletionResult {
+        if deletionFails {
+            snapshot.state = .failed(.temporarilyUnavailable)
+            return .failed(.temporarilyUnavailable)
+        }
+        snapshot.isEnabled = false
+        snapshot.state = .disabled
+        snapshot.lastSuccessAt = nil
+        snapshot.estimatedUploadByteCount = nil
+        return .deleted
     }
 }
 #endif
