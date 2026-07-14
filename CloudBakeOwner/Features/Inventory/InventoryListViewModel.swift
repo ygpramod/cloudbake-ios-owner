@@ -1,6 +1,11 @@
 import CoreGraphics
 import Foundation
 
+private enum DefaultExpiryDaysDraft: Equatable {
+    case valid(Int?)
+    case invalid
+}
+
 struct InventoryStockMutationPreview: Equatable {
     let currentQuantity: Double
     let quantityChange: Double
@@ -30,6 +35,7 @@ final class InventoryListViewModel: ObservableObject {
     @Published var draftName = ""
     @Published var draftAliases = ""
     @Published var draftType: InventoryItemType = .standard
+    @Published var draftDefaultExpiryDays = ""
     @Published var draftUnit: InventoryUnit = .gram
     @Published var draftCurrentQuantity = ""
     @Published var draftMinimumQuantity = ""
@@ -160,6 +166,10 @@ final class InventoryListViewModel: ObservableObject {
             return false
         }
 
+        guard parsedDefaultExpiryDays(from: draftDefaultExpiryDays) != .invalid else {
+            return false
+        }
+
         if requiresCurrentQuantity {
             guard let currentQuantity = parsedQuantity(from: draftCurrentQuantity), currentQuantity >= 0 else {
                 return false
@@ -217,6 +227,9 @@ final class InventoryListViewModel: ObservableObject {
         guard let amount = validatedAmount(from: draftAmount) else {
             return false
         }
+        guard let defaultExpiryDays = validatedDefaultExpiryDays() else {
+            return false
+        }
 
         let now = dateProvider()
         let item = InventoryItem(
@@ -224,6 +237,7 @@ final class InventoryListViewModel: ObservableObject {
             name: name,
             aliases: InventoryAliases.aliases(from: draftAliases),
             type: draftType,
+            defaultExpiryDays: defaultExpiryDays,
             unit: draftUnit,
             currentQuantity: quantities.current,
             minimumQuantity: quantities.minimum,
@@ -260,11 +274,12 @@ final class InventoryListViewModel: ObservableObject {
         draftName = item.name
         draftAliases = InventoryAliases.displayText(item.aliases)
         draftType = item.type
+        draftDefaultExpiryDays = item.defaultExpiryDays.map(String.init) ?? ""
         draftUnit = item.unit
         draftCurrentQuantity = item.currentQuantity.formatted()
         draftMinimumQuantity = item.minimumQuantity.formatted()
         draftHasExpiryDate = item.earliestExpiryAt != nil
-        draftExpiryDate = item.earliestExpiryAt ?? defaultExpiryDate(for: item.type)
+        draftExpiryDate = item.earliestExpiryAt ?? defaultExpiryDate(for: item)
         draftAmount = ""
         errorMessage = nil
         duplicateWarningMessage = nil
@@ -296,12 +311,16 @@ final class InventoryListViewModel: ObservableObject {
         guard let minimumQuantity = validatedMinimumQuantity() else {
             return false
         }
+        guard let defaultExpiryDays = validatedDefaultExpiryDays() else {
+            return false
+        }
 
         let item = InventoryItem(
             id: editingItem.id,
             name: name,
             aliases: InventoryAliases.aliases(from: draftAliases),
             type: draftType,
+            defaultExpiryDays: defaultExpiryDays,
             unit: editingItem.unit,
             currentQuantity: editingItem.currentQuantity,
             minimumQuantity: minimumQuantity,
@@ -364,7 +383,9 @@ final class InventoryListViewModel: ObservableObject {
         editingBatch = batch
         draftBatchQuantity = batch.remainingQuantity.formatted()
         draftBatchHasExpiryDate = batch.expiresAt != nil
-        draftBatchExpiryDate = batch.expiresAt ?? defaultExpiryDate(for: selectedItem?.type ?? .standard)
+        draftBatchExpiryDate = batch.expiresAt
+            ?? selectedItem.map(defaultExpiryDate(for:))
+            ?? defaultExpiryDate(for: .standard)
         draftBatchAmount = TextInputFormatting.decimalText(batch.amount)
         errorMessage = nil
     }
@@ -400,6 +421,7 @@ final class InventoryListViewModel: ObservableObject {
             name: selectedItem.name,
             aliases: selectedItem.aliases,
             type: selectedItem.type,
+            defaultExpiryDays: selectedItem.defaultExpiryDays,
             unit: selectedItem.unit,
             currentQuantity: selectedItem.currentQuantity + quantityDelta,
             minimumQuantity: selectedItem.minimumQuantity,
@@ -452,6 +474,7 @@ final class InventoryListViewModel: ObservableObject {
             name: selectedItem.name,
             aliases: selectedItem.aliases,
             type: selectedItem.type,
+            defaultExpiryDays: selectedItem.defaultExpiryDays,
             unit: selectedItem.unit,
             currentQuantity: updatedQuantity,
             minimumQuantity: selectedItem.minimumQuantity,
@@ -479,6 +502,7 @@ final class InventoryListViewModel: ObservableObject {
             name: currentItem.name,
             aliases: currentItem.aliases,
             type: currentItem.type,
+            defaultExpiryDays: currentItem.defaultExpiryDays,
             unit: currentItem.unit,
             currentQuantity: currentItem.currentQuantity,
             minimumQuantity: currentItem.minimumQuantity,
@@ -504,6 +528,7 @@ final class InventoryListViewModel: ObservableObject {
             name: item.name,
             aliases: item.aliases,
             type: item.type,
+            defaultExpiryDays: item.defaultExpiryDays,
             unit: item.unit,
             currentQuantity: item.currentQuantity,
             minimumQuantity: item.minimumQuantity,
@@ -528,7 +553,7 @@ final class InventoryListViewModel: ObservableObject {
         draftAdjustmentQuantity = ""
         draftAdjustmentUnit = item.unit
         draftAdjustmentHasExpiryDate = true
-        draftAdjustmentExpiryDate = defaultExpiryDate(for: item.type)
+        draftAdjustmentExpiryDate = defaultExpiryDate(for: item)
         draftAdjustmentAmount = ""
         draftAdjustmentNote = ""
         errorMessage = nil
@@ -667,6 +692,7 @@ final class InventoryListViewModel: ObservableObject {
             name: selectedItem.name,
             aliases: selectedItem.aliases,
             type: selectedItem.type,
+            defaultExpiryDays: selectedItem.defaultExpiryDays,
             unit: selectedItem.unit,
             currentQuantity: max(0, selectedItem.currentQuantity - disposedQuantity),
             minimumQuantity: selectedItem.minimumQuantity,
@@ -714,7 +740,10 @@ final class InventoryListViewModel: ObservableObject {
         purchaseBillDrafts = InventoryPurchaseBillDraftBuilder.drafts(
             from: drafts,
             inventoryItems: items,
-            defaultExpiryDate: defaultPurchaseBillExpiryDate(),
+            defaultExpiryDate: { [self] matchedItem in
+                matchedItem.map(defaultExpiryDate(for:))
+                    ?? defaultExpiryDate(for: .standard)
+            },
             idProvider: idGenerator
         )
         errorMessage = nil
@@ -787,6 +816,7 @@ final class InventoryListViewModel: ObservableObject {
                     name: itemToUpdate.name,
                     aliases: itemToUpdate.aliases,
                     type: itemToUpdate.type,
+                    defaultExpiryDays: itemToUpdate.defaultExpiryDays,
                     unit: itemToUpdate.unit,
                     currentQuantity: itemToUpdate.currentQuantity + itemQuantity,
                     minimumQuantity: itemToUpdate.minimumQuantity,
@@ -987,6 +1017,7 @@ final class InventoryListViewModel: ObservableObject {
         draftName = ""
         draftAliases = ""
         draftType = .standard
+        draftDefaultExpiryDays = ""
         draftUnit = .gram
         draftCurrentQuantity = ""
         draftMinimumQuantity = ""
@@ -1036,10 +1067,30 @@ final class InventoryListViewModel: ObservableObject {
     func selectDraftType(_ type: InventoryItemType) {
         draftType = type
         draftHasExpiryDate = true
-        draftExpiryDate = defaultExpiryDate(for: type)
+        updateDraftExpiryFromDefault()
     }
 
-    private func defaultExpiryDate(for type: InventoryItemType) -> Date {
+    func updateDraftExpiryFromDefault() {
+        guard case .valid(let defaultExpiryDays) = parsedDefaultExpiryDays(from: draftDefaultExpiryDays) else {
+            return
+        }
+
+        draftExpiryDate = defaultExpiryDate(for: draftType, defaultExpiryDays: defaultExpiryDays)
+    }
+
+    private func defaultExpiryDate(for item: InventoryItem) -> Date {
+        defaultExpiryDate(for: item.type, defaultExpiryDays: item.defaultExpiryDays)
+    }
+
+    private func defaultExpiryDate(
+        for type: InventoryItemType,
+        defaultExpiryDays: Int? = nil
+    ) -> Date {
+        if let defaultExpiryDays {
+            let now = dateProvider()
+            return Calendar.current.date(byAdding: .day, value: defaultExpiryDays, to: now) ?? now
+        }
+
         switch type {
         case .standard:
             return defaultStandardExpiryDate()
@@ -1058,9 +1109,26 @@ final class InventoryListViewModel: ObservableObject {
         return Calendar.current.date(byAdding: .day, value: 4, to: now) ?? now
     }
 
-    private func defaultPurchaseBillExpiryDate() -> Date {
-        let now = dateProvider()
-        return Calendar.current.date(byAdding: .month, value: 1, to: now) ?? now
+    private func validatedDefaultExpiryDays() -> Int?? {
+        switch parsedDefaultExpiryDays(from: draftDefaultExpiryDays) {
+        case .valid(let days):
+            return .some(days)
+        case .invalid:
+            errorMessage = "Default expiry days must be a whole number greater than zero."
+            duplicateWarningMessage = nil
+            return nil
+        }
+    }
+
+    private func parsedDefaultExpiryDays(from text: String) -> DefaultExpiryDaysDraft {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return .valid(nil)
+        }
+        guard let days = Int(trimmed), days > 0 else {
+            return .invalid
+        }
+        return .valid(days)
     }
 
     private func sortedInventoryItems(_ items: [InventoryItem]) -> [InventoryItem] {

@@ -431,6 +431,12 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0028_add_inventory_default_expiry_days") { db in
+            try db.alter(table: "inventory_items") { table in
+                table.add(column: "default_expiry_days", .integer)
+            }
+        }
+
         return migrator
     }
 }

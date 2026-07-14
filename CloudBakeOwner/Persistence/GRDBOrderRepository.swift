@@ -715,6 +715,7 @@ private extension GRDBCoreDataRepository {
                 name: item.name,
                 aliases: item.aliases,
                 type: item.type,
+                defaultExpiryDays: item.defaultExpiryDays,
                 unit: item.unit,
                 currentQuantity: item.currentQuantity - pendingUsage.quantity,
                 minimumQuantity: item.minimumQuantity,

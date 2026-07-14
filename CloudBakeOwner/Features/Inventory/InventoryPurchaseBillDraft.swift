@@ -17,7 +17,7 @@ enum InventoryPurchaseBillDraftBuilder {
     static func drafts(
         from parsedDrafts: [PurchaseBillDraftInventoryItem],
         inventoryItems: [InventoryItem],
-        defaultExpiryDate: Date,
+        defaultExpiryDate: (InventoryItem?) -> Date,
         idProvider: () -> String
     ) -> [PurchaseBillInventoryDraft] {
         parsedDrafts.map { draft in
@@ -33,7 +33,7 @@ enum InventoryPurchaseBillDraftBuilder {
                 quantityText: draft.quantity?.formatted() ?? "",
                 unit: draft.unit ?? .gram,
                 minimumQuantityText: "0",
-                expiryDate: defaultExpiryDate,
+                expiryDate: defaultExpiryDate(matchedItem),
                 isSelected: true,
                 matchedInventoryItemId: matchedItem?.id,
                 matchedInventoryItemName: matchedItem?.name

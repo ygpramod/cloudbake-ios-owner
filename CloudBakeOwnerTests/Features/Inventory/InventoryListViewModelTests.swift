@@ -324,6 +324,88 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.batches.first?.expiresAt, calendar.date(byAdding: .month, value: 1, to: now))
     }
 
+    func testAddItemUsesAndPersistsCustomDefaultExpiryDays() {
+        let repository = FakeInventoryItemRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
+        var ids = ["inventory-flour", "batch-flour-initial"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.draftName = "Flour"
+        viewModel.draftCurrentQuantity = "100"
+        viewModel.draftMinimumQuantity = "25"
+        viewModel.draftDefaultExpiryDays = "180"
+        viewModel.updateDraftExpiryFromDefault()
+
+        XCTAssertEqual(viewModel.draftExpiryDate, calendar.date(byAdding: .day, value: 180, to: now))
+        XCTAssertTrue(viewModel.addItem())
+        XCTAssertEqual(repository.items.first?.defaultExpiryDays, 180)
+        XCTAssertEqual(repository.batches.first?.expiresAt, calendar.date(byAdding: .day, value: 180, to: now))
+    }
+
+    func testAddItemRejectsInvalidDefaultExpiryDays() {
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+        viewModel.draftName = "Flour"
+        viewModel.draftCurrentQuantity = "100"
+        viewModel.draftMinimumQuantity = "25"
+        viewModel.draftDefaultExpiryDays = "1.5"
+
+        XCTAssertFalse(viewModel.canSubmitItemDraft(requiresCurrentQuantity: true))
+        XCTAssertFalse(viewModel.addItem())
+        XCTAssertEqual(viewModel.errorMessage, "Default expiry days must be a whole number greater than zero.")
+    }
+
+    func testEditingItemUpdatesDefaultExpiryDaysWithoutChangingExistingBatchExpiry() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        let existingExpiry = Date(timeIntervalSince1970: 1_800_116_400)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Flour",
+            unit: .gram,
+            currentQuantity: 100,
+            minimumQuantity: 25,
+            earliestExpiryAt: existingExpiry,
+            createdAt: now,
+            updatedAt: now
+        )
+        repository.items = [item]
+        let viewModel = InventoryListViewModel(repository: repository, dateProvider: { now })
+
+        viewModel.beginEditing(item)
+        viewModel.draftDefaultExpiryDays = "90"
+
+        XCTAssertTrue(viewModel.saveEditedItem())
+        XCTAssertEqual(repository.items.first?.defaultExpiryDays, 90)
+        XCTAssertEqual(repository.items.first?.earliestExpiryAt, existingExpiry)
+    }
+
+    func testStockAdjustmentUsesItemDefaultExpiryDays() {
+        let repository = FakeInventoryItemRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
+        let item = InventoryItem(
+            id: "inventory-strawberry",
+            name: "Strawberry",
+            type: .perishable,
+            defaultExpiryDays: 2,
+            unit: .gram,
+            currentQuantity: 100,
+            minimumQuantity: 25,
+            createdAt: now,
+            updatedAt: now
+        )
+        let viewModel = InventoryListViewModel(repository: repository, dateProvider: { now })
+
+        viewModel.beginAdjusting(item)
+
+        XCTAssertTrue(viewModel.draftAdjustmentHasExpiryDate)
+        XCTAssertEqual(viewModel.draftAdjustmentExpiryDate, calendar.date(byAdding: .day, value: 2, to: now))
+    }
+
     func testAddItemCanStoreInitialStockBatchWithoutExpiry() {
         let repository = FakeInventoryItemRepository()
         let now = Date(timeIntervalSince1970: 1_800_030_000)

@@ -153,6 +153,7 @@ struct InventoryItem: Equatable {
     let name: String
     let aliases: [String]
     let type: InventoryItemType
+    let defaultExpiryDays: Int?
     let unit: InventoryUnit
     let currentQuantity: Double
     let minimumQuantity: Double
@@ -168,6 +169,7 @@ struct InventoryItem: Equatable {
         name: String,
         aliases: [String] = [],
         type: InventoryItemType = .standard,
+        defaultExpiryDays: Int? = nil,
         unit: InventoryUnit,
         currentQuantity: Double,
         minimumQuantity: Double,
@@ -182,6 +184,7 @@ struct InventoryItem: Equatable {
         self.name = name
         self.aliases = aliases
         self.type = type
+        self.defaultExpiryDays = defaultExpiryDays
         self.unit = unit
         self.currentQuantity = currentQuantity
         self.minimumQuantity = minimumQuantity
