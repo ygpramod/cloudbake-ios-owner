@@ -164,6 +164,7 @@ final class InventoryCSVServiceTests: XCTestCase {
             name: "Cake flour",
             aliases: ["Maida", "Plain Flour"],
             type: .perishable,
+            defaultExpiryDays: 5,
             unit: .gram,
             currentQuantity: 250,
             minimumQuantity: 500,
@@ -186,8 +187,8 @@ final class InventoryCSVServiceTests: XCTestCase {
 
         let csv = try service.exportCSV(repository: repository)
 
-        XCTAssertTrue(csv.contains("name,aliases,type,unit,current_quantity,minimum_quantity,batch_quantity,amount,expiry_date"))
-        XCTAssertTrue(csv.contains("Cake flour,\"Maida, Plain Flour\",Perishable,g,250,500,250,2.5,2026-08-15"))
+        XCTAssertTrue(csv.contains("name,aliases,type,default_expiry_days,unit,current_quantity,minimum_quantity,batch_quantity,amount,expiry_date"))
+        XCTAssertTrue(csv.contains("Cake flour,\"Maida, Plain Flour\",Perishable,5,g,250,500,250,2.5,2026-08-15"))
     }
 
     func testImportCreatesInventoryAndBatchesFromCSV() throws {
@@ -200,9 +201,9 @@ final class InventoryCSVServiceTests: XCTestCase {
 
         let summary = try service.importCSV(
             """
-            name,aliases,type,unit,current_quantity,minimum_quantity,batch_quantity,amount,expiry_date
-            Cake flour,"Maida, Plain Flour",Perishable,g,250,500,250,2.50,2026-08-15
-            Butter,,Standard,kg,2,1,2,,
+            name,aliases,type,default_expiry_days,unit,current_quantity,minimum_quantity,batch_quantity,amount,expiry_date
+            Cake flour,"Maida, Plain Flour",Perishable,5,g,250,500,250,2.50,2026-08-15
+            Butter,,Standard,,kg,2,1,2,,
             """,
             repository: repository
         )
@@ -212,6 +213,8 @@ final class InventoryCSVServiceTests: XCTestCase {
         XCTAssertEqual(repository.items.first { $0.name == "Cake flour" }?.currentQuantity, 250)
         XCTAssertEqual(repository.items.first { $0.name == "Cake flour" }?.aliases, ["Maida", "Plain Flour"])
         XCTAssertEqual(repository.items.first { $0.name == "Cake flour" }?.type, .perishable)
+        XCTAssertEqual(repository.items.first { $0.name == "Cake flour" }?.defaultExpiryDays, 5)
+        XCTAssertNil(repository.items.first { $0.name == "Butter" }?.defaultExpiryDays)
         XCTAssertEqual(repository.items.first { $0.name == "Butter" }?.unit, .kilogram)
         XCTAssertEqual(repository.batches.count, 2)
         XCTAssertEqual(repository.batches.first { $0.remainingQuantity == 250 }?.amount, Decimal(string: "2.50"))
@@ -249,9 +252,9 @@ final class InventoryCSVServiceTests: XCTestCase {
 
         let summary = try service.importCSV(
             """
-            name,aliases,type,unit,current_quantity,minimum_quantity,batch_quantity,expiry_date
-            cake flour,"Cake Wheat, Maida",Perishable,g,300,500,125,2026-08-15
-            Cake Flour,"Cake Wheat, Maida",Perishable,g,300,500,175,2026-09-30
+            name,aliases,type,default_expiry_days,unit,current_quantity,minimum_quantity,batch_quantity,expiry_date
+            cake flour,"Cake Wheat, Maida",Perishable,12,g,300,500,125,2026-08-15
+            Cake Flour,"Cake Wheat, Maida",Perishable,12,g,300,500,175,2026-09-30
             """,
             repository: repository
         )
@@ -261,6 +264,7 @@ final class InventoryCSVServiceTests: XCTestCase {
         XCTAssertEqual(repository.items[0].id, existing.id)
         XCTAssertEqual(repository.items[0].aliases, ["Cake Wheat", "Maida"])
         XCTAssertEqual(repository.items[0].type, .perishable)
+        XCTAssertEqual(repository.items[0].defaultExpiryDays, 12)
         XCTAssertEqual(repository.items[0].currentQuantity, 300)
         XCTAssertEqual(repository.items[0].minimumQuantity, 500)
         XCTAssertEqual(repository.batches.map(\.remainingQuantity).sorted(), [125, 175])
@@ -272,8 +276,8 @@ final class InventoryCSVServiceTests: XCTestCase {
         XCTAssertThrowsError(
             try service.importCSV(
                 """
-                name,type,unit,minimum_quantity,batch_quantity
-                Cake flour,Standard,g,500,250
+                name,type,default_expiry_days,unit,minimum_quantity,batch_quantity
+                Cake flour,Standard,,g,500,250
                 """,
                 repository: FakeInventoryItemRepository()
             )
@@ -284,13 +288,25 @@ final class InventoryCSVServiceTests: XCTestCase {
         XCTAssertThrowsError(
             try service.importCSV(
                 """
-                name,aliases,unit,minimum_quantity,batch_quantity
-                Cake flour,Maida,g,500,250
+                name,aliases,default_expiry_days,unit,minimum_quantity,batch_quantity
+                Cake flour,Maida,,g,500,250
                 """,
                 repository: FakeInventoryItemRepository()
             )
         ) { error in
             XCTAssertEqual(error as? InventoryCSVError, .missingRequiredHeader("type"))
+        }
+
+        XCTAssertThrowsError(
+            try service.importCSV(
+                """
+                name,aliases,type,unit,minimum_quantity,batch_quantity
+                Cake flour,Maida,Standard,g,500,250
+                """,
+                repository: FakeInventoryItemRepository()
+            )
+        ) { error in
+            XCTAssertEqual(error as? InventoryCSVError, .missingRequiredHeader("default_expiry_days"))
         }
     }
 
@@ -300,8 +316,8 @@ final class InventoryCSVServiceTests: XCTestCase {
         XCTAssertThrowsError(
             try service.importCSV(
                 """
-                name,aliases,type,unit,minimum_quantity,batch_quantity
-                Cake flour,Maida,Frozen,g,500,250
+                name,aliases,type,default_expiry_days,unit,minimum_quantity,batch_quantity
+                Cake flour,Maida,Frozen,,g,500,250
                 """,
                 repository: FakeInventoryItemRepository()
             )
@@ -313,15 +329,36 @@ final class InventoryCSVServiceTests: XCTestCase {
         }
     }
 
+    func testImportRejectsInvalidDefaultExpiryDays() throws {
+        let service = InventoryCSVService()
+
+        for invalidValue in ["0", "-1", "1.5", "soon"] {
+            XCTAssertThrowsError(
+                try service.importCSV(
+                    """
+                    name,aliases,type,default_expiry_days,unit,minimum_quantity,batch_quantity
+                    Cake flour,Maida,Standard,\(invalidValue),g,500,250
+                    """,
+                    repository: FakeInventoryItemRepository()
+                )
+            ) { error in
+                XCTAssertEqual(
+                    error as? InventoryCSVError,
+                    .invalidRow(2, "Default expiry days must be a whole number greater than zero.")
+                )
+            }
+        }
+    }
+
     func testImportRejectsConflictingMetadataAcrossBatchRows() throws {
         let service = InventoryCSVService()
 
         XCTAssertThrowsError(
             try service.importCSV(
                 """
-                name,aliases,type,unit,minimum_quantity,batch_quantity
-                Cake flour,Maida,Standard,g,500,125
-                Cake Flour,Plain Flour,Standard,g,500,175
+                name,aliases,type,default_expiry_days,unit,minimum_quantity,batch_quantity
+                Cake flour,Maida,Standard,,g,500,125
+                Cake Flour,Plain Flour,Standard,,g,500,175
                 """,
                 repository: FakeInventoryItemRepository()
             )
@@ -335,9 +372,9 @@ final class InventoryCSVServiceTests: XCTestCase {
         XCTAssertThrowsError(
             try service.importCSV(
                 """
-                name,aliases,type,unit,minimum_quantity,batch_quantity
-                Cake flour,Maida,Standard,g,500,125
-                Cake Flour,maida,Perishable,g,500,175
+                name,aliases,type,default_expiry_days,unit,minimum_quantity,batch_quantity
+                Cake flour,Maida,Standard,,g,500,125
+                Cake Flour,maida,Perishable,,g,500,175
                 """,
                 repository: FakeInventoryItemRepository()
             )
@@ -345,6 +382,22 @@ final class InventoryCSVServiceTests: XCTestCase {
             XCTAssertEqual(
                 error as? InventoryCSVError,
                 .invalidRow(3, "Type must match across batch rows for the same item.")
+            )
+        }
+
+        XCTAssertThrowsError(
+            try service.importCSV(
+                """
+                name,aliases,type,default_expiry_days,unit,minimum_quantity,batch_quantity
+                Cake flour,Maida,Standard,30,g,500,125
+                Cake Flour,maida,Standard,60,g,500,175
+                """,
+                repository: FakeInventoryItemRepository()
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? InventoryCSVError,
+                .invalidRow(3, "Default expiry days must match across batch rows for the same item.")
             )
         }
     }
@@ -378,8 +431,8 @@ final class InventoryCSVServiceTests: XCTestCase {
             .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension("csv")
         try """
-        name,aliases,type,unit,current_quantity,minimum_quantity,batch_quantity,amount,expiry_date
-        Cake flour,Maida,Standard,g,250,500,250,2.50,2026-08-15
+        name,aliases,type,default_expiry_days,unit,current_quantity,minimum_quantity,batch_quantity,amount,expiry_date
+        Cake flour,Maida,Standard,30,g,250,500,250,2.50,2026-08-15
         """.write(to: temporaryURL, atomically: true, encoding: .utf8)
         defer {
             try? FileManager.default.removeItem(at: temporaryURL)
