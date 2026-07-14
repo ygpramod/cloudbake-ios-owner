@@ -72,6 +72,13 @@ struct VoiceInventoryDraft: Identifiable, Equatable {
     var expiryDate: Date
     var expiryUsesDefault: Bool
     var destination: VoiceInventoryDraftDestination
+
+    var showsMinimumQuantity: Bool {
+        if case .existingItem = destination {
+            return false
+        }
+        return true
+    }
 }
 
 struct ParsedVoiceInventoryItem: Equatable {

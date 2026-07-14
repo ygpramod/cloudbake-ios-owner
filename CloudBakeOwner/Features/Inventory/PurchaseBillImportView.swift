@@ -555,9 +555,11 @@ private struct VoiceInventoryDraftRow: View {
                 }
             }
 
-            TextField("Minimum Quantity", text: $draft.minimumQuantityText)
-                .keyboardType(.decimalPad)
-                .accessibilityIdentifier("inventory.voice.draft.minimum.\(draft.id)")
+            if draft.showsMinimumQuantity {
+                TextField("Minimum Quantity", text: $draft.minimumQuantityText)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("inventory.voice.draft.minimum.\(draft.id)")
+            }
 
             Toggle("Has Expiry Date", isOn: Binding(
                 get: { draft.hasExpiryDate },
@@ -583,4 +585,5 @@ private struct VoiceInventoryDraftRow: View {
         .padding(.vertical, 4)
         .accessibilityIdentifier("inventory.voice.draft.\(draft.id)")
     }
+
 }

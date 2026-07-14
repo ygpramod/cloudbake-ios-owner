@@ -663,6 +663,7 @@ extension InventoryListViewModelTests {
             .existingItem("inventory-flour"),
             .unresolved
         ])
+        XCTAssertEqual(viewModel.voiceInventoryDrafts.map(\.showsMinimumQuantity), [false, true])
         XCTAssertEqual(
             viewModel.voiceInventoryDrafts[0].expiryDate,
             Calendar.current.date(byAdding: .day, value: 45, to: now)
