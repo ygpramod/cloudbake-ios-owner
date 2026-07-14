@@ -348,6 +348,7 @@ private struct CustomerReferencePreviewView: View {
             }
             .padding(CloudBakeTheme.Spacing.screenHorizontal)
         }
+        .accessibilityIdentifier("designs.customerReference.scroll")
         .simultaneousGesture(adjacentReferenceSwipe)
         .background(CloudBakeScreenBackground().ignoresSafeArea())
         .navigationTitle(reference.title)

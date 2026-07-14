@@ -113,10 +113,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         let reference = app.buttons["designs.customerReference.photo-ui-fixture-reference"]
         XCTAssertTrue(reference.waitForExistence(timeout: 10))
+        scrollToHittable(reference, in: app, timeout: 10)
         tapWhenReady(reference)
         let useForNewOrder = app.buttons["designs.customerReference.useForNewOrder"]
-        XCTAssertTrue(useForNewOrder.waitForExistence(timeout: 5))
-        scrollToHittable(useForNewOrder, in: app, timeout: 5)
+        let referenceScroll = app.scrollViews["designs.customerReference.scroll"]
+        XCTAssertTrue(referenceScroll.waitForExistence(timeout: 5))
+        scrollToHittable(
+            useForNewOrder,
+            in: app,
+            scrollContainer: referenceScroll,
+            timeout: 5
+        )
         tapWhenReady(useForNewOrder)
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 10))
@@ -772,27 +779,42 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
-        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            app.buttons["orders.add"],
+            waitingFor: app.navigationBars["Add Order"],
+            in: app,
+            timeout: transitionTimeout
+        )
 
         typeText("Chocolate Celebration", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
         dismissKeyboard(in: app)
 
         let customerRecordButton = app.buttons["orders.form.customerRecord"]
         scrollToHittable(customerRecordButton, in: app, timeout: transitionTimeout)
-        tapWhenReady(customerRecordButton, timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Customer Record"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            customerRecordButton,
+            waitingFor: app.navigationBars["Customer Record"],
+            in: app,
+            timeout: transitionTimeout
+        )
 
         tapWhenReady(app.buttons["orders.customerSelection.newCustomer"], timeout: transitionTimeout)
-        tapWhenReady(app.buttons["orders.customerSelection.add.manual"], timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            app.buttons["orders.customerSelection.add.manual"],
+            waitingFor: app.navigationBars["Add Customer"],
+            in: app,
+            timeout: transitionTimeout
+        )
         typeText("Maya", into: app.textFields["customers.form.name"], timeout: transitionTimeout)
         dismissKeyboard(in: app)
         typeText("5550303", into: app.textFields["customers.form.phone"], timeout: transitionTimeout)
         dismissKeyboard(in: app)
-        tapWhenReady(app.buttons["customers.form.save"], timeout: transitionTimeout)
-
-        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            app.buttons["customers.form.save"],
+            waitingFor: app.navigationBars["Add Order"],
+            in: app,
+            timeout: transitionTimeout
+        )
         XCTAssertEqual(app.textFields["orders.form.customerName"].value as? String, "Maya")
         tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
 
@@ -837,15 +859,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
         scrollToHittable(recipeField, in: app, timeout: transitionTimeout)
         tapWhenReady(recipeField, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Recipe"].waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(
-            app.buttons.matching(
+        let recipe = app.buttons.matching(
                 NSPredicate(
                     format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
                     "orders.recipeSelection.recipe.",
                     "Vanilla Sponge"
                 )
             )
-                .firstMatch,
+            .firstMatch
+        scrollToHittable(recipe, in: app, timeout: transitionTimeout)
+        tapWhenReady(
+            recipe,
             timeout: transitionTimeout
         )
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))

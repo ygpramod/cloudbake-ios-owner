@@ -114,6 +114,7 @@ struct InventoryItemForm: View {
                 }
             }
         }
+        .accessibilityIdentifier("inventory.form.scroll")
         .cloudBakeFormScreenStyle()
         .navigationTitle(title)
         .toolbar {

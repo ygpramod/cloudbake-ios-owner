@@ -9,16 +9,12 @@ extension CloudBakeOwnerUITests {
         let item = app.buttons["inventory.item.view.inventory-ui-expired-cream"]
         XCTAssertTrue(item.waitForExistence(timeout: 10))
         tapWhenReady(item)
+        let detailScroll = app.scrollViews["inventory.detail.screen"]
+        XCTAssertTrue(detailScroll.waitForExistence(timeout: 5))
         let dispose = app.buttons["inventory.detail.disposeExpired"]
-        scrollToHittable(dispose, in: app, timeout: 10)
+        scrollToHittable(dispose, in: app, scrollContainer: detailScroll, timeout: 10)
         tapWhenReady(dispose)
-        let confirmDisposal = app.buttons.element(
-            matching: NSPredicate(
-                format: "label == %@ AND identifier == %@",
-                "Dispose Expired Stock",
-                "inventory.detail.screen"
-            )
-        )
+        let confirmDisposal = app.buttons["inventory.disposeExpired.confirm"]
         XCTAssertTrue(confirmDisposal.waitForExistence(timeout: 5))
         tapWhenReady(confirmDisposal)
 
@@ -36,8 +32,11 @@ extension CloudBakeOwnerUITests {
 
         openDashboardDestination("Inventory", in: app)
         addInventoryItem(named: "Cake flour", currentQuantity: "250", minimumQuantity: "500", in: app)
-        tapInventoryHeaderAction("inventory.add", in: app)
-        XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
+        tapInventoryHeaderAction(
+            "inventory.add",
+            in: app,
+            waitingFor: app.navigationBars["Add Item"]
+        )
 
         app.textFields["inventory.form.name"].tap()
         app.textFields["inventory.form.name"].typeText("cake flours")
@@ -123,11 +122,21 @@ extension CloudBakeOwnerUITests {
         scrollToHittable(row, in: app, timeout: transitionTimeout)
         let archiveButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.archive.")).firstMatch
         scrollToHittable(archiveButton, in: app, timeout: transitionTimeout)
-        tapWhenReady(archiveButton, timeout: transitionTimeout)
+        tapWhenReady(
+            archiveButton,
+            waitingFor: app.buttons["inventory.archive.confirm"],
+            in: app,
+            timeout: transitionTimeout
+        )
         tapWhenReady(app.buttons["inventory.archive.confirm"], timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["No inventory yet"].waitForExistence(timeout: transitionTimeout))
 
-        tapInventoryHeaderAction("inventory.archived", in: app, timeout: transitionTimeout)
+        tapInventoryHeaderAction(
+            "inventory.archived",
+            in: app,
+            waitingFor: app.buttons["inventory.archived.done"],
+            timeout: transitionTimeout
+        )
         XCTAssertTrue(app.buttons["inventory.archived.done"].waitForExistence(timeout: transitionTimeout))
 
         let restoreButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.archived.restore.")).firstMatch
@@ -202,7 +211,11 @@ extension CloudBakeOwnerUITests {
         app.launch()
 
         openDashboardDestination("Inventory", in: app)
-        tapInventoryHeaderAction("inventory.purchaseBill.import", in: app)
+        tapInventoryHeaderAction(
+            "inventory.purchaseBill.import",
+            in: app,
+            waitingFor: app.navigationBars["Import Bill"]
+        )
         XCTAssertTrue(app.navigationBars["Import Bill"].waitForExistence(timeout: 5))
 
         XCTAssertTrue(app.buttons["inventory.purchaseBill.camera"].waitForExistence(timeout: 5))

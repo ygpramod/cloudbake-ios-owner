@@ -70,6 +70,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsShowsInventoryCSVActions
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCSVExportPresentsDestinationPicker
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupSettingsRequireCellularConfirmation
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupNotificationsCanBeDisabled
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipesCanBeAdded
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
