@@ -182,6 +182,8 @@ The app currently supports:
     post-restore reminder and backup reconciliation. Custom-logo-only installations require
     destructive replacement confirmation, and unresolved rollback blocks app interaction until
     restart recovery.
+129. per-item default expiry days for future inventory additions, upward adjustments, and matched
+    purchase-bill drafts, including inventory CSV import and export.
 
 ## Partially Prepared
 

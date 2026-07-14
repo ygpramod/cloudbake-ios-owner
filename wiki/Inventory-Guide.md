@@ -8,12 +8,13 @@ Inventory tracks active items with:
 
 1. name,
 2. type,
-3. unit,
-4. current quantity,
-5. minimum quantity,
-6. archived state,
-7. stock batches with optional expiry dates and optional amount,
-8. transaction records for stock changes.
+3. optional default expiry days,
+4. unit,
+5. current quantity,
+6. minimum quantity,
+7. archived state,
+8. stock batches with optional expiry dates and optional amount,
+9. transaction records for stock changes.
 
 ## Units
 
@@ -72,6 +73,10 @@ Each new stock quantity is tracked as a batch with an optional expiry date and o
 Standard inventory defaults to having an expiry date one month from the add or adjustment date, but
 the owner can turn expiry off before saving. Perishable inventory defaults the expiry date to four
 days from the add or adjustment date.
+
+An item can instead define its own positive whole-number default expiry days. That value applies to
+future initial stock, adjustments, and matched purchase-bill drafts. It does not rewrite existing
+batches, and the owner can still change or remove an individual batch expiry.
 
 When newer stock is added for the same item, the app combines it into an existing batch only when
 the expiry date and amount are the same. If the expiry date or amount differs, the app keeps a
@@ -252,18 +257,20 @@ CSV export includes active inventory items and their stock batches. Each row inc
 1. name,
 2. aliases,
 3. inventory type,
-4. unit,
-5. current quantity,
-6. minimum quantity,
-7. batch quantity,
-8. amount,
-9. expiry date.
+4. default expiry days,
+5. unit,
+6. current quantity,
+7. minimum quantity,
+8. batch quantity,
+9. amount,
+10. expiry date.
 
 CSV import creates new active inventory items or updates matching active items by name and unit.
 When updating an existing item, CloudBake replaces that item's saved stock batches with the imported
-batches, aliases, and inventory type, then recalculates current quantity from the imported batch
-quantities. The CSV must include the `aliases` and `type` headers. Type accepts `Standard` or
-`Perishable`.
+batches, aliases, inventory type, and default expiry days, then recalculates current quantity from
+the imported batch quantities. The CSV must include the `aliases`, `type`, and
+`default_expiry_days` headers. Type accepts `Standard` or `Perishable`; default expiry days accepts
+a blank value or a positive whole number.
 
 Use stock adjustment for normal day-to-day stock changes. Use CSV import when moving inventory data
 in bulk or making a deliberate correction from a reviewed file.
