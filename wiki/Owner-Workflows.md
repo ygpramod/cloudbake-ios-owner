@@ -363,7 +363,7 @@ Today, the owner can:
 14. link an order to one saved recipe for preparation context,
 15. review the linked recipe name from order detail,
 16. change order status from detail without opening the full edit form,
-17. mark a Confirmed order Ready or Completed from detail or edit order and deduct linked recipe
+17. mark an order Ready or Completed from detail or edit order and deduct linked recipe
     ingredients from inventory with unit conversion,
 18. add, complete, and delete simple preparation checklist items from order detail,
 19. review completed and cancelled orders in a separate Completed tab,
@@ -430,10 +430,12 @@ preview, edit captions, save final cake photos as reusable designs, and delete m
 Saving a final photo as a design creates a linked cake design record using the photo's local
 reference path.
 
-When a Confirmed order with an unused linked recipe is marked Ready or Completed from order detail,
+When an order with an unused linked recipe is marked Ready or Completed from order detail,
 the app asks for confirmation and then deducts the recipe's inventory-backed ingredient rows. When
 the same status transition is saved through edit order, the app uses the same one-time deduction
-rule.
+rule. Draft and In Progress orders cannot bypass deduction by moving directly to Ready or Completed.
+If validation fails, CloudBake immediately explains the missing recipe data, incompatible unit, or
+insufficient stock and keeps the previous status.
 The order form includes a Recipe Multiplier for scaling the linked recipe up or down before usage.
 Quantities are converted into each inventory item's unit when compatible, then multiplied by the
 order recipe multiplier. Order form and order detail can also add order-specific extra ingredients
