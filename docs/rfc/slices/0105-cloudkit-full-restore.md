@@ -60,7 +60,10 @@ restore is demonstrated.
 - `RestoreCoordinator` owns inspection and the ordered owner-confirmation state machine. Backup and
   restore sessions are mutually exclusive.
 - `CloudKitBackupStore` inspects the current generation without downloading every asset, then
-  downloads into isolated staging and verifies manifest metadata, byte counts, and checksums.
+  reinspects the complete owner-approved snapshot metadata immediately before download. A changed
+  generation, disclosed size, asset count, integrity, or app compatibility requires a fresh owner
+  decision. It downloads into isolated staging and verifies manifest metadata, byte counts, and
+  checksums.
   Only genuinely missing or corrupt photo payloads enter the broken-photo decision; transient
   CloudKit, cancellation, and local storage failures stop restore for a safe retry.
 - `LocalRestoreService` migrates and validates the staged database, prepares app-managed assets,
@@ -68,6 +71,8 @@ restore is demonstrated.
   and replaces the active GRDB contents atomically. Startup recovery rolls back an interrupted
   activation before the app opens its database. The phase-aware activation journal makes recovery
   repeatable at every database and asset replacement boundary.
+- Storage exhaustion during staging or database migration remains a storage-specific, retryable
+  restore failure instead of being misreported as an invalid database migration.
 - Cancellation owns and awaits the active restore operation before releasing the shared
   backup/restore session. Once atomic activation begins, completion or rollback wins over dismissal.
 - Successful activation reloads visible app state, refreshes local reminders, and starts a fresh

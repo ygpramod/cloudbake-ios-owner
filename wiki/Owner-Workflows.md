@@ -346,6 +346,11 @@ destructive confirmation and a local rollback snapshot. A selected custom logo a
 owner data even when no business records exist. Cellular transfer also requires approval of the
 displayed size.
 
+CloudBake reinspects the complete displayed snapshot metadata immediately before download. If its
+generation, size, photo count, integrity, or app compatibility changed, the restore stops so the
+owner can inspect and approve the current snapshot instead. Storage exhaustion during staging or
+database migration is reported as a storage problem and leaves the active installation unchanged.
+
 CloudBake downloads and validates the complete database and app-managed photos in staging, migrates
 compatible older data, and activates it only after verification. If photos are missing or damaged,
 choose **Ignore Broken Photos** to retain their references or **Remove Photo References** to clean
