@@ -60,6 +60,7 @@ struct InventoryCSVService {
                 "name",
                 "aliases",
                 "type",
+                "default_expiry_days",
                 "unit",
                 "current_quantity",
                 "minimum_quantity",
@@ -131,6 +132,7 @@ struct InventoryCSVService {
                 name: firstRow.name,
                 aliases: firstRow.aliases,
                 type: firstRow.type,
+                defaultExpiryDays: firstRow.defaultExpiryDays,
                 unit: firstRow.unit,
                 currentQuantity: batches.reduce(0) { $0 + $1.remainingQuantity },
                 minimumQuantity: firstRow.minimumQuantity,
@@ -166,6 +168,12 @@ struct InventoryCSVService {
                         "Type must match across batch rows for the same item."
                     )
                 }
+                guard row.defaultExpiryDays == firstRow.defaultExpiryDays else {
+                    throw InventoryCSVError.invalidRow(
+                        row.rowNumber,
+                        "Default expiry days must match across batch rows for the same item."
+                    )
+                }
                 guard row.minimumQuantity == firstRow.minimumQuantity else {
                     throw InventoryCSVError.invalidRow(
                         row.rowNumber,
@@ -187,6 +195,7 @@ struct InventoryCSVService {
             item.name,
             InventoryAliases.displayText(item.aliases),
             item.type.displayName,
+            item.defaultExpiryDays.map(String.init) ?? "",
             item.unit.displayName,
             formatQuantity(item.currentQuantity),
             formatQuantity(item.minimumQuantity),
@@ -214,6 +223,7 @@ struct InventoryCSVService {
         let nameIndex = try requiredHeader("name", in: headerLookup)
         let aliasesIndex = try requiredHeader("aliases", in: headerLookup)
         let typeIndex = try requiredHeader("type", in: headerLookup)
+        let defaultExpiryDaysIndex = try requiredHeader("default_expiry_days", in: headerLookup)
         let unitIndex = try requiredHeader("unit", in: headerLookup)
         let minimumIndex = try requiredHeader("minimum_quantity", in: headerLookup)
         let currentIndex = headerLookup[TextInputFormatting.normalizedSearchKey("current_quantity")]
@@ -232,6 +242,11 @@ struct InventoryCSVService {
             guard let type = InventoryItemType.csvValue(value(at: typeIndex, in: row)) else {
                 throw InventoryCSVError.invalidRow(rowNumber, "Type must be Standard or Perishable.")
             }
+            let defaultExpiryDaysText = value(at: defaultExpiryDaysIndex, in: row)
+            let defaultExpiryDays = try parseOptionalDefaultExpiryDays(
+                defaultExpiryDaysText,
+                rowNumber: rowNumber
+            )
             guard let unit = InventoryUnit.csvValue(value(at: unitIndex, in: row)) else {
                 throw InventoryCSVError.invalidRow(rowNumber, "Unit is not supported.")
             }
@@ -258,6 +273,7 @@ struct InventoryCSVService {
                 name: name,
                 aliases: aliases,
                 type: type,
+                defaultExpiryDays: defaultExpiryDays,
                 unit: unit,
                 minimumQuantity: minimumQuantity,
                 batchQuantity: batchQuantity,
@@ -295,6 +311,20 @@ struct InventoryCSVService {
         }
 
         return date
+    }
+
+    private func parseOptionalDefaultExpiryDays(_ text: String, rowNumber: Int) throws -> Int? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return nil
+        }
+        guard let days = Int(trimmed), days > 0 else {
+            throw InventoryCSVError.invalidRow(
+                rowNumber,
+                "Default expiry days must be a whole number greater than zero."
+            )
+        }
+        return days
     }
 
     private func parseOptionalMoney(_ text: String) -> Decimal?? {
@@ -639,6 +669,7 @@ private struct InventoryCSVImportRow {
     let name: String
     let aliases: [String]
     let type: InventoryItemType
+    let defaultExpiryDays: Int?
     let unit: InventoryUnit
     let minimumQuantity: Double
     let batchQuantity: Double
