@@ -3,9 +3,29 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class CloudBackupSystemAdaptersTests: XCTestCase {
-    func testAccountProtectionGateKeepsPublicationDormantUntilConfirmationShips() async {
-        let isAuthorized = await PendingCloudBackupAccountProtectionGate().isPublicationAuthorized()
-        XCTAssertFalse(isAuthorized)
+    func testAccountProtectionGateAuthorizesOnlyTheConfirmedCurrentAccount() async {
+        let suiteName = "CloudBackupAccountProtectionTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let account = MutableBackupAccount(fingerprint: "account-a")
+        let gate = CloudBackupAccountProtectionGate(account: account, defaults: defaults)
+
+        let initialAuthorization = await gate.isPublicationAuthorized()
+        let didAuthorize = await gate.authorizePublication(for: "account-a")
+        let confirmedAuthorization = await gate.isPublicationAuthorized()
+        XCTAssertFalse(initialAuthorization)
+        XCTAssertTrue(didAuthorize)
+        XCTAssertTrue(confirmedAuthorization)
+
+        await account.setFingerprint("account-b")
+        let changedAccountAuthorization = await gate.isPublicationAuthorized()
+        let staleAuthorization = await gate.authorizePublication(for: "account-a")
+        XCTAssertFalse(changedAccountAuthorization)
+        XCTAssertFalse(staleAuthorization)
+        XCTAssertEqual(
+            defaults.string(forKey: CloudBackupAccountProtectionGate.confirmedFingerprintKey),
+            "account-a"
+        )
     }
 
     func testPowerPolicyRejectsLowPowerAndElevatedThermalStates() {
@@ -90,5 +110,23 @@ final class CloudBackupSystemAdaptersTests: XCTestCase {
         await StagedBackupPackageCleaner(stagingRoot: root).removeAllPackages()
 
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: root.path), [])
+    }
+}
+
+private actor MutableBackupAccount: BackupAccountChecking {
+    private var fingerprint: String?
+
+    init(fingerprint: String?) {
+        self.fingerprint = fingerprint
+    }
+
+    func currentAvailability() async -> BackupAccountAvailability {
+        fingerprint == nil ? .unavailable : .available
+    }
+
+    func currentFingerprint() async -> String? { fingerprint }
+
+    func setFingerprint(_ fingerprint: String?) {
+        self.fingerprint = fingerprint
     }
 }

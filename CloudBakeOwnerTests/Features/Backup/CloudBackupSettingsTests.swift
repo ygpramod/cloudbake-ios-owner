@@ -145,6 +145,43 @@ final class CloudBackupSettingsTests: XCTestCase {
         XCTAssertFalse(viewModel.canBackUpNow)
     }
 
+    func testViewModelRequiresAccountConfirmationBeforePreparingLocalData() async {
+        let proposal = ManualAccountBackupProposal(
+            id: "account-proposal",
+            accountFingerprint: "opaque-fingerprint"
+        )
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .enabled),
+            backupResult: .requiresAccountConfirmation(proposal)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+
+        await viewModel.backUpNow()
+
+        XCTAssertEqual(viewModel.pendingAccountProposal, proposal)
+        XCTAssertEqual(viewModel.snapshot.state, .awaitingAccountConfirmation)
+        XCTAssertFalse(viewModel.canBackUpNow)
+    }
+
+    func testViewModelReportsDeletionFailureWithoutClaimingLocalDataChanged() async {
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .enabled),
+            deletionResult: .failed(.temporarilyUnavailable)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+
+        viewModel.requestCloudBackupDeletion()
+        XCTAssertTrue(viewModel.isConfirmingDeletion)
+        await viewModel.confirmCloudBackupDeletion()
+
+        XCTAssertFalse(viewModel.isConfirmingDeletion)
+        XCTAssertEqual(
+            viewModel.deletionMessage,
+            "Check the connection and try again. Your previous backup is unchanged."
+        )
+        XCTAssertTrue(viewModel.snapshot.isEnabled)
+    }
+
     func testDisablingBackupExplainsThatLatestSnapshotIsRetained() async {
         let service = CloudBackupSettingsServiceSpy(
             snapshot: settingsSnapshot(state: .enabled)
@@ -562,13 +599,16 @@ private actor CloudBackupNotificationSenderSpy: CloudBackupNotificationSending {
 private actor CloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
     private var snapshot: CloudBackupSettingsSnapshot
     private let backupResult: ManualBackupResult
+    private let deletionResult: CloudBackupDeletionResult
 
     init(
         snapshot: CloudBackupSettingsSnapshot,
-        backupResult: ManualBackupResult = .deferred(.disabled)
+        backupResult: ManualBackupResult = .deferred(.disabled),
+        deletionResult: CloudBackupDeletionResult = .failed(.unknown)
     ) {
         self.snapshot = snapshot
         self.backupResult = backupResult
+        self.deletionResult = deletionResult
     }
 
     func currentSettings() async -> CloudBackupSettingsSnapshot { snapshot }
@@ -591,6 +631,15 @@ private actor CloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
     }
 
     func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {}
+
+    func deleteCloudBackup() async -> CloudBackupDeletionResult {
+        if deletionResult == .deleted {
+            snapshot.isEnabled = false
+            snapshot.state = .disabled
+            snapshot.lastSuccessAt = nil
+        }
+        return deletionResult
+    }
 }
 
 private final class CloudBackupNotificationCenterSpy: LocalNotificationCenter {

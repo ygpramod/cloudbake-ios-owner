@@ -261,6 +261,79 @@ final class BackupCoordinatorTests: XCTestCase {
         XCTAssertEqual(creationCount, 0)
     }
 
+    func testManualBackupPublishesOnlyAfterConfirmingCurrentAccount() async {
+        let fixture = CoordinatorFixture(isPublicationAuthorized: false)
+
+        guard case .requiresAccountConfirmation(let proposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected account confirmation")
+        }
+        let creationCountBeforeConfirmation = await fixture.snapshotCreator.creationCount
+        XCTAssertEqual(creationCountBeforeConfirmation, 0)
+
+        let result = await fixture.coordinator.confirmManualAccountBackup(
+            proposalID: proposal.id
+        )
+
+        guard case .published = result else {
+            return XCTFail("Expected publication after account confirmation, got \(result)")
+        }
+        let creationCountAfterConfirmation = await fixture.snapshotCreator.creationCount
+        XCTAssertEqual(creationCountAfterConfirmation, 1)
+    }
+
+    func testChangedAccountInvalidatesPendingConfirmation() async {
+        let fixture = CoordinatorFixture(isPublicationAuthorized: false)
+        guard case .requiresAccountConfirmation(let proposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected account confirmation")
+        }
+
+        await fixture.environment.setAccountFingerprint("account-b")
+        let result = await fixture.coordinator.confirmManualAccountBackup(
+            proposalID: proposal.id
+        )
+
+        XCTAssertEqual(result, .deferred(.accountConfirmationRequired))
+        let creationCount = await fixture.snapshotCreator.creationCount
+        XCTAssertEqual(creationCount, 0)
+    }
+
+    func testVerifiedCloudDeletionDisablesBackupAndClearsRemoteMetadata() async {
+        var metadata = BackupScheduleMetadata.initial
+        metadata.lastSuccessAt = Date(timeIntervalSince1970: 1_800_000_000)
+        metadata.estimatedUploadByteCount = 9_000
+        let deleter = FakeCloudBackupDeleter()
+        let fixture = CoordinatorFixture(metadata: metadata, deleter: deleter)
+
+        let result = await fixture.coordinator.deleteCloudBackup()
+
+        XCTAssertEqual(result, .deleted)
+        let deletionCount = await deleter.deletionCount
+        XCTAssertEqual(deletionCount, 1)
+        XCTAssertFalse(fixture.scheduleStore.load().isEnabled)
+        XCTAssertNil(fixture.scheduleStore.load().lastSuccessAt)
+        XCTAssertNil(fixture.scheduleStore.load().estimatedUploadByteCount)
+    }
+
+    func testFailedCloudDeletionPreservesBackupStateAndCanBeRetried() async {
+        var metadata = BackupScheduleMetadata.initial
+        metadata.lastSuccessAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let deleter = FakeCloudBackupDeleter(failuresRemaining: 1)
+        let fixture = CoordinatorFixture(metadata: metadata, deleter: deleter)
+
+        let failure = await fixture.coordinator.deleteCloudBackup()
+        XCTAssertEqual(failure, .failed(.temporarilyUnavailable))
+        XCTAssertTrue(fixture.scheduleStore.load().isEnabled)
+        XCTAssertNotNil(fixture.scheduleStore.load().lastSuccessAt)
+
+        let retry = await fixture.coordinator.deleteCloudBackup()
+        XCTAssertEqual(retry, .deleted)
+        XCTAssertFalse(fixture.scheduleStore.load().isEnabled)
+        let deletionCount = await deleter.deletionCount
+        XCTAssertEqual(deletionCount, 2)
+    }
+
     func testCellularConfirmationIsConsumedBeforeEligibilitySuspends() async {
         let fixture = CoordinatorFixture(connection: .cellular)
         guard case .requiresCellularConfirmation(let proposal) = await fixture.coordinator.prepareManualBackup() else {
@@ -497,7 +570,8 @@ private final class CoordinatorFixture {
         isPublicationAuthorized: Bool = true,
         holdsPublication: Bool = false,
         holdsEligibility: Bool = false,
-        holdsSnapshotCreation: Bool = false
+        holdsSnapshotCreation: Bool = false,
+        deleter: (any CloudBackupDeleting)? = nil
     ) {
         scheduleStore = InMemoryBackupScheduleStore(metadata: metadata)
         snapshotCreator = FakeSnapshotCreator(holdsCreation: holdsSnapshotCreation)
@@ -521,6 +595,7 @@ private final class CoordinatorFixture {
             storage: environment,
             backgroundScheduler: scheduler,
             packageCleaner: cleaner,
+            deleter: deleter,
             schedulePolicy: BackupSchedulePolicy(
                 calendar: Calendar(identifier: .gregorian),
                 nightlyHour: 2,
@@ -683,7 +758,8 @@ private actor FakeBackupEnvironment: BackupConnectivityChecking,
     let account: BackupAccountAvailability
     let hasEligiblePower: Bool
     let hasSufficientStorage: Bool
-    let isAuthorized: Bool
+    private var isAuthorized: Bool
+    private var accountFingerprint: String? = "account-a"
     private var holdsEligibility: Bool
     private var didStartEligibilityCheck = false
     private var eligibilityContinuation: CheckedContinuation<Void, Never>?
@@ -714,7 +790,19 @@ private actor FakeBackupEnvironment: BackupConnectivityChecking,
         }
         return account
     }
+    func currentFingerprint() async -> String? {
+        account == .available ? accountFingerprint : nil
+    }
     func isPublicationAuthorized() async -> Bool { isAuthorized }
+    func authorizePublication(for accountFingerprint: String) async -> Bool {
+        guard self.accountFingerprint == accountFingerprint else { return false }
+        isAuthorized = true
+        return true
+    }
+    func setAccountFingerprint(_ fingerprint: String?) {
+        accountFingerprint = fingerprint
+        isAuthorized = false
+    }
     func hasEligiblePowerState() async -> Bool { hasEligiblePower }
     func hasSufficientWorkingStorage(estimatedUploadByteCount: Int64?) async -> Bool {
         hasSufficientStorage
@@ -736,6 +824,26 @@ private actor FakeBackupEnvironment: BackupConnectivityChecking,
         holdsEligibility = false
         eligibilityContinuation?.resume()
         eligibilityContinuation = nil
+    }
+}
+
+private actor FakeCloudBackupDeleter: CloudBackupDeleting {
+    private(set) var deletionCount = 0
+    private var failuresRemaining: Int
+
+    init(failuresRemaining: Int = 0) {
+        self.failuresRemaining = failuresRemaining
+    }
+
+    func deleteAllBackupData() async throws {
+        deletionCount += 1
+        if failuresRemaining > 0 {
+            failuresRemaining -= 1
+            throw CloudBackupStoreError(
+                category: .temporarilyUnavailable,
+                operationID: "delete"
+            )
+        }
     }
 }
 
