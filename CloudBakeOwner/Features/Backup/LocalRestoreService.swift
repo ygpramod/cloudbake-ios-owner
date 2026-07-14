@@ -58,7 +58,9 @@ actor LocalRestoreService: LocalRestoreServing {
         self.activationRoot = activationRoot.standardizedFileURL
         self.didReplaceDatabase = didReplaceDatabase
         self.activationCheckpoint = activationCheckpoint
-        self.databasePreparer = databasePreparer ?? Self.migrateAndValidateDatabase
+        self.databasePreparer = databasePreparer ?? { databaseURL in
+            try Self.migrateAndValidateDatabase(at: databaseURL)
+        }
         self.fileManager = fileManager
     }
 
