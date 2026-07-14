@@ -33,6 +33,24 @@ final class CloudKitBackupStoreTests: XCTestCase {
         XCTAssertTrue(retryResult.wasAlreadyCurrent)
         let retryCurrentGenerationID = try await store.currentGenerationID()
         XCTAssertEqual(retryCurrentGenerationID, fixture.package.generationID)
+
+        let inspection = try XCTUnwrap(
+            try await store.inspectCurrentSnapshot(currentAppVersion: "1.0")
+        )
+        XCTAssertEqual(inspection.generationID, fixture.package.generationID)
+        XCTAssertEqual(inspection.integrity, .verified)
+        let restoreURL = fixture.root.appendingPathComponent("Restore", isDirectory: true)
+        let restored = try await store.downloadCurrentSnapshot(
+            inspection,
+            to: restoreURL,
+            transferPolicy: .wifiOnly
+        )
+        XCTAssertEqual(restored.manifest, fixture.package.manifest)
+        XCTAssertTrue(restored.brokenAssets.isEmpty)
+        XCTAssertEqual(
+            try Data(contentsOf: restoreURL.appendingPathComponent("database.sqlite")),
+            try Data(contentsOf: fixture.package.databaseURL)
+        )
         #endif
         #else
         throw XCTSkip("Pass -DCLOUDBAKE_CLOUDKIT_SMOKE explicitly to run the device smoke test.")
@@ -112,6 +130,50 @@ final class CloudKitBackupStoreTests: XCTestCase {
         XCTAssertEqual(fetchChunks.flatMap(Array.init), values)
         XCTAssertTrue(fetchChunks.allSatisfy { $0.count <= 400 })
         XCTAssertEqual(fetchChunks.count, 6)
+    }
+
+    func testRestorePlanDerivesDeterministicRecordNamesWithoutLocalPaths() throws {
+        let manifest = BackupManifest(
+            databaseSchemaVersion: "0027_add_order_ingredient_costs",
+            minimumCompatibleAppVersion: "1.0",
+            generationID: "generation-1",
+            createdAt: Date(timeIntervalSince1970: 1_800_000_000),
+            database: BackupFileDescriptor(
+                relativePath: "database.sqlite",
+                byteCount: 20,
+                sha256: "database-checksum"
+            ),
+            assets: [
+                BackupAssetDescriptor(
+                    originalRelativePath: "OrderPhotos/cake.jpg",
+                    file: BackupFileDescriptor(
+                        relativePath: "Assets/opaque.asset",
+                        byteCount: 30,
+                        sha256: "asset-checksum"
+                    )
+                )
+            ]
+        )
+        let manifestFile = CloudRestoreFilePlan(
+            recordName: "generation-1-manifest",
+            role: .manifest,
+            relativePath: "manifest.json",
+            byteCount: 10,
+            sha256: "manifest-checksum",
+            originalAssetPath: nil
+        )
+
+        let files = try CloudRestoreFilePlan.make(
+            manifest: manifest,
+            manifestFile: manifestFile
+        )
+
+        XCTAssertEqual(
+            files.map(\.recordName),
+            ["generation-1-manifest", "generation-1-database", "generation-1-asset-000000"]
+        )
+        XCTAssertEqual(files.last?.originalAssetPath, "OrderPhotos/cake.jpg")
+        XCTAssertEqual(CloudRestoreFilePlan.totalByteCount(files), 60)
     }
 }
 

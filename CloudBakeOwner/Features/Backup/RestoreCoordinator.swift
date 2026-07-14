@@ -2,6 +2,7 @@ import Foundation
 
 enum CloudRestoreIntegrity: Equatable, Sendable {
     case verified
+    case brokenAssets(count: Int)
 }
 
 struct CloudRestoreSnapshot: Equatable, Sendable {
@@ -16,6 +17,7 @@ struct CloudRestoreSnapshot: Equatable, Sendable {
 struct DownloadedRestoreSnapshot: Equatable, Sendable {
     let directoryURL: URL
     let manifest: BackupManifest
+    let brokenAssets: [BrokenRestoreAsset]
 }
 
 struct BrokenRestoreAsset: Equatable, Sendable {
