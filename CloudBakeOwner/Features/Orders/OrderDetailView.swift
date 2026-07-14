@@ -9,6 +9,7 @@ struct OrderDetailView: View {
     @State private var isEditingOrder = false
     @State private var isSelectingStatus = false
     @State private var statusPendingInventoryDeduction: OrderStatus?
+    @State private var statusChangeErrorMessage: String?
     @State private var isConfirmingEditedOrderInventoryDeduction = false
     @State private var isSelectingPaymentStatus = false
     @State private var isAddingPartialPayment = false
@@ -332,10 +333,34 @@ struct OrderDetailView: View {
         ) {
             if let status = statusPendingInventoryDeduction {
                 centeredPopupButton("Mark \(status.displayName)", role: .destructive) {
-                    _ = viewModel.changeSelectedOrderStatus(to: status)
+                    let didChangeStatus = viewModel.changeSelectedOrderStatus(to: status)
                     statusPendingInventoryDeduction = nil
+                    if !didChangeStatus {
+                        statusChangeErrorMessage = viewModel.errorMessage
+                            ?? "Order status could not be updated."
+                    }
                 }
                 .accessibilityIdentifier("orders.detail.confirmInventoryDeduction")
+            }
+        }
+        .centeredOrderPopup(
+            isPresented: statusChangeErrorMessage != nil,
+            title: "Status Not Updated",
+            showsCancelButton: false,
+            onCancel: {}
+        ) {
+            if let statusChangeErrorMessage {
+                Text(statusChangeErrorMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.vertical, 12)
+                    .accessibilityIdentifier("orders.detail.statusChangeError")
+
+                centeredPopupButton("OK") {
+                    self.statusChangeErrorMessage = nil
+                }
+                .accessibilityIdentifier("orders.detail.statusChangeError.dismiss")
             }
         }
         .centeredOrderPopup(
