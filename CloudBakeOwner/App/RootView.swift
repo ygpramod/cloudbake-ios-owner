@@ -109,12 +109,12 @@ struct RootView: View {
             }
         }
         .onChange(of: emptyRestoreViewModel.didCompleteRestore) { _, didComplete in
-            if didComplete {
-                refreshAfterRestore()
+            if didComplete, cloudBackupRuntime == nil {
+                Task { await refreshAfterRestore() }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .cloudBakeRestoreDidComplete)) { _ in
-            refreshAfterRestore()
+            Task { await refreshAfterRestore() }
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else {
@@ -280,9 +280,25 @@ struct RootView: View {
         }
     }
 
-    private func refreshAfterRestore() {
+    @MainActor
+    private func refreshAfterRestore() async {
         navigationPath.removeAll()
         restoredDataRevision += 1
+        await RestoreCompletionReconciler(
+            refreshReminders: refreshLocalReminders,
+            resumeBackup: { cloudBackupRuntime?.startPostRestoreCatchUp() }
+        ).reconcile()
+    }
+}
+
+@MainActor
+struct RestoreCompletionReconciler {
+    let refreshReminders: () async -> Void
+    let resumeBackup: () -> Void
+
+    func reconcile() async {
+        await refreshReminders()
+        resumeBackup()
     }
 }
 
