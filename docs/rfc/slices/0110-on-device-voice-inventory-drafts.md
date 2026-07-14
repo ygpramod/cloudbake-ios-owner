@@ -15,10 +15,12 @@ without sending bakery data or audio to a remote recognition service.
 1. Add an inventory action that opens an editable voice transcript and draft workflow.
 2. Recognize speech with Apple's on-device speech recognizer in the current iPhone language.
 3. Parse repeated arbitrary item names followed by a positive quantity and supported unit.
-4. Match saved inventory names and aliases before proposing a new item.
-5. Require an owner decision for every unknown item: map it to existing inventory or create it.
-6. When mapped, add the spoken name as an alias and add a converted stock batch.
-7. Allow quantity, unit, minimum quantity, and expiry review before saving.
+4. Preserve earlier utterances while listening; after a meaningful pause, append the next
+   utterance on a new transcript line instead of replacing prior text.
+5. Match saved inventory names and aliases before proposing a new item.
+6. Require an owner decision for every unknown item: map it to existing inventory or create it.
+7. When mapped, add the spoken name as an alias and add a converted stock batch.
+8. Allow quantity, unit, minimum quantity, and expiry review before saving.
 
 Network speech recognition, background listening, and cloud transcription are outside this slice.
 
@@ -47,12 +49,12 @@ Network speech recognition, background listening, and cloud transcription are ou
 
 ## Testing
 
-Focused tests cover multi-item parsing, unique and ambiguous alias matching, name-edit destination
-invalidation, unknown-item decisions, alias creation, stock updates, atomic rollback, expiry
-removal, recognition-session cancellation, and unresolved-draft validation. A targeted acceptance
-test enters a transcript without invoking microphone permissions, updates existing stock, creates
-an unknown item, and verifies both results. Real microphone and Apple permission dialogs remain
-device-tested boundaries.
+Focused tests cover multi-item parsing, paused-utterance accumulation, recognition revisions,
+unique and ambiguous alias matching, name-edit destination invalidation, unknown-item decisions,
+alias creation, stock updates, atomic rollback, expiry removal, recognition-session cancellation,
+and unresolved-draft validation. A targeted acceptance test enters a transcript without invoking
+microphone permissions, updates existing stock, creates an unknown item, and verifies both results.
+Real microphone and Apple permission dialogs remain device-tested boundaries.
 
 ## Documentation Decision
 
