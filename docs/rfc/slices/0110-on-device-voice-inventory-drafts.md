@@ -17,10 +17,11 @@ without sending bakery data or audio to a remote recognition service.
 3. Parse repeated arbitrary item names followed by a positive quantity and supported unit.
 4. Preserve earlier utterances while listening; after a meaningful pause, append the next
    utterance on a new transcript line instead of replacing prior text.
-5. Match saved inventory names and aliases before proposing a new item.
-6. Require an owner decision for every unknown item: map it to existing inventory or create it.
-7. When mapped, add the spoken name as an alias and add a converted stock batch.
-8. Allow quantity, unit, minimum quantity, and expiry review before saving.
+5. Treat manual transcript edits as the authoritative baseline for later recognition updates.
+6. Match saved inventory names and aliases before proposing a new item.
+7. Require an owner decision for every unknown item: map it to existing inventory or create it.
+8. When mapped, add the spoken name as an alias and add a converted stock batch.
+9. Allow quantity, unit, minimum quantity, and expiry review before saving.
 
 Network speech recognition, background listening, and cloud transcription are outside this slice.
 
@@ -46,6 +47,8 @@ Network speech recognition, background listening, and cloud transcription are ou
 8. All items, aliases, quantities, and stock batches from one voice import save atomically.
 9. Editing a draft name re-evaluates its destination and requires a new decision when it no longer
    has one unique exact match.
+10. Minimum quantity is entered only for new inventory; mapped drafts retain the saved item's
+    minimum quantity.
 
 ## Testing
 

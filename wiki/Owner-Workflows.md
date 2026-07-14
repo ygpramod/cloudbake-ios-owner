@@ -228,11 +228,14 @@ Open the Inventory header actions and choose Add Inventory by Voice. Start liste
 items as `name quantity unit`, or type directly into the editable transcript. CloudBake uses only
 on-device recognition in the current iPhone language. It never uploads the audio or transcript.
 When you pause before speaking the next item, CloudBake keeps the earlier text and places the next
-utterance on a new line.
+utterance on a new line. If you edit the transcript while listening, later speech continues from
+the edited text instead of restoring the recognizer's earlier wording.
 
 Choose Create Drafts, review the parsed rows, and decide how every unknown item should be saved.
 Map an unknown name to searchable, unit-compatible inventory to add stock and preserve the spoken
-name as an alias, or create a new item. Only one exact saved name or alias matches automatically;
+name as an alias, or create a new item. Mapped drafts retain the saved item's minimum quantity;
+minimum quantity is requested only when creating new inventory. Only one exact saved name or alias
+matches automatically;
 partial and ambiguous matches require a decision. Editing a draft name rechecks that destination.
 Saving is disabled until the transcript produces drafts and every unknown item has a destination,
 then commits the complete voice import atomically.
