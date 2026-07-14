@@ -249,6 +249,9 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
 
 extension Notification.Name {
     static let cloudBakeRestoreDidComplete = Notification.Name("CloudBakeRestoreDidComplete")
+    static let cloudBakeRestoreRecoveryRequired = Notification.Name(
+        "CloudBakeRestoreRecoveryRequired"
+    )
 }
 
 #if DEBUG
