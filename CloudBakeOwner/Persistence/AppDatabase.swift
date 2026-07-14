@@ -388,6 +388,23 @@ final class AppDatabase {
                 updatedAt: timestamp
             )
         )
+        try repository.save(
+            Order(
+                id: "order-ui-fixture-draft-status",
+                customerId: nil,
+                cakeDesignId: nil,
+                recipeId: recipe.id,
+                title: "Draft status cake",
+                customerName: "Amy",
+                status: .draft,
+                dueAt: Date(timeIntervalSince1970: 1_800_150_000),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
     }
 
     private func seedCakeDesignFixtureIfRequested() throws {
