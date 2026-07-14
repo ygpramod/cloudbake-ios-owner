@@ -3,7 +3,7 @@ import GRDB
 
 private struct BrokenLocalRestoreAssetError: Error {}
 
-enum LocalRestorePreparationErrorMapper {
+enum RestoreLocalFileErrorMapper {
     static func category(for error: Error) -> RestoreFailureCategory {
         let nsError = error as NSError
         if nsError.domain == NSCocoaErrorDomain,
@@ -109,7 +109,7 @@ actor LocalRestoreService: LocalRestoreServing {
             try? fileManager.removeItem(at: preparedRoot)
             if error is RestoreOperationError { throw error }
             throw RestoreOperationError(
-                category: LocalRestorePreparationErrorMapper.category(for: error),
+                category: RestoreLocalFileErrorMapper.category(for: error),
                 didRollBack: false
             )
         }
@@ -326,7 +326,7 @@ actor LocalRestoreService: LocalRestoreServing {
         } catch let error as BrokenLocalRestoreAssetError {
             throw error
         } catch {
-            if LocalRestorePreparationErrorMapper.isMissingFile(error) {
+            if RestoreLocalFileErrorMapper.isMissingFile(error) {
                 throw BrokenLocalRestoreAssetError()
             }
             throw error

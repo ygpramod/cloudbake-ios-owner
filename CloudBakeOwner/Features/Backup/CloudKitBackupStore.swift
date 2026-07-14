@@ -231,11 +231,10 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
             let buildingURL = directoryURL
                 .deletingLastPathComponent()
                 .appendingPathComponent("\(directoryURL.lastPathComponent).downloading", isDirectory: true)
-            try removeIfPresent(buildingURL, fileManager: fileManager)
-            try removeIfPresent(directoryURL, fileManager: fileManager)
-            try fileManager.createDirectory(at: buildingURL, withIntermediateDirectories: true)
-
             do {
+                try removeIfPresent(buildingURL, fileManager: fileManager)
+                try removeIfPresent(directoryURL, fileManager: fileManager)
+                try fileManager.createDirectory(at: buildingURL, withIntermediateDirectories: true)
                 var brokenAssets: [BrokenRestoreAsset] = []
                 for files in CloudKitBackupBatching.chunks(
                     details.files,
@@ -282,6 +281,9 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
                 )
             } catch {
                 try? fileManager.removeItem(at: buildingURL)
+                if RestoreLocalFileErrorMapper.category(for: error) == .insufficientStorage {
+                    throw RestoreOperationError(category: .insufficientStorage, didRollBack: false)
+                }
                 throw error
             }
         }
@@ -743,6 +745,8 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
         do {
             return try await operation()
         } catch let error as CloudBackupStoreError {
+            throw error
+        } catch let error as RestoreOperationError {
             throw error
         } catch {
             throw CloudKitBackupErrorMapper.storeError(error, operationID: operationID)
