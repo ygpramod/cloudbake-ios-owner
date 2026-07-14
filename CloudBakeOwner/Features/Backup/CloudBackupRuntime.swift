@@ -94,6 +94,10 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
         }
         guard await coordinator.beginRestoreSession() else { return .busy }
         let result = await restoreCoordinator.inspect()
+        if result == .busy {
+            await coordinator.endRestoreSession()
+            return result
+        }
         await releaseRestoreSessionIfTerminal(result)
         return result
     }
@@ -113,8 +117,9 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
     }
 
     func cancelRestore(proposalID: String) async {
-        await restoreCoordinator?.cancel(proposalID: proposalID)
-        await coordinator.endRestoreSession()
+        if await restoreCoordinator?.cancel(proposalID: proposalID) == true {
+            await coordinator.endRestoreSession()
+        }
     }
 
     static func live(database: AppDatabase) throws -> CloudBackupRuntime {
@@ -225,10 +230,10 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
 
     private func releaseRestoreSessionIfTerminal(_ result: RestoreResult) async {
         switch result {
-        case .completed, .noBackup, .invalidApproval, .failed:
+        case .completed, .noBackup, .failed:
             await coordinator.endRestoreSession()
         case .ready, .requiresReplacementConfirmation, .requiresCellularConfirmation,
-             .requiresBrokenAssetDecision, .busy:
+             .requiresBrokenAssetDecision, .busy, .invalidApproval:
             break
         }
     }

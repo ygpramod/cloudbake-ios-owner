@@ -136,6 +136,82 @@ final class RestoreCoordinatorTests: XCTestCase {
         XCTAssertEqual(removedRestoreCount, 1)
         XCTAssertEqual(removedRollbackCount, 1)
     }
+
+    func testCancellationWaitsForDownloadToStopBeforeReleasingRestore() async {
+        let fixture = RestoreCoordinatorFixture(suspendDownload: true)
+        _ = await fixture.coordinator.inspect()
+
+        let restore = Task {
+            await fixture.coordinator.proceed(
+                proposalID: fixture.proposalID,
+                approval: .start
+            )
+        }
+        await fixture.cloud.waitForDownloadStart()
+
+        let cancellation = Task {
+            await fixture.coordinator.cancel(proposalID: fixture.proposalID)
+        }
+        await Task.yield()
+
+        let inspectionDuringCancellation = await fixture.coordinator.inspect()
+        let cleanupCountDuringCancellation = await fixture.local.removedRestoreCount
+        XCTAssertEqual(inspectionDuringCancellation, .busy)
+        XCTAssertEqual(cleanupCountDuringCancellation, 0)
+
+        await fixture.cloud.releaseDownload()
+
+        let restoreResult = await restore.value
+        let didCancel = await cancellation.value
+        let activationCount = await fixture.local.activationCount
+        let cleanupCount = await fixture.local.removedRestoreCount
+        let nextInspection = await fixture.coordinator.inspect()
+        XCTAssertEqual(
+            restoreResult,
+            .failed(RestoreFailure(category: .cancelled, didRollBack: false))
+        )
+        XCTAssertTrue(didCancel)
+        XCTAssertEqual(activationCount, 0)
+        XCTAssertEqual(cleanupCount, 1)
+        XCTAssertEqual(
+            nextInspection,
+            .ready(fixture.proposal(replacesExistingData: false))
+        )
+    }
+
+    func testCancellationDuringActivationWaitsForCommittedRestore() async {
+        let fixture = RestoreCoordinatorFixture(suspendActivation: true)
+        _ = await fixture.coordinator.inspect()
+
+        let restore = Task {
+            await fixture.coordinator.proceed(
+                proposalID: fixture.proposalID,
+                approval: .start
+            )
+        }
+        await fixture.local.waitForActivationStart()
+
+        let cancellation = Task {
+            await fixture.coordinator.cancel(proposalID: fixture.proposalID)
+        }
+        await Task.yield()
+
+        let inspectionDuringCancellation = await fixture.coordinator.inspect()
+        let cleanupCountDuringCancellation = await fixture.local.removedRestoreCount
+        XCTAssertEqual(inspectionDuringCancellation, .busy)
+        XCTAssertEqual(cleanupCountDuringCancellation, 0)
+
+        await fixture.local.releaseActivation()
+
+        let restoreResult = await restore.value
+        let didCancel = await cancellation.value
+        let activationCount = await fixture.local.activationCount
+        let cleanupCount = await fixture.local.removedRestoreCount
+        XCTAssertEqual(restoreResult, .completed)
+        XCTAssertTrue(didCancel)
+        XCTAssertEqual(activationCount, 1)
+        XCTAssertEqual(cleanupCount, 1)
+    }
 }
 
 private final class RestoreCoordinatorFixture: @unchecked Sendable {
@@ -151,7 +227,9 @@ private final class RestoreCoordinatorFixture: @unchecked Sendable {
         connection: BackupConnection = .wifi,
         compatibility: BackupManifestCompatibility = .compatible,
         brokenAssets: [BrokenRestoreAsset] = [],
-        activationError: Error? = nil
+        activationError: Error? = nil,
+        suspendDownload: Bool = false,
+        suspendActivation: Bool = false
     ) {
         snapshot = CloudRestoreSnapshot(
             generationID: "generation-1",
@@ -161,12 +239,17 @@ private final class RestoreCoordinatorFixture: @unchecked Sendable {
             compatibility: compatibility,
             integrity: .verified
         )
-        cloud = FakeCloudRestoreService(snapshot: snapshot, root: root)
+        cloud = FakeCloudRestoreService(
+            snapshot: snapshot,
+            root: root,
+            suspendDownload: suspendDownload
+        )
         local = FakeLocalRestoreService(
             hasOwnerData: hasOwnerData,
             brokenAssets: brokenAssets,
             activationError: activationError,
-            root: root
+            root: root,
+            suspendActivation: suspendActivation
         )
         coordinator = RestoreCoordinator(
             cloud: cloud,
@@ -192,10 +275,12 @@ private actor FakeCloudRestoreService: CloudRestoreServing {
     let root: URL
     private(set) var downloadCount = 0
     private(set) var transferPolicies: [CloudBackupTransferPolicy] = []
+    private let downloadGate: RestoreTestGate
 
-    init(snapshot: CloudRestoreSnapshot, root: URL) {
+    init(snapshot: CloudRestoreSnapshot, root: URL, suspendDownload: Bool) {
         self.snapshot = snapshot
         self.root = root
+        downloadGate = RestoreTestGate(isClosed: suspendDownload)
     }
 
     func inspectCurrentSnapshot(currentAppVersion: String) async throws -> CloudRestoreSnapshot? {
@@ -209,11 +294,20 @@ private actor FakeCloudRestoreService: CloudRestoreServing {
     ) async throws -> DownloadedRestoreSnapshot {
         downloadCount += 1
         transferPolicies.append(transferPolicy)
+        await downloadGate.waitIfClosed()
         return DownloadedRestoreSnapshot(
             directoryURL: directoryURL,
             manifest: Self.manifest(generationID: snapshot.generationID),
             brokenAssets: []
         )
+    }
+
+    func waitForDownloadStart() async {
+        while downloadCount == 0 { await Task.yield() }
+    }
+
+    func releaseDownload() async {
+        await downloadGate.open()
     }
 
     nonisolated static func manifest(generationID: String) -> BackupManifest {
@@ -239,12 +333,20 @@ private actor FakeLocalRestoreService: LocalRestoreServing {
     private(set) var assetDecisions: [BrokenRestoreAssetDecision] = []
     private(set) var removedRestoreCount = 0
     private(set) var removedRollbackCount = 0
+    private let activationGate: RestoreTestGate
 
-    init(hasOwnerData: Bool, brokenAssets: [BrokenRestoreAsset], activationError: Error?, root: URL) {
+    init(
+        hasOwnerData: Bool,
+        brokenAssets: [BrokenRestoreAsset],
+        activationError: Error?,
+        root: URL,
+        suspendActivation: Bool
+    ) {
         ownerData = hasOwnerData
         self.brokenAssets = brokenAssets
         self.activationError = activationError
         self.root = root
+        activationGate = RestoreTestGate(isClosed: suspendActivation)
     }
 
     func hasOwnerData() async throws -> Bool {
@@ -292,7 +394,16 @@ private actor FakeLocalRestoreService: LocalRestoreServing {
         rollbackSnapshot: AppSnapshotPackage?
     ) async throws {
         activationCount += 1
+        await activationGate.waitIfClosed()
         if let activationError { throw activationError }
+    }
+
+    func waitForActivationStart() async {
+        while activationCount == 0 { await Task.yield() }
+    }
+
+    func releaseActivation() async {
+        await activationGate.open()
     }
 
     func removeStagedRestore(at directoryURL: URL) async {
@@ -301,6 +412,29 @@ private actor FakeLocalRestoreService: LocalRestoreServing {
 
     func removeRollbackSnapshot(_ snapshot: AppSnapshotPackage) async {
         removedRollbackCount += 1
+    }
+}
+
+private actor RestoreTestGate {
+    private var isClosed: Bool
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    init(isClosed: Bool) {
+        self.isClosed = isClosed
+    }
+
+    func waitIfClosed() async {
+        guard isClosed else { return }
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+        }
+    }
+
+    func open() {
+        isClosed = false
+        let continuations = waiters
+        waiters.removeAll()
+        continuations.forEach { $0.resume() }
     }
 }
 

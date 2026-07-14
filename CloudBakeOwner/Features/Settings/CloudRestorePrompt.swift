@@ -24,9 +24,12 @@ private struct CloudRestorePromptModifier: ViewModifier {
             title: title,
             subtitle: subtitle,
             systemImage: systemImage,
-            showsCancelButton: !offersStartFresh,
+            showsCancelButton: !offersStartFresh && !viewModel.isWorking,
             cancelAccessibilityIdentifier: "settings.cloudRestore.cancel",
-            onCancel: { Task { await viewModel.cancel() } }
+            onCancel: {
+                guard !viewModel.isWorking else { return }
+                Task { await viewModel.cancel() }
+            }
         ) {
             promptActions
                 .disabled(viewModel.isWorking)

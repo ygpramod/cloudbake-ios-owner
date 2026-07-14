@@ -127,6 +127,17 @@ protocol LocalRestoreServing: Sendable {
 }
 
 actor RestoreCoordinator {
+    private enum PendingOperation: Sendable {
+        case downloadAndPrepare
+        case resolveBrokenAssets(BrokenRestoreAssetDecision)
+    }
+
+    private struct RunningOperation {
+        let id: String
+        let proposalID: String
+        let task: Task<RestoreResult, Never>
+    }
+
     private enum AwaitingApproval {
         case start
         case replacement
@@ -150,8 +161,10 @@ actor RestoreCoordinator {
     private let stagingRoot: URL
     private let currentAppVersion: String
     private let makeProposalID: @Sendable () -> String
+    private let makeOperationID: @Sendable () -> String
 
     private var active: ActiveRestore?
+    private var runningOperation: RunningOperation?
     private(set) var stage: RestoreStage = .idle
 
     init(
@@ -160,7 +173,8 @@ actor RestoreCoordinator {
         connectivity: any BackupConnectivityChecking,
         stagingRoot: URL,
         currentAppVersion: String,
-        makeProposalID: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() }
+        makeProposalID: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() },
+        makeOperationID: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() }
     ) {
         self.cloud = cloud
         self.local = local
@@ -168,10 +182,11 @@ actor RestoreCoordinator {
         self.stagingRoot = stagingRoot
         self.currentAppVersion = currentAppVersion
         self.makeProposalID = makeProposalID
+        self.makeOperationID = makeOperationID
     }
 
     func inspect() async -> RestoreResult {
-        guard active == nil, stage != .inspecting else { return .busy }
+        guard active == nil, runningOperation == nil, stage != .inspecting else { return .busy }
         stage = .inspecting
         do {
             guard let snapshot = try await cloud.inspectCurrentSnapshot(
@@ -227,7 +242,7 @@ actor RestoreCoordinator {
         switch (active.awaiting, approval) {
         case (.start, .start):
             self.active = active
-            return await performDownloadAndPreparation()
+            return await run(.downloadAndPrepare, proposalID: proposalID)
         case (.replacement, .replaceExistingData):
             active.replacementApproved = true
             if await connectivity.currentConnection() == .cellular {
@@ -237,7 +252,7 @@ actor RestoreCoordinator {
                 return .requiresCellularConfirmation(active.proposal)
             }
             self.active = active
-            return await performDownloadAndPreparation()
+            return await run(.downloadAndPrepare, proposalID: proposalID)
         case (.cellular, .useCellular(let displayedByteCount))
             where displayedByteCount == active.proposal.snapshot.totalByteCount:
             guard !active.proposal.replacesExistingData || active.replacementApproved else {
@@ -245,36 +260,74 @@ actor RestoreCoordinator {
             }
             active.cellularApproved = true
             self.active = active
-            return await performDownloadAndPreparation()
+            return await run(.downloadAndPrepare, proposalID: proposalID)
         case (.brokenAssets, .brokenAssets(let decision)):
-            guard let prepared = active.prepared else { return .invalidApproval }
-            do {
-                stage = .validating
-                active.prepared = try await local.applyBrokenAssetDecision(decision, to: prepared)
-                self.active = active
-                return await activatePreparedSnapshot()
-            } catch {
-                return await failAndCleanUp(error)
-            }
+            guard active.prepared != nil else { return .invalidApproval }
+            self.active = active
+            return await run(.resolveBrokenAssets(decision), proposalID: proposalID)
         default:
             return .invalidApproval
         }
     }
 
-    func cancel(proposalID: String) async {
-        guard let active, active.proposal.id == proposalID else { return }
+    @discardableResult
+    func cancel(proposalID: String) async -> Bool {
+        guard let active, active.proposal.id == proposalID else { return false }
+        if let runningOperation, runningOperation.proposalID == proposalID {
+            runningOperation.task.cancel()
+            _ = await runningOperation.task.value
+            if self.runningOperation?.id == runningOperation.id {
+                self.runningOperation = nil
+            }
+            return true
+        }
         await cleanUp(active)
         self.active = nil
         stage = .idle
+        return true
+    }
+
+    private func run(
+        _ operation: PendingOperation,
+        proposalID: String
+    ) async -> RestoreResult {
+        guard runningOperation == nil else { return .busy }
+        let operationID = makeOperationID()
+        let task = Task { await self.execute(operation, proposalID: proposalID) }
+        runningOperation = RunningOperation(
+            id: operationID,
+            proposalID: proposalID,
+            task: task
+        )
+        let result = await task.value
+        if runningOperation?.id == operationID {
+            runningOperation = nil
+        }
+        return result
+    }
+
+    private func execute(
+        _ operation: PendingOperation,
+        proposalID: String
+    ) async -> RestoreResult {
+        guard active?.proposal.id == proposalID else { return .invalidApproval }
+        switch operation {
+        case .downloadAndPrepare:
+            return await performDownloadAndPreparation()
+        case .resolveBrokenAssets(let decision):
+            return await resolveBrokenAssets(decision)
+        }
     }
 
     private func performDownloadAndPreparation() async -> RestoreResult {
         guard var active else { return .invalidApproval }
         do {
+            try Task.checkCancellation()
             if active.proposal.replacesExistingData {
                 stage = .creatingRollback
                 active.rollback = try await local.createRollbackSnapshot()
                 self.active = active
+                try Task.checkCancellation()
             }
 
             stage = .downloading
@@ -292,9 +345,11 @@ actor RestoreCoordinator {
             )
             active.downloaded = downloaded
             self.active = active
+            try Task.checkCancellation()
 
             stage = .validating
             let prepared = try await local.prepare(downloaded)
+            try Task.checkCancellation()
             active.prepared = prepared
             if !prepared.brokenAssets.isEmpty {
                 active.awaiting = .brokenAssets
@@ -308,6 +363,22 @@ actor RestoreCoordinator {
                 )
             }
             self.active = active
+            return await activatePreparedSnapshot()
+        } catch {
+            return await failAndCleanUp(error)
+        }
+    }
+
+    private func resolveBrokenAssets(
+        _ decision: BrokenRestoreAssetDecision
+    ) async -> RestoreResult {
+        guard var active, let prepared = active.prepared else { return .invalidApproval }
+        do {
+            try Task.checkCancellation()
+            stage = .validating
+            active.prepared = try await local.applyBrokenAssetDecision(decision, to: prepared)
+            self.active = active
+            try Task.checkCancellation()
             return await activatePreparedSnapshot()
         } catch {
             return await failAndCleanUp(error)

@@ -274,6 +274,28 @@ final class CloudBackupSettingsTests: XCTestCase {
         XCTAssertEqual(cancelledProposalIDs, ["restore-proposal"])
     }
 
+    func testInvalidRestoreApprovalKeepsPromptAvailableForRetryOrCancellation() async {
+        let service = CloudRestoreSettingsServiceSpy(startsWithEmptyInstallation: true)
+        let viewModel = CloudRestoreSettingsViewModel(service: service)
+
+        _ = await viewModel.inspect()
+        await viewModel.startRestore()
+
+        guard case .restore(let proposal) = viewModel.prompt else {
+            return XCTFail("Expected the current restore confirmation to remain visible")
+        }
+        XCTAssertEqual(proposal.id, "restore-proposal")
+        XCTAssertEqual(
+            viewModel.actionMessage,
+            "That confirmation could not be applied. Please retry or cancel."
+        )
+
+        await viewModel.startFresh()
+
+        let cancelledProposalIDs = await service.cancelledProposalIDs
+        XCTAssertEqual(cancelledProposalIDs, ["restore-proposal"])
+    }
+
     func testRestoreViewModelExplainsUpdateRequirement() async {
         let service = CloudRestoreSettingsServiceSpy(
             inspectionResult: .failed(
