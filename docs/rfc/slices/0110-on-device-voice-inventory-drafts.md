@@ -34,20 +34,25 @@ Network speech recognition, background listening, and cloud transcription are ou
 
 1. A complete phrase contains an arbitrary item name, positive number, and supported unit.
 2. Supported units include kg, g, L, ml, tsp, tbsp, cups, pieces, and common spoken variants.
-3. Existing name and alias matching is case-insensitive and uses the existing duplicate matcher.
+3. Automatic matching requires exactly one case-insensitive exact name or alias match. Partial or
+   ambiguous matches require an owner decision.
 4. Mapping choices show only inventory with a compatible measurement family.
 5. Unknown drafts cannot be saved until the owner maps or creates them.
 6. Mapping preserves the saved inventory unit and converts the draft quantity before adding stock.
 7. New and mapped stock uses the item-level expiry default when available, while remaining
    editable or removable in the draft.
+8. All items, aliases, quantities, and stock batches from one voice import save atomically.
+9. Editing a draft name re-evaluates its destination and requires a new decision when it no longer
+   has one unique exact match.
 
 ## Testing
 
-Focused tests cover multi-item parsing, alias matching, unknown-item decisions, alias creation,
-stock updates, expiry removal, and unresolved-draft validation. A targeted acceptance test enters a
-transcript without invoking microphone permissions, updates existing stock, creates an unknown
-item, and verifies both results. Real microphone and Apple permission dialogs remain device-tested
-boundaries.
+Focused tests cover multi-item parsing, unique and ambiguous alias matching, name-edit destination
+invalidation, unknown-item decisions, alias creation, stock updates, atomic rollback, expiry
+removal, recognition-session cancellation, and unresolved-draft validation. A targeted acceptance
+test enters a transcript without invoking microphone permissions, updates existing stock, creates
+an unknown item, and verifies both results. Real microphone and Apple permission dialogs remain
+device-tested boundaries.
 
 ## Documentation Decision
 
