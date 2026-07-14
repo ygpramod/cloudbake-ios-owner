@@ -118,6 +118,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCanBeArchivedAndRestored
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDetailShowsStockActionsInMoreMenu
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryPurchaseBillImportShowsCameraAndManualDraftControls
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testVoiceInventoryDraftsCanUpdateExistingAndCreateUnknownItems
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testExpiredInventoryCanBeDisposedFromItemDetail
           - feature: designs
             only_testing: |

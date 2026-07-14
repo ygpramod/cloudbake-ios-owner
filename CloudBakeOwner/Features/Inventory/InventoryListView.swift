@@ -11,6 +11,7 @@ struct InventoryListView: View {
     @State private var isConsumingStock = false
     @State private var isShowingHistory = false
     @State private var isImportingPurchaseBill = false
+    @State private var isAddingInventoryByVoice = false
     @State private var pendingArchiveItem: InventoryItem?
     @FocusState private var isSearchFocused: Bool
 
@@ -34,6 +35,12 @@ struct InventoryListView: View {
                     systemImage: "doc.text.viewfinder",
                     accessibilityIdentifier: "inventory.purchaseBill.import",
                     action: { isImportingPurchaseBill = true }
+                ),
+                CloudBakeScreenAction(
+                    title: "Add inventory by voice",
+                    systemImage: "mic",
+                    accessibilityIdentifier: "inventory.voice.add",
+                    action: { isAddingInventoryByVoice = true }
                 )
             ],
             collapsesActionsIntoMenu: true
@@ -128,6 +135,17 @@ struct InventoryListView: View {
                 PurchaseBillImportView(
                     viewModel: viewModel,
                     isPresented: $isImportingPurchaseBill
+                )
+            }
+        }
+        .sheet(
+            isPresented: $isAddingInventoryByVoice,
+            onDismiss: viewModel.cancelVoiceInventoryImport
+        ) {
+            NavigationStack {
+                VoiceInventoryImportView(
+                    viewModel: viewModel,
+                    isPresented: $isAddingInventoryByVoice
                 )
             }
         }

@@ -258,3 +258,344 @@ private struct PurchaseBillDraftRow: View {
         .accessibilityIdentifier("inventory.purchaseBill.draft.\(draft.id)")
     }
 }
+
+struct VoiceInventoryImportView: View {
+    @ObservedObject var viewModel: InventoryListViewModel
+    @Binding var isPresented: Bool
+    @State private var isListening = false
+    @State private var isRequestingPermission = false
+    @State private var recognitionStartTask: Task<Void, Never>?
+    @State private var recognitionError: String?
+    @State private var pendingUnknownDraftId: String?
+    @State private var mappingDraftId: String?
+    @State private var inventorySearch = ""
+
+    private let recognizer: any VoiceInventorySpeechRecognizing
+
+    @MainActor
+    init(
+        viewModel: InventoryListViewModel,
+        isPresented: Binding<Bool>
+    ) {
+        self.init(
+            viewModel: viewModel,
+            isPresented: isPresented,
+            recognizer: OnDeviceVoiceInventorySpeechRecognizer()
+        )
+    }
+
+    @MainActor
+    init(
+        viewModel: InventoryListViewModel,
+        isPresented: Binding<Bool>,
+        recognizer: any VoiceInventorySpeechRecognizing
+    ) {
+        self.viewModel = viewModel
+        _isPresented = isPresented
+        self.recognizer = recognizer
+    }
+
+    var body: some View {
+        Form {
+            Section("Voice Inventory") {
+                Text("Recognition stays on this iPhone and uses the current iPhone language.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                TextEditor(text: $viewModel.voiceInventoryTranscript)
+                    .frame(minHeight: 110)
+                    .accessibilityLabel("Recognized inventory")
+                    .accessibilityIdentifier("inventory.voice.transcript")
+
+                Button {
+                    isListening ? stopListening() : startListening()
+                } label: {
+                    Label(listeningButtonTitle, systemImage: isListening ? "stop.fill" : "mic.fill")
+                }
+                .disabled(isRequestingPermission)
+                .accessibilityIdentifier("inventory.voice.listen")
+
+                Button {
+                    stopListening()
+                    if viewModel.createVoiceInventoryDrafts() {
+                        offerNextUnknownDraft()
+                    }
+                } label: {
+                    Label("Create Drafts", systemImage: "wand.and.stars")
+                }
+                .disabled(viewModel.voiceInventoryTranscript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityIdentifier("inventory.voice.createDrafts")
+            }
+
+            if !viewModel.voiceInventoryDrafts.isEmpty {
+                Section("Draft Items") {
+                    ForEach($viewModel.voiceInventoryDrafts) { $draft in
+                        VoiceInventoryDraftRow(
+                            draft: $draft,
+                            destinationName: destinationName(for: draft.destination),
+                            onResolve: {
+                                pendingUnknownDraftId = draft.id
+                            }
+                        )
+                    }
+                }
+            }
+
+            if let message = recognitionError ?? viewModel.errorMessage {
+                Section {
+                    Text(message)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("inventory.voice.error")
+                }
+            }
+        }
+        .cloudBakeFormScreenStyle()
+        .navigationTitle("Add by Voice")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    stopListening()
+                    isPresented = false
+                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    stopListening()
+                    if viewModel.saveVoiceInventoryDrafts() {
+                        isPresented = false
+                    }
+                }
+                .disabled(viewModel.voiceInventoryDrafts.isEmpty)
+                .accessibilityIdentifier("inventory.voice.save")
+            }
+        }
+        .onDisappear(perform: stopListening)
+        .sheet(isPresented: mappingSheetPresented) {
+            NavigationStack {
+                List(filteredInventoryItems, id: \.id) { item in
+                    Button {
+                        if let mappingDraftId {
+                            viewModel.mapVoiceInventoryDraft(mappingDraftId, to: item.id)
+                        }
+                        self.mappingDraftId = nil
+                        inventorySearch = ""
+                        offerNextUnknownDraft()
+                    } label: {
+                        VStack(alignment: .leading) {
+                            Text(item.name)
+                            Text("\(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityIdentifier("inventory.voice.map.item.\(item.id)")
+                }
+                .navigationTitle("Map Inventory")
+                .searchable(text: $inventorySearch, prompt: "Search inventory")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            mappingDraftId = nil
+                            inventorySearch = ""
+                        }
+                    }
+                }
+            }
+        }
+        .cloudBakeCenteredPopup(
+            isPresented: pendingUnknownDraftId != nil,
+            title: "Inventory Item Not Found",
+            subtitle: unknownDraftSubtitle,
+            systemImage: "questionmark.circle",
+            cancelAccessibilityIdentifier: "inventory.voice.unknown.cancel",
+            onCancel: { pendingUnknownDraftId = nil }
+        ) {
+            centeredPopupButton("Map to Existing Inventory") {
+                let draftId = pendingUnknownDraftId
+                pendingUnknownDraftId = nil
+                DispatchQueue.main.async {
+                    mappingDraftId = draftId
+                }
+            }
+            .accessibilityIdentifier("inventory.voice.unknown.map")
+
+            centeredPopupButton("Create as New Inventory") {
+                if let pendingUnknownDraftId {
+                    viewModel.resolveVoiceInventoryDraftAsNew(pendingUnknownDraftId)
+                }
+                self.pendingUnknownDraftId = nil
+                offerNextUnknownDraft()
+            }
+            .accessibilityIdentifier("inventory.voice.unknown.create")
+        }
+    }
+
+    private var mappingSheetPresented: Binding<Bool> {
+        Binding(
+            get: { mappingDraftId != nil },
+            set: { isPresented in
+                if !isPresented {
+                    mappingDraftId = nil
+                }
+            }
+        )
+    }
+
+    private var filteredInventoryItems: [InventoryItem] {
+        let query = TextInputFormatting.normalizedSearchKey(inventorySearch)
+        let compatibleItems: [InventoryItem]
+        if let mappingDraftId,
+           let draft = viewModel.voiceInventoryDrafts.first(where: { $0.id == mappingDraftId }) {
+            compatibleItems = viewModel.items.filter {
+                draft.unit.convertedQuantity(1, to: $0.unit) != nil
+            }
+        } else {
+            compatibleItems = viewModel.items
+        }
+        guard !query.isEmpty else {
+            return compatibleItems
+        }
+        return compatibleItems.filter {
+            TextInputFormatting.normalizedSearchKey($0.name).contains(query)
+                || $0.aliases.contains { TextInputFormatting.normalizedSearchKey($0).contains(query) }
+        }
+    }
+
+    private var unknownDraftSubtitle: String {
+        guard let id = pendingUnknownDraftId,
+              let draft = viewModel.voiceInventoryDrafts.first(where: { $0.id == id }) else {
+            return "Choose how this spoken item should be saved."
+        }
+        return "\(draft.name) is not in inventory. Map it to an existing item or create it as new inventory."
+    }
+
+    private func destinationName(for destination: VoiceInventoryDraftDestination) -> String {
+        switch destination {
+        case .unresolved: "Needs a decision"
+        case .newItem: "Creates new inventory"
+        case .existingItem(let id):
+            "Adds to \(viewModel.items.first(where: { $0.id == id })?.name ?? "existing inventory")"
+        }
+    }
+
+    private func offerNextUnknownDraft() {
+        pendingUnknownDraftId = viewModel.voiceInventoryDrafts.first {
+            $0.destination == .unresolved
+        }?.id
+    }
+
+    private func startListening() {
+        recognitionError = nil
+        isRequestingPermission = true
+        recognitionStartTask = Task {
+            defer {
+                isRequestingPermission = false
+                recognitionStartTask = nil
+            }
+            guard await recognizer.requestPermission() else {
+                guard !Task.isCancelled else {
+                    return
+                }
+                recognitionError = VoiceInventoryRecognitionError.permissionDenied.localizedDescription
+                return
+            }
+            guard !Task.isCancelled else {
+                return
+            }
+            do {
+                try recognizer.start(
+                    onTranscript: { transcript in
+                        viewModel.voiceInventoryTranscript = transcript
+                    },
+                    onError: { error in
+                        stopListening()
+                        recognitionError = error.localizedDescription
+                    }
+                )
+                isListening = true
+            } catch let error as VoiceInventoryRecognitionError {
+                recognitionError = error.localizedDescription
+            } catch {
+                recognitionError = VoiceInventoryRecognitionError.recognitionFailed.localizedDescription
+            }
+        }
+    }
+
+    private func stopListening() {
+        recognitionStartTask?.cancel()
+        recognitionStartTask = nil
+        isRequestingPermission = false
+        recognizer.stop()
+        isListening = false
+    }
+
+    private var listeningButtonTitle: String {
+        if isRequestingPermission {
+            return "Requesting Access"
+        }
+        return isListening ? "Stop Listening" : "Start Listening"
+    }
+}
+
+private struct VoiceInventoryDraftRow: View {
+    @Binding var draft: VoiceInventoryDraft
+    let destinationName: String
+    let onResolve: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(draft.sourcePhrase)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Label(destinationName, systemImage: "arrow.triangle.branch")
+                .font(.caption)
+                .foregroundStyle(.blue)
+            if draft.destination == .unresolved {
+                Button("Choose Where to Save", action: onResolve)
+                    .accessibilityIdentifier("inventory.voice.draft.resolve.\(draft.id)")
+            }
+
+            TextField("Name", text: $draft.name)
+                .textInputAutocapitalization(.words)
+                .accessibilityIdentifier("inventory.voice.draft.name.\(draft.id)")
+
+            HStack {
+                TextField("Quantity", text: $draft.quantityText)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("inventory.voice.draft.quantity.\(draft.id)")
+                Picker("Unit", selection: $draft.unit) {
+                    ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
+                        Text(unit.displayName).tag(unit)
+                    }
+                }
+            }
+
+            TextField("Minimum Quantity", text: $draft.minimumQuantityText)
+                .keyboardType(.decimalPad)
+                .accessibilityIdentifier("inventory.voice.draft.minimum.\(draft.id)")
+
+            Toggle("Has Expiry Date", isOn: Binding(
+                get: { draft.hasExpiryDate },
+                set: {
+                    draft.hasExpiryDate = $0
+                    draft.expiryUsesDefault = false
+                }
+            ))
+            if draft.hasExpiryDate {
+                DatePicker(
+                    "Expiry Date",
+                    selection: Binding(
+                        get: { draft.expiryDate },
+                        set: {
+                            draft.expiryDate = $0
+                            draft.expiryUsesDefault = false
+                        }
+                    ),
+                    displayedComponents: .date
+                )
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityIdentifier("inventory.voice.draft.\(draft.id)")
+    }
+}
