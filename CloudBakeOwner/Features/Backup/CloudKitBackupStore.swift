@@ -217,13 +217,17 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
     func downloadCurrentSnapshot(
         _ snapshot: CloudRestoreSnapshot,
         to directoryURL: URL,
+        currentAppVersion: String,
         transferPolicy: CloudBackupTransferPolicy
     ) async throws -> DownloadedRestoreSnapshot {
         self.transferPolicy = transferPolicy
         return try await mappedOperation {
             guard let details = try await inspectCurrentSnapshotDetails(
-                currentAppVersion: "999999"
-            ), details.snapshot.generationID == snapshot.generationID else {
+                currentAppVersion: currentAppVersion
+            ), CloudRestoreDownloadApproval.matches(
+                approved: snapshot,
+                current: details.snapshot
+            ) else {
                 throw CloudKitBackupStoreInternalError.pointerConflict
             }
 
@@ -751,6 +755,15 @@ actor CloudKitBackupStore: CloudBackupStoring, CloudRestoreServing {
         } catch {
             throw CloudKitBackupErrorMapper.storeError(error, operationID: operationID)
         }
+    }
+}
+
+enum CloudRestoreDownloadApproval {
+    static func matches(
+        approved: CloudRestoreSnapshot,
+        current: CloudRestoreSnapshot
+    ) -> Bool {
+        approved == current
     }
 }
 
