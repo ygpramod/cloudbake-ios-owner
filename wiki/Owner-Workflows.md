@@ -316,8 +316,9 @@ It is private business data and should not be shared casually.
 
 CloudBake records the last successful save and enables a weekly backup reminder by default. The
 owner can disable that reminder independently. Cancelling the Files picker or an export failure does
-not update the last-backup date. Full package restore is the next recovery slice; until it ships,
-retain the package and use iPhone or encrypted Finder backup for device-level recovery.
+not update the last-backup date. Direct import of a `.cloudbakebackup` file is not currently
+available, so retain the package and use iPhone or encrypted Finder backup as an additional
+device-level recovery option.
 
 CloudBake has the scheduling foundation for one best-effort automatic disaster-recovery backup to
 the owner's private CloudKit database each eligible night. Automatic transfer is Wi-Fi-only, can be
@@ -335,8 +336,22 @@ off does not turn off backup or hide Settings status.
 Choose **Back Up Now** for a manual cloud snapshot. Wi-Fi proceeds without a data-use prompt. On
 cellular, CloudBake displays the estimated transfer size and publishes only after explicit approval.
 Status and notifications use safe operational wording and never include customer, recipe, cost, or
-photo content. Restore and permanent cloud deletion are shown under the collapsed **Data
-Management** section but remain unavailable until their safety slices ship.
+photo content.
+
+Expand **Data Management** and choose **Restore from Cloud Backup** to inspect the latest recovery
+snapshot. CloudBake shows its date, size, photo count, integrity, and compatibility before any
+download. A new empty installation offers **Restore Backup** or **Start Fresh** and never restores
+automatically. Replacing an installation that already contains owner data requires a separate
+destructive confirmation and a local rollback snapshot. Cellular transfer also requires approval
+of the displayed size.
+
+CloudBake downloads and validates the complete database and app-managed photos in staging, migrates
+compatible older data, and activates it only after verification. If photos are missing or damaged,
+choose **Ignore Broken Photos** to retain their references or **Remove Photo References** to clean
+them from the restored database. Activation failure returns to the pre-restore local snapshot, and
+the next launch completes rollback if the app was interrupted. A backup from a newer incompatible
+app version is not restored; CloudBake asks the owner to update. Permanent cloud deletion remains
+unavailable until its account-lifecycle safety slice ships.
 
 ## Order Workflow
 
