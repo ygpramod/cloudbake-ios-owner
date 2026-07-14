@@ -179,7 +179,9 @@ The app currently supports:
     preflight date, size, integrity, and compatibility inspection; Start Fresh on empty installs;
     destructive replacement and cellular confirmation; broken-photo resolution; staged migration;
     atomic activation; repeatable interrupted-activation recovery; session-safe cancellation; and
-    post-restore reminder and backup reconciliation.
+    post-restore reminder and backup reconciliation. Custom-logo-only installations require
+    destructive replacement confirmation, and unresolved rollback blocks app interaction until
+    restart recovery.
 
 ## Partially Prepared
 

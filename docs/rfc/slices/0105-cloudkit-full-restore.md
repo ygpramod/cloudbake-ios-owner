@@ -74,7 +74,11 @@ restore is demonstrated.
   backup catch-up after the restore session is released.
 - Empty installations offer **Restore Backup** and **Start Fresh**. Populated installations show the
   snapshot date, size, asset count, and integrity before destructive confirmation. Cellular transfer
-  and broken assets require their own explicit decisions.
+  and broken assets require their own explicit decisions. A custom-logo-only installation also
+  counts as populated owner state and cannot bypass replacement confirmation.
+- If rollback cannot be guaranteed, an app-wide recovery barrier prevents further interaction until
+  CloudBake is reopened and startup recovery runs. Once a committed journal is durable, cleanup is
+  best-effort and cannot incorrectly turn a completed restore into a rollback failure.
 - Focused unit, integration, and acceptance coverage proves confirmation ordering, compatibility,
   CloudKit inspection/download, migration, activation rollback, interruption recovery, Start Fresh,
   Wi-Fi restore, cellular approval, broken-asset handling, update-required copy, and rollback copy.
