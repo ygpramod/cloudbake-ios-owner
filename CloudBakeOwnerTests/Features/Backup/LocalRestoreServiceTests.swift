@@ -3,6 +3,21 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class LocalRestoreServiceTests: XCTestCase {
+    func testPreparationErrorsKeepStorageAndTransientFailuresFatal() {
+        let noSpace = NSError(
+            domain: NSCocoaErrorDomain,
+            code: CocoaError.fileWriteOutOfSpace.rawValue
+        )
+        XCTAssertEqual(
+            LocalRestorePreparationErrorMapper.category(for: noSpace),
+            .insufficientStorage
+        )
+        XCTAssertEqual(
+            LocalRestorePreparationErrorMapper.category(for: CocoaError(.fileReadUnknown)),
+            .unknown
+        )
+    }
+
     func testPreparedSnapshotAtomicallyReplacesDatabaseAndAssets() async throws {
         let fixture = try LocalRestoreFixture()
         defer { fixture.remove() }
@@ -45,6 +60,31 @@ final class LocalRestoreServiceTests: XCTestCase {
 
         let design = try fixture.activeDatabase.makeCoreDataRepository().fetchCakeDesign(id: "cloud-design")
         XCTAssertNil(design?.photoReference)
+    }
+
+    func testUnreadableAssetFailsPreparationInsteadOfBeingReportedAsBroken() async throws {
+        let fixture = try LocalRestoreFixture()
+        defer { fixture.remove() }
+        let downloaded = try fixture.makeDownloadedSnapshot(includeAsset: true)
+        let assetURL = downloaded.directoryURL.appendingPathComponent("Assets/photo.asset")
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o000],
+            ofItemAtPath: assetURL.path
+        )
+        defer {
+            try? FileManager.default.setAttributes(
+                [.posixPermissions: 0o600],
+                ofItemAtPath: assetURL.path
+            )
+        }
+
+        do {
+            _ = try await fixture.service.prepare(downloaded)
+            XCTFail("Expected unreadable local storage to stop preparation")
+        } catch let error as RestoreOperationError {
+            XCTAssertEqual(error.category, .unknown)
+            XCTAssertFalse(error.didRollBack)
+        }
     }
 
     func testActivationFailureRestoresPreviousDatabaseAndAssets() async throws {
