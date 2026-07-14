@@ -47,25 +47,14 @@ extension CloudBakeOwnerUITests {
         app.launch()
 
         assertScreenVisible("screen.customers", in: app, timeout: transitionTimeout)
-        let manualEntry = app.buttons["customers.add.manual"]
-        tapWhenReady(
-            app.buttons["customers.add"],
-            waitingFor: manualEntry,
-            in: app,
-            timeout: transitionTimeout
-        )
+        openCustomerAddMode(in: app, timeout: transitionTimeout)
 
         XCTAssertTrue(
             app.buttons["customers.add.importContacts"].waitForExistence(
                 timeout: transitionTimeout
             )
         )
-        tapWhenReady(
-            manualEntry,
-            waitingFor: app.navigationBars["Add Customer"],
-            in: app,
-            timeout: transitionTimeout
-        )
+        selectManualCustomerEntry(in: app, timeout: transitionTimeout)
     }
 
     func testCustomerDuplicateWarningAppearsBeforeSaving() throws {
@@ -75,19 +64,7 @@ extension CloudBakeOwnerUITests {
 
         assertScreenVisible("screen.customers", in: app, timeout: transitionTimeout)
         addCustomer(named: "Amy", phone: "5550101", in: app)
-        let manualEntry = app.buttons["customers.add.manual"]
-        tapWhenReady(
-            app.buttons["customers.add"],
-            waitingFor: manualEntry,
-            in: app,
-            timeout: transitionTimeout
-        )
-        tapWhenReady(
-            manualEntry,
-            waitingFor: app.navigationBars["Add Customer"],
-            in: app,
-            timeout: transitionTimeout
-        )
+        openManualCustomerForm(in: app, timeout: transitionTimeout)
         typeText("Amy", into: app.textFields["customers.form.name"], timeout: transitionTimeout)
         typeText("5550101", into: app.textFields["customers.form.phone"], timeout: transitionTimeout)
         tapWhenReady(app.buttons["customers.form.save"], timeout: transitionTimeout)

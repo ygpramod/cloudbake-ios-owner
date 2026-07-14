@@ -249,10 +249,7 @@ extension CloudBakeOwnerUITests {
 
     func addCustomer(named name: String, phone: String, in app: XCUIApplication) {
         assertScreenVisible("screen.customers", in: app, timeout: 10)
-        tapWhenReady(app.buttons["customers.add"])
-        XCTAssertTrue(app.buttons["Enter Manually"].waitForExistence(timeout: 5))
-        tapWhenReady(app.buttons["Enter Manually"])
-        XCTAssertTrue(app.navigationBars["Add Customer"].waitForExistence(timeout: 5))
+        openManualCustomerForm(in: app)
         typeText(name, into: app.textFields["customers.form.name"])
         typeText(phone, into: app.textFields["customers.form.phone"])
         typeText("amy@example.com", into: app.textFields["customers.form.email"])
@@ -267,6 +264,39 @@ extension CloudBakeOwnerUITests {
         typeText("Nuts", into: allergiesField)
         tapWhenReady(app.buttons["customers.form.save"])
         assertScreenVisible("screen.customers", in: app, timeout: 10)
+    }
+
+    func openManualCustomerForm(
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10
+    ) {
+        openCustomerAddMode(in: app, timeout: timeout)
+        selectManualCustomerEntry(in: app, timeout: timeout)
+    }
+
+    func openCustomerAddMode(
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10
+    ) {
+        let manualEntry = app.buttons["customers.add.manual"]
+        tapWhenReady(
+            app.buttons["customers.add"],
+            waitingFor: manualEntry,
+            in: app,
+            timeout: timeout
+        )
+    }
+
+    func selectManualCustomerEntry(
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10
+    ) {
+        tapWhenReady(
+            app.buttons["customers.add.manual"],
+            waitingFor: app.navigationBars["Add Customer"],
+            in: app,
+            timeout: timeout
+        )
     }
 
     func adjustFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
