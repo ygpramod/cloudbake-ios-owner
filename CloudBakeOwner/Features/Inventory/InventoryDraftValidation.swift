@@ -32,8 +32,10 @@ enum InventoryDuplicateMatcher {
                 return false
             }
 
-            let existingKey = duplicateKey(for: item.name)
-            return existingKey == nameKey || existingKey.contains(nameKey) || nameKey.contains(existingKey)
+            return ([item.name] + item.aliases).contains { existingName in
+                let existingKey = duplicateKey(for: existingName)
+                return existingKey == nameKey || existingKey.contains(nameKey) || nameKey.contains(existingKey)
+            }
         }
     }
 

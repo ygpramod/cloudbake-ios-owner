@@ -596,3 +596,127 @@ extension InventoryListViewModelTests {
         XCTAssertEqual(repository.batches, [])
     }
 }
+
+final class VoiceInventoryDraftParserTests: XCTestCase {
+    func testParserAcceptsArbitraryItemsAcrossCommonSpeechSeparators() {
+        XCTAssertEqual(
+            VoiceInventoryDraftParser.items(
+                from: "flour 800 grams, strawberry 100 g and cake box 2 pieces vanilla 50 ml"
+            ),
+            [
+                ParsedVoiceInventoryItem(name: "flour", sourcePhrase: "flour 800 grams", quantity: 800, unit: .gram),
+                ParsedVoiceInventoryItem(name: "strawberry", sourcePhrase: "strawberry 100 g", quantity: 100, unit: .gram),
+                ParsedVoiceInventoryItem(name: "cake box", sourcePhrase: "cake box 2 pieces", quantity: 2, unit: .each),
+                ParsedVoiceInventoryItem(name: "vanilla", sourcePhrase: "vanilla 50 ml", quantity: 50, unit: .milliliter)
+            ]
+        )
+    }
+
+    func testParserRejectsPhrasesWithoutACompletePositiveMeasurement() {
+        XCTAssertEqual(VoiceInventoryDraftParser.items(from: "flour and strawberries"), [])
+        XCTAssertEqual(VoiceInventoryDraftParser.items(from: "flour 0 grams"), [])
+    }
+}
+
+@MainActor
+extension InventoryListViewModelTests {
+    func testCreateVoiceInventoryDraftsMatchesExistingAndLeavesUnknownForDecision() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        repository.items = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake Flour",
+                aliases: ["Maida"],
+                defaultExpiryDays: 45,
+                unit: .gram,
+                currentQuantity: 100,
+                minimumQuantity: 25,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        var ids = ["draft-flour", "draft-strawberry"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.load()
+        viewModel.voiceInventoryTranscript = "Maida 800 grams, strawberry 100 grams"
+
+        XCTAssertTrue(viewModel.createVoiceInventoryDrafts())
+
+        XCTAssertEqual(viewModel.voiceInventoryDrafts.map(\.destination), [
+            .existingItem("inventory-flour"),
+            .unresolved
+        ])
+        XCTAssertEqual(
+            viewModel.voiceInventoryDrafts[0].expiryDate,
+            Calendar.current.date(byAdding: .day, value: 45, to: now)
+        )
+    }
+
+    func testMappedVoiceDraftAddsSpokenNameAsAliasAndStock() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        repository.items = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake Flour",
+                aliases: ["Maida"],
+                unit: .gram,
+                currentQuantity: 100,
+                minimumQuantity: 25,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        var ids = ["draft-flour", "batch-flour"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.load()
+        viewModel.voiceInventoryTranscript = "Plain Flour 800 grams"
+        XCTAssertTrue(viewModel.createVoiceInventoryDrafts())
+
+        viewModel.mapVoiceInventoryDraft("draft-flour", to: "inventory-flour")
+        XCTAssertTrue(viewModel.saveVoiceInventoryDrafts())
+
+        XCTAssertEqual(repository.items.first?.aliases, ["Maida", "Plain Flour"])
+        XCTAssertEqual(repository.items.first?.currentQuantity, 900)
+        XCTAssertEqual(repository.batches.first?.remainingQuantity, 800)
+    }
+
+    func testUnknownVoiceDraftCanCreateNewInventoryWithoutExpiry() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        var ids = ["draft-box", "inventory-box", "batch-box"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() },
+            dateProvider: { now }
+        )
+        viewModel.voiceInventoryTranscript = "Cake box 2 pieces"
+        XCTAssertTrue(viewModel.createVoiceInventoryDrafts())
+        viewModel.resolveVoiceInventoryDraftAsNew("draft-box")
+        viewModel.voiceInventoryDrafts[0].hasExpiryDate = false
+
+        XCTAssertTrue(viewModel.saveVoiceInventoryDrafts())
+
+        XCTAssertEqual(repository.items.first?.name, "Cake box")
+        XCTAssertEqual(repository.items.first?.currentQuantity, 2)
+        XCTAssertNil(repository.batches.first?.expiresAt)
+    }
+
+    func testVoiceDraftSaveRequiresUnknownItemDecision() {
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
+        viewModel.voiceInventoryTranscript = "Strawberry 100 grams"
+        XCTAssertTrue(viewModel.createVoiceInventoryDrafts())
+
+        XCTAssertFalse(viewModel.saveVoiceInventoryDrafts())
+        XCTAssertEqual(viewModel.errorMessage, "Choose whether each new item should be mapped or created.")
+    }
+}
