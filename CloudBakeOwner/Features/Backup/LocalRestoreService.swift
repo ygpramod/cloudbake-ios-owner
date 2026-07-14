@@ -11,6 +11,7 @@ actor LocalRestoreService: LocalRestoreServing {
     private let appStorageRoot: URL
     private let activationRoot: URL
     private let didReplaceDatabase: @Sendable () throws -> Void
+    private let activationCheckpoint: @Sendable (RestoreActivationCheckpoint) throws -> Void
     private let fileManager: FileManager
 
     init(
@@ -19,6 +20,7 @@ actor LocalRestoreService: LocalRestoreServing {
         appStorageRoot: URL,
         activationRoot: URL,
         didReplaceDatabase: @escaping @Sendable () throws -> Void = {},
+        activationCheckpoint: @escaping @Sendable (RestoreActivationCheckpoint) throws -> Void = { _ in },
         fileManager: FileManager = .default
     ) {
         self.database = database
@@ -26,6 +28,7 @@ actor LocalRestoreService: LocalRestoreServing {
         self.appStorageRoot = appStorageRoot.standardizedFileURL
         self.activationRoot = activationRoot.standardizedFileURL
         self.didReplaceDatabase = didReplaceDatabase
+        self.activationCheckpoint = activationCheckpoint
         self.fileManager = fileManager
     }
 
@@ -149,23 +152,59 @@ actor LocalRestoreService: LocalRestoreServing {
             } else {
                 try database.writeBackupSnapshot(to: rollbackDatabaseURL)
             }
-            try InterruptedRestoreRecovery.writeJournal(in: activationRoot, fileManager: fileManager)
-            try moveActiveAssets(to: rollbackAssetsRoot)
-            try installPreparedAssets(from: snapshot.directoryURL)
+            try activationCheckpoint(.rollbackDatabasePrepared)
+            var journal = RestoreActivationJournal(
+                phase: .preparingAssets,
+                directories: InterruptedRestoreRecovery.managedAssetDirectories.map { directoryName in
+                    RestoreActivationDirectoryState(
+                        name: directoryName,
+                        originallyExisted: fileManager.fileExists(
+                            atPath: appStorageRoot
+                                .appendingPathComponent(directoryName, isDirectory: true).path
+                        ),
+                        phase: .untouched
+                    )
+                }
+            )
+            try InterruptedRestoreRecovery.writeJournal(
+                journal,
+                in: activationRoot,
+                fileManager: fileManager
+            )
+            try activationCheckpoint(.journalPrepared)
+            try moveActiveAssets(to: rollbackAssetsRoot, journal: &journal)
+            try installPreparedAssets(from: snapshot.directoryURL, journal: &journal)
 
+            journal.phase = .replacingDatabase
+            try InterruptedRestoreRecovery.writeJournal(
+                journal,
+                in: activationRoot,
+                fileManager: fileManager
+            )
             try database.replaceContents(
                 from: snapshot.directoryURL.appendingPathComponent(Self.preparedDatabaseName)
             )
+            journal.phase = .databaseReplaced
+            try InterruptedRestoreRecovery.writeJournal(
+                journal,
+                in: activationRoot,
+                fileManager: fileManager
+            )
+            try activationCheckpoint(.databaseReplaced)
             try didReplaceDatabase()
             failureCategory = .verificationFailed
             try database.verifyIntegrity()
             try verifyActiveAssetReferences(allowing: Set(snapshot.ignoredBrokenAssets))
+            try activationCheckpoint(.committed)
+            journal.phase = .committed
+            try InterruptedRestoreRecovery.writeJournal(
+                journal,
+                in: activationRoot,
+                fileManager: fileManager
+            )
             try fileManager.removeItem(at: activationRoot)
         } catch {
-            let didRollBack = rollbackActivation(
-                databaseURL: rollbackDatabaseURL,
-                assetsRoot: rollbackAssetsRoot
-            )
+            let didRollBack = rollbackActivation(databaseURL: rollbackDatabaseURL)
             throw RestoreOperationError(category: failureCategory, didRollBack: didRollBack)
         }
     }
@@ -240,30 +279,66 @@ actor LocalRestoreService: LocalRestoreServing {
         }
     }
 
-    private func moveActiveAssets(to rollbackAssetsRoot: URL) throws {
+    private func moveActiveAssets(
+        to rollbackAssetsRoot: URL,
+        journal: inout RestoreActivationJournal
+    ) throws {
         try fileManager.createDirectory(at: rollbackAssetsRoot, withIntermediateDirectories: true)
-        for directoryName in InterruptedRestoreRecovery.managedAssetDirectories {
+        for index in journal.directories.indices {
+            let directoryName = journal.directories[index].name
             let activeURL = appStorageRoot.appendingPathComponent(directoryName, isDirectory: true)
-            guard fileManager.fileExists(atPath: activeURL.path) else { continue }
-            try fileManager.moveItem(
-                at: activeURL,
-                to: rollbackAssetsRoot.appendingPathComponent(directoryName, isDirectory: true)
+            journal.directories[index].phase = .movingOriginal
+            try InterruptedRestoreRecovery.writeJournal(
+                journal,
+                in: activationRoot,
+                fileManager: fileManager
             )
+            if journal.directories[index].originallyExisted {
+                try fileManager.moveItem(
+                    at: activeURL,
+                    to: rollbackAssetsRoot.appendingPathComponent(directoryName, isDirectory: true)
+                )
+            }
+            journal.directories[index].phase = .originalMoved
+            try InterruptedRestoreRecovery.writeJournal(
+                journal,
+                in: activationRoot,
+                fileManager: fileManager
+            )
+            try activationCheckpoint(.originalAssetMoved(directoryName))
         }
     }
 
-    private func installPreparedAssets(from preparedRoot: URL) throws {
+    private func installPreparedAssets(
+        from preparedRoot: URL,
+        journal: inout RestoreActivationJournal
+    ) throws {
         let assetsRoot = preparedRoot.appendingPathComponent(
             Self.preparedAssetsDirectoryName,
             isDirectory: true
         )
-        for directoryName in InterruptedRestoreRecovery.managedAssetDirectories {
+        for index in journal.directories.indices {
+            let directoryName = journal.directories[index].name
             let source = assetsRoot.appendingPathComponent(directoryName, isDirectory: true)
-            guard fileManager.fileExists(atPath: source.path) else { continue }
-            try fileManager.copyItem(
-                at: source,
-                to: appStorageRoot.appendingPathComponent(directoryName, isDirectory: true)
+            journal.directories[index].phase = .installingReplacement
+            try InterruptedRestoreRecovery.writeJournal(
+                journal,
+                in: activationRoot,
+                fileManager: fileManager
             )
+            if fileManager.fileExists(atPath: source.path) {
+                try fileManager.copyItem(
+                    at: source,
+                    to: appStorageRoot.appendingPathComponent(directoryName, isDirectory: true)
+                )
+            }
+            journal.directories[index].phase = .replacementInstalled
+            try InterruptedRestoreRecovery.writeJournal(
+                journal,
+                in: activationRoot,
+                fileManager: fileManager
+            )
+            try activationCheckpoint(.replacementAssetInstalled(directoryName))
         }
     }
 
@@ -283,19 +358,30 @@ actor LocalRestoreService: LocalRestoreServing {
         }
     }
 
-    private func rollbackActivation(databaseURL: URL, assetsRoot: URL) -> Bool {
+    private func rollbackActivation(databaseURL: URL) -> Bool {
         do {
-            if fileManager.fileExists(atPath: databaseURL.path) {
+            guard let journal = try InterruptedRestoreRecovery.readJournalIfPresent(
+                in: activationRoot,
+                fileManager: fileManager
+            ) else {
+                try removeIfPresent(activationRoot)
+                try database.verifyIntegrity()
+                return true
+            }
+            if journal.phase == .committed {
+                try removeIfPresent(activationRoot)
+                return true
+            }
+            if journal.phase.requiresDatabaseRollback,
+               fileManager.fileExists(atPath: databaseURL.path) {
                 try database.replaceContents(from: databaseURL)
             }
-            for directoryName in InterruptedRestoreRecovery.managedAssetDirectories {
-                let activeURL = appStorageRoot.appendingPathComponent(directoryName, isDirectory: true)
-                try removeIfPresent(activeURL)
-                let rollbackURL = assetsRoot.appendingPathComponent(directoryName, isDirectory: true)
-                if fileManager.fileExists(atPath: rollbackURL.path) {
-                    try fileManager.moveItem(at: rollbackURL, to: activeURL)
-                }
-            }
+            try InterruptedRestoreRecovery.restoreAssets(
+                journal: journal,
+                appStorageRoot: appStorageRoot,
+                activationRoot: activationRoot,
+                fileManager: fileManager
+            )
             try database.verifyIntegrity()
             try removeIfPresent(activationRoot)
             return true
@@ -325,6 +411,62 @@ actor LocalRestoreService: LocalRestoreServing {
     }
 }
 
+enum RestoreActivationCheckpoint: Equatable, Sendable {
+    case rollbackDatabasePrepared
+    case journalPrepared
+    case originalAssetMoved(String)
+    case replacementAssetInstalled(String)
+    case databaseReplaced
+    case committed
+}
+
+struct RestoreActivationJournal: Codable, Equatable, Sendable {
+    static let currentVersion = 2
+
+    let version: Int
+    var phase: RestoreActivationPhase
+    var directories: [RestoreActivationDirectoryState]
+
+    init(
+        phase: RestoreActivationPhase,
+        directories: [RestoreActivationDirectoryState],
+        version: Int = currentVersion
+    ) {
+        self.version = version
+        self.phase = phase
+        self.directories = directories
+    }
+}
+
+enum RestoreActivationPhase: String, Codable, Equatable, Sendable {
+    case preparingAssets
+    case replacingDatabase
+    case databaseReplaced
+    case committed
+
+    var requiresDatabaseRollback: Bool {
+        self == .replacingDatabase || self == .databaseReplaced
+    }
+}
+
+struct RestoreActivationDirectoryState: Codable, Equatable, Sendable {
+    let name: String
+    let originallyExisted: Bool
+    var phase: RestoreActivationDirectoryPhase
+}
+
+enum RestoreActivationDirectoryPhase: String, Codable, Equatable, Sendable {
+    case untouched
+    case movingOriginal
+    case originalMoved
+    case installingReplacement
+    case replacementInstalled
+
+    var mayContainReplacement: Bool {
+        self == .installingReplacement || self == .replacementInstalled
+    }
+}
+
 enum InterruptedRestoreRecovery {
     static let directoryName = "CloudBakeRestoreActivation"
     static let journalName = "activation.json"
@@ -338,48 +480,102 @@ enum InterruptedRestoreRecovery {
         activationRoot: URL,
         fileManager: FileManager = .default
     ) throws {
-        let journalURL = activationRoot.appendingPathComponent(journalName)
-        guard fileManager.fileExists(atPath: journalURL.path) else {
+        guard let journal = try readJournalIfPresent(
+            in: activationRoot,
+            fileManager: fileManager
+        ) else {
             if fileManager.fileExists(atPath: activationRoot.path) {
                 try fileManager.removeItem(at: activationRoot)
             }
             return
         }
-
-        let rollbackDatabaseURL = activationRoot.appendingPathComponent(rollbackDatabaseName)
-        guard fileManager.fileExists(atPath: rollbackDatabaseURL.path) else {
+        guard journal.version == RestoreActivationJournal.currentVersion else {
             throw RestoreOperationError(category: .activationFailed, didRollBack: false)
         }
-        for suffix in ["", "-wal", "-shm"] {
-            let activeFile = URL(fileURLWithPath: databaseURL.path + suffix)
-            if fileManager.fileExists(atPath: activeFile.path) {
-                try fileManager.removeItem(at: activeFile)
-            }
+        if journal.phase == .committed {
+            try fileManager.removeItem(at: activationRoot)
+            return
         }
-        try fileManager.copyItem(at: rollbackDatabaseURL, to: databaseURL)
 
+        let rollbackDatabaseURL = activationRoot.appendingPathComponent(rollbackDatabaseName)
+        guard !journal.phase.requiresDatabaseRollback
+                || fileManager.fileExists(atPath: rollbackDatabaseURL.path) else {
+            throw RestoreOperationError(category: .activationFailed, didRollBack: false)
+        }
+        if journal.phase.requiresDatabaseRollback {
+            for suffix in ["", "-wal", "-shm"] {
+                let activeFile = URL(fileURLWithPath: databaseURL.path + suffix)
+                if fileManager.fileExists(atPath: activeFile.path) {
+                    try fileManager.removeItem(at: activeFile)
+                }
+            }
+            try fileManager.copyItem(at: rollbackDatabaseURL, to: databaseURL)
+        }
+        try restoreAssets(
+            journal: journal,
+            appStorageRoot: appStorageRoot,
+            activationRoot: activationRoot,
+            fileManager: fileManager
+        )
+        try fileManager.removeItem(at: activationRoot)
+    }
+
+    static func writeJournal(
+        _ journal: RestoreActivationJournal,
+        in activationRoot: URL,
+        fileManager _: FileManager
+    ) throws {
+        let data = try JSONEncoder().encode(journal)
+        try data.write(
+            to: activationRoot.appendingPathComponent(journalName),
+            options: .atomic
+        )
+    }
+
+    static func readJournalIfPresent(
+        in activationRoot: URL,
+        fileManager: FileManager
+    ) throws -> RestoreActivationJournal? {
+        let journalURL = activationRoot.appendingPathComponent(journalName)
+        guard fileManager.fileExists(atPath: journalURL.path) else { return nil }
+        return try JSONDecoder().decode(
+            RestoreActivationJournal.self,
+            from: Data(contentsOf: journalURL)
+        )
+    }
+
+    static func restoreAssets(
+        journal: RestoreActivationJournal,
+        appStorageRoot: URL,
+        activationRoot: URL,
+        fileManager: FileManager
+    ) throws {
         let rollbackAssetsRoot = activationRoot.appendingPathComponent(
             rollbackAssetsDirectoryName,
             isDirectory: true
         )
-        for directoryName in managedAssetDirectories {
-            let rollbackURL = rollbackAssetsRoot.appendingPathComponent(directoryName, isDirectory: true)
-            guard fileManager.fileExists(atPath: rollbackURL.path) else { continue }
-            let activeURL = appStorageRoot.appendingPathComponent(directoryName, isDirectory: true)
-            if fileManager.fileExists(atPath: activeURL.path) {
+        for state in journal.directories {
+            guard managedAssetDirectories.contains(state.name) else {
+                throw RestoreOperationError(category: .activationFailed, didRollBack: false)
+            }
+            let activeURL = appStorageRoot.appendingPathComponent(state.name, isDirectory: true)
+            let rollbackURL = rollbackAssetsRoot.appendingPathComponent(state.name, isDirectory: true)
+            let hasRollback = fileManager.fileExists(atPath: rollbackURL.path)
+
+            if state.originallyExisted {
+                if hasRollback {
+                    if fileManager.fileExists(atPath: activeURL.path) {
+                        try fileManager.removeItem(at: activeURL)
+                    }
+                    try fileManager.copyItem(at: rollbackURL, to: activeURL)
+                } else if state.phase != .untouched && state.phase != .movingOriginal {
+                    throw RestoreOperationError(category: .activationFailed, didRollBack: false)
+                }
+            } else if state.phase.mayContainReplacement,
+                      fileManager.fileExists(atPath: activeURL.path) {
                 try fileManager.removeItem(at: activeURL)
             }
-            try fileManager.moveItem(at: rollbackURL, to: activeURL)
         }
-        try fileManager.removeItem(at: activationRoot)
-    }
-
-    static func writeJournal(in activationRoot: URL, fileManager: FileManager) throws {
-        let journal = Data("{\"version\":1}".utf8)
-        try journal.write(
-            to: activationRoot.appendingPathComponent(journalName),
-            options: .atomic
-        )
     }
 
     static func isManagedAssetPath(_ relativePath: String) -> Bool {

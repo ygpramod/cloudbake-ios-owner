@@ -92,6 +92,100 @@ final class LocalRestoreServiceTests: XCTestCase {
             Data("local-photo".utf8)
         )
         XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.activationRoot.path))
+
+        try InterruptedRestoreRecovery.recoverIfNeeded(
+            appStorageRoot: fixture.appStorageRoot,
+            databaseURL: fixture.activeDatabaseURL,
+            activationRoot: fixture.activationRoot
+        )
+    }
+
+    func testEveryActivationBoundaryPreservesPreviousDatabaseAndAssets() async throws {
+        let checkpoints: [RestoreActivationCheckpoint] = [
+            .rollbackDatabasePrepared,
+            .journalPrepared,
+            .originalAssetMoved("Branding"),
+            .originalAssetMoved("OrderPhotos"),
+            .originalAssetMoved("RecoveredPhotos"),
+            .replacementAssetInstalled("Branding"),
+            .replacementAssetInstalled("OrderPhotos"),
+            .replacementAssetInstalled("RecoveredPhotos"),
+            .databaseReplaced,
+            .committed
+        ]
+
+        for checkpoint in checkpoints {
+            let fixture = try LocalRestoreFixture(failAt: checkpoint)
+            defer { fixture.remove() }
+            let prepared = try await fixture.service.prepare(
+                fixture.makeDownloadedSnapshot(includeAsset: true)
+            )
+
+            do {
+                try await fixture.service.activate(
+                    prepared,
+                    rollbackSnapshot: try fixture.makeRollbackSnapshot()
+                )
+                XCTFail("Expected activation to fail at \(checkpoint)")
+            } catch let error as RestoreOperationError {
+                XCTAssertTrue(error.didRollBack, "Expected rollback at \(checkpoint)")
+            }
+
+            XCTAssertEqual(
+                try fixture.activeDatabase.makeCoreDataRepository().fetchCustomers().map(\.id),
+                ["local-customer"],
+                "Database changed at \(checkpoint)"
+            )
+            XCTAssertEqual(
+                try Data(contentsOf: fixture.appStorageRoot.appendingPathComponent(fixture.photoPath)),
+                Data("local-photo".utf8),
+                "Photo changed at \(checkpoint)"
+            )
+            XCTAssertFalse(
+                FileManager.default.fileExists(
+                    atPath: fixture.appStorageRoot.appendingPathComponent("Branding").path
+                ),
+                "Originally absent Branding directory appeared at \(checkpoint)"
+            )
+        }
+    }
+
+    func testAssetRecoveryIsRepeatableAndRemovesOriginallyAbsentReplacement() throws {
+        let fixture = try InterruptedRestoreFixture(includeOriginallyAbsentReplacement: true)
+        defer { fixture.remove() }
+
+        try InterruptedRestoreRecovery.restoreAssets(
+            journal: fixture.journal,
+            appStorageRoot: fixture.appStorageRoot,
+            activationRoot: fixture.activationRoot,
+            fileManager: .default
+        )
+        XCTAssertFalse(
+            FileManager.default.fileExists(
+                atPath: fixture.appStorageRoot.appendingPathComponent("Branding").path
+            )
+        )
+
+        let repeatedCloudPhoto = fixture.appStorageRoot.appendingPathComponent("OrderPhotos/cloud.jpg")
+        try FileManager.default.removeItem(
+            at: fixture.appStorageRoot.appendingPathComponent("OrderPhotos")
+        )
+        try FileManager.default.createDirectory(
+            at: repeatedCloudPhoto.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("cloud-photo-again".utf8).write(to: repeatedCloudPhoto)
+
+        try InterruptedRestoreRecovery.restoreAssets(
+            journal: fixture.journal,
+            appStorageRoot: fixture.appStorageRoot,
+            activationRoot: fixture.activationRoot,
+            fileManager: .default
+        )
+        XCTAssertEqual(
+            try Data(contentsOf: fixture.appStorageRoot.appendingPathComponent("OrderPhotos/local.jpg")),
+            Data("local-photo".utf8)
+        )
     }
 }
 
@@ -103,7 +197,10 @@ private final class LocalRestoreFixture: @unchecked Sendable {
     let activeDatabase: AppDatabase
     private(set) var service: LocalRestoreService!
 
-    init(failAfterDatabaseReplacement: Bool = false) throws {
+    init(
+        failAfterDatabaseReplacement: Bool = false,
+        failAt checkpointToFail: RestoreActivationCheckpoint? = nil
+    ) throws {
         root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         appStorageRoot = root.appendingPathComponent("CloudBakeOwner", isDirectory: true)
         activationRoot = root.appendingPathComponent("Activation", isDirectory: true)
@@ -121,6 +218,9 @@ private final class LocalRestoreFixture: @unchecked Sendable {
             activationRoot: activationRoot,
             didReplaceDatabase: {
                 if failAfterDatabaseReplacement { throw InjectedRestoreFailure() }
+            },
+            activationCheckpoint: { checkpoint in
+                if checkpoint == checkpointToFail { throw InjectedRestoreFailure() }
             }
         )
     }
@@ -228,8 +328,9 @@ private final class InterruptedRestoreFixture {
     let appStorageRoot: URL
     let activationRoot: URL
     let activeDatabaseURL: URL
+    let journal: RestoreActivationJournal
 
-    init() throws {
+    init(includeOriginallyAbsentReplacement: Bool = false) throws {
         appStorageRoot = root.appendingPathComponent("CloudBakeOwner", isDirectory: true)
         activationRoot = root.appendingPathComponent("Activation", isDirectory: true)
         activeDatabaseURL = appStorageRoot.appendingPathComponent("cloudbake-owner.sqlite")
@@ -255,7 +356,36 @@ private final class InterruptedRestoreFixture {
             withIntermediateDirectories: true
         )
         try Data("local-photo".utf8).write(to: rollbackPhoto)
+        if includeOriginallyAbsentReplacement {
+            let brandingPhoto = appStorageRoot.appendingPathComponent("Branding/cloud-logo.jpg")
+            try FileManager.default.createDirectory(
+                at: brandingPhoto.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try Data("cloud-logo".utf8).write(to: brandingPhoto)
+        }
+        journal = RestoreActivationJournal(
+            phase: .databaseReplaced,
+            directories: [
+                RestoreActivationDirectoryState(
+                    name: "Branding",
+                    originallyExisted: false,
+                    phase: .replacementInstalled
+                ),
+                RestoreActivationDirectoryState(
+                    name: "OrderPhotos",
+                    originallyExisted: true,
+                    phase: .replacementInstalled
+                ),
+                RestoreActivationDirectoryState(
+                    name: "RecoveredPhotos",
+                    originallyExisted: false,
+                    phase: .replacementInstalled
+                )
+            ]
+        )
         try InterruptedRestoreRecovery.writeJournal(
+            journal,
             in: activationRoot,
             fileManager: .default
         )
