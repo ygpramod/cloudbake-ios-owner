@@ -69,7 +69,7 @@ struct InventoryListView: View {
             }
         }
         .accessibilityIdentifier(AppDestination.inventory.screenAccessibilityIdentifier)
-        .sheet(isPresented: $isAddingItem) {
+        .sheet(isPresented: $isAddingItem, onDismiss: viewModel.cancelEditing) {
             NavigationStack {
                 InventoryItemForm(
                     title: "Add Item",
@@ -164,7 +164,10 @@ struct InventoryListView: View {
                 title: "Add inventory item",
                 systemImage: "plus",
                 accessibilityIdentifier: "inventory.add",
-                action: { isAddingItem = true }
+                action: {
+                    viewModel.beginAdding()
+                    isAddingItem = true
+                }
             )
         ) {
             if viewModel.items.isEmpty {
