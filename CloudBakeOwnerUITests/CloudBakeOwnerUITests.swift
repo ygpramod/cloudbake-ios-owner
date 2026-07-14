@@ -118,12 +118,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let useForNewOrder = app.buttons["designs.customerReference.useForNewOrder"]
         let referenceScroll = app.scrollViews["designs.customerReference.scroll"]
         XCTAssertTrue(referenceScroll.waitForExistence(timeout: 5))
-        scrollToHittable(
-            useForNewOrder,
-            in: app,
-            scrollContainer: referenceScroll
-        )
-        tapWhenReady(useForNewOrder)
+        for _ in 0..<2 { referenceScroll.swipeUp() }
+        tapWhenReady(useForNewOrder, timeout: 15)
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 10))
         let designField = app.buttons["orders.form.design"]
@@ -203,7 +199,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         let finalReference = app.buttons["designs.customerReference.photo-ui-fixture-reference"]
-        scrollToHittable(finalReference, in: app, timeout: 10)
+        let designsScroll = app.scrollViews["screen.designs"]
+        XCTAssertTrue(designsScroll.waitForExistence(timeout: 10))
+        for _ in 0..<4 { designsScroll.swipeUp() }
         XCTAssertTrue(finalReference.isHittable)
 
         for _ in 0..<3 { app.swipeUp() }
