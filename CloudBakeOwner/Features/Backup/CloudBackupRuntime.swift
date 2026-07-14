@@ -53,6 +53,13 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
         }
     }
 
+    func startPostRestoreCatchUp() {
+        Task(priority: .utility) { [coordinator] in
+            let result = await coordinator.startAndCatchUp()
+            await self.notificationDispatcher.send(for: result)
+        }
+    }
+
     func currentSettings() async -> CloudBackupSettingsSnapshot {
         await coordinator.currentSettings(
             areNotificationsEnabled: notificationPreferences.isEnabled
@@ -107,12 +114,12 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
             return .failed(RestoreFailure(category: .iCloudUnavailable, didRollBack: false))
         }
         let result = await restoreCoordinator.proceed(proposalID: proposalID, approval: approval)
+        await releaseRestoreSessionIfTerminal(result)
         if result == .completed {
             await MainActor.run {
                 NotificationCenter.default.post(name: .cloudBakeRestoreDidComplete, object: nil)
             }
         }
-        await releaseRestoreSessionIfTerminal(result)
         return result
     }
 
