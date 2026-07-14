@@ -218,7 +218,7 @@ struct InventoryItemDetailView: View {
             }
         }
         .accessibilityIdentifier("inventory.detail.screen")
-        .sheet(isPresented: $isEditingItem) {
+        .sheet(isPresented: $isEditingItem, onDismiss: viewModel.cancelEditing) {
             NavigationStack {
                 InventoryItemForm(
                     title: "Edit Item",

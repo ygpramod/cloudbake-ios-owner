@@ -383,6 +383,30 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.items.first?.earliestExpiryAt, existingExpiry)
     }
 
+    func testBeginAddingClearsAPreviouslyDismissedEditDraft() {
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        let item = InventoryItem(
+            id: "inventory-flour",
+            name: "Flour",
+            defaultExpiryDays: 45,
+            unit: .gram,
+            currentQuantity: 100,
+            minimumQuantity: 25,
+            createdAt: now,
+            updatedAt: now
+        )
+        let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository(), dateProvider: { now })
+
+        viewModel.beginEditing(item)
+        viewModel.beginAdding()
+
+        XCTAssertEqual(viewModel.draftName, "")
+        XCTAssertEqual(viewModel.draftDefaultExpiryDays, "")
+        XCTAssertEqual(viewModel.draftCurrentQuantity, "")
+        XCTAssertEqual(viewModel.draftMinimumQuantity, "")
+        XCTAssertNil(viewModel.editingItem)
+    }
+
     func testStockAdjustmentUsesItemDefaultExpiryDays() {
         let repository = FakeInventoryItemRepository()
         let calendar = Calendar(identifier: .gregorian)

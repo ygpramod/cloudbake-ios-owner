@@ -286,6 +286,10 @@ final class InventoryListViewModel: ObservableObject {
         acknowledgedDuplicateNameKey = nil
     }
 
+    func beginAdding() {
+        resetDraft()
+    }
+
     func saveEditedItem() -> Bool {
         guard let editingItem else {
             errorMessage = "Inventory item could not be found."
