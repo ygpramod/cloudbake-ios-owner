@@ -261,6 +261,16 @@ draft parsing.
 CloudBake uses Apple Vision for this foundation. It is on-device, does not require a separate OCR
 subscription, and keeps the first version independent of LLM or cloud document analysis.
 
+## Voice Inventory Draft
+
+A voice inventory draft is an owner-reviewed proposal parsed from an on-device speech transcript.
+Each complete phrase supplies an arbitrary item name, quantity, and unit. A draft either targets a
+matched inventory name or alias, creates new inventory, or waits for the owner to map the spoken
+name to compatible existing inventory. Mapping records the spoken name as an alias.
+
+Voice recognition is an iPhone-local boundary: CloudBake requires Apple's on-device recognizer and
+has no network transcription fallback. Drafts remain editable before they change stock.
+
 ## Cake Design
 
 A cake design is a record of a cake style the owner has made or wants to reference.

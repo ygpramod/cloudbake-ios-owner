@@ -173,6 +173,18 @@ Drafts that do not match existing inventory create normal inventory items and in
 Manual recognized text entry remains available as a fallback when a bill photo cannot be read
 clearly.
 
+## Add Inventory By Voice
+
+Use Add Inventory by Voice to speak several item, quantity, and unit phrases, such as
+`flour 800 grams, strawberry 100 grams`. Recognition runs on the iPhone in the current iPhone
+language; CloudBake does not upload the audio or transcript and does not fall back to server speech
+recognition. Manual transcript editing remains available when listening is unavailable.
+
+Create Drafts turns complete phrases into editable inventory rows. Saved inventory names and
+aliases match automatically. For an unknown spoken item, choose whether to map it to a searchable,
+unit-compatible existing item or create new inventory. Mapping also saves the spoken name as an
+alias for future recognition. Review quantity, unit, minimum quantity, and expiry before saving.
+
 ## Stock Adjustment
 
 Use adjustment to increase stock and keep a transaction record.

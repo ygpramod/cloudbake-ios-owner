@@ -184,6 +184,8 @@ The app currently supports:
     restart recovery.
 129. per-item default expiry days for future inventory additions, upward adjustments, and matched
     purchase-bill drafts, including inventory CSV import and export.
+130. on-device voice inventory transcription into editable multi-item drafts, with saved-name and
+    alias matching, owner-confirmed unknown-item mapping or creation, and no server fallback.
 
 ## Partially Prepared
 
