@@ -161,13 +161,6 @@ final class CloudRestoreSettingsViewModel: ObservableObject {
     }
 }
 
-private extension RestoreFailure {
-    var requiresRecoveryRestart: Bool {
-        guard !didRollBack else { return false }
-        return category == .activationFailed || category == .verificationFailed
-    }
-}
-
 struct UnavailableCloudRestoreSettingsService: CloudRestoreSettingsServing {
     func inspectRestore() async -> RestoreResult {
         .failed(RestoreFailure(category: .iCloudUnavailable, didRollBack: false))

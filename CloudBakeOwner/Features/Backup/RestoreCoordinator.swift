@@ -65,6 +65,11 @@ enum RestoreFailureCategory: Equatable, Sendable {
 struct RestoreFailure: Equatable, Sendable {
     let category: RestoreFailureCategory
     let didRollBack: Bool
+
+    var requiresRecoveryRestart: Bool {
+        guard !didRollBack else { return false }
+        return category == .activationFailed || category == .verificationFailed
+    }
 }
 
 enum RestoreResult: Equatable, Sendable {
