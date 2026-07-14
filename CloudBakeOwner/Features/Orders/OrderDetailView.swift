@@ -826,8 +826,7 @@ struct OrderDetailView: View {
     }
 
     private func shouldConfirmInventoryDeduction(from order: Order, to status: OrderStatus) -> Bool {
-        order.status == .confirmed &&
-            (status == .ready || status == .completed) &&
+        order.status.recordsRecipeUsage(whenChangingTo: status) &&
             order.recipeId != nil &&
             viewModel.selectedOrderRecipeUsage == nil
     }

@@ -61,7 +61,7 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
         XCTAssertEqual(repository.recordedTransactionIds, ["generated-2"])
     }
 
-    func testChangeSelectedOrderStatusFromDraftToCompletedDoesNotRecordRecipeUsage() {
+    func testChangeSelectedOrderStatusFromDraftToCompletedRecordsRecipeUsage() {
         let repository = FakeOrderRepository()
         let order = makeOrder(
             id: "order-vanilla",
@@ -70,14 +70,17 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
             dueAt: Date(timeIntervalSince1970: 1_800_150_000)
         )
         repository.orders = [order]
-        let viewModel = OrderListViewModel(repository: repository)
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "generated")
+        )
 
         viewModel.beginViewingOrder(order)
 
         XCTAssertTrue(viewModel.changeSelectedOrderStatus(to: .completed))
         XCTAssertEqual(viewModel.selectedOrder?.status, .completed)
-        XCTAssertNil(viewModel.selectedOrderRecipeUsage)
-        XCTAssertTrue(repository.recordedTransactionIds.isEmpty)
+        XCTAssertEqual(viewModel.selectedOrderRecipeUsage?.recipeId, "recipe-vanilla")
+        XCTAssertEqual(repository.recordedTransactionIds, ["generated-2"])
     }
 
     func testChangeSelectedOrderStatusShowsRecipeUsageError() {
@@ -172,6 +175,7 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
         repository.orders = [original]
         let viewModel = OrderListViewModel(
             repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "generated"),
             dateProvider: { updatedAt }
         )
 
@@ -190,7 +194,8 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
         viewModel.draftDepositPaid = "75"
         viewModel.draftPaymentNotes = "Deposit paid by card"
 
-        XCTAssertTrue(viewModel.saveEditedOrder())
+        XCTAssertTrue(viewModel.editedOrderRequiresInventoryDeductionConfirmation)
+        XCTAssertTrue(viewModel.saveEditedOrder(confirmingRecipeUsage: true))
 
         let expected = Order(
             id: "order-vanilla",
@@ -214,6 +219,8 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
         XCTAssertEqual(repository.orders, [expected])
         XCTAssertEqual(viewModel.selectedOrder, expected)
         XCTAssertEqual(viewModel.orders, [expected])
+        XCTAssertEqual(viewModel.selectedOrderRecipeUsage?.recipeId, "recipe-chocolate")
+        XCTAssertEqual(repository.recordedTransactionIds, ["generated-2"])
         XCTAssertNil(viewModel.errorMessage)
     }
 

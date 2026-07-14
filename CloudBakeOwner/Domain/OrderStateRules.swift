@@ -11,3 +11,9 @@ extension Order {
         status == .confirmed || status == .inProgress || status == .ready
     }
 }
+
+extension OrderStatus {
+    func recordsRecipeUsage(whenChangingTo newStatus: OrderStatus) -> Bool {
+        self != newStatus && (newStatus == .ready || newStatus == .completed)
+    }
+}

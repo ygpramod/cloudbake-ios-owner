@@ -413,7 +413,7 @@ private extension GRDBCoreDataRepository {
     }
 
     func shouldRecordRecipeUsage(from currentStatus: OrderStatus, to newStatus: OrderStatus) -> Bool {
-        currentStatus == .confirmed && (newStatus == .ready || newStatus == .completed)
+        currentStatus.recordsRecipeUsage(whenChangingTo: newStatus)
     }
 
     func recordRecipeUsage(
