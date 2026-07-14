@@ -217,6 +217,7 @@ struct InventoryItemDetailView: View {
                 }
             }
         }
+        .accessibilityIdentifier("inventory.detail.screen")
         .sheet(isPresented: $isEditingItem) {
             NavigationStack {
                 InventoryItemForm(
@@ -281,7 +282,6 @@ struct InventoryItemDetailView: View {
         .onAppear {
             viewModel.loadSelectedItemBatches()
         }
-        .accessibilityIdentifier("inventory.detail.screen")
     }
 }
 
