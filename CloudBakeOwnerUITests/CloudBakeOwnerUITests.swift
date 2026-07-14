@@ -121,8 +121,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         scrollToHittable(
             useForNewOrder,
             in: app,
-            scrollContainer: referenceScroll,
-            timeout: 5
+            scrollContainer: referenceScroll
         )
         tapWhenReady(useForNewOrder)
 
