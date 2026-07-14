@@ -82,8 +82,10 @@ restore is demonstrated.
   and broken assets require their own explicit decisions. A custom-logo-only installation also
   counts as populated owner state and cannot bypass replacement confirmation.
 - If rollback cannot be guaranteed, an app-wide recovery barrier prevents further interaction until
-  CloudBake is reopened and startup recovery runs. Once a committed journal is durable, cleanup is
-  best-effort and cannot incorrectly turn a completed restore into a rollback failure.
+  CloudBake is reopened and startup recovery runs. The shared restore session also remains active,
+  preventing automatic or manual backup from publishing unrecovered state. Once a committed journal
+  is durable, cleanup is best-effort and cannot incorrectly turn a completed restore into a rollback
+  failure.
 - Focused unit, integration, and acceptance coverage proves confirmation ordering, compatibility,
   CloudKit inspection/download, migration, activation rollback, interruption recovery, Start Fresh,
   Wi-Fi restore, cellular approval, broken-asset handling, update-required copy, and rollback copy.
