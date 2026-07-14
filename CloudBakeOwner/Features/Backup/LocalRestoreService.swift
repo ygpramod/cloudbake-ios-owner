@@ -231,7 +231,7 @@ actor LocalRestoreService: LocalRestoreServing {
                 in: activationRoot,
                 fileManager: fileManager
             )
-            try fileManager.removeItem(at: activationRoot)
+            try? fileManager.removeItem(at: activationRoot)
         } catch {
             let didRollBack = rollbackActivation(databaseURL: rollbackDatabaseURL)
             throw RestoreOperationError(category: failureCategory, didRollBack: didRollBack)

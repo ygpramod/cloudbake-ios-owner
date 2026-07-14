@@ -227,6 +227,29 @@ final class LocalRestoreServiceTests: XCTestCase {
             Data("local-photo".utf8)
         )
     }
+
+    func testStartupRecoveryKeepsCommittedStateAndOnlyRemovesRecoveryFiles() throws {
+        let fixture = try InterruptedRestoreFixture(phase: .committed)
+        defer { fixture.remove() }
+
+        try InterruptedRestoreRecovery.recoverIfNeeded(
+            appStorageRoot: fixture.appStorageRoot,
+            databaseURL: fixture.activeDatabaseURL,
+            activationRoot: fixture.activationRoot
+        )
+
+        let database = try AppDatabase.open(at: fixture.activeDatabaseURL)
+        defer { try? database.close() }
+        XCTAssertEqual(
+            try database.makeCoreDataRepository().fetchCustomers().map(\.id),
+            ["cloud-customer"]
+        )
+        XCTAssertEqual(
+            try Data(contentsOf: fixture.appStorageRoot.appendingPathComponent("OrderPhotos/cloud.jpg")),
+            Data("cloud-photo".utf8)
+        )
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.activationRoot.path))
+    }
 }
 
 private final class LocalRestoreFixture: @unchecked Sendable {
@@ -370,7 +393,10 @@ private final class InterruptedRestoreFixture {
     let activeDatabaseURL: URL
     let journal: RestoreActivationJournal
 
-    init(includeOriginallyAbsentReplacement: Bool = false) throws {
+    init(
+        includeOriginallyAbsentReplacement: Bool = false,
+        phase: RestoreActivationPhase = .databaseReplaced
+    ) throws {
         appStorageRoot = root.appendingPathComponent("CloudBakeOwner", isDirectory: true)
         activationRoot = root.appendingPathComponent("Activation", isDirectory: true)
         activeDatabaseURL = appStorageRoot.appendingPathComponent("cloudbake-owner.sqlite")
@@ -405,7 +431,7 @@ private final class InterruptedRestoreFixture {
             try Data("cloud-logo".utf8).write(to: brandingPhoto)
         }
         journal = RestoreActivationJournal(
-            phase: .databaseReplaced,
+            phase: phase,
             directories: [
                 RestoreActivationDirectoryState(
                     name: "Branding",
