@@ -118,8 +118,7 @@ final class CloudRestoreSettingsViewModel: ObservableObject {
             prompt = nil
             actionMessage = "Another backup or restore is already in progress."
         case .invalidApproval:
-            prompt = nil
-            actionMessage = "That confirmation expired. Inspect the backup again."
+            actionMessage = "That confirmation could not be applied. Please retry or cancel."
         case .failed(let failure):
             prompt = nil
             actionMessage = Self.message(for: failure)

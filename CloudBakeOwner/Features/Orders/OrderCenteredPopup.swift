@@ -61,7 +61,11 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
             ZStack {
                 Color.black.opacity(0.56)
                     .ignoresSafeArea()
-                    .onTapGesture(perform: onCancel)
+                    .onTapGesture {
+                        if showsCancelButton {
+                            onCancel()
+                        }
+                    }
 
                 VStack(spacing: 0) {
                     VStack(spacing: 10) {
