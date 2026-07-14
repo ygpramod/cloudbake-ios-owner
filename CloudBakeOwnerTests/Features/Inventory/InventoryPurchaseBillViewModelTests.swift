@@ -1035,6 +1035,34 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         )
     }
 
+    func testSplitNumericCorrectionCreatesTheExpectedDraft() {
+        var accumulator = VoiceInventoryTranscriptAccumulator()
+        _ = accumulator.merge([
+            segment("Sugar", at: 0, duration: 0.3),
+            segment("three", at: 0.4, duration: 0.3)
+        ])
+
+        let transcript = accumulator.merge([
+            segment("Sugar", at: 0, duration: 0.3),
+            segment("3", at: 0.4, duration: 0.1),
+            segment("00", at: 0.55, duration: 0.15),
+            segment("g", at: 0.8, duration: 0.1)
+        ])
+
+        XCTAssertEqual(transcript, "Sugar 300 g")
+        XCTAssertEqual(
+            VoiceInventoryDraftParser.items(from: transcript),
+            [
+                ParsedVoiceInventoryItem(
+                    name: "Sugar",
+                    sourcePhrase: "Sugar 300 g",
+                    quantity: 300,
+                    unit: .gram
+                )
+            ]
+        )
+    }
+
     func testOverlappingRevisionReplacesOnlyTheAffectedSuffix() {
         var accumulator = VoiceInventoryTranscriptAccumulator()
         _ = accumulator.merge([

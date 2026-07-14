@@ -184,13 +184,21 @@ struct VoiceInventoryTranscriptAccumulator {
     ) -> String {
         var result = ""
         var priorEndTime: TimeInterval?
+        var priorTextWasNumeric = false
         for segment in segments {
             let text = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else {
                 continue
             }
-            if let priorEndTime,
-               segment.startTime - priorEndTime >= Self.newUtterancePause {
+            let pauseDuration = priorEndTime.map { segment.startTime - $0 }
+            let textIsNumeric = text.allSatisfy(\.isNumber)
+            if priorTextWasNumeric,
+               textIsNumeric,
+               let pauseDuration,
+               pauseDuration < 0.35 {
+                result += text
+            } else if let pauseDuration,
+                      pauseDuration >= Self.newUtterancePause {
                 result += "\n\(text)"
             } else if result.isEmpty || text.first?.isPunctuation == true {
                 result += text
@@ -198,6 +206,7 @@ struct VoiceInventoryTranscriptAccumulator {
                 result += " \(text)"
             }
             priorEndTime = segment.endTime
+            priorTextWasNumeric = textIsNumeric
         }
         return result
     }
