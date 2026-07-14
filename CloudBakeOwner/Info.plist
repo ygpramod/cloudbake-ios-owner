@@ -52,10 +52,14 @@
 	<string>CloudBake uses the camera to scan purchase bills and recipes, and to capture order photos.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>CloudBake lets you choose a contact to prefill editable customer details.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>CloudBake uses the microphone only for on-device voice entry of inventory items.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>CloudBake lets you choose photos for bakery records and create lightweight recovery copies of linked photos in owner-requested full-app backups.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>CloudBake saves design-library photos to your Photos library while keeping only a reference in the app.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>CloudBake uses on-device speech recognition to turn spoken inventory into editable drafts.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

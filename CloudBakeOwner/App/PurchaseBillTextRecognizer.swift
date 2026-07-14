@@ -1,5 +1,7 @@
+import AVFoundation
 import CoreGraphics
 import Foundation
+import Speech
 import Vision
 
 protocol DocumentTextRecognizing {
@@ -53,3 +55,128 @@ typealias PurchaseBillTextRecognizing = DocumentTextRecognizing
 typealias RecipeTextRecognizing = DocumentTextRecognizing
 typealias VisionPurchaseBillTextRecognizer = VisionDocumentTextRecognizer
 typealias VisionRecipeTextRecognizer = VisionDocumentTextRecognizer
+
+enum VoiceInventoryRecognitionError: LocalizedError, Equatable {
+    case permissionDenied
+    case onDeviceRecognitionUnavailable
+    case audioUnavailable
+    case recognitionFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .permissionDenied:
+            "Microphone and speech recognition access are required to add inventory by voice."
+        case .onDeviceRecognitionUnavailable:
+            "On-device speech recognition is not available for the current iPhone language."
+        case .audioUnavailable:
+            "The microphone could not be started."
+        case .recognitionFailed:
+            "Voice recognition stopped unexpectedly. Try again."
+        }
+    }
+}
+
+@MainActor
+protocol VoiceInventorySpeechRecognizing: AnyObject {
+    func requestPermission() async -> Bool
+    func start(
+        onTranscript: @escaping @MainActor (String) -> Void,
+        onError: @escaping @MainActor (VoiceInventoryRecognitionError) -> Void
+    ) throws
+    func stop()
+}
+
+@MainActor
+final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecognizing {
+    private let speechRecognizer: SFSpeechRecognizer?
+    private let audioEngine = AVAudioEngine()
+    private var request: SFSpeechAudioBufferRecognitionRequest?
+    private var task: SFSpeechRecognitionTask?
+    private var isInputTapInstalled = false
+
+    init(locale: Locale = .current) {
+        speechRecognizer = SFSpeechRecognizer(locale: locale)
+    }
+
+    func requestPermission() async -> Bool {
+        let speechAllowed: Bool = await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                continuation.resume(returning: status == .authorized)
+            }
+        }
+        guard speechAllowed else {
+            return false
+        }
+        return await withCheckedContinuation { continuation in
+            AVAudioApplication.requestRecordPermission { allowed in
+                continuation.resume(returning: allowed)
+            }
+        }
+    }
+
+    func start(
+        onTranscript: @escaping @MainActor (String) -> Void,
+        onError: @escaping @MainActor (VoiceInventoryRecognitionError) -> Void
+    ) throws {
+        guard let speechRecognizer, speechRecognizer.supportsOnDeviceRecognition else {
+            throw VoiceInventoryRecognitionError.onDeviceRecognitionUnavailable
+        }
+
+        stop()
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        request.requiresOnDeviceRecognition = true
+        self.request = request
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+            let inputNode = audioEngine.inputNode
+            let format = inputNode.outputFormat(forBus: 0)
+            inputNode.installTap(onBus: 0, bufferSize: 1_024, format: format) { buffer, _ in
+                request.append(buffer)
+            }
+            isInputTapInstalled = true
+            audioEngine.prepare()
+            try audioEngine.start()
+        } catch {
+            stop()
+            throw VoiceInventoryRecognitionError.audioUnavailable
+        }
+
+        task = speechRecognizer.recognitionTask(with: request) { result, error in
+            if let result {
+                Task { @MainActor in
+                    guard self.request === request else {
+                        return
+                    }
+                    onTranscript(result.bestTranscription.formattedString)
+                }
+            }
+            if error != nil {
+                Task { @MainActor in
+                    guard self.request === request else {
+                        return
+                    }
+                    onError(.recognitionFailed)
+                }
+            }
+        }
+    }
+
+    func stop() {
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+        if isInputTapInstalled {
+            audioEngine.inputNode.removeTap(onBus: 0)
+            isInputTapInstalled = false
+        }
+        request?.endAudio()
+        task?.cancel()
+        request = nil
+        task = nil
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+}
