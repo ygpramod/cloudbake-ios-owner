@@ -114,11 +114,21 @@ struct VoiceInventoryTranscriptAccumulator {
         if activeSegments.isEmpty {
             activeSegments = incomingSegments
         } else if words(in: incomingSegments) == words(in: activeSegments) {
-            // On-device recognition can repeat a finalized utterance with reset timestamps.
+            let activeStartTime = activeSegments.first?.startTime ?? updateStartTime
+            let repeatedOnResetTimeline = abs(updateStartTime - activeStartTime) >= 0.5
+            if isFinal || repeatedOnResetTimeline {
+                completeActiveUtterance()
+            }
+            return transcript
+        } else if isFinal {
+            activeSegments = incomingSegments
         } else if isCumulativeRevision(incomingSegments) {
             activeSegments = incomingSegments
         } else if let activeStartTime = activeSegments.first?.startTime,
-                  updateStartTime > activeStartTime + 0.01 {
+                  abs(updateStartTime - activeStartTime) < 0.01 {
+            activeSegments = incomingSegments
+        } else if let activeStartTime = activeSegments.first?.startTime,
+                  updateStartTime > activeStartTime {
             activeSegments.removeAll { segment in
                 segment.endTime > updateStartTime || abs(segment.startTime - updateStartTime) < 0.01
             }
