@@ -210,6 +210,8 @@ extension CloudBakeOwnerUITests {
         let deleteButton = app.buttons["inventory.item.delete.inventory-ui-scroll-8"]
         XCTAssertTrue(deleteButton.waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(deleteButton.isHittable)
+        XCTAssertTrue(lastRow.isHittable)
+        XCTAssertGreaterThan(deleteButton.frame.midX, app.windows.firstMatch.frame.midX)
     }
 
     func testInventoryDetailShowsStockActionsInMoreMenu() throws {
