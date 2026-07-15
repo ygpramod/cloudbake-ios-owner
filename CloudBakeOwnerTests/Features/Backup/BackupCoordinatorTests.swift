@@ -497,6 +497,60 @@ final class BackupCoordinatorTests: XCTestCase {
         XCTAssertEqual(transferPolicies, [.wifiOnly])
     }
 
+    func testRepeatedManualWiFiBackupAlwaysCreatesAndPublishesFreshSnapshot() async {
+        let fixture = CoordinatorFixture(connection: .wifi)
+
+        guard case .published(let firstPublication) =
+                await fixture.coordinator.prepareManualBackup(),
+              case .published(let secondPublication) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected every manual Wi-Fi request to publish")
+        }
+
+        XCTAssertNotEqual(firstPublication.generationID, secondPublication.generationID)
+        let creationCount = await fixture.snapshotCreator.creationCount
+        let publicationCount = await fixture.publisher.publicationCount
+        let transferPolicies = await fixture.publisher.transferPolicies
+        XCTAssertEqual(creationCount, 2)
+        XCTAssertEqual(publicationCount, 2)
+        XCTAssertEqual(transferPolicies, [.wifiOnly, .wifiOnly])
+    }
+
+    func testCellularApprovalAppliesOnlyToOneManualBackupAttempt() async {
+        let fixture = CoordinatorFixture(connection: .cellular)
+
+        guard case .requiresCellularConfirmation(let firstProposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected the first cellular request to require confirmation")
+        }
+        guard case .published = await fixture.coordinator.confirmManualCellularBackup(
+            proposalID: firstProposal.id,
+            displayedByteCount: firstProposal.estimatedUploadByteCount
+        ) else {
+            return XCTFail("Expected the approved cellular request to publish")
+        }
+
+        guard case .requiresCellularConfirmation(let secondProposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected a new confirmation for the next cellular request")
+        }
+
+        XCTAssertNotEqual(secondProposal.generationID, firstProposal.generationID)
+        var publicationCount = await fixture.publisher.publicationCount
+        XCTAssertEqual(publicationCount, 1)
+
+        guard case .published = await fixture.coordinator.confirmManualCellularBackup(
+            proposalID: secondProposal.id,
+            displayedByteCount: secondProposal.estimatedUploadByteCount
+        ) else {
+            return XCTFail("Expected the second approved cellular request to publish")
+        }
+        publicationCount = await fixture.publisher.publicationCount
+        let transferPolicies = await fixture.publisher.transferPolicies
+        XCTAssertEqual(publicationCount, 2)
+        XCTAssertEqual(transferPolicies, [.cellularAllowed, .cellularAllowed])
+    }
+
     func testRestoreSessionBlocksBackupUntilItEnds() async {
         let fixture = CoordinatorFixture()
 

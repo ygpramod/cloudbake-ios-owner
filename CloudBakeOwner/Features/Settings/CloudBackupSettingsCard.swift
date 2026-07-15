@@ -117,7 +117,7 @@ struct CloudBackupSettingsCard: View {
                     Text(viewModel.isBusy ? "Backup in Progress…" : "Back Up Now")
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    Text("Create a complete recovery snapshot in your private iCloud storage.")
+                    Text("Create a fresh recovery snapshot, even when nothing has changed.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.leading)
