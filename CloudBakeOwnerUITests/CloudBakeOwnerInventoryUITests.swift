@@ -154,6 +154,48 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.staticTexts["Current Quantity: 250 g"].waitForExistence(timeout: transitionTimeout))
     }
 
+    func testUnusedArchivedInventoryCanBeDeleted() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 20
+        app.launch()
+
+        openDashboardDestination("Inventory", in: app, timeout: transitionTimeout)
+        addInventoryItem(
+            named: "Unused topper",
+            currentQuantity: "0",
+            minimumQuantity: "0",
+            in: app
+        )
+
+        let row = inventoryRow(named: "Unused topper", in: app)
+        scrollToHittable(row, in: app, timeout: transitionTimeout)
+        row.swipeLeft()
+        let archiveButton = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.archive.")
+        ).firstMatch
+        tapWhenReady(
+            archiveButton,
+            waitingFor: app.buttons["inventory.archive.confirm"],
+            in: app,
+            timeout: transitionTimeout
+        )
+        tapWhenReady(app.buttons["inventory.archive.confirm"], timeout: transitionTimeout)
+
+        tapInventoryHeaderAction(
+            "inventory.archived",
+            in: app,
+            waitingFor: app.buttons["inventory.archived.done"],
+            timeout: transitionTimeout
+        )
+        let deleteButton = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "inventory.archived.delete.")
+        ).firstMatch
+        tapWhenReady(deleteButton, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["inventory.archived.delete.confirm"], timeout: transitionTimeout)
+
+        XCTAssertTrue(app.staticTexts["No archived inventory"].waitForExistence(timeout: transitionTimeout))
+    }
+
     func testInventoryDetailShowsStockActionsInMoreMenu() throws {
         let app = makeInventoryFixtureApp()
         openSeededInventoryDetail(in: app)
