@@ -164,8 +164,10 @@ each newly detected iCloud account. It is backup rather than multi-device synchr
 
 Cloud backup starts enabled, but the owner can disable future publication without deleting the
 latest successful snapshot. Backup notifications are independently configurable and contain only
-safe operational status, never private customer, recipe, cost, or photo content. A manual transfer
-over cellular requires confirmation of the displayed estimated size.
+safe operational status, never private customer, recipe, cost, or photo content. Every manual
+backup request creates a fresh complete snapshot, including when business data has not changed. A
+manual transfer over cellular requires confirmation of the displayed estimated size for that
+specific attempt; approval is not retained for future attempts.
 
 Disabling cloud backup retains the latest recovery snapshot. Permanent deletion is a separate,
 destructively confirmed operation that removes the complete private CloudKit backup—including

@@ -368,10 +368,12 @@ starts enabled. Turning it off stops future automatic and manual cloud publicati
 latest successful recovery snapshot. Backup notifications are a separate preference; turning them
 off does not turn off backup or hide Settings status.
 
-Choose **Back Up Now** for a manual cloud snapshot. Wi-Fi proceeds without a data-use prompt. On
-cellular, CloudBake displays the estimated transfer size and publishes only after explicit approval.
-Status and notifications use safe operational wording and never include customer, recipe, cost, or
-photo content.
+Choose **Back Up Now** for a fresh manual cloud snapshot. CloudBake creates and publishes a new
+snapshot even when no app data has changed since the previous backup. Wi-Fi proceeds without a
+data-use prompt. On cellular, CloudBake displays the estimated transfer size and publishes only
+after explicit approval. That approval applies to one backup attempt; a later cellular backup asks
+again. Status and notifications use safe operational wording and never include customer, recipe,
+cost, or photo content.
 
 Expand **Data Management** and choose **Delete Cloud Backup** to permanently remove CloudBake's
 complete recovery backup from the current private iCloud account. A destructive confirmation is
