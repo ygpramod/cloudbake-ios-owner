@@ -151,34 +151,32 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.accessibilityLabel(for: design), "Photos Cake, design photo")
     }
 
-    func testLoadDerivesCustomerReferencesFromOrderPhotos() {
+    func testLoadShowsOnlyExplicitReferencesAndIgnoresRawOrderPhotos() {
         let designRepository = FakeCakeDesignRepository()
+        let explicitReference = makeDesign(
+            id: "design-reference",
+            name: "Blue flowers",
+            sourceKind: .customerReference,
+            tags: ["Wedding"]
+        )
+        designRepository.designs = [explicitReference]
         let orderRepository = FakeOrderRepository()
         let order = makeOrder(
             id: "order-reference",
-            title: "Blue wedding cake",
             dueAt: Date(timeIntervalSince1970: 1_800_090_000)
-        )
-        let reference = OrderPhoto(
-            id: "photo-customer-reference",
-            orderId: order.id,
-            kind: .customerReference,
-            localPhotoPath: "OrderPhotos/reference.jpg",
-            caption: "Blue flowers",
-            createdAt: Date(timeIntervalSince1970: 1_800_080_000),
-            updatedAt: Date(timeIntervalSince1970: 1_800_080_000)
-        )
-        let finalPhoto = OrderPhoto(
-            id: "photo-final",
-            orderId: order.id,
-            kind: .finalCake,
-            localPhotoPath: "OrderPhotos/final.jpg",
-            caption: nil,
-            createdAt: reference.createdAt,
-            updatedAt: reference.updatedAt
         )
         orderRepository.orders = [order]
-        orderRepository.orderPhotos = [finalPhoto, reference]
+        orderRepository.orderPhotos = [
+            OrderPhoto(
+                id: "raw-order-photo",
+                orderId: order.id,
+                kind: .customerReference,
+                localPhotoPath: "photos://raw-reference",
+                caption: "Not added",
+                createdAt: order.createdAt,
+                updatedAt: order.updatedAt
+            )
+        ]
         let viewModel = CakeDesignListViewModel(
             repository: designRepository,
             customerReferenceRepository: orderRepository
@@ -186,51 +184,8 @@ final class CakeDesignListViewModelTests: XCTestCase {
 
         viewModel.load()
 
-        XCTAssertEqual(
-            viewModel.customerReferences,
-            [CustomerReferenceDesign(photo: reference, order: order)]
-        )
-        viewModel.searchText = "blue amy"
-        XCTAssertEqual(viewModel.visibleCustomerReferences.map(\.id), [reference.id])
-        viewModel.searchText = "unknown"
-        XCTAssertTrue(viewModel.visibleCustomerReferences.isEmpty)
-    }
-
-    func testCustomerReferenceUsageIncludesOriginAndNewOrdersUsingTheReference() throws {
-        let designRepository = FakeCakeDesignRepository()
-        let orderRepository = FakeOrderRepository()
-        let sourceOrder = makeOrder(
-            id: "order-reference-source",
-            dueAt: Date(timeIntervalSince1970: 1_800_090_000)
-        )
-        let reference = OrderPhoto(
-            id: "photo-reused-reference",
-            orderId: sourceOrder.id,
-            kind: .customerReference,
-            localPhotoPath: "photos://reused-reference",
-            caption: "Blue flowers",
-            createdAt: sourceOrder.createdAt,
-            updatedAt: sourceOrder.updatedAt
-        )
-        let reusedOrder = makeOrder(
-            id: "order-reference-reuse",
-            customerReferencePhotoId: reference.id,
-            dueAt: Date(timeIntervalSince1970: 1_800_100_000)
-        )
-        orderRepository.orders = [sourceOrder, reusedOrder]
-        orderRepository.orderPhotos = [reference]
-        let viewModel = CakeDesignListViewModel(
-            repository: designRepository,
-            customerReferenceRepository: orderRepository
-        )
-        viewModel.load()
-        let item = try XCTUnwrap(viewModel.customerReferences.first)
-
-        XCTAssertEqual(viewModel.usageCount(for: item), 2)
-        XCTAssertEqual(
-            viewModel.usageOrders(for: item).map(\.id),
-            [reusedOrder.id, sourceOrder.id]
-        )
+        XCTAssertEqual(viewModel.references, [explicitReference])
+        XCTAssertEqual(viewModel.visibleReferences, [explicitReference])
     }
 
     func testSaveOwnerDesignPersistsPhotosReferenceAndNormalizedMetadata() {
@@ -267,6 +222,39 @@ final class CakeDesignListViewModelTests: XCTestCase {
             ]
         )
         XCTAssertEqual(viewModel.designs, repository.designs)
+    }
+
+    func testSaveReferencePersistsPhotosReferenceAndNormalizedTags() {
+        let repository = FakeCakeDesignRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_100_000)
+        let viewModel = CakeDesignListViewModel(
+            repository: repository,
+            idGenerator: { "design-reference-direct" },
+            dateProvider: { timestamp }
+        )
+
+        XCTAssertTrue(
+            viewModel.saveReference(
+                photoReference: "photos://reference-asset",
+                tags: " Wedding, wedding, Blue "
+            )
+        )
+        XCTAssertEqual(
+            repository.designs,
+            [
+                CakeDesign(
+                    id: "design-reference-direct",
+                    name: "Reference",
+                    notes: nil,
+                    photoReference: "photos://reference-asset",
+                    sourceKind: .customerReference,
+                    tags: ["Wedding", "Blue"],
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            ]
+        )
+        XCTAssertEqual(viewModel.references, repository.designs)
     }
 
     func testSaveOwnerDesignRequiresNameBeforePersisting() {
@@ -345,26 +333,14 @@ final class CakeDesignListViewModelTests: XCTestCase {
             tags: ["Floral"],
             isFavorite: true
         )
-        designRepository.designs = [ownerDesign]
-        let orderRepository = FakeOrderRepository()
-        let order = makeOrder(id: "order-wedding", dueAt: Date(timeIntervalSince1970: 1_800_100_000))
-        orderRepository.orders = [order]
-        orderRepository.orderPhotos = [
-            OrderPhoto(
-                id: "photo-wedding",
-                orderId: order.id,
-                kind: .customerReference,
-                localPhotoPath: "photos://wedding",
-                caption: "Wedding reference",
-                tags: ["Wedding"],
-                createdAt: order.createdAt,
-                updatedAt: order.updatedAt
-            )
-        ]
-        let viewModel = CakeDesignListViewModel(
-            repository: designRepository,
-            customerReferenceRepository: orderRepository
+        let reference = makeDesign(
+            id: "design-wedding-reference",
+            name: "Wedding reference",
+            sourceKind: .customerReference,
+            tags: ["Wedding"]
         )
+        designRepository.designs = [ownerDesign, reference]
+        let viewModel = CakeDesignListViewModel(repository: designRepository)
         viewModel.load()
 
         XCTAssertEqual(
@@ -373,10 +349,10 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
         viewModel.selectFilter(.favorites)
         XCTAssertEqual(viewModel.visibleDesigns.map(\.id), [ownerDesign.id])
-        XCTAssertTrue(viewModel.visibleCustomerReferences.isEmpty)
+        XCTAssertTrue(viewModel.visibleReferences.isEmpty)
 
         viewModel.selectFilter(.tag("Wedding"))
-        XCTAssertEqual(viewModel.visibleCustomerReferences.map(\.id), ["photo-wedding"])
+        XCTAssertEqual(viewModel.visibleReferences.map(\.id), [reference.id])
         XCTAssertTrue(viewModel.visibleDesigns.isEmpty)
 
         viewModel.selectFilter(.all)
@@ -464,10 +440,9 @@ final class CakeDesignListViewModelTests: XCTestCase {
         XCTAssertTrue(photoLibrary.savedData.isEmpty)
     }
 
-    func testDeletingPhotosBackedCustomerReferenceRemovesOnlyOrderMetadata() {
+    func testDeletingExplicitReferencePreservesOriginatingOrderPhoto() {
         let designRepository = FakeCakeDesignRepository()
         let orderRepository = FakeOrderRepository()
-        let photoFileStore = FakeOrderPhotoFileStore()
         let order = makeOrder(id: "order-delete-reference", dueAt: Date(timeIntervalSince1970: 1_800_100_000))
         let photo = OrderPhoto(
             id: "photo-delete-reference",
@@ -480,66 +455,22 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
         orderRepository.orders = [order]
         orderRepository.orderPhotos = [photo]
+        let reference = makeDesign(
+            id: "design-delete-reference",
+            name: "Reference",
+            photoReference: photo.localPhotoPath,
+            sourceKind: .customerReference
+        )
+        designRepository.designs = [reference]
         let viewModel = CakeDesignListViewModel(
             repository: designRepository,
-            photoFileStore: photoFileStore,
             customerReferenceRepository: orderRepository
         )
         viewModel.load()
-        guard let reference = viewModel.customerReferences.first else {
-            return XCTFail("Expected customer reference")
-        }
 
         XCTAssertTrue(viewModel.delete(reference))
-        XCTAssertTrue(orderRepository.orderPhotos.isEmpty)
-        XCTAssertTrue(photoFileStore.deletedRelativePaths.isEmpty)
-    }
-
-    func testDeletingLegacyReferenceQueuesAndRetriesFailedFileCleanup() {
-        let repository = FakeOrderRepository()
-        let photoFileStore = FakeOrderPhotoFileStore()
-        photoFileStore.deleteError = TestDesignRepositoryError.forcedFailure
-        let order = makeOrder(id: "order-legacy-delete", dueAt: Date(timeIntervalSince1970: 1_800_100_000))
-        let photo = OrderPhoto(
-            id: "photo-legacy-delete",
-            orderId: order.id,
-            kind: .customerReference,
-            localPhotoPath: "OrderPhotos/legacy-delete.jpg",
-            caption: nil,
-            createdAt: order.createdAt,
-            updatedAt: order.updatedAt
-        )
-        repository.orders = [order]
-        repository.orderPhotos = [photo]
-        let viewModel = CakeDesignListViewModel(
-            repository: repository,
-            photoFileStore: photoFileStore,
-            customerReferenceRepository: repository
-        )
-        viewModel.load()
-        guard let reference = viewModel.customerReferences.first else {
-            return XCTFail("Expected legacy reference")
-        }
-
-        XCTAssertTrue(viewModel.delete(reference))
-        XCTAssertTrue(repository.orderPhotos.isEmpty)
-        XCTAssertEqual(repository.pendingDesignPhotoCleanupPaths, [photo.localPhotoPath])
-        XCTAssertEqual(
-            viewModel.errorMessage,
-            "Reference removed. The old local photo will be cleaned up automatically."
-        )
-
-        photoFileStore.deleteError = nil
-        let reloadedViewModel = CakeDesignListViewModel(
-            repository: repository,
-            photoFileStore: photoFileStore,
-            customerReferenceRepository: repository
-        )
-        reloadedViewModel.load()
-
-        XCTAssertTrue(repository.pendingDesignPhotoCleanupPaths.isEmpty)
-        XCTAssertEqual(photoFileStore.deletedRelativePaths, [photo.localPhotoPath])
-        XCTAssertNil(reloadedViewModel.errorMessage)
+        XCTAssertTrue(designRepository.designs.isEmpty)
+        XCTAssertEqual(orderRepository.orderPhotos, [photo])
     }
 
     func testUsageHistoryDerivesLinkedOrdersNewestDueDateFirst() {

@@ -12,8 +12,9 @@ struct CakeDesignListView: View {
 
     @StateObject private var viewModel: CakeDesignListViewModel
     @State private var previewingDesign: CakeDesign?
-    @State private var previewingCustomerReference: CustomerReferenceDesign?
+    @State private var previewingReference: CakeDesign?
     @State private var isAddingOwnerDesign = false
+    @State private var isAddingReference = false
     @FocusState private var isSearchFocused: Bool
 
     init(viewModel: CakeDesignListViewModel) {
@@ -77,12 +78,13 @@ struct CakeDesignListView: View {
                 )
             }
         }
-        .sheet(item: $previewingCustomerReference) { reference in
+        .sheet(item: $previewingReference) { reference in
             NavigationStack {
-                CustomerReferencePreviewView(
-                    reference: reference,
-                    references: viewModel.visibleCustomerReferences,
-                    photoSource: { viewModel.availablePhotoSource(for: $0.photo) },
+                CakeDesignPreviewView(
+                    design: reference,
+                    designs: viewModel.visibleReferences,
+                    photoSource: viewModel.availablePhotoSource,
+                    accessibilityLabel: viewModel.accessibilityLabel,
                     usageOrders: viewModel.usageOrders,
                     onToggleFavorite: { viewModel.toggleFavorite($0) },
                     onUpdateTags: { viewModel.updateTags($0, for: $1) },
@@ -93,6 +95,9 @@ struct CakeDesignListView: View {
         .sheet(isPresented: $isAddingOwnerDesign) {
             OwnerDesignImportView(viewModel: viewModel)
         }
+        .sheet(isPresented: $isAddingReference) {
+            ReferenceImportView(viewModel: viewModel)
+        }
         .onAppear {
             viewModel.load()
         }
@@ -101,7 +106,7 @@ struct CakeDesignListView: View {
     @ViewBuilder
     private var designResults: some View {
         if viewModel.visibleDesigns.isEmpty
-            && viewModel.visibleCustomerReferences.isEmpty
+            && viewModel.visibleReferences.isEmpty
             && (viewModel.hasEffectiveSearchQuery || viewModel.selectedFilter != .all) {
             CloudBakeEmptyState(
                 title: "No matching designs",
@@ -149,22 +154,33 @@ struct CakeDesignListView: View {
                 }
 
                 Section {
-                    if viewModel.visibleCustomerReferences.isEmpty {
-                        Text("No customer references saved")
+                    if viewModel.visibleReferences.isEmpty {
+                        Text("No references saved")
                             .font(CloudBakeTheme.Typography.rowDetail)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .gridCellColumns(designGridColumns.count)
                             .accessibilityIdentifier("designs.customerReferences.empty")
                     } else {
-                        ForEach(viewModel.visibleCustomerReferences) { reference in
-                            customerReferenceTile(reference)
+                        ForEach(viewModel.visibleReferences, id: \.id) { reference in
+                            referenceTile(reference)
                         }
                     }
                 } header: {
-                    Text("Customer References (\(viewModel.visibleCustomerReferences.count))")
-                        .font(CloudBakeTheme.Typography.sectionTitle)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack {
+                        Text("References (\(viewModel.visibleReferences.count))")
+                            .font(CloudBakeTheme.Typography.sectionTitle)
+                        Spacer()
+                        Button { isAddingReference = true } label: {
+                            Label("Import reference photo", systemImage: "plus")
+                                .labelStyle(.iconOnly)
+                                .frame(minWidth: 44, minHeight: 36)
+                        }
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.capsule)
+                        .accessibilityLabel("Import Reference Photo")
+                        .accessibilityIdentifier("designs.references.add")
+                    }
                         .padding(.top, 10)
                         .padding(.bottom, 10)
                         .accessibilityIdentifier("designs.customerReferences.title")
@@ -173,25 +189,18 @@ struct CakeDesignListView: View {
         }
     }
 
-    private func customerReferenceTile(_ reference: CustomerReferenceDesign) -> some View {
-        Button {
-            previewingCustomerReference = reference
-        } label: {
+    private func referenceTile(_ reference: CakeDesign) -> some View {
+        Button { previewingReference = reference } label: {
             photoTile(
-                source: viewModel.availablePhotoSource(for: reference.photo),
-                isFavorite: reference.photo.isFavorite,
+                source: viewModel.availablePhotoSource(for: reference),
+                isFavorite: reference.isFavorite,
                 usageCount: viewModel.usageCount(for: reference)
             )
         }
         .buttonStyle(.plain)
         .cloudBakeCardStyle()
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(reference.title), customer reference from \(reference.order.customerName)"
-                + (reference.photo.isFavorite ? ", favorite" : "")
-                + usageAccessibilitySuffix(count: viewModel.usageCount(for: reference))
-        )
-        .accessibilityIdentifier("designs.customerReference.\(reference.id)")
+        .accessibilityLabel(viewModel.accessibilityLabel(for: reference))
+        .accessibilityIdentifier("designs.reference.\(reference.id)")
     }
 
     private func designTile(_ design: CakeDesign) -> some View {
@@ -250,224 +259,6 @@ struct CakeDesignListView: View {
         }
     }
 
-}
-
-private struct CustomerReferencePreviewView: View {
-    @State private var reference: CustomerReferenceDesign
-    @State private var references: [CustomerReferenceDesign]
-    @State private var isPhotoZoomed = false
-    let photoSource: (CustomerReferenceDesign) -> CakeDesignPhotoSource?
-    let usageOrders: (CustomerReferenceDesign) -> [Order]
-    let onToggleFavorite: (CustomerReferenceDesign) -> CustomerReferenceDesign?
-    let onUpdateTags: (String, CustomerReferenceDesign) -> CustomerReferenceDesign?
-    let onDelete: (CustomerReferenceDesign) -> Bool
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var orderNavigationRouter: OrderNavigationRouter
-    @State private var isEditingTags = false
-    @State private var tagsText = ""
-    @State private var isConfirmingDelete = false
-
-    init(
-        reference: CustomerReferenceDesign,
-        references: [CustomerReferenceDesign],
-        photoSource: @escaping (CustomerReferenceDesign) -> CakeDesignPhotoSource?,
-        usageOrders: @escaping (CustomerReferenceDesign) -> [Order],
-        onToggleFavorite: @escaping (CustomerReferenceDesign) -> CustomerReferenceDesign?,
-        onUpdateTags: @escaping (String, CustomerReferenceDesign) -> CustomerReferenceDesign?,
-        onDelete: @escaping (CustomerReferenceDesign) -> Bool
-    ) {
-        _reference = State(initialValue: reference)
-        _references = State(initialValue: references)
-        self.photoSource = photoSource
-        self.usageOrders = usageOrders
-        self.onToggleFavorite = onToggleFavorite
-        self.onUpdateTags = onUpdateTags
-        self.onDelete = onDelete
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                ZoomableDesignPhoto(
-                    source: photoSource(reference),
-                    accessibilityLabel: "\(reference.title), customer reference",
-                    accessibilityIdentifier: "designs.customerReference.preview.photo",
-                    isZoomed: $isPhotoZoomed
-                )
-                .id(reference.id)
-
-                adjacentControls
-
-                CloudBakeDetailCard {
-                    CloudBakeDetailRow("Source") { Text("Customer Reference") }
-                    CloudBakeDetailDivider()
-                    CloudBakeDetailRow("Customer") { Text(reference.order.customerName) }
-                    CloudBakeDetailDivider()
-                    CloudBakeDetailRow("Order") { Text(reference.order.title) }
-                    if let caption = reference.photo.caption {
-                        CloudBakeDetailDivider()
-                        CloudBakeDetailRow("Caption") { Text(caption) }
-                    }
-                    CloudBakeDetailDivider()
-                    CloudBakeDetailRow("Tags") {
-                        Text(reference.photo.tags.isEmpty ? "None" : reference.photo.tags.joined(separator: ", "))
-                    }
-                }
-
-                CloudBakeDetailCard {
-                    CloudBakeDetailRow("Used In") {
-                        Text("\(currentUsageOrders.count) order\(currentUsageOrders.count == 1 ? "" : "s")")
-                    }
-                    ForEach(currentUsageOrders, id: \.id) { order in
-                        CloudBakeDetailDivider()
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(order.title)
-                                .font(.body.weight(.semibold))
-                            Text(order.dueAt.formatted(date: .abbreviated, time: .omitted))
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 8)
-                    }
-                }
-
-                Button {
-                    orderNavigationRouter.beginNewOrder(
-                        designReference: .customerReference(photoId: reference.photo.id)
-                    )
-                    dismiss()
-                } label: {
-                    Label("Use for New Order", systemImage: "calendar.badge.plus")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.cloudBakePink)
-                .controlSize(.large)
-                .accessibilityIdentifier("designs.customerReference.useForNewOrder")
-            }
-            .padding(CloudBakeTheme.Spacing.screenHorizontal)
-        }
-        .accessibilityIdentifier("designs.customerReference.scroll")
-        .simultaneousGesture(adjacentReferenceSwipe)
-        .background(CloudBakeScreenBackground().ignoresSafeArea())
-        .navigationTitle(reference.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    if let updated = onToggleFavorite(reference) { apply(updated) }
-                } label: {
-                    Image(systemName: reference.photo.isFavorite ? "heart.fill" : "heart")
-                }
-                .accessibilityLabel(reference.photo.isFavorite ? "Remove Favorite" : "Add Favorite")
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button("Tags") {
-                    tagsText = reference.photo.tags.joined(separator: ", ")
-                    isEditingTags = true
-                }
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button(role: .destructive) { isConfirmingDelete = true } label: {
-                    Image(systemName: "trash")
-                }
-                .accessibilityLabel("Remove Customer Reference")
-            }
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { dismiss() }
-            }
-        }
-        .cloudBakeCenteredPopup(
-            isPresented: isEditingTags,
-            title: "Edit Tags",
-            subtitle: "Separate tags with commas.",
-            systemImage: "tag",
-            cancelAccessibilityIdentifier: "designs.tags.cancel",
-            onCancel: { isEditingTags = false }
-        ) {
-            TextField("Comma-separated tags", text: $tagsText)
-                .textFieldStyle(.roundedBorder)
-                .accessibilityIdentifier("designs.customerReference.tags.field")
-            centeredPopupButton("Save") {
-                if let updated = onUpdateTags(tagsText, reference) { apply(updated) }
-                isEditingTags = false
-            }
-            .accessibilityIdentifier("designs.customerReference.tags.save")
-        }
-        .cloudBakeCenteredPopup(
-            isPresented: isConfirmingDelete,
-            title: "Remove Customer Reference?",
-            subtitle: "Remove this reference from CloudBake and its order. The image remains in Photos.",
-            systemImage: "trash",
-            cancelAccessibilityIdentifier: "designs.customerReference.delete.cancel",
-            onCancel: { isConfirmingDelete = false }
-        ) {
-            centeredPopupButton("Remove Customer Reference", role: .destructive) {
-                if onDelete(reference) { dismiss() }
-            }
-            .accessibilityIdentifier("designs.customerReference.delete.confirm")
-        }
-    }
-
-    private var currentUsageOrders: [Order] {
-        usageOrders(reference)
-    }
-
-    private var adjacentReferenceSwipe: some Gesture {
-        DragGesture(minimumDistance: 40)
-            .onEnded { value in
-                guard !isPhotoZoomed,
-                      abs(value.translation.width) > abs(value.translation.height) * 1.4,
-                      abs(value.translation.width) >= 72,
-                      currentReferenceIndex != nil else {
-                    return
-                }
-                moveReference(by: value.translation.width < 0 ? 1 : -1)
-            }
-    }
-
-    private var currentReferenceIndex: Int? {
-        references.firstIndex(where: { $0.id == reference.id })
-    }
-
-    private var adjacentControls: some View {
-        HStack(spacing: 12) {
-            adjacentButton(systemImage: "chevron.left", label: "Previous Reference", offset: -1)
-            adjacentButton(systemImage: "chevron.right", label: "Next Reference", offset: 1)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityIdentifier("designs.customerReference.adjacentControls")
-    }
-
-    private func adjacentButton(systemImage: String, label: String, offset: Int) -> some View {
-        Button { moveReference(by: offset) } label: {
-            Image(systemName: systemImage).frame(minWidth: 44, minHeight: 32)
-        }
-        .buttonStyle(.bordered)
-        .buttonBorderShape(.capsule)
-        .disabled(!canMoveReference(by: offset))
-        .accessibilityLabel(label)
-    }
-
-    private func canMoveReference(by offset: Int) -> Bool {
-        guard let currentReferenceIndex else { return false }
-        return references.indices.contains(currentReferenceIndex + offset)
-    }
-
-    private func moveReference(by offset: Int) {
-        guard let currentReferenceIndex else { return }
-        let target = currentReferenceIndex + offset
-        guard references.indices.contains(target) else { return }
-        isPhotoZoomed = false
-        withAnimation(.easeInOut(duration: 0.2)) { reference = references[target] }
-    }
-
-    private func apply(_ updated: CustomerReferenceDesign) {
-        reference = updated
-        guard let index = references.firstIndex(where: { $0.id == updated.id }) else { return }
-        references[index] = updated
-    }
 }
 
 private struct OwnerDesignImportView: View {
@@ -536,6 +327,60 @@ private struct OwnerDesignImportView: View {
                     }
                     .disabled(isSaving)
                     .accessibilityIdentifier("designs.ownerDesign.save")
+                }
+            }
+        }
+    }
+}
+
+private struct ReferenceImportView: View {
+    @ObservedObject var viewModel: CakeDesignListViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var tags = ""
+    @State private var isSaving = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Photo") {
+                    PhotosPicker(selection: $selectedItem, matching: .images) {
+                        Label(
+                            selectedItem == nil ? "Choose from Photos" : "Photo selected",
+                            systemImage: selectedItem == nil ? "photo.on.rectangle" : "checkmark.circle.fill"
+                        )
+                    }
+                    .accessibilityIdentifier("designs.referenceImport.photo")
+                }
+                Section("Reference") {
+                    TextField("Tags, comma-separated (optional)", text: $tags)
+                        .accessibilityIdentifier("designs.referenceImport.tags")
+                }
+            }
+            .cloudBakeFormScreenStyle()
+            .navigationTitle("Import Reference")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.disabled(isSaving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        guard let selectedItem, !isSaving else {
+                            if self.selectedItem == nil {
+                                viewModel.errorMessage = "Reference photo is required."
+                            }
+                            return
+                        }
+                        isSaving = true
+                        Task {
+                            if await viewModel.importReference(item: selectedItem, tags: tags) {
+                                dismiss()
+                            }
+                            isSaving = false
+                        }
+                    }
+                    .disabled(isSaving)
+                    .accessibilityIdentifier("designs.referenceImport.save")
                 }
             }
         }
