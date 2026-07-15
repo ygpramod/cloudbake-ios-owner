@@ -220,18 +220,46 @@ final class DashboardViewModelTests: XCTestCase {
 
     func testLoadCountsOnlyActiveUpcomingOrders() {
         let repository = FakeDashboardInventoryItemRepository()
-        let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        let calendar = utcCalendar()
+        let now = calendar.date(from: DateComponents(year: 2027, month: 2, day: 10, hour: 12))!
+        let dueAt = calendar.date(from: DateComponents(year: 2027, month: 2, day: 10, hour: 18))!
         repository.orders = [
             makeOrder(id: "order-confirmed", status: .confirmed, dueAt: dueAt),
             makeOrder(id: "order-ready", status: .ready, dueAt: dueAt.addingTimeInterval(3_600)),
             makeOrder(id: "order-completed", status: .completed, dueAt: dueAt.addingTimeInterval(7_200)),
-            makeOrder(id: "order-cancelled", status: .cancelled, dueAt: dueAt.addingTimeInterval(10_800))
+            makeOrder(id: "order-cancelled", status: .cancelled, dueAt: dueAt.addingTimeInterval(10_800)),
+            makeOrder(
+                id: "order-past",
+                status: .confirmed,
+                dueAt: calendar.date(byAdding: .day, value: -1, to: dueAt)!
+            ),
+            makeOrder(
+                id: "order-day-thirty",
+                status: .confirmed,
+                dueAt: calendar.date(byAdding: .day, value: 30, to: dueAt)!
+            ),
+            makeOrder(
+                id: "order-day-thirty-one",
+                status: .confirmed,
+                dueAt: calendar.date(byAdding: .day, value: 31, to: dueAt)!
+            )
         ]
-        let viewModel = DashboardViewModel(repository: repository)
+        let viewModel = DashboardViewModel(
+            repository: repository,
+            orderPresentation: OrderListPresentation(
+                dateProvider: { now },
+                calendar: calendar
+            )
+        )
 
         viewModel.load()
 
-        XCTAssertEqual(viewModel.upcomingOrderCount, 2)
+        XCTAssertEqual(viewModel.upcomingOrders.map(\.id), [
+            "order-confirmed",
+            "order-ready",
+            "order-day-thirty"
+        ])
+        XCTAssertEqual(viewModel.upcomingOrderCount, 3)
         XCTAssertEqual(viewModel.nextUpcomingOrder?.id, "order-confirmed")
     }
 

@@ -51,6 +51,17 @@ struct OrderListPresentation {
             .sorted(by: Self.orderIsDueBefore)
     }
 
+    func upcomingOrders(from orders: [Order], throughDays: Int = 30) -> [Order] {
+        let today = calendar.startOfDay(for: dateProvider())
+        guard let end = calendar.date(byAdding: .day, value: throughDays + 1, to: today) else {
+            return []
+        }
+
+        return activeOrders(from: orders).filter { order in
+            order.dueAt >= today && order.dueAt < end
+        }
+    }
+
     func completedOrders(from orders: [Order]) -> [Order] {
         orders
             .filter(\.hasCompletedHistoryState)
