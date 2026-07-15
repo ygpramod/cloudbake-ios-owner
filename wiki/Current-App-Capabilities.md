@@ -152,7 +152,7 @@ The app currently supports:
 117. confirmed removal of designs and References from CloudBake while preserving the underlying
     iPhone Photos asset and any originating order photo.
 118. single-axis, compact Designs grids that preserve vertical scrolling through large My Designs
-    and Customer Reference collections without end-of-page oscillation.
+    and Reference collections without end-of-page oscillation.
 119. derived design usage counts and linked-order history, plus duplicate final-photo promotion
     prevention based on stable originating photo identity.
 120. `Use for New Order` from saved designs and References, opening the standard unsaved order
