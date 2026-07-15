@@ -189,6 +189,8 @@ The app currently supports:
 131. lean active inventory cards with centered Adjust and Use pills, right-swipe History,
     left-swipe Archive and Delete, and guarded permanent deletion from active or archived inventory
     that preserves linked stock, recipe, and order records.
+132. owner-requested cloud backups that always create a fresh snapshot, even with unchanged app
+    data, with size-aware cellular consent required separately for every manual attempt.
 
 ## Partially Prepared
 
