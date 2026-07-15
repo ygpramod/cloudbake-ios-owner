@@ -1,0 +1,45 @@
+# Slice RFC-0112: Inventory Card Swipe Actions And Guarded Delete
+
+## Status
+
+Implemented.
+
+## Goal
+
+Keep active inventory cards lean while preserving quick access to history, archive, and deletion.
+
+## Scope
+
+1. Keep only name and current quantity in the active inventory summary row.
+2. Center the existing Adjust (`+`) and Use (`−`) action pills below the summary.
+3. Reveal History by swiping an active card to the right.
+4. Reveal Archive and Delete by swiping an active card to the left.
+5. Confirm archive and permanent deletion before changing data.
+6. Offer permanent deletion from Archived Inventory as well.
+7. Delete only inventory items with no stock batches, transaction history, recipe ingredients,
+   order extra ingredients, or recorded order ingredient costs.
+8. When an item is in use, preserve it and direct the owner to archive it instead.
+
+## Out Of Scope
+
+1. Cascading deletion of recipes, orders, costs, or inventory history.
+2. Removing minimum quantity or expiry from inventory detail and edit screens.
+3. Changing stock adjustment, stock usage, or archive persistence semantics.
+
+## Acceptance
+
+1. Active cards do not show minimum quantity or expiry.
+2. A right swipe reveals History and opens the existing history screen.
+3. A left swipe reveals Archive and Delete.
+4. Archive remains reversible from Archived Inventory.
+5. Archived Inventory offers Delete with confirmation.
+6. An unused item is permanently removed.
+7. A referenced item is not deleted and the owner sees archive guidance.
+
+## Validation
+
+1. View-model tests cover successful and dependency-blocked deletion.
+2. GRDB integration tests prove unused deletion and history protection.
+3. Inventory acceptance tests cover both swipe directions and the existing archive/restore and
+   stock-history journeys.
+

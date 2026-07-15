@@ -116,6 +116,8 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0108: Manual Full App Restore
 - Slice RFC-0109: Inventory Default Expiry Days
 - Slice RFC-0110: On-Device Voice Inventory Drafts
+- Slice RFC-0111: Native Order Actions And Upcoming Window
+- Slice RFC-0112: Inventory Card Swipe Actions And Guarded Delete
 
 ## Base RFCs
 
