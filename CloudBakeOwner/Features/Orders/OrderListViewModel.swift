@@ -662,6 +662,19 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func requiresInventoryDeductionConfirmation(for order: Order, to status: OrderStatus) -> Bool {
+        guard order.status.recordsRecipeUsage(whenChangingTo: status),
+              order.recipeId != nil else {
+            return false
+        }
+
+        do {
+            return try repository.fetchOrderRecipeUsage(orderId: order.id) == nil
+        } catch {
+            return true
+        }
+    }
+
     func markOrderPaid(_ order: Order) -> Bool {
         switch OrderPaymentUpdate.markingPaid(order, updatedAt: dateProvider()) {
         case .success(let updatedOrder):

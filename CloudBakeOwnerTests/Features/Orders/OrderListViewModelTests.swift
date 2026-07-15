@@ -1116,6 +1116,34 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.selectedOrderIngredientCostIsActual)
     }
 
+    func testStatusConfirmationIsRequiredOnlyBeforeUnrecordedRecipeDeduction() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_140_000)
+        let order = makeOrder(
+            id: "order-confirmation",
+            recipeId: "recipe-cake",
+            status: .confirmed,
+            dueAt: timestamp
+        )
+        let viewModel = OrderListViewModel(repository: repository)
+
+        XCTAssertFalse(viewModel.requiresInventoryDeductionConfirmation(for: order, to: .inProgress))
+        XCTAssertTrue(viewModel.requiresInventoryDeductionConfirmation(for: order, to: .ready))
+
+        repository.usages = [
+            OrderRecipeUsage(
+                id: "usage-confirmation",
+                orderId: order.id,
+                recipeId: "recipe-cake",
+                usedAt: timestamp,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+
+        XCTAssertFalse(viewModel.requiresInventoryDeductionConfirmation(for: order, to: .completed))
+    }
+
     func testOrderDetailKeepsActualCostForArchivedInventoryItem() {
         let repository = FakeOrderRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_140_000)

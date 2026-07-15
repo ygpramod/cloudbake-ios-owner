@@ -544,7 +544,18 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(statusButton, timeout: transitionTimeout)
         let draftStatusOption = app.buttons["Draft"]
         XCTAssertTrue(draftStatusOption.waitForExistence(timeout: transitionTimeout))
-        XCTAssertEqual(draftStatusOption.value as? String, "Selected")
+        tapWhenReady(app.buttons["Confirmed"], timeout: transitionTimeout)
+        XCTAssertFalse(app.buttons["orders.row.confirmStatus"].exists)
+
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Vanilla Birthday"
+            )
+        ).firstMatch
+        tapWhenReady(orderRow, timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["orders.detail.status"].label.contains("Confirmed"))
     }
 
     func testOrderCanBeOpenedFromListAndViewed() throws {

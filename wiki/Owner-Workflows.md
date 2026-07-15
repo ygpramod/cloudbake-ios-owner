@@ -536,8 +536,9 @@ CloudBake keeps separately entered priced purchases as separate batches, even wh
 and amount match. This preserves the purchase quantity and unit cost used by order costing.
 
 Order rows also expose visible action chips with compact native menus for quick status changes and
-payment recording. These
-quick actions use centered popups and ask for confirmation before saving. Pricing suggestions,
+payment recording. Ordinary status and Mark Paid choices apply directly. Partial-payment input and
+status transitions that deduct recipe inventory retain explicit centered confirmation. Pricing
+suggestions,
 discounts, refunds, and online payment processing remain future work.
 
 Future order slices should add reminder snooze, configurable reminders, partial recipe usage,
