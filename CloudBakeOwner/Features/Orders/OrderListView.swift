@@ -9,9 +9,7 @@ struct OrderListView: View {
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
     @State private var orderScope: OrderScope = .active
-    @State private var orderSelectingStatus: Order?
     @State private var pendingStatusChange: OrderStatusChangeRequest?
-    @State private var orderReceivingPayment: Order?
     @State private var orderAddingPartialPayment: Order?
     @State private var partialPaymentAmount = ""
     @State private var canOpenWhatsApp = false
@@ -75,24 +73,6 @@ struct OrderListView: View {
         .contentShape(Rectangle())
         .simultaneousGesture(orderScopeSwipeGesture)
         .centeredOrderPopup(
-            isPresented: orderSelectingStatus != nil,
-            title: "Change Status",
-            onCancel: { orderSelectingStatus = nil }
-        ) {
-            if let order = orderSelectingStatus {
-                ForEach(OrderStatus.allCases, id: \.self) { status in
-                    centeredPopupSelectionButton(
-                        status.displayName,
-                        isSelected: status == order.status
-                    ) {
-                        pendingStatusChange = OrderStatusChangeRequest(order: order, status: status)
-                        orderSelectingStatus = nil
-                    }
-                    .accessibilityIdentifier("orders.row.status.\(status.rawValue).\(order.id)")
-                }
-            }
-        }
-        .centeredOrderPopup(
             isPresented: pendingStatusChange != nil,
             title: "Confirm Status Change",
             onCancel: { pendingStatusChange = nil }
@@ -103,26 +83,6 @@ struct OrderListView: View {
                     pendingStatusChange = nil
                 }
                 .accessibilityIdentifier("orders.row.confirmStatus")
-            }
-        }
-        .centeredOrderPopup(
-            isPresented: orderReceivingPayment != nil,
-            title: "Record Payment",
-            onCancel: { orderReceivingPayment = nil }
-        ) {
-            if let order = orderReceivingPayment {
-                centeredPopupButton("Mark Paid") {
-                    _ = viewModel.markOrderPaid(order)
-                    orderReceivingPayment = nil
-                }
-                .accessibilityIdentifier("orders.row.payment.paid.\(order.id)")
-
-                centeredPopupButton("Add Partial Payment") {
-                    partialPaymentAmount = ""
-                    orderAddingPartialPayment = order
-                    orderReceivingPayment = nil
-                }
-                .accessibilityIdentifier("orders.row.payment.partial.\(order.id)")
             }
         }
         .centeredOrderPopup(
@@ -256,11 +216,15 @@ struct OrderListView: View {
             order: order,
             dueDateDisplay: dueDateDisplay,
             isOverdue: viewModel.isOverdue(order),
-            onChangeStatus: {
-                orderSelectingStatus = order
+            onChangeStatus: { status in
+                pendingStatusChange = OrderStatusChangeRequest(order: order, status: status)
             },
-            onReceivePayment: {
-                orderReceivingPayment = order
+            onMarkPaid: {
+                _ = viewModel.markOrderPaid(order)
+            },
+            onAddPartialPayment: {
+                partialPaymentAmount = ""
+                orderAddingPartialPayment = order
             },
             onSendMessage: messageAction(for: order),
             action: {

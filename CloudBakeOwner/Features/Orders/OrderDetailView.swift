@@ -7,11 +7,9 @@ struct OrderDetailView: View {
     @Binding var isPresented: Bool
     let showsDoneButton: Bool
     @State private var isEditingOrder = false
-    @State private var isSelectingStatus = false
     @State private var statusPendingInventoryDeduction: OrderStatus?
     @State private var statusChangeErrorMessage: String?
     @State private var isConfirmingEditedOrderInventoryDeduction = false
-    @State private var isSelectingPaymentStatus = false
     @State private var isAddingPartialPayment = false
     @State private var selectedCustomerReferencePhotoItem: PhotosPickerItem?
     @State private var selectedFinalCakePhotoItem: PhotosPickerItem?
@@ -125,8 +123,19 @@ struct OrderDetailView: View {
                         CloudBakeDetailRow("Status") {
                             HStack(spacing: 8) {
                                 Text(order.status.displayName)
-                                Button {
-                                    isSelectingStatus = true
+                                Menu {
+                                    ForEach(OrderStatus.allCases, id: \.self) { status in
+                                        Button {
+                                            changeStatus(status, for: order)
+                                        } label: {
+                                            if status == order.status {
+                                                Label(status.displayName, systemImage: "checkmark")
+                                            } else {
+                                                Text(status.displayName)
+                                            }
+                                        }
+                                        .accessibilityIdentifier("orders.detail.status.\(status.rawValue)")
+                                    }
                                 } label: {
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                         .imageScale(.small)
@@ -309,24 +318,6 @@ struct OrderDetailView: View {
             }
         }
         .centeredOrderPopup(
-            isPresented: isSelectingStatus,
-            title: "Change Status",
-            onCancel: { isSelectingStatus = false }
-        ) {
-            if let order = viewModel.selectedOrder {
-                ForEach(OrderStatus.allCases, id: \.self) { status in
-                    centeredPopupSelectionButton(
-                        status.displayName,
-                        isSelected: status == order.status
-                    ) {
-                        changeStatus(status, for: order)
-                        isSelectingStatus = false
-                    }
-                    .accessibilityIdentifier("orders.detail.status.\(status.rawValue)")
-                }
-            }
-        }
-        .centeredOrderPopup(
             isPresented: statusPendingInventoryDeduction != nil,
             title: "Deduct Inventory?",
             onCancel: { statusPendingInventoryDeduction = nil }
@@ -362,24 +353,6 @@ struct OrderDetailView: View {
                 }
                 .accessibilityIdentifier("orders.detail.statusChangeError.dismiss")
             }
-        }
-        .centeredOrderPopup(
-            isPresented: isSelectingPaymentStatus,
-            title: "Record Payment",
-            onCancel: { isSelectingPaymentStatus = false }
-        ) {
-            centeredPopupButton("Mark Paid") {
-                _ = viewModel.markSelectedOrderPaid()
-                isSelectingPaymentStatus = false
-            }
-            .accessibilityIdentifier("orders.detail.payment.paid")
-
-            centeredPopupButton("Add Partial Payment") {
-                partialPaymentAmount = ""
-                isAddingPartialPayment = true
-                isSelectingPaymentStatus = false
-            }
-            .accessibilityIdentifier("orders.detail.payment.partial")
         }
         .centeredOrderPopup(
             isPresented: isAddingPartialPayment,
@@ -716,8 +689,17 @@ struct OrderDetailView: View {
                         Text(order.paymentStatus)
                             .foregroundStyle(.green)
                             .accessibilityIdentifier("orders.detail.paymentStatus")
-                        Button {
-                            isSelectingPaymentStatus = true
+                        Menu {
+                            Button("Mark Paid") {
+                                _ = viewModel.markSelectedOrderPaid()
+                            }
+                            .accessibilityIdentifier("orders.detail.payment.paid")
+
+                            Button("Add Partial Payment") {
+                                partialPaymentAmount = ""
+                                isAddingPartialPayment = true
+                            }
+                            .accessibilityIdentifier("orders.detail.payment.partial")
                         } label: {
                             Image(systemName: "banknote")
                                 .imageScale(.small)

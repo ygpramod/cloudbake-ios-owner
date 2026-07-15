@@ -3,8 +3,9 @@ import SwiftUI
 struct OrderRow: View {
     let order: Order
     let dueDateDisplay: DueDateDisplay
-    let onChangeStatus: () -> Void
-    let onReceivePayment: () -> Void
+    let onChangeStatus: (OrderStatus) -> Void
+    let onMarkPaid: () -> Void
+    let onAddPartialPayment: () -> Void
     let onSendMessage: (() -> Void)?
     let action: () -> Void
     let isOverdue: Bool
@@ -13,8 +14,9 @@ struct OrderRow: View {
         order: Order,
         dueDateDisplay: DueDateDisplay = .dateAndTime,
         isOverdue: Bool = false,
-        onChangeStatus: @escaping () -> Void,
-        onReceivePayment: @escaping () -> Void,
+        onChangeStatus: @escaping (OrderStatus) -> Void,
+        onMarkPaid: @escaping () -> Void,
+        onAddPartialPayment: @escaping () -> Void,
         onSendMessage: (() -> Void)? = nil,
         action: @escaping () -> Void
     ) {
@@ -22,7 +24,8 @@ struct OrderRow: View {
         self.dueDateDisplay = dueDateDisplay
         self.isOverdue = isOverdue
         self.onChangeStatus = onChangeStatus
-        self.onReceivePayment = onReceivePayment
+        self.onMarkPaid = onMarkPaid
+        self.onAddPartialPayment = onAddPartialPayment
         self.onSendMessage = onSendMessage
         self.action = action
     }
@@ -91,23 +94,39 @@ struct OrderRow: View {
 
             HStack(spacing: 8) {
                 if order.hasActiveReminderState {
-                    CloudBakeAdaptiveActionButton(
+                    CloudBakeAdaptiveActionMenu(
                         title: "Status",
                         systemImage: "arrow.triangle.2.circlepath",
                         tint: .cloudBakePurple,
-                        accessibilityIdentifier: "orders.item.status.\(order.id)",
-                        action: onChangeStatus
-                    )
+                        accessibilityIdentifier: "orders.item.status.\(order.id)"
+                    ) {
+                        ForEach(OrderStatus.allCases, id: \.self) { status in
+                            Button {
+                                onChangeStatus(status)
+                            } label: {
+                                if status == order.status {
+                                    Label(status.displayName, systemImage: "checkmark")
+                                } else {
+                                    Text(status.displayName)
+                                }
+                            }
+                            .accessibilityIdentifier("orders.row.status.\(status.rawValue).\(order.id)")
+                        }
+                    }
 
                 }
 
-                CloudBakeAdaptiveActionButton(
+                CloudBakeAdaptiveActionMenu(
                     title: "Payment",
                     systemImage: "banknote",
                     tint: .cloudBakeMint,
-                    accessibilityIdentifier: "orders.item.payment.\(order.id)",
-                    action: onReceivePayment
-                )
+                    accessibilityIdentifier: "orders.item.payment.\(order.id)"
+                ) {
+                    Button("Mark Paid", action: onMarkPaid)
+                        .accessibilityIdentifier("orders.row.payment.paid.\(order.id)")
+                    Button("Add Partial Payment", action: onAddPartialPayment)
+                        .accessibilityIdentifier("orders.row.payment.partial.\(order.id)")
+                }
 
                 if let onSendMessage {
                     CloudBakeAdaptiveActionButton(
