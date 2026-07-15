@@ -86,6 +86,10 @@ Tap an inventory row to view the item.
 The active inventory list prioritizes items that need attention. Items with expired stock appear
 first, then items below minimum quantity, then items expiring soon, followed by normal stock.
 
+Each active card keeps the summary lean with the item name and current quantity. Use the centered
+`+` and `−` pills to adjust or use stock. Swipe right to reveal History. Swipe left to reveal
+Archive and Delete.
+
 Use inventory search when the list grows. Search matches inventory item names and stored units while
 preserving the same attention-first ordering inside the search results.
 
@@ -285,6 +289,10 @@ Examples:
 3. an old packaging size is no longer used.
 
 CloudBake asks for confirmation before archiving. Archived items can be restored.
+
+Unused inventory can also be deleted permanently from an active card or Archived Inventory.
+CloudBake blocks deletion when the item is linked to stock history, a recipe, or an order, and asks
+the owner to archive it instead so operational records remain intact.
 
 ## Dashboard Workflow
 

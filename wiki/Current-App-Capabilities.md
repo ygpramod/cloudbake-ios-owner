@@ -186,6 +186,9 @@ The app currently supports:
     purchase-bill drafts, including inventory CSV import and export.
 130. on-device voice inventory transcription into editable multi-item drafts, with saved-name and
     alias matching, owner-confirmed unknown-item mapping or creation, and no server fallback.
+131. lean active inventory cards with centered Adjust and Use pills, right-swipe History,
+    left-swipe Archive and Delete, and guarded permanent deletion from active or archived inventory
+    that preserves linked stock, recipe, and order records.
 
 ## Partially Prepared
 
