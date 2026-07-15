@@ -17,7 +17,8 @@ Implemented
 5. Keep the originating order photo intact and do not link the new library Reference back to the
    order automatically.
 6. Let the order design picker search and link explicit References as normal `CakeDesign` records.
-7. Retire previously derived reference-library records while preserving their order photos.
+7. Preserve any existing customer-reference design metadata and order links; the prior derived UI
+   did not materialize a separate record that requires destructive cleanup.
 
 ## Persistence
 
@@ -28,11 +29,9 @@ or changing the order's linked design.
 
 ## Test Strategy
 
-1. Migration coverage proves legacy reference-library records are removed without deleting order
-   photos.
-2. View-model coverage proves raw order photos do not appear automatically, imports normalize tags,
+1. View-model coverage proves raw order photos do not appear automatically, imports normalize tags,
    and deleting a Reference preserves its originating order photo.
-3. Order coverage proves explicit References are searchable and adding an order photo creates the
+2. Order coverage proves explicit References are searchable and adding an order photo creates the
    correct provenance without relinking the order.
 
 ## Documentation Decision

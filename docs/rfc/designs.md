@@ -62,7 +62,7 @@ The experience should prioritize photographs over text and remain practical for 
 
 - The app must provide one Designs screen with two clearly separated sources:
   - My Designs,
-  - Customer References.
+  - References.
 - The Designs screen must show the item count for each source.
 - The screen must provide search across the saved design library.
 - Search must match name and normalized tags; colour, theme, occasion, category, and flavour are
@@ -86,8 +86,7 @@ The experience should prioritize photographs over text and remain practical for 
 
 ## Information Architecture
 
-The Designs screen title is `Designs`. Its default presentation is `Inspiration + My Designs` and
-contains three source sections:
+The Designs screen title is `Designs` and contains two source sections:
 
 1. `My Designs (count)`
 2. `References (count)`
@@ -392,7 +391,7 @@ creating a second, disconnected photo system.
 
 The iPhone implementation is recorded in Slice RFCs 0079 through 0093 and 0114 under
 `docs/rfc/slices/`:
-provenance, My Designs, Photos references, Customer References, search,
+provenance, My Designs, Photos references, explicit References, search,
 tags/filters/favourites, removal, usage, new-order drafts, zoom/navigation/performance,
 consumer-safe projection, and direct owner import.
 
