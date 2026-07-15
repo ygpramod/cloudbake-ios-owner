@@ -115,6 +115,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(reference.waitForExistence(timeout: 10))
         scrollToHittable(reference, in: app, timeout: 10)
         tapWhenReady(reference)
+        XCTAssertTrue(app.staticTexts["References"].waitForExistence(timeout: 5))
         let useForNewOrder = app.buttons["designs.preview.useForNewOrder"]
         tapWhenReady(useForNewOrder, timeout: 15)
 
@@ -236,6 +237,25 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.textFields["designs.ownerDesign.name"].exists)
         XCTAssertTrue(app.textFields["designs.ownerDesign.tags"].exists)
         XCTAssertTrue(app.buttons["designs.ownerDesign.save"].exists)
+    }
+
+    func testReferenceImportRequiresAPhotoWithVisibleFeedback() throws {
+        let app = makeApp(initialDestination: "designs")
+        app.launch()
+
+        let addReference = app.buttons["designs.references.add"]
+        scrollToHittable(addReference, in: app, timeout: 10)
+        tapWhenReady(addReference)
+        XCTAssertTrue(app.navigationBars["Import Reference"].waitForExistence(timeout: 5))
+
+        tapWhenReady(app.buttons["designs.referenceImport.save"])
+        XCTAssertTrue(
+            app.staticTexts["designs.referenceImport.error"].waitForExistence(timeout: 5)
+        )
+        XCTAssertEqual(
+            app.staticTexts["designs.referenceImport.error"].label,
+            "Reference photo is required."
+        )
     }
 
     func testSettingsShowsInventoryCSVActions() throws {
