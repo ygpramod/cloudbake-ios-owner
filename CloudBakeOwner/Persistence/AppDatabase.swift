@@ -17,6 +17,7 @@ final class AppDatabase {
             try database.seedOrderReminderFixtureIfRequested()
             try database.seedOrderStatusFailureFixtureIfRequested()
             try database.seedInventoryFixtureIfRequested()
+            try database.seedLongInventoryFixtureIfRequested()
             try database.seedExpiredInventoryFixtureIfRequested()
             try database.seedProjectedDemandFixtureIfRequested()
             try database.seedCakeDesignFixtureIfRequested()
@@ -211,6 +212,28 @@ final class AppDatabase {
                 updatedAt: timestamp
             )
         )
+    }
+
+    private func seedLongInventoryFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_LONG_INVENTORY_FIXTURE"] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        for index in 1...8 {
+            try repository.save(
+                InventoryItem(
+                    id: "inventory-ui-scroll-\(index)",
+                    name: "Scroll item \(index.formatted(.number.precision(.integerLength(2))))",
+                    unit: .each,
+                    currentQuantity: Double(index),
+                    minimumQuantity: 0,
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            )
+        }
     }
 
     private func seedExpiredInventoryFixtureIfRequested() throws {

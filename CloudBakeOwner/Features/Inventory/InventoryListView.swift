@@ -304,6 +304,12 @@ struct InventoryListView: View {
 }
 
 private struct InventorySwipeActionCard<Content: View>: View {
+    private enum Position: Hashable {
+        case history
+        case content
+        case destructiveActions
+    }
+
     private static var actionWidth: CGFloat { 76 }
 
     let onHistory: () -> Void
@@ -312,15 +318,10 @@ private struct InventorySwipeActionCard<Content: View>: View {
     let itemID: String
     @ViewBuilder let content: Content
 
-    @State private var restingOffset: CGFloat = 0
-    @State private var dragOffset: CGFloat = 0
-
-    private var offset: CGFloat {
-        min(Self.actionWidth, max(-(Self.actionWidth * 2), restingOffset + dragOffset))
-    }
+    @State private var position: Position? = .content
 
     var body: some View {
-        ZStack {
+        ScrollView(.horizontal) {
             HStack(spacing: 0) {
                 swipeButton(
                     title: "History",
@@ -329,49 +330,36 @@ private struct InventorySwipeActionCard<Content: View>: View {
                     accessibilityIdentifier: "inventory.item.history.\(itemID)",
                     action: onHistory
                 )
+                .id(Position.history)
 
-                Spacer(minLength: 0)
+                content
+                    .containerRelativeFrame(.horizontal)
+                    .id(Position.content)
 
-                swipeButton(
-                    title: "Archive",
-                    systemImage: "archivebox",
-                    color: .cloudBakeOrange,
-                    accessibilityIdentifier: "inventory.item.archive.\(itemID)",
-                    action: onArchive
-                )
-                swipeButton(
-                    title: "Delete",
-                    systemImage: "trash",
-                    color: .red,
-                    accessibilityIdentifier: "inventory.item.delete.\(itemID)",
-                    action: onDelete
-                )
+                HStack(spacing: 0) {
+                    swipeButton(
+                        title: "Archive",
+                        systemImage: "archivebox",
+                        color: .cloudBakeOrange,
+                        accessibilityIdentifier: "inventory.item.archive.\(itemID)",
+                        action: onArchive
+                    )
+                    swipeButton(
+                        title: "Delete",
+                        systemImage: "trash",
+                        color: .red,
+                        accessibilityIdentifier: "inventory.item.delete.\(itemID)",
+                        action: onDelete
+                    )
+                }
+                .id(Position.destructiveActions)
             }
-
-            content
-                .offset(x: offset)
+            .scrollTargetLayout()
         }
+        .scrollIndicators(.hidden)
+        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+        .scrollPosition(id: $position, anchor: .leading)
         .clipShape(RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.cardRadius, style: .continuous))
-        .highPriorityGesture(
-            DragGesture(minimumDistance: 18)
-                .onChanged { value in
-                    guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                    dragOffset = value.translation.width
-                }
-                .onEnded { value in
-                    defer { dragOffset = 0 }
-                    guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                    withAnimation(.snappy(duration: 0.22)) {
-                        if value.translation.width > 48 {
-                            restingOffset = Self.actionWidth
-                        } else if value.translation.width < -48 {
-                            restingOffset = -(Self.actionWidth * 2)
-                        } else {
-                            restingOffset = 0
-                        }
-                    }
-                }
-        )
     }
 
     private func swipeButton(
@@ -382,7 +370,7 @@ private struct InventorySwipeActionCard<Content: View>: View {
         action: @escaping () -> Void
     ) -> some View {
         Button {
-            withAnimation(.snappy(duration: 0.22)) { restingOffset = 0 }
+            withAnimation(.snappy(duration: 0.22)) { position = .content }
             action()
         } label: {
             Label(title, systemImage: systemImage)

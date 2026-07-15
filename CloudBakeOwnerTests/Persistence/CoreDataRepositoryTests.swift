@@ -2236,6 +2236,116 @@ final class CoreDataRepositoryTests: XCTestCase {
         }
         XCTAssertEqual(try repository.fetchInventoryItem(id: item.id), item)
     }
+
+    func testDeletingInventoryItemWithOperationalDependenciesIsRejected() throws {
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let cases: [(String, (GRDBCoreDataRepository, InventoryItem) throws -> Void)] = [
+            (
+                "stock batch",
+                { repository, item in
+                    try repository.save(
+                        InventoryStockBatch(
+                            id: "batch-dependent",
+                            inventoryItemId: item.id,
+                            remainingQuantity: 0,
+                            expiresAt: nil,
+                            createdAt: timestamp,
+                            updatedAt: timestamp
+                        )
+                    )
+                }
+            ),
+            (
+                "recipe ingredient",
+                { repository, item in
+                    let recipe = Recipe(
+                        id: "recipe-dependent",
+                        name: "Dependent recipe",
+                        notes: nil,
+                        createdAt: timestamp,
+                        updatedAt: timestamp
+                    )
+                    let component = RecipeComponent(
+                        id: "component-dependent",
+                        recipeId: recipe.id,
+                        name: "Cake",
+                        sortOrder: 0,
+                        createdAt: timestamp,
+                        updatedAt: timestamp
+                    )
+                    try repository.save(recipe)
+                    try repository.save(component)
+                    try repository.save(
+                        RecipeIngredient(
+                            id: "ingredient-dependent",
+                            componentId: component.id,
+                            inventoryItemId: item.id,
+                            quantity: 10,
+                            unit: .gram,
+                            note: nil,
+                            createdAt: timestamp,
+                            updatedAt: timestamp
+                        )
+                    )
+                }
+            ),
+            (
+                "order extra ingredient",
+                { repository, item in
+                    let order = Order(
+                        id: "order-dependent",
+                        customerId: nil,
+                        cakeDesignId: nil,
+                        title: "Dependent order",
+                        customerName: "Amy",
+                        status: .draft,
+                        dueAt: timestamp,
+                        fulfillmentType: .pickup,
+                        deliveryAddress: nil,
+                        cakeNotes: nil,
+                        createdAt: timestamp,
+                        updatedAt: timestamp
+                    )
+                    try repository.save(order)
+                    try repository.save(
+                        OrderExtraIngredient(
+                            id: "extra-dependent",
+                            orderId: order.id,
+                            inventoryItemId: item.id,
+                            quantity: 10,
+                            unit: .gram,
+                            note: nil,
+                            createdAt: timestamp,
+                            updatedAt: timestamp
+                        )
+                    )
+                }
+            )
+        ]
+
+        for (dependencyName, setUpDependency) in cases {
+            let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+            let item = InventoryItem(
+                id: "inventory-\(dependencyName)",
+                name: "Dependent inventory",
+                unit: .gram,
+                currentQuantity: 0,
+                minimumQuantity: 0,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+            try repository.save(item)
+            try setUpDependency(repository, item)
+
+            XCTAssertThrowsError(
+                try repository.deleteInventoryItem(id: item.id),
+                "Expected \(dependencyName) to prevent deletion"
+            ) { error in
+                XCTAssertEqual(error as? InventoryItemDeletionError, .inUse)
+            }
+            XCTAssertEqual(try repository.fetchInventoryItem(id: item.id), item)
+        }
+    }
 }
 
 private struct TestTimestamps {
