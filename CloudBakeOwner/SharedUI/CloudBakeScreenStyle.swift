@@ -526,6 +526,23 @@ struct CloudBakeRowIcon: View {
     }
 }
 
+struct CloudBakeCompactRowIcon: View {
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(.white)
+            .frame(width: 50, height: 50)
+            .background(
+                RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.iconRadius, style: .continuous)
+                    .fill(tint.gradient)
+            )
+            .accessibilityHidden(true)
+    }
+}
+
 struct CloudBakeCardDivider: View {
     var body: some View {
         Divider()
