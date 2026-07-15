@@ -136,27 +136,27 @@ The app currently supports:
 110. Photos-owned design images: CloudBake saves newly promoted designs to the iPhone Photos
     library and stores only the returned local asset identifier, while retaining read-only legacy
     reference compatibility.
-111. a private Customer References collection in Designs, derived from order reference photos with
-    originating customer and order context and without duplicating photo records.
+111. a private References collection in Designs containing only photos the owner imports or
+    explicitly adds from an order customer-reference photo, without automatically mirroring order
+    uploads.
 112. Photos-owned order images: new customer-reference and final-cake photos are saved to Photos,
     and order metadata stores only the returned asset identifier.
 113. retired Internet Inspiration records remain private and excluded from the current owner UI,
     order selection, and future consumer projections.
 114. photo-only Designs thumbnails, with names and metadata available through accessibility and the
     centered, shared-style detail screen.
-115. local cross-source Designs search with tokenized AND matching across My Designs and Customer
+115. local cross-source Designs search with tokenized AND matching across My Designs and explicit
     References.
 116. normalized design tags, represented-tag filter chips, and a private owner favourite state
     across saved designs and customer references.
-117. confirmed removal of designs and customer references from CloudBake while preserving the
-    underlying iPhone Photos asset and safely unlinking affected order metadata.
+117. confirmed removal of designs and References from CloudBake while preserving the underlying
+    iPhone Photos asset and any originating order photo.
 118. single-axis, compact Designs grids that preserve vertical scrolling through large My Designs
     and Customer Reference collections without end-of-page oscillation.
 119. derived design usage counts and linked-order history, plus duplicate final-photo promotion
     prevention based on stable originating photo identity.
-120. `Use for New Order` from saved designs and customer references, opening the standard unsaved
-    order draft with provenance preserved through a validated design or originating order-photo
-    link and shown explicitly on saved order detail.
+120. `Use for New Order` from saved designs and References, opening the standard unsaved order
+    draft with a validated design link shown explicitly on saved order detail.
 121. design-detail pinch zoom with accessible zoom controls, horizontal movement through adjacent
     filtered results, bounded thumbnail caching, and representative local-search performance
     coverage.
@@ -165,7 +165,7 @@ The app currently supports:
 123. direct My Designs import from the iPhone Photos library with required name, optional notes and
     normalized tags, storing only the Photos asset reference and private owner metadata.
 124. a ten-tag, frequency-ranked Designs ribbon and a photo-first searchable Designs grid for
-    linking owner-made designs or customer references to order drafts, while retaining historical
+    linking owner-made designs or explicit References to order drafts, while retaining historical
     labels for retired Internet Inspiration links.
 125. owner-selected in-app branding through a Settings photo picker, with app-managed logo storage,
     immediate dashboard refresh, and restoration of the bundled default logo.

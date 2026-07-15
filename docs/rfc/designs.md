@@ -90,10 +90,10 @@ The Designs screen title is `Designs`. Its default presentation is `Inspiration 
 contains three source sections:
 
 1. `My Designs (count)`
-2. `Customer References (count)`
+2. `References (count)`
 
 Each section shows a compact vertical lazy grid. One vertical scroll axis is used for the complete
-screen so large Customer Reference collections never trap scrolling. The
+screen so large Reference collections never trap scrolling. The
 screen loads bounded thumbnails and does not decode hundreds of full-resolution images.
 
 Search and filters apply across both visible sources by default.
@@ -112,21 +112,23 @@ Only owner-made designs may be candidates for a future public portfolio. Promoti
 should preserve the relationship to the final cake photo and order instead of duplicating the
 image unnecessarily.
 
-### Customer References
+### References
 
-Customer References contains images supplied by customers for an order. The collection is derived
-from order photos whose kind is `customerReference`.
+References contains private inspiration images deliberately saved by the owner. The owner can
+import a tagged image from Photos or explicitly add a customer-reference order photo through
+`Add to Design References`. Order photos do not appear in the collection automatically.
 
-Customer reference images:
+Reference images:
 
 - remain private owner data,
-- retain their relationship to the originating order and customer when available,
+- retain originating order-photo provenance when explicitly added from an order,
 - must not be labelled as owner-made work,
 - must not be published to future consumer surfaces by default,
 - may be reused as a reference for a new order without altering the original order.
 
-Deleting an order reference photo must remove it from this collection. Deleting a customer record
-must not silently delete an order or its historical reference photos.
+Deleting a Reference removes only its library metadata and does not delete the originating order
+photo or the Photos asset. Deleting an order photo does not silently delete an independently saved
+Reference.
 
 ### Retired Internet Inspiration Records
 
@@ -388,7 +390,8 @@ creating a second, disconnected photo system.
 
 ## Implementation Slices
 
-The iPhone implementation is recorded in Slice RFCs 0079 through 0091 under `docs/rfc/slices/`:
+The iPhone implementation is recorded in Slice RFCs 0079 through 0093 and 0114 under
+`docs/rfc/slices/`:
 provenance, My Designs, Photos references, Customer References, search,
 tags/filters/favourites, removal, usage, new-order drafts, zoom/navigation/performance,
 consumer-safe projection, and direct owner import.
@@ -398,7 +401,7 @@ iPad Designs layout was deliberately not implemented because the app target is i
 ## Decisions
 
 - The library is separated by image provenance.
-- The owner experience uses My Designs and Customer References.
+- The owner experience uses My Designs and explicit References.
 - Search is local and metadata-based in the first implementation.
 - Search covers name and normalized tags representing colour, theme, occasion, category, flavour,
   and owner labels.
