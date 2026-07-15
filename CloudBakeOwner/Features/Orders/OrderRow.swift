@@ -31,15 +31,15 @@ struct OrderRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             Button(action: action) {
-                HStack(spacing: 18) {
-                    CloudBakeRowIcon(systemImage: orderIconName, tint: .cloudBakePink)
+                HStack(spacing: CloudBakeTheme.Spacing.rowContent) {
+                    CloudBakeCompactRowIcon(systemImage: orderIconName, tint: .cloudBakePink)
 
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 8) {
                             Text(order.title)
-                                .font(.title3.weight(.semibold))
+                                .font(CloudBakeTheme.Typography.rowTitle)
                                 .foregroundStyle(.primary)
                                 .lineLimit(2)
 
@@ -63,7 +63,7 @@ struct OrderRow: View {
                         }
 
                         Text(order.customerName)
-                            .font(.subheadline)
+                            .font(CloudBakeTheme.Typography.rowDetail)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
 
@@ -75,15 +75,15 @@ struct OrderRow: View {
                             Text("·")
                             Text(order.fulfillmentType.displayName)
                         }
-                        .font(.footnote.weight(.medium))
+                        .font(CloudBakeTheme.Typography.rowDetail.weight(.medium))
                         .foregroundStyle(Color.cloudBakePink)
                     }
 
                     Spacer(minLength: 8)
 
                     Image(systemName: "chevron.right")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(Color.cloudBakePink.opacity(0.72))
+                        .font(CloudBakeTheme.Typography.rowTitle)
+                        .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -139,7 +139,8 @@ struct OrderRow: View {
                 }
             }
         }
-        .padding(20)
+        .padding(.horizontal, CloudBakeTheme.Spacing.cardPadding)
+        .padding(.vertical, 14)
     }
 
     private var orderDateText: String {
