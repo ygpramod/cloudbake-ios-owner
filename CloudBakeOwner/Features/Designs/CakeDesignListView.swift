@@ -171,7 +171,10 @@ struct CakeDesignListView: View {
                         Text("References (\(viewModel.visibleReferences.count))")
                             .font(CloudBakeTheme.Typography.sectionTitle)
                         Spacer()
-                        Button { isAddingReference = true } label: {
+                        Button {
+                            viewModel.errorMessage = nil
+                            isAddingReference = true
+                        } label: {
                             Label("Import reference photo", systemImage: "plus")
                                 .labelStyle(.iconOnly)
                                 .frame(minWidth: 44, minHeight: 36)
@@ -356,6 +359,13 @@ private struct ReferenceImportView: View {
                     TextField("Tags, comma-separated (optional)", text: $tags)
                         .accessibilityIdentifier("designs.referenceImport.tags")
                 }
+                if let errorMessage = viewModel.errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                            .accessibilityIdentifier("designs.referenceImport.error")
+                    }
+                }
             }
             .cloudBakeFormScreenStyle()
             .navigationTitle("Import Reference")
@@ -443,7 +453,7 @@ private struct CakeDesignPreviewView: View {
 
                     CloudBakeDetailDivider()
                     CloudBakeDetailRow("Collection") {
-                        Text("My Designs")
+                        Text(CakeDesignPresentation.collectionName(for: design))
                     }
 
                     if let sourceName = design.sourceName {
@@ -534,7 +544,7 @@ private struct CakeDesignPreviewView: View {
                 Button(role: .destructive) { isConfirmingDelete = true } label: {
                     Image(systemName: "trash")
                 }
-                .accessibilityLabel("Remove Design")
+                .accessibilityLabel("Remove \(CakeDesignPresentation.itemName(for: design))")
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
@@ -562,13 +572,13 @@ private struct CakeDesignPreviewView: View {
         }
         .cloudBakeCenteredPopup(
             isPresented: isConfirmingDelete,
-            title: "Remove Design?",
-            subtitle: "Remove this design from CloudBake. The image remains in Photos.",
+            title: "Remove \(CakeDesignPresentation.itemName(for: design))?",
+            subtitle: "Remove this \(CakeDesignPresentation.itemName(for: design).lowercased()) from CloudBake. The image remains in Photos.",
             systemImage: "trash",
             cancelAccessibilityIdentifier: "designs.delete.cancel",
             onCancel: { isConfirmingDelete = false }
         ) {
-            centeredPopupButton("Remove Design", role: .destructive) {
+            centeredPopupButton("Remove \(CakeDesignPresentation.itemName(for: design))", role: .destructive) {
                 if onDelete(design) { dismiss() }
             }
             .accessibilityIdentifier("designs.delete.confirm")

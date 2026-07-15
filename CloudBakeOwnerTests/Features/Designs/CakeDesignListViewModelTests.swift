@@ -112,6 +112,28 @@ final class CakeDesignListViewModelTests: XCTestCase {
         )
     }
 
+    func testReferencePresentationNeverLabelsCustomerWorkAsMyDesigns() {
+        let reference = makeDesign(
+            id: "reference-presentation",
+            name: "Customer sketch",
+            photoReference: "photos://reference-presentation",
+            sourceKind: .customerReference
+        )
+        let photoLibrary = FakeDesignPhotoLibrary()
+        photoLibrary.savedReference = reference.photoReference ?? ""
+        let viewModel = CakeDesignListViewModel(
+            repository: FakeCakeDesignRepository(),
+            designPhotoLibrary: photoLibrary
+        )
+
+        XCTAssertEqual(CakeDesignPresentation.collectionName(for: reference), "References")
+        XCTAssertEqual(CakeDesignPresentation.itemName(for: reference), "Reference")
+        XCTAssertEqual(
+            viewModel.accessibilityLabel(for: reference),
+            "Customer sketch, reference photo"
+        )
+    }
+
     func testAccessibilityLabelCallsOutDeletedPhotoFile() {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

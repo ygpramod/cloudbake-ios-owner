@@ -55,6 +55,16 @@ enum DesignTagRanking {
     }
 }
 
+enum CakeDesignPresentation {
+    static func collectionName(for design: CakeDesign) -> String {
+        design.sourceKind == .customerReference ? "References" : "My Designs"
+    }
+
+    static func itemName(for design: CakeDesign) -> String {
+        design.sourceKind == .customerReference ? "Reference" : "Design"
+    }
+}
+
 @MainActor
 final class CakeDesignListViewModel: ObservableObject {
     @Published private(set) var designs: [CakeDesign] = []
@@ -418,13 +428,14 @@ final class CakeDesignListViewModel: ObservableObject {
 
     func accessibilityLabel(for design: CakeDesign) -> String {
         let favoriteSuffix = design.isFavorite ? ", favorite" : ""
+        let itemName = CakeDesignPresentation.itemName(for: design).lowercased()
         if design.photoReference == nil {
-            return "\(design.name), design without a linked photo\(favoriteSuffix)"
+            return "\(design.name), \(itemName) without a linked photo\(favoriteSuffix)"
         }
         if availablePhotoSource(for: design) == nil {
             return "\(design.name), photo unavailable\(favoriteSuffix)"
         }
 
-        return "\(design.name), design photo\(favoriteSuffix)"
+        return "\(design.name), \(itemName) photo\(favoriteSuffix)"
     }
 }
