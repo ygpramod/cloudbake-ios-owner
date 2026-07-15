@@ -111,7 +111,7 @@ struct CakeDesignListView: View {
             CloudBakeEmptyState(
                 title: "No matching designs",
                 systemImage: "magnifyingglass",
-                message: "Try another cake name, note, customer, order, or tag."
+                message: "Try another cake name, note, or tag."
             )
             Button("Clear Search and Filters") {
                 viewModel.searchText = ""

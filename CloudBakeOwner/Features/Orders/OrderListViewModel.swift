@@ -218,7 +218,9 @@ final class OrderListViewModel: ObservableObject {
             orders = try repository.fetchOrders()
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
-            cakeDesigns = try repository.fetchCakeDesigns()
+            cakeDesigns = try repository.fetchCakeDesigns().filter {
+                $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference
+            }
             errorMessage = retryPendingDesignPhotoCleanups()
                 ? nil
                 : "A previous design photo cleanup will be retried automatically."
@@ -1345,7 +1347,9 @@ final class OrderListViewModel: ObservableObject {
         do {
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
-            cakeDesigns = try repository.fetchCakeDesigns()
+            cakeDesigns = try repository.fetchCakeDesigns().filter {
+                $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference
+            }
             if let linkedDesignId = editingOrder?.cakeDesignId,
                !cakeDesigns.contains(where: { $0.id == linkedDesignId }),
                let linkedDesign = try repository.fetchCakeDesign(id: linkedDesignId) {
