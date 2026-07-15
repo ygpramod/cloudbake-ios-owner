@@ -139,26 +139,26 @@ struct CustomerListView: View {
 
     private func customerCard(_ customer: Customer) -> some View {
         let presentation = viewModel.presentation(for: customer)
-        return VStack(alignment: .leading, spacing: 14) {
+        return VStack(alignment: .leading, spacing: 12) {
             Button {
                 openCustomer(customer)
             } label: {
-                HStack(spacing: 18) {
-                    CloudBakeRowIcon(systemImage: "person.crop.circle", tint: .cloudBakeTeal)
+                HStack(spacing: CloudBakeTheme.Spacing.rowContent) {
+                    CloudBakeCompactRowIcon(systemImage: "person.crop.circle", tint: .cloudBakeTeal)
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(customer.name)
-                            .font(.title3.weight(.semibold))
+                            .font(CloudBakeTheme.Typography.rowTitle)
                             .foregroundStyle(.primary)
                             .lineLimit(2)
 
                         Text(presentation.displayPhone)
-                            .font(.subheadline)
+                            .font(CloudBakeTheme.Typography.rowDetail)
                             .foregroundStyle(.secondary)
 
                         if let allergies = customer.allergies {
                             Label(allergies, systemImage: "exclamationmark.triangle")
-                                .font(.footnote.weight(.semibold))
+                                .font(CloudBakeTheme.Typography.rowDetail.weight(.medium))
                                 .foregroundStyle(.orange)
                                 .lineLimit(1)
                         }
@@ -167,8 +167,8 @@ struct CustomerListView: View {
                     Spacer(minLength: 8)
 
                     Image(systemName: "chevron.right")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(Color.cloudBakePink.opacity(0.72))
+                        .font(CloudBakeTheme.Typography.rowTitle)
+                        .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -177,13 +177,14 @@ struct CustomerListView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("customers.item.\(customer.id)")
 
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 if let phoneURL = viewModel.phoneURL(for: customer) {
                     CloudBakeAdaptiveActionButton(
                         title: "Call",
                         systemImage: "phone",
                         tint: .cloudBakeTeal,
-                        accessibilityIdentifier: "customers.item.call.\(customer.id)"
+                        accessibilityIdentifier: "customers.item.call.\(customer.id)",
+                        isCompact: true
                     ) {
                         openURL(phoneURL)
                     }
@@ -195,7 +196,8 @@ struct CustomerListView: View {
                         title: "WhatsApp",
                         systemImage: "message",
                         tint: .green,
-                        accessibilityIdentifier: "customers.item.message.\(customer.id)"
+                        accessibilityIdentifier: "customers.item.message.\(customer.id)",
+                        isCompact: true
                     ) {
                         openURL(messageURL)
                     }
@@ -205,14 +207,16 @@ struct CustomerListView: View {
                     title: "New Order",
                     systemImage: "calendar.badge.plus",
                     tint: .cloudBakePink,
-                    accessibilityIdentifier: "customers.item.newOrder.\(customer.id)"
+                    accessibilityIdentifier: "customers.item.newOrder.\(customer.id)",
+                    isCompact: true
                 ) {
                     orderNavigationRouter.beginNewOrder(customerId: customer.id)
                     navigate(.orders)
                 }
             }
         }
-        .padding(20)
+        .padding(.horizontal, CloudBakeTheme.Spacing.cardPadding)
+        .padding(.vertical, 14)
         .cloudBakeCardStyle()
     }
 

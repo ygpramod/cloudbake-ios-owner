@@ -95,3 +95,8 @@ Updated:
 - Recipes is no longer a placeholder screen.
 - Owner can add a named recipe with optional notes.
 - Saved recipes remain available through local persistence.
+
+## Implementation Notes
+
+- Recipe cards use the shared compact primary-row hierarchy established by Home, Inventory, and
+  Orders: compact icon, shared row typography, compact metadata spacing, and standard card padding.

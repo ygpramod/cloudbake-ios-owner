@@ -101,3 +101,8 @@ Updated:
 - The owner can add and view customers from the Customers screen.
 - The app protects against accidental duplicate customers while still allowing an intentional
   duplicate after confirmation.
+
+## Implementation Notes
+
+- Customer cards use the shared compact primary-row hierarchy established by Home, Inventory, and
+  Orders, with compact portrait action pills for Call, WhatsApp, and New Order.
