@@ -13,6 +13,7 @@ struct InventoryListView: View {
     @State private var isImportingPurchaseBill = false
     @State private var isAddingInventoryByVoice = false
     @State private var pendingArchiveItem: InventoryItem?
+    @State private var pendingDeleteItem: InventoryItem?
     @FocusState private var isSearchFocused: Bool
 
     init(viewModel: InventoryListViewModel) {
@@ -165,6 +166,22 @@ struct InventoryListView: View {
                 .accessibilityIdentifier("inventory.archive.confirm")
             }
         }
+        .cloudBakeCenteredPopup(
+            isPresented: pendingDeleteItem != nil,
+            title: "Delete Inventory?",
+            subtitle: "Delete this unused inventory item permanently. Items linked to stock history, recipes, or orders must be archived instead.",
+            systemImage: "trash",
+            cancelAccessibilityIdentifier: "inventory.delete.cancel",
+            onCancel: { pendingDeleteItem = nil }
+        ) {
+            if let pendingDeleteItem {
+                centeredPopupButton("Delete \(pendingDeleteItem.name)", role: .destructive) {
+                    _ = viewModel.deleteItem(pendingDeleteItem)
+                    self.pendingDeleteItem = nil
+                }
+                .accessibilityIdentifier("inventory.delete.confirm")
+            }
+        }
         .onAppear {
             viewModel.load()
             openPendingInventoryItem()
@@ -209,65 +226,69 @@ struct InventoryListView: View {
                     }
                 }
             }
+
+            if let errorMessage = viewModel.errorMessage {
+                CloudBakeErrorBanner(
+                    message: errorMessage,
+                    accessibilityIdentifier: "inventory.error"
+                )
+            }
         }
     }
 
     private func inventoryItemCard(_ item: InventoryItem) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Button {
-                viewModel.beginViewingItem(item)
-                isViewingItem = true
-            } label: {
-                InventoryItemRow(item: item)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
+        InventorySwipeActionCard(
+            onHistory: {
+                viewModel.beginViewingHistory(item)
+                isShowingHistory = true
+            },
+            onArchive: { pendingArchiveItem = item },
+            onDelete: { pendingDeleteItem = item },
+            itemID: item.id
+        ) {
+            VStack(alignment: .leading, spacing: 14) {
+                Button {
+                    viewModel.beginViewingItem(item)
+                    isViewingItem = true
+                } label: {
+                    InventoryItemRow(item: item)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("inventory.item.view.\(item.id)")
+
+                HStack(spacing: 12) {
+                    Spacer(minLength: 0)
+
+                    CloudBakeIconActionButton(
+                        title: "Adjust",
+                        systemImage: "plus",
+                        tint: .cloudBakePurple,
+                        accessibilityIdentifier: "inventory.item.adjust.\(item.id)"
+                    ) {
+                        viewModel.beginAdjusting(item)
+                        isAdjustingStock = true
+                    }
+
+                    CloudBakeIconActionButton(
+                        title: "Use stock",
+                        systemImage: "minus",
+                        tint: .cloudBakeOrange,
+                        accessibilityIdentifier: "inventory.item.consume.\(item.id)"
+                    ) {
+                        viewModel.beginConsuming(item)
+                        isConsumingStock = true
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: 240)
+                .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("inventory.item.view.\(item.id)")
-
-            HStack(spacing: 8) {
-                CloudBakeIconActionButton(
-                    title: "Adjust",
-                    systemImage: "plus",
-                    tint: .cloudBakePurple,
-                    accessibilityIdentifier: "inventory.item.adjust.\(item.id)"
-                ) {
-                    viewModel.beginAdjusting(item)
-                    isAdjustingStock = true
-                }
-
-                CloudBakeIconActionButton(
-                    title: "Use stock",
-                    systemImage: "minus",
-                    tint: .cloudBakeOrange,
-                    accessibilityIdentifier: "inventory.item.consume.\(item.id)"
-                ) {
-                    viewModel.beginConsuming(item)
-                    isConsumingStock = true
-                }
-
-                CloudBakeIconActionButton(
-                    title: "View history",
-                    systemImage: "clock",
-                    tint: .secondary,
-                    accessibilityIdentifier: "inventory.item.history.\(item.id)"
-                ) {
-                    viewModel.beginViewingHistory(item)
-                    isShowingHistory = true
-                }
-
-                CloudBakeIconActionButton(
-                    title: "Archive",
-                    systemImage: "archivebox",
-                    tint: .secondary,
-                    accessibilityIdentifier: "inventory.item.archive.\(item.id)"
-                ) {
-                    pendingArchiveItem = item
-                }
-            }
+            .padding(20)
+            .cloudBakeCardStyle()
         }
-        .padding(20)
-        .cloudBakeCardStyle()
     }
 
     private func openPendingInventoryItem() {
@@ -279,6 +300,102 @@ struct InventoryListView: View {
         viewModel.beginViewingItem(item)
         isViewingItem = true
         inventoryNavigationRouter.clearPendingInventoryItemId()
+    }
+}
+
+private struct InventorySwipeActionCard<Content: View>: View {
+    private static var actionWidth: CGFloat { 76 }
+
+    let onHistory: () -> Void
+    let onArchive: () -> Void
+    let onDelete: () -> Void
+    let itemID: String
+    @ViewBuilder let content: Content
+
+    @State private var restingOffset: CGFloat = 0
+    @State private var dragOffset: CGFloat = 0
+
+    private var offset: CGFloat {
+        min(Self.actionWidth, max(-(Self.actionWidth * 2), restingOffset + dragOffset))
+    }
+
+    var body: some View {
+        ZStack {
+            HStack(spacing: 0) {
+                swipeButton(
+                    title: "History",
+                    systemImage: "clock",
+                    color: .cloudBakeTeal,
+                    accessibilityIdentifier: "inventory.item.history.\(itemID)",
+                    action: onHistory
+                )
+
+                Spacer(minLength: 0)
+
+                swipeButton(
+                    title: "Archive",
+                    systemImage: "archivebox",
+                    color: .cloudBakeOrange,
+                    accessibilityIdentifier: "inventory.item.archive.\(itemID)",
+                    action: onArchive
+                )
+                swipeButton(
+                    title: "Delete",
+                    systemImage: "trash",
+                    color: .red,
+                    accessibilityIdentifier: "inventory.item.delete.\(itemID)",
+                    action: onDelete
+                )
+            }
+
+            content
+                .offset(x: offset)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.cardRadius, style: .continuous))
+        .highPriorityGesture(
+            DragGesture(minimumDistance: 18)
+                .onChanged { value in
+                    guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                    dragOffset = value.translation.width
+                }
+                .onEnded { value in
+                    defer { dragOffset = 0 }
+                    guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                    withAnimation(.snappy(duration: 0.22)) {
+                        if value.translation.width > 48 {
+                            restingOffset = Self.actionWidth
+                        } else if value.translation.width < -48 {
+                            restingOffset = -(Self.actionWidth * 2)
+                        } else {
+                            restingOffset = 0
+                        }
+                    }
+                }
+        )
+    }
+
+    private func swipeButton(
+        title: String,
+        systemImage: String,
+        color: Color,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            withAnimation(.snappy(duration: 0.22)) { restingOffset = 0 }
+            action()
+        } label: {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .labelStyle(.iconOnly)
+                .foregroundStyle(.white)
+                .frame(width: Self.actionWidth)
+                .frame(maxHeight: .infinity)
+                .background(color)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 
