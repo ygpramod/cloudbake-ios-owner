@@ -155,6 +155,27 @@ extension CloudBakeOwnerUITests {
         )
     }
 
+    func testInventoryFilterRibbonSupportsAdjacentSwipes() throws {
+        let app = makeInventoryFixtureApp()
+        openDashboardDestination("Inventory", in: app)
+
+        let filter = app.segmentedControls["inventory.filter"]
+        XCTAssertTrue(filter.waitForExistence(timeout: 5))
+        XCTAssertTrue(filter.buttons["All"].isSelected)
+
+        filter.swipeLeft()
+        XCTAssertTrue(filter.buttons["Low stock"].isSelected)
+
+        filter.swipeLeft()
+        XCTAssertTrue(filter.buttons["Expiring soon"].isSelected)
+
+        filter.swipeRight()
+        XCTAssertTrue(filter.buttons["Low stock"].isSelected)
+
+        filter.swipeRight()
+        XCTAssertTrue(filter.buttons["All"].isSelected)
+    }
+
     private func makeInventoryFixtureApp() -> XCUIApplication {
         let app = makeApp()
         app.launchEnvironment["CLOUDBAKE_SEED_INVENTORY_FIXTURE"] = "1"
