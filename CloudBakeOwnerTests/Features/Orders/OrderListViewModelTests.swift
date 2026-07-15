@@ -452,7 +452,7 @@ final class OrderListViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.draftCakeDesignId, "design-floral")
         XCTAssertEqual(viewModel.draftCakeDesignName(), "Pink florals")
-        XCTAssertEqual(viewModel.cakeDesigns, [minimalist, floral, hiddenInternet])
+        XCTAssertEqual(viewModel.cakeDesigns, [hiddenInternet, minimalist, floral])
         XCTAssertEqual(viewModel.cakeDesigns(matching: "palette"), [floral])
         XCTAssertEqual(viewModel.cakeDesigns(matching: "pink birthday"), [floral])
         XCTAssertEqual(viewModel.cakeDesigns(matching: "", tag: "Floral"), [floral])
