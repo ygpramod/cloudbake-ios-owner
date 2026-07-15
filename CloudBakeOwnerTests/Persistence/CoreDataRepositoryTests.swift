@@ -2346,6 +2346,92 @@ final class CoreDataRepositoryTests: XCTestCase {
             XCTAssertEqual(try repository.fetchInventoryItem(id: item.id), item)
         }
     }
+
+    func testDeletingInventoryItemWithRecordedOrderCostIsRejected() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-costed",
+            name: "Costed flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let recipe = Recipe(
+            id: "recipe-costed",
+            name: "Costed cake",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-costed",
+            recipeId: recipe.id,
+            name: "Cake",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-costed",
+            componentId: component.id,
+            inventoryItemId: item.id,
+            quantity: 100,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let order = Order(
+            id: "order-costed",
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: recipe.id,
+            title: "Costed cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp.addingTimeInterval(86_400),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(item)
+        try repository.save(
+            InventoryStockBatch(
+                id: "batch-costed",
+                inventoryItemId: item.id,
+                remainingQuantity: 500,
+                expiresAt: nil,
+                amount: 25,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try repository.save(order)
+        _ = try repository.changeOrderStatus(
+            order: order,
+            status: .ready,
+            updatedAt: timestamp.addingTimeInterval(100),
+            usageId: "usage-costed",
+            extraIngredients: nil,
+            transactionIdProvider: { "transaction-costed" }
+        )
+        let recordedCosts = try repository.fetchOrderIngredientCosts(orderId: order.id)
+        XCTAssertEqual(recordedCosts.count, 1)
+
+        XCTAssertThrowsError(try repository.deleteInventoryItem(id: item.id)) { error in
+            XCTAssertEqual(error as? InventoryItemDeletionError, .inUse)
+        }
+        XCTAssertNotNil(try repository.fetchInventoryItem(id: item.id))
+        XCTAssertEqual(try repository.fetchOrderIngredientCosts(orderId: order.id), recordedCosts)
+    }
 }
 
 private struct TestTimestamps {

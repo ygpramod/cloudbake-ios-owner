@@ -358,7 +358,7 @@ private struct InventorySwipeActionCard<Content: View>: View {
         }
         .scrollIndicators(.hidden)
         .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-        .scrollPosition(id: $position, anchor: .leading)
+        .scrollPosition(id: $position, anchor: .center)
         .clipShape(RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.cardRadius, style: .continuous))
     }
 
