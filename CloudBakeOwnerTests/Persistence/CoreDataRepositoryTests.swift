@@ -1,3 +1,4 @@
+import GRDB
 import XCTest
 @testable import CloudBakeOwner
 
@@ -2425,6 +2426,48 @@ final class CoreDataRepositoryTests: XCTestCase {
         )
         let recordedCosts = try repository.fetchOrderIngredientCosts(orderId: order.id)
         XCTAssertEqual(recordedCosts.count, 1)
+        try repository.writer.write { db in
+            try db.execute(
+                sql: "DELETE FROM recipe_ingredients WHERE inventory_item_id = ?",
+                arguments: [item.id]
+            )
+            try db.execute(
+                sql: "DELETE FROM inventory_transactions WHERE inventory_item_id = ?",
+                arguments: [item.id]
+            )
+            try db.execute(
+                sql: "DELETE FROM inventory_stock_batches WHERE inventory_item_id = ?",
+                arguments: [item.id]
+            )
+        }
+        let referenceCounts = try repository.writer.read { db in
+            (
+                recipeIngredients: try Int.fetchOne(
+                    db,
+                    sql: "SELECT COUNT(*) FROM recipe_ingredients WHERE inventory_item_id = ?",
+                    arguments: [item.id]
+                ) ?? 0,
+                transactions: try Int.fetchOne(
+                    db,
+                    sql: "SELECT COUNT(*) FROM inventory_transactions WHERE inventory_item_id = ?",
+                    arguments: [item.id]
+                ) ?? 0,
+                batches: try Int.fetchOne(
+                    db,
+                    sql: "SELECT COUNT(*) FROM inventory_stock_batches WHERE inventory_item_id = ?",
+                    arguments: [item.id]
+                ) ?? 0,
+                costs: try Int.fetchOne(
+                    db,
+                    sql: "SELECT COUNT(*) FROM order_ingredient_costs WHERE inventory_item_id = ?",
+                    arguments: [item.id]
+                ) ?? 0
+            )
+        }
+        XCTAssertEqual(referenceCounts.recipeIngredients, 0)
+        XCTAssertEqual(referenceCounts.transactions, 0)
+        XCTAssertEqual(referenceCounts.batches, 0)
+        XCTAssertEqual(referenceCounts.costs, 1)
 
         XCTAssertThrowsError(try repository.deleteInventoryItem(id: item.id)) { error in
             XCTAssertEqual(error as? InventoryItemDeletionError, .inUse)
