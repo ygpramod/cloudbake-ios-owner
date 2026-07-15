@@ -238,7 +238,8 @@ struct InventoryListView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("inventory.item.view.\(item.id)")
-            .padding(20)
+            .padding(.vertical, 14)
+            .padding(.horizontal, CloudBakeTheme.Spacing.cardPadding)
             .cloudBakeCardStyle()
         }
     }

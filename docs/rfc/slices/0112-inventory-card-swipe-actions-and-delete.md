@@ -21,6 +21,7 @@ Keep active inventory cards lean while preserving quick access to history, archi
 8. When an item is in use, preserve it and direct the owner to archive it instead.
 9. Keep cards centered at rest, with swipe actions hidden until the owner swipes.
 10. Use neutral swipe-action surfaces and carry action color on the icons only.
+11. Match active card typography, compact row icon, spacing, and density to Home screen rows.
 
 ## Out Of Scope
 
@@ -40,6 +41,7 @@ Keep active inventory cards lean while preserving quick access to history, archi
 8. A referenced item is not deleted and the owner sees archive guidance.
 9. History is not visible or hittable before a right swipe.
 10. History, Archive, and Delete use colorful icons without colored action backgrounds.
+11. Active cards use the same compact row hierarchy as Home cards.
 
 ## Validation
 

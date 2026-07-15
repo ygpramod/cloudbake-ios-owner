@@ -208,7 +208,7 @@ private struct DashboardAttentionRow: View {
             action()
         } label: {
             HStack(spacing: CloudBakeTheme.Spacing.rowContent) {
-                DashboardIcon(systemImage: systemImage, tint: tint)
+                CloudBakeCompactRowIcon(systemImage: systemImage, tint: tint)
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
@@ -365,7 +365,7 @@ private struct DashboardActionRow: View {
             navigate(destination)
         } label: {
             HStack(spacing: 18) {
-                DashboardIcon(systemImage: systemImage, tint: tint)
+                CloudBakeCompactRowIcon(systemImage: systemImage, tint: tint)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
@@ -390,22 +390,6 @@ private struct DashboardActionRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("dashboard.quickAction.\(destination.rawValue)")
-    }
-}
-
-private struct DashboardIcon: View {
-    let systemImage: String
-    let tint: Color
-
-    var body: some View {
-        Image(systemName: systemImage)
-            .font(.headline.weight(.semibold))
-            .foregroundStyle(.white)
-            .frame(width: 50, height: 50)
-            .background(
-                RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.iconRadius, style: .continuous)
-                    .fill(tint.gradient)
-            )
     }
 }
 

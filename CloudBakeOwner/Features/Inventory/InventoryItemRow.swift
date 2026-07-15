@@ -4,17 +4,18 @@ struct InventoryItemRow: View {
     let item: InventoryItem
 
     var body: some View {
-        HStack(alignment: .center, spacing: 18) {
-            CloudBakeRowIcon(systemImage: "shippingbox", tint: item.alertTint)
+        HStack(alignment: .center, spacing: CloudBakeTheme.Spacing.rowContent) {
+            CloudBakeCompactRowIcon(systemImage: "shippingbox", tint: item.alertTint)
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(item.name)
-                    .font(.title3.weight(.semibold))
+                    .font(CloudBakeTheme.Typography.rowTitle)
                     .foregroundStyle(.primary)
                     .lineLimit(2)
 
                 Text("Current Quantity: \(item.currentQuantity.formatted()) \(item.unit.displayName)")
-                    .font(.subheadline)
+                    .font(CloudBakeTheme.Typography.rowDetail)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 8)
@@ -28,8 +29,8 @@ struct InventoryItemRow: View {
             }
 
             Image(systemName: "chevron.right")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(Color.cloudBakePink.opacity(0.72))
+                .font(CloudBakeTheme.Typography.rowTitle)
+                .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
         }
         .accessibilityIdentifier("inventory.item.\(item.id)")
