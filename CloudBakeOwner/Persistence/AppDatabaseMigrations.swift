@@ -437,6 +437,13 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0029_remove_derived_design_references") { db in
+            try db.execute(
+                sql: "DELETE FROM cake_designs WHERE source_kind = ?",
+                arguments: [CakeDesignSourceKind.customerReference.rawValue]
+            )
+        }
+
         return migrator
     }
 }
