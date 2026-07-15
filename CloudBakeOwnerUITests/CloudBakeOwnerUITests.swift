@@ -1367,8 +1367,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
-        XCTAssertTrue(app.staticTexts["Vanilla Birthday"].waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(app.staticTexts["Amy"].waitForExistence(timeout: transitionTimeout))
         let orderRow = app.buttons.matching(
             NSPredicate(
                 format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
@@ -1378,6 +1376,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
             .firstMatch
         assertExistsAfterScrolling(orderRow, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(orderRow.label.contains("Amy"))
         tapWhenReady(orderRow, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
     }
