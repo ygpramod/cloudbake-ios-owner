@@ -302,11 +302,19 @@ struct OrderDetailView: View {
                         return false
                     },
                     onAddToDesignReferences: { tags in
-                        await viewModel.addCustomerReferencePhotoToDesignReferences(
+                        let didAdd = await viewModel.addCustomerReferencePhotoToDesignReferences(
                             previewingPhoto,
                             tags: tags
                         )
+                        if didAdd,
+                           let updatedPhoto = viewModel.selectedOrderPhotos.first(where: {
+                               $0.id == previewingPhoto.id
+                           }) {
+                            self.previewingPhoto = updatedPhoto
+                        }
+                        return didAdd
                     },
+                    referenceErrorMessage: { viewModel.errorMessage },
                     onClose: {
                         self.previewingPhoto = nil
                     }

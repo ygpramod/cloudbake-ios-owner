@@ -1073,19 +1073,22 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func updateOrderPhotoCaption(_ photo: OrderPhoto, caption: String) -> Bool {
-        let updatedPhoto = OrderPhoto(
-            id: photo.id,
-            orderId: photo.orderId,
-            kind: photo.kind,
-            localPhotoPath: photo.localPhotoPath,
-            caption: TextInputFormatting.optionalText(caption),
-            tags: photo.tags,
-            isFavorite: photo.isFavorite,
-            createdAt: photo.createdAt,
-            updatedAt: dateProvider()
-        )
-
         do {
+            guard let currentPhoto = try repository.fetchOrderPhoto(id: photo.id) else {
+                errorMessage = "Order photo could not be found."
+                return false
+            }
+            let updatedPhoto = OrderPhoto(
+                id: currentPhoto.id,
+                orderId: currentPhoto.orderId,
+                kind: currentPhoto.kind,
+                localPhotoPath: currentPhoto.localPhotoPath,
+                caption: TextInputFormatting.optionalText(caption),
+                tags: currentPhoto.tags,
+                isFavorite: currentPhoto.isFavorite,
+                createdAt: currentPhoto.createdAt,
+                updatedAt: dateProvider()
+            )
             try repository.save(updatedPhoto)
             if let selectedOrder {
                 loadSelectedOrderPhotos(for: selectedOrder)

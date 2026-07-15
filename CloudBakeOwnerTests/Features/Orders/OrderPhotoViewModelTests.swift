@@ -405,7 +405,7 @@ final class OrderPhotoViewModelTests: XCTestCase {
             id: "photo-reference",
             orderId: order.id,
             kind: .customerReference,
-            localPhotoPath: photoLibrary.savedReference,
+            localPhotoPath: "OrderPhotos/order-reference/photo-reference.jpg",
             caption: "Blue flowers",
             createdAt: now,
             updatedAt: now
@@ -431,6 +431,17 @@ final class OrderPhotoViewModelTests: XCTestCase {
         XCTAssertEqual(repository.cakeDesigns.first?.originatingOrderPhotoId, photo.id)
         XCTAssertEqual(repository.cakeDesigns.first?.tags, ["Wedding", "Blue"])
         XCTAssertNil(viewModel.errorMessage)
+
+        XCTAssertTrue(viewModel.updateOrderPhotoCaption(photo, caption: "Updated caption"))
+        XCTAssertEqual(repository.orderPhotos.first?.localPhotoPath, photoLibrary.savedReference)
+        XCTAssertEqual(repository.orderPhotos.first?.caption, "Updated caption")
+
+        let duplicateAdd = await viewModel.addCustomerReferencePhotoToDesignReferences(
+            photo,
+            tags: ""
+        )
+        XCTAssertFalse(duplicateAdd)
+        XCTAssertEqual(viewModel.errorMessage, "This photo is already in Design References.")
     }
 
     func testDeleteOrderPhotoRemovesMetadataAndStoredFile() {

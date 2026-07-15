@@ -6,6 +6,7 @@ struct OrderPhotoPreviewView: View {
     let onSaveCaption: (String) -> OrderPhoto?
     let onPromoteToDesign: (String, String) async -> Bool
     let onAddToDesignReferences: (String) async -> Bool
+    let referenceErrorMessage: () -> String?
     let onClose: () -> Void
     @State private var displayedPhoto: OrderPhoto
     @State private var draftCaption = ""
@@ -16,6 +17,8 @@ struct OrderPhotoPreviewView: View {
     @State private var isSavingDesign = false
     @State private var isAddingToReferences = false
     @State private var draftReferenceTags = ""
+    @State private var referenceError: String?
+    @State private var isAddedToReferences = false
 
     init(
         photo: OrderPhoto,
@@ -23,6 +26,7 @@ struct OrderPhotoPreviewView: View {
         onSaveCaption: @escaping (String) -> OrderPhoto?,
         onPromoteToDesign: @escaping (String, String) async -> Bool,
         onAddToDesignReferences: @escaping (String) async -> Bool,
+        referenceErrorMessage: @escaping () -> String?,
         onClose: @escaping () -> Void
     ) {
         self.photo = photo
@@ -30,6 +34,7 @@ struct OrderPhotoPreviewView: View {
         self.onSaveCaption = onSaveCaption
         self.onPromoteToDesign = onPromoteToDesign
         self.onAddToDesignReferences = onAddToDesignReferences
+        self.referenceErrorMessage = referenceErrorMessage
         self.onClose = onClose
         _displayedPhoto = State(initialValue: photo)
     }
@@ -73,7 +78,10 @@ struct OrderPhotoPreviewView: View {
                     }
 
                     if displayedPhoto.kind == .customerReference {
-                        Button { isAddingToReferences = true } label: {
+                        Button {
+                            referenceError = nil
+                            isAddingToReferences = true
+                        } label: {
                             Label("Add to Design References", systemImage: "photo.badge.plus")
                                 .labelStyle(.iconOnly)
                                 .font(.headline.weight(.semibold))
@@ -82,6 +90,7 @@ struct OrderPhotoPreviewView: View {
                         }
                         .accessibilityLabel("Add to Design References")
                         .accessibilityIdentifier("orders.detail.photos.preview.addToReferences")
+                        .disabled(isAddedToReferences)
                     }
 
                     Spacer()
@@ -209,6 +218,11 @@ struct OrderPhotoPreviewView: View {
                     Section("Reference") {
                         TextField("Tags separated by commas", text: $draftReferenceTags)
                             .accessibilityIdentifier("orders.detail.photos.reference.tags")
+                        if let referenceError {
+                            Text(referenceError)
+                                .foregroundStyle(.red)
+                                .accessibilityIdentifier("orders.detail.photos.reference.error")
+                        }
                     }
                 }
                 .cloudBakeFormScreenStyle()
@@ -223,7 +237,11 @@ struct OrderPhotoPreviewView: View {
                             isSavingDesign = true
                             Task {
                                 if await onAddToDesignReferences(draftReferenceTags) {
+                                    isAddedToReferences = true
                                     isAddingToReferences = false
+                                } else {
+                                    referenceError = referenceErrorMessage()
+                                        ?? "Reference could not be saved."
                                 }
                                 isSavingDesign = false
                             }
