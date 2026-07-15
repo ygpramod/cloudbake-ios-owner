@@ -91,9 +91,7 @@ struct RecipeListView: View {
             CloudBakeEmptyState(
                 title: "No matching recipes",
                 systemImage: "magnifyingglass",
-                message: viewModel.searchText.isEmpty
-                    ? "Try another recipe filter."
-                    : "Try another cake name, ingredient, or recipe note."
+                message: "Try another cake name, ingredient, or recipe note."
             )
         } else {
             CloudBakeSection("Recipes") {
