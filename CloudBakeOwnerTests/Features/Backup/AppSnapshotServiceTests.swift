@@ -53,6 +53,18 @@ final class AppSnapshotServiceTests: XCTestCase {
         try await service.validatePackage(at: package.directoryURL)
     }
 
+    func testSnapshotWithFractionalTimestampBuildsPublicationPlan() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000.789)
+
+        let package = try await fixture.service(now: { timestamp }).createSnapshot()
+        let persistedManifest = try fixture.decodeManifest(at: package.manifestURL)
+
+        XCTAssertEqual(package.manifest, persistedManifest)
+        XCTAssertNoThrow(try CloudBackupGenerationPlan.make(package: package))
+    }
+
     func testValidationDetectsPayloadCorruption() async throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -284,7 +296,8 @@ private final class Fixture: @unchecked Sendable {
     func service(
         didCaptureDatabase: @escaping @Sendable () throws -> Void = {},
         didCopyAsset: @escaping @Sendable (String) throws -> Void = { _ in },
-        externalAssetResolver: any BackupExternalAssetResolving = FakeExternalAssetResolver()
+        externalAssetResolver: any BackupExternalAssetResolving = FakeExternalAssetResolver(),
+        now: @escaping @Sendable () -> Date = { Date(timeIntervalSince1970: 1_800_000_000) }
     ) -> AppSnapshotService {
         AppSnapshotService(
             database: database,
@@ -293,7 +306,7 @@ private final class Fixture: @unchecked Sendable {
             minimumCompatibleAppVersion: "1.0",
             currentAppVersion: "1.0",
             externalAssetResolver: externalAssetResolver,
-            now: { Date(timeIntervalSince1970: 1_800_000_000) },
+            now: now,
             makeGenerationID: { "generation-1" },
             didCaptureDatabase: didCaptureDatabase,
             didCopyAsset: didCopyAsset
