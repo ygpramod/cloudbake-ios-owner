@@ -126,7 +126,12 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
                 assets: assets
             )
             let manifestURL = buildingURL.appendingPathComponent(Self.manifestFilename)
-            try Self.makeEncoder().encode(manifest).write(to: manifestURL, options: .atomic)
+            let manifestData = try Self.makeEncoder().encode(manifest)
+            try manifestData.write(to: manifestURL, options: .atomic)
+            let persistedManifest = try Self.makeDecoder().decode(
+                BackupManifest.self,
+                from: manifestData
+            )
             try validatePackageContents(at: buildingURL)
             try fileManager.moveItem(at: buildingURL, to: finalURL)
 
@@ -135,7 +140,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
                 directoryURL: finalURL,
                 manifestURL: finalURL.appendingPathComponent(Self.manifestFilename),
                 databaseURL: finalURL.appendingPathComponent(Self.databaseFilename),
-                manifest: manifest
+                manifest: persistedManifest
             )
         } catch {
             try? fileManager.removeItem(at: buildingURL)

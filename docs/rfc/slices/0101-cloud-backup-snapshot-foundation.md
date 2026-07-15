@@ -69,6 +69,9 @@ Ship dormant foundations only. Do not request CloudKit access or schedule backgr
 - The app-managed custom logo is included when present so branding survives eventual full restore.
 - Staged asset filenames are opaque hashes. Original relative paths remain only inside the manifest
   needed to reconstruct app-managed storage.
+- The package exposes the manifest decoded from the exact persisted JSON bytes. This keeps lossy
+  date serialization, including fractional-second normalization, identical between package
+  validation and the CloudKit publication plan.
 - Packages remain dormant local artifacts in this slice; CloudKit publication begins in RFC-0102.
 
 ## Wiki Decision
