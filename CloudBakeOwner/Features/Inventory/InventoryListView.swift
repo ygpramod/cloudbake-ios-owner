@@ -12,6 +12,7 @@ struct InventoryListView: View {
     @State private var isAddingInventoryByVoice = false
     @State private var pendingArchiveItem: InventoryItem?
     @State private var pendingDeleteItem: InventoryItem?
+    @State private var inventoryCardFrames: [CGRect] = []
     @FocusState private var isSearchFocused: Bool
 
     init(viewModel: InventoryListViewModel) {
@@ -64,8 +65,6 @@ struct InventoryListView: View {
                 .background(.white.opacity(0.90), in: Capsule())
                 .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
                 .accessibilityIdentifier("inventory.filter")
-                .contentShape(Rectangle())
-                .simultaneousGesture(inventoryFilterSwipeGesture)
 
                 inventoryResults
                     .contentShape(Rectangle())
@@ -75,6 +74,12 @@ struct InventoryListView: View {
                         }
                     )
             }
+        }
+        .coordinateSpace(name: InventoryFilterSwipeCoordinateSpace.name)
+        .contentShape(Rectangle())
+        .simultaneousGesture(inventoryFilterSwipeGesture)
+        .onPreferenceChange(InventoryCardFramesPreferenceKey.self) { frames in
+            inventoryCardFrames = frames
         }
         .accessibilityIdentifier(AppDestination.inventory.screenAccessibilityIdentifier)
         .sheet(isPresented: $isAddingItem, onDismiss: viewModel.cancelEditing) {
@@ -244,6 +249,14 @@ struct InventoryListView: View {
             .padding(.horizontal, CloudBakeTheme.Spacing.cardPadding)
             .cloudBakeCardStyle()
         }
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: InventoryCardFramesPreferenceKey.self,
+                    value: [proxy.frame(in: .named(InventoryFilterSwipeCoordinateSpace.name))]
+                )
+            }
+        }
     }
 
     private func openPendingInventoryItem() {
@@ -258,11 +271,18 @@ struct InventoryListView: View {
     }
 
     private var inventoryFilterSwipeGesture: some Gesture {
-        DragGesture(minimumDistance: 36, coordinateSpace: .local)
+        DragGesture(
+            minimumDistance: 36,
+            coordinateSpace: .named(InventoryFilterSwipeCoordinateSpace.name)
+        )
             .onEnded(handleInventoryFilterSwipe)
     }
 
     private func handleInventoryFilterSwipe(_ value: DragGesture.Value) {
+        guard !inventoryCardFrames.contains(where: { $0.contains(value.startLocation) }) else {
+            return
+        }
+
         let horizontalDistance = value.translation.width
         let verticalDistance = value.translation.height
         guard abs(horizontalDistance) >= 72,
@@ -280,6 +300,18 @@ struct InventoryListView: View {
         withAnimation(.easeInOut(duration: 0.18)) {
             viewModel.itemFilter = nextFilter
         }
+    }
+}
+
+private enum InventoryFilterSwipeCoordinateSpace {
+    static let name = "inventory.filterSwipe"
+}
+
+private struct InventoryCardFramesPreferenceKey: PreferenceKey {
+    static var defaultValue: [CGRect] = []
+
+    static func reduce(value: inout [CGRect], nextValue: () -> [CGRect]) {
+        value.append(contentsOf: nextValue())
     }
 }
 

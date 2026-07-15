@@ -115,6 +115,7 @@ extension CloudBakeOwnerUITests {
         let historyButton = app.buttons["inventory.item.history.inventory-ui-fixture-cake-flour"]
         let archiveButton = app.buttons["inventory.item.archive.inventory-ui-fixture-cake-flour"]
         let closeActions = app.otherElements["inventory.item.closeActions.inventory-ui-fixture-cake-flour"]
+        let filter = app.segmentedControls["inventory.filter"]
         XCTAssertFalse(historyButton.isHittable)
 
         inventoryRow.swipeRight()
@@ -153,27 +154,57 @@ extension CloudBakeOwnerUITests {
             inventoryRow.frame.maxX,
             "Closing History must not reveal Archive and Delete."
         )
+        XCTAssertTrue(filter.buttons["All"].isSelected, "Card swipes must not change inventory filters.")
     }
 
-    func testInventoryFilterRibbonSupportsAdjacentSwipes() throws {
-        let app = makeInventoryFixtureApp()
-        openDashboardDestination("Inventory", in: app)
+    func testInventoryEmptySpaceSwipesBetweenAdjacentFilters() throws {
+        let app = makeApp(initialDestination: "inventory")
+        app.launchEnvironment["CLOUDBAKE_SEED_LONG_INVENTORY_FIXTURE"] = "1"
+        app.launch()
 
         let filter = app.segmentedControls["inventory.filter"]
         XCTAssertTrue(filter.waitForExistence(timeout: 5))
         XCTAssertTrue(filter.buttons["All"].isSelected)
 
-        filter.swipeLeft()
+        let firstRow = inventoryRow(named: "Scroll item 01", in: app)
+        let secondRow = inventoryRow(named: "Scroll item 02", in: app)
+        XCTAssertTrue(firstRow.waitForExistence(timeout: 5))
+        XCTAssertTrue(secondRow.waitForExistence(timeout: 5))
+        let gapY = (firstRow.frame.maxY + secondRow.frame.minY) / 2
+
+        swipeInventoryFilterLeft(in: app, at: gapY)
         XCTAssertTrue(filter.buttons["Low stock"].isSelected)
 
-        filter.swipeLeft()
+        swipeInventoryFilterLeft(in: app)
         XCTAssertTrue(filter.buttons["Expiring soon"].isSelected)
 
-        filter.swipeRight()
+        swipeInventoryFilterRight(in: app)
         XCTAssertTrue(filter.buttons["Low stock"].isSelected)
 
-        filter.swipeRight()
+        swipeInventoryFilterRight(in: app)
         XCTAssertTrue(filter.buttons["All"].isSelected)
+    }
+
+    private func swipeInventoryFilterLeft(in app: XCUIApplication, at y: CGFloat? = nil) {
+        swipeInventoryFilter(in: app, fromX: 0.88, toX: 0.12, at: y)
+    }
+
+    private func swipeInventoryFilterRight(in app: XCUIApplication, at y: CGFloat? = nil) {
+        swipeInventoryFilter(in: app, fromX: 0.12, toX: 0.88, at: y)
+    }
+
+    private func swipeInventoryFilter(
+        in app: XCUIApplication,
+        fromX: CGFloat,
+        toX: CGFloat,
+        at y: CGFloat?
+    ) {
+        let screen = app.scrollViews["screen.inventory"]
+        XCTAssertTrue(screen.waitForExistence(timeout: 5))
+        let normalizedY = y.map { ($0 - screen.frame.minY) / screen.frame.height } ?? 0.72
+        let start = screen.coordinate(withNormalizedOffset: CGVector(dx: fromX, dy: normalizedY))
+        let end = screen.coordinate(withNormalizedOffset: CGVector(dx: toX, dy: normalizedY))
+        start.press(forDuration: 0.05, thenDragTo: end)
     }
 
     private func makeInventoryFixtureApp() -> XCUIApplication {

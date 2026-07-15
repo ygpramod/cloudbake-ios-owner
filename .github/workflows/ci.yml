@@ -117,7 +117,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryOwnerJourneyShowsDetailEditsStockHistoryAndDashboard
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCanBeArchivedAndRestored
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDetailShowsStockActionsInMoreMenu
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryFilterRibbonSupportsAdjacentSwipes
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryEmptySpaceSwipesBetweenAdjacentFilters
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryPurchaseBillImportShowsCameraAndManualDraftControls
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testVoiceInventoryDraftsCanUpdateExistingAndCreateUnknownItems
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testExpiredInventoryCanBeDisposedFromItemDetail
