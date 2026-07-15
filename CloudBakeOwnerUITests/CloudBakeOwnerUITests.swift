@@ -241,6 +241,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
     func testReferenceImportRequiresAPhotoWithVisibleFeedback() throws {
         let app = makeApp(initialDestination: "designs")
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] = "1"
         app.launch()
 
         let addReference = app.descendants(matching: .any)["designs.references.add"]
