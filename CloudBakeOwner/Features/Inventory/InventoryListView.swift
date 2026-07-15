@@ -272,6 +272,7 @@ private struct InventorySwipeActionCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     @State private var position: Position? = .content
+    @State private var revealedPosition: Position?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -313,12 +314,72 @@ private struct InventorySwipeActionCard<Content: View>: View {
             .scrollIndicators(.hidden)
             .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
             .scrollPosition(id: $position, anchor: .center)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 24)
+                    .onEnded { value in
+                        guard revealedPosition == nil,
+                              abs(value.translation.width) > abs(value.translation.height) else {
+                            return
+                        }
+                        if value.translation.width > 32 {
+                            revealedPosition = .history
+                        } else if value.translation.width < -32 {
+                            revealedPosition = .destructiveActions
+                        }
+                    }
+            )
             .onAppear {
+                revealedPosition = nil
                 position = .content
                 proxy.scrollTo(Position.content, anchor: .center)
             }
             .clipShape(RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.cardRadius, style: .continuous))
+            .overlay { returnGestureOverlay(using: proxy) }
         }
+    }
+
+    @ViewBuilder
+    private func returnGestureOverlay(using proxy: ScrollViewProxy) -> some View {
+        switch revealedPosition {
+        case .history:
+            HStack(spacing: 0) {
+                Color.clear
+                    .frame(width: Self.actionWidth)
+                    .allowsHitTesting(false)
+                returnDragSurface(using: proxy)
+            }
+        case .content, nil:
+            EmptyView()
+        case .destructiveActions:
+            HStack(spacing: 0) {
+                returnDragSurface(using: proxy)
+                Color.clear
+                    .frame(width: Self.actionWidth * 2)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
+    private func returnDragSurface(using proxy: ScrollViewProxy) -> some View {
+        Color.white.opacity(0.001)
+            .contentShape(Rectangle())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Close inventory actions")
+            .accessibilityIdentifier("inventory.item.closeActions.\(itemID)")
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 24)
+                    .onEnded { value in
+                        guard abs(value.translation.width) > abs(value.translation.height) else {
+                            return
+                        }
+
+                        withAnimation(.snappy(duration: 0.22)) {
+                            revealedPosition = nil
+                            position = .content
+                            proxy.scrollTo(Position.content, anchor: .center)
+                        }
+                    }
+            )
     }
 
     private func swipeButton(
@@ -329,11 +390,12 @@ private struct InventorySwipeActionCard<Content: View>: View {
         action: @escaping () -> Void
     ) -> some View {
         Button {
+            revealedPosition = nil
             withAnimation(.snappy(duration: 0.22)) { position = .content }
             action()
         } label: {
             Label(title, systemImage: systemImage)
-                .font(.caption.weight(.semibold))
+                .font(.title3.weight(.semibold))
                 .labelStyle(.iconOnly)
                 .foregroundStyle(color)
                 .frame(width: Self.actionWidth)
