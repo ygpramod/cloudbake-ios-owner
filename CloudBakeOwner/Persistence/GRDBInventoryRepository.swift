@@ -8,6 +8,30 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func deleteInventoryItem(id: String) throws {
+        try writer.write { db in
+            let dependencyTables = [
+                "recipe_ingredients",
+                "inventory_transactions",
+                "inventory_stock_batches",
+                "order_extra_ingredients",
+                "order_ingredient_costs"
+            ]
+            for table in dependencyTables {
+                let dependencyCount = try Int.fetchOne(
+                    db,
+                    sql: "SELECT COUNT(*) FROM \(table) WHERE inventory_item_id = ?",
+                    arguments: [id]
+                ) ?? 0
+                guard dependencyCount == 0 else {
+                    throw InventoryItemDeletionError.inUse
+                }
+            }
+
+            try db.execute(sql: "DELETE FROM inventory_items WHERE id = ?", arguments: [id])
+        }
+    }
+
     func fetchInventoryItem(id: String) throws -> InventoryItem? {
         try writer.read { db in
             guard let row = try Row.fetchOne(db, sql: "SELECT * FROM inventory_items WHERE id = ?", arguments: [id]),

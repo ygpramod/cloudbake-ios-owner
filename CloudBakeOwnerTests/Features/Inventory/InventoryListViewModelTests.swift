@@ -1004,4 +1004,50 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.archivedItems, [])
     }
 
+    func testDeleteItemRemovesInventoryFromActiveAndArchivedCollections() {
+        let active = InventoryItem(
+            id: "inventory-unused",
+            name: "Unused decoration",
+            unit: .each,
+            currentQuantity: 0,
+            minimumQuantity: 0,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let repository = FakeInventoryItemRepository()
+        repository.items = [active]
+        let viewModel = InventoryListViewModel(repository: repository)
+        viewModel.load()
+
+        XCTAssertTrue(viewModel.deleteItem(active))
+
+        XCTAssertTrue(repository.items.isEmpty)
+        XCTAssertTrue(viewModel.items.isEmpty)
+        XCTAssertTrue(viewModel.archivedItems.isEmpty)
+    }
+
+    func testDeleteItemExplainsWhenHistoricalDependenciesRequireArchiving() {
+        let item = InventoryItem(
+            id: "inventory-used",
+            name: "Used flour",
+            unit: .gram,
+            currentQuantity: 0,
+            minimumQuantity: 0,
+            createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+        )
+        let repository = FakeInventoryItemRepository()
+        repository.items = [item]
+        repository.inventoryItemDeletionError = InventoryItemDeletionError.inUse
+        let viewModel = InventoryListViewModel(repository: repository)
+
+        XCTAssertFalse(viewModel.deleteItem(item))
+
+        XCTAssertEqual(repository.items, [item])
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "This inventory item is used by stock history, a recipe, or an order. Archive it instead to preserve those records."
+        )
+    }
+
 }

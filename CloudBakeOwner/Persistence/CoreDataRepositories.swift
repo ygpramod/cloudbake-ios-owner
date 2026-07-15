@@ -2,9 +2,20 @@ import Foundation
 
 protocol InventoryItemRepository {
     func save(_ item: InventoryItem) throws
+    func deleteInventoryItem(id: String) throws
     func fetchInventoryItem(id: String) throws -> InventoryItem?
     func fetchInventoryItems() throws -> [InventoryItem]
     func fetchArchivedInventoryItems() throws -> [InventoryItem]
+}
+
+enum InventoryItemDeletionError: Error, Equatable {
+    case inUse
+}
+
+extension InventoryItemRepository {
+    func deleteInventoryItem(id _: String) throws {
+        throw InventoryItemDeletionError.inUse
+    }
 }
 
 protocol RecipeRepository {

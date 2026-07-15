@@ -41,6 +41,7 @@ final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTrans
     var shouldFailBatchCorrectionSave = false
     var shouldFailBatchCorrectionDelete = false
     var shouldFailVoiceInventoryImportAfterItemSave = false
+    var inventoryItemDeletionError: Error?
 
     func save(_ item: InventoryItem) throws {
         if let existingIndex = items.firstIndex(where: { $0.id == item.id }) {
@@ -48,6 +49,15 @@ final class FakeInventoryItemRepository: InventoryItemRepository, InventoryTrans
         } else {
             items.append(item)
         }
+    }
+
+    func deleteInventoryItem(id: String) throws {
+        if let inventoryItemDeletionError {
+            throw inventoryItemDeletionError
+        }
+        items.removeAll { $0.id == id }
+        batches.removeAll { $0.inventoryItemId == id }
+        transactions.removeAll { $0.inventoryItemId == id }
     }
 
     func fetchInventoryItem(id: String) throws -> InventoryItem? {
