@@ -8,14 +8,6 @@ enum CakeDesignPhotoSource: Hashable {
     case legacyFile(URL)
 }
 
-struct CustomerReferenceDesign: Identifiable, Equatable {
-    let photo: OrderPhoto
-    let order: Order
-
-    var id: String { photo.id }
-    var title: String { photo.caption ?? order.title }
-}
-
 enum DesignLibraryFilter: Hashable, Identifiable {
     case all
     case favorites
@@ -136,14 +128,6 @@ final class CakeDesignListViewModel: ObservableObject {
             return designPhotoLibrary.containsAsset(identifier: identifier) ? .photosAsset(identifier) : nil
         }
         return availablePhotoURL(for: design).map(CakeDesignPhotoSource.legacyFile)
-    }
-
-    func availablePhotoSource(for photo: OrderPhoto) -> CakeDesignPhotoSource? {
-        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: photo.localPhotoPath) {
-            return designPhotoLibrary.containsAsset(identifier: identifier) ? .photosAsset(identifier) : nil
-        }
-        let url = photoFileStore.fileURL(for: photo.localPhotoPath)
-        return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
     }
 
     var visibleDesigns: [CakeDesign] {
