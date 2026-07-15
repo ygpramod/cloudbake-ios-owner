@@ -8,8 +8,8 @@ The app currently supports:
 
 1. native iPhone app shell,
 2. visual dashboard home screen with Today, Needs attention, and Quick actions sections, clickable
-   upcoming order and attention rows, and bottom quick navigation for Home, Orders, Inventory, and
-   More,
+   upcoming order and attention rows, a today-through-day-30 Upcoming Orders window, and bottom
+   quick navigation for Home, Orders, Inventory, and More,
 3. inventory navigation,
 4. local SQLite persistence,
 5. inventory item creation,
@@ -105,7 +105,7 @@ The app currently supports:
     cancelled rows visibly marked,
 86. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
     notes,
-87. visible order row actions for quick status changes and payment recording,
+87. visible order row actions with native menus for quick status changes and payment recording,
 88. order detail payment status actions for marking Paid or adding a partial payment,
 89. scheduled local owner notifications for Confirmed, In Progress, and Ready order reminders,
 90. due-time order notifications that route back to the matching order,

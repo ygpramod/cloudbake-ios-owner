@@ -144,7 +144,8 @@ shared UI primitives instead of introducing one-off styling:
   sections.
 - `CloudBakeStatusBadge` and `CloudBakeLabeledField` for compact status and metadata display.
 - `cloudBakeFormScreenStyle()` for native data-entry forms.
-- `cloudBakeCenteredPopup` and `centeredPopupButton` for confirmations, status/payment choices,
+- native `Menu` for compact status/payment choices.
+- `cloudBakeCenteredPopup` with `centeredPopupButton` for confirmations, input workflows,
   destructive actions, and owner decisions.
 
 Popups should match the existing centered CloudBake style used by Orders, Customers, and Inventory:

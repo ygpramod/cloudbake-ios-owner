@@ -52,12 +52,14 @@ It must:
   `CloudBakeScreenScaffold` for second-level screens, `CloudBakeDetailCard` and
   `CloudBakeDetailRow` for detail/settings rows, `cloudBakeFormScreenStyle()` for forms,
   `cloudBakeCenteredPopup` and `centeredPopupButton` for modal confirmations and choices.
-- Keep owner-facing popups visually consistent with existing order, customer, and inventory popups:
+- Keep owner-facing confirmations and input popups visually consistent with existing order,
+  customer, and inventory popups:
   centered dialog, dimmed background, CloudBake pink action tint, shared rounded-card layout,
   full-width pill action buttons, destructive role only where the action is destructive, and clear
   accessibility identifiers.
-- Do not introduce one-off `Alert`, `confirmationDialog`, sheet, menu, custom overlay, button, or
-  card styling when an existing CloudBake popup or row pattern already fits the workflow.
+- Use native `Menu` for compact, non-destructive choices such as order status and payment actions.
+  Do not introduce a one-off `Alert`, `confirmationDialog`, sheet, menu, custom overlay, button, or
+  card style when an established native or CloudBake pattern already fits the workflow.
 - Avoid force unwraps, `try!`, `as!`, ignored errors, blocking the main thread, hardcoded API URLs,
   committed secrets, and silent failures.
 - Add or update unit, integration, and acceptance tests according to risk.

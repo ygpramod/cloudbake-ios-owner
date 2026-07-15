@@ -295,7 +295,9 @@ Dashboard low inventory includes items below minimum quantity, items with expire
 and items with remaining stock expiring within one month.
 
 The home screen shows Today, Needs attention, and Quick actions. More holds secondary areas such as
-Recipes, Customers, Designs, and Settings so Home does not become a long directory.
+Recipes, Customers, Designs, and Settings so Home does not become a long directory. Upcoming Orders
+includes active orders due from today through the end of the thirtieth day; later orders remain in
+Orders and Calendar.
 
 Second-level owner screens use the same CloudBake visual language: warm light background, compact
 screen title, circular top actions in the header, card-based lists, and bottom quick navigation for
@@ -307,8 +309,8 @@ custom back button. CloudBake keeps a short recent section history, so tapping a
 section behaves like going back to that screen instead of opening a duplicate copy.
 
 Detail screens use a focused version of the same visual language: custom compact header, hero
-summary card, titled card sections, visible row actions, and centered confirmation popups for
-status/payment actions.
+summary card, titled card sections, visible row actions, native menus for compact choices, and
+centered confirmation popups for protected mutations and input.
 
 Order detail overview focuses on balance due and delivery address when the order is a delivery.
 Notes and cake message content are shown as left-aligned block text below their labels so longer
@@ -426,7 +428,7 @@ Today, the owner can:
     ingredients from inventory with unit conversion,
 18. add, complete, and delete simple preparation checklist items from order detail,
 19. review completed and cancelled orders in a separate Completed tab,
-20. use visible row actions to change status or record payment,
+20. use visible row actions with native iOS menus to change status or record payment,
 21. mark payment Paid or add a partial payment from order detail,
 22. review the next relevant reminder in order detail,
 23. add customer reference photos and final cake photos from the camera or photo library,
@@ -533,7 +535,8 @@ contributes cost, and ingredient cost does not change the quoted price automatic
 CloudBake keeps separately entered priced purchases as separate batches, even when their expiry date
 and amount match. This preserves the purchase quantity and unit cost used by order costing.
 
-Order rows also expose visible action chips for quick status changes and payment recording. These
+Order rows also expose visible action chips with compact native menus for quick status changes and
+payment recording. These
 quick actions use centered popups and ask for confirmation before saving. Pricing suggestions,
 discounts, refunds, and online payment processing remain future work.
 
