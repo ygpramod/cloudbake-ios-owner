@@ -625,6 +625,39 @@ struct CloudBakeAdaptiveActionButton: View {
     }
 }
 
+struct CloudBakeAdaptiveActionMenu<Content: View>: View {
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let accessibilityIdentifier: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        Menu(content: content) {
+            if verticalSizeClass == .compact {
+                Label(title, systemImage: systemImage)
+                    .font(CloudBakeTheme.Typography.rowDetail.weight(.semibold))
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .padding(.horizontal, 12)
+                    .background(tint.opacity(0.12), in: Capsule())
+            } else {
+                CloudBakeIconActionLabel(
+                    title: title,
+                    systemImage: systemImage,
+                    tint: tint
+                )
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
 struct CloudBakeIconActionButton: View {
     let title: String
     let systemImage: String
