@@ -129,7 +129,7 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.visibleRecipes, [recipe])
     }
 
-    func testVisibleRecipesFilterByIngredientState() {
+    func testVisibleRecipesIncludeRecipesRegardlessOfIngredientState() {
         let repository = FakeRecipeRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
         let complete = Recipe(
@@ -181,13 +181,8 @@ final class RecipeListViewModelTests: XCTestCase {
         let viewModel = RecipeListViewModel(repository: repository)
 
         viewModel.load()
-        viewModel.recipeFilter = .withIngredients
 
-        XCTAssertEqual(viewModel.visibleRecipes, [complete])
-
-        viewModel.recipeFilter = .needsIngredients
-
-        XCTAssertEqual(viewModel.visibleRecipes, [draft])
+        XCTAssertEqual(viewModel.visibleRecipes, [complete, draft])
     }
 
     func testRecipeDraftCanSubmitOnlyWhenNameIsPresent() {
