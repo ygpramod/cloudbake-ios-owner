@@ -89,6 +89,8 @@ When implemented, update:
 
 - Order rows now expose visible `Status` and `Payment` action chips. RFC-0069 replaced the original
   list-row swipe implementation when Orders moved to card-based second-level screen styling.
+- Order card content uses the shared compact Home and Inventory row hierarchy so its icon,
+  typography, metadata spacing, and chevron remain consistent across primary workflows.
 - Row status changes use centered popups for status selection and confirmation.
 - Row payment actions use centered popups with `Mark Paid` and `Add Partial Payment`.
 - Order detail exposes a payment action beside payment status.
