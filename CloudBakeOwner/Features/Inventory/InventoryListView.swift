@@ -7,8 +7,6 @@ struct InventoryListView: View {
     @State private var isAddingItem = false
     @State private var isViewingItem = false
     @State private var isShowingArchivedItems = false
-    @State private var isAdjustingStock = false
-    @State private var isConsumingStock = false
     @State private var isShowingHistory = false
     @State private var isImportingPurchaseBill = false
     @State private var isAddingInventoryByVoice = false
@@ -102,22 +100,6 @@ struct InventoryListView: View {
         .sheet(isPresented: $isShowingArchivedItems) {
             NavigationStack {
                 ArchivedInventoryView(viewModel: viewModel)
-            }
-        }
-        .sheet(isPresented: $isAdjustingStock) {
-            NavigationStack {
-                InventoryStockAdjustmentForm(
-                    viewModel: viewModel,
-                    isPresented: $isAdjustingStock
-                )
-            }
-        }
-        .sheet(isPresented: $isConsumingStock) {
-            NavigationStack {
-                InventoryStockConsumptionForm(
-                    viewModel: viewModel,
-                    isPresented: $isConsumingStock
-                )
             }
         }
         .sheet(isPresented: $isShowingHistory) {
@@ -246,46 +228,16 @@ struct InventoryListView: View {
             onDelete: { pendingDeleteItem = item },
             itemID: item.id
         ) {
-            VStack(alignment: .leading, spacing: 14) {
-                Button {
-                    viewModel.beginViewingItem(item)
-                    isViewingItem = true
-                } label: {
-                    InventoryItemRow(item: item)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("inventory.item.view.\(item.id)")
-
-                HStack(spacing: 12) {
-                    Spacer(minLength: 0)
-
-                    CloudBakeIconActionButton(
-                        title: "Adjust",
-                        systemImage: "plus",
-                        tint: .cloudBakePurple,
-                        accessibilityIdentifier: "inventory.item.adjust.\(item.id)"
-                    ) {
-                        viewModel.beginAdjusting(item)
-                        isAdjustingStock = true
-                    }
-
-                    CloudBakeIconActionButton(
-                        title: "Use stock",
-                        systemImage: "minus",
-                        tint: .cloudBakeOrange,
-                        accessibilityIdentifier: "inventory.item.consume.\(item.id)"
-                    ) {
-                        viewModel.beginConsuming(item)
-                        isConsumingStock = true
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: 240)
-                .frame(maxWidth: .infinity)
+            Button {
+                viewModel.beginViewingItem(item)
+                isViewingItem = true
+            } label: {
+                InventoryItemRow(item: item)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("inventory.item.view.\(item.id)")
             .padding(20)
             .cloudBakeCardStyle()
         }
@@ -321,45 +273,51 @@ private struct InventorySwipeActionCard<Content: View>: View {
     @State private var position: Position? = .content
 
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 0) {
-                swipeButton(
-                    title: "History",
-                    systemImage: "clock",
-                    color: .cloudBakeTeal,
-                    accessibilityIdentifier: "inventory.item.history.\(itemID)",
-                    action: onHistory
-                )
-                .id(Position.history)
-
-                content
-                    .containerRelativeFrame(.horizontal)
-                    .id(Position.content)
-
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
                 HStack(spacing: 0) {
                     swipeButton(
-                        title: "Archive",
-                        systemImage: "archivebox",
-                        color: .cloudBakeOrange,
-                        accessibilityIdentifier: "inventory.item.archive.\(itemID)",
-                        action: onArchive
+                        title: "History",
+                        systemImage: "clock",
+                        color: .cloudBakeTeal,
+                        accessibilityIdentifier: "inventory.item.history.\(itemID)",
+                        action: onHistory
                     )
-                    swipeButton(
-                        title: "Delete",
-                        systemImage: "trash",
-                        color: .red,
-                        accessibilityIdentifier: "inventory.item.delete.\(itemID)",
-                        action: onDelete
-                    )
+                    .id(Position.history)
+
+                    content
+                        .containerRelativeFrame(.horizontal)
+                        .id(Position.content)
+
+                    HStack(spacing: 0) {
+                        swipeButton(
+                            title: "Archive",
+                            systemImage: "archivebox",
+                            color: .cloudBakeOrange,
+                            accessibilityIdentifier: "inventory.item.archive.\(itemID)",
+                            action: onArchive
+                        )
+                        swipeButton(
+                            title: "Delete",
+                            systemImage: "trash",
+                            color: .red,
+                            accessibilityIdentifier: "inventory.item.delete.\(itemID)",
+                            action: onDelete
+                        )
+                    }
+                    .id(Position.destructiveActions)
                 }
-                .id(Position.destructiveActions)
+                .scrollTargetLayout()
             }
-            .scrollTargetLayout()
+            .scrollIndicators(.hidden)
+            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+            .scrollPosition(id: $position, anchor: .center)
+            .onAppear {
+                position = .content
+                proxy.scrollTo(Position.content, anchor: .center)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.cardRadius, style: .continuous))
         }
-        .scrollIndicators(.hidden)
-        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-        .scrollPosition(id: $position, anchor: .center)
-        .clipShape(RoundedRectangle(cornerRadius: CloudBakeTheme.Shape.cardRadius, style: .continuous))
     }
 
     private func swipeButton(
@@ -376,10 +334,10 @@ private struct InventorySwipeActionCard<Content: View>: View {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
                 .labelStyle(.iconOnly)
-                .foregroundStyle(.white)
+                .foregroundStyle(color)
                 .frame(width: Self.actionWidth)
                 .frame(maxHeight: .infinity)
-                .background(color)
+                .background(CloudBakeTheme.ColorToken.surface)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)

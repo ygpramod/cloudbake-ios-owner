@@ -64,6 +64,16 @@ extension CloudBakeOwnerUITests {
 
         app.buttons["inventory.detail.done"].tap()
         assertScreenVisible("screen.inventory", in: app, timeout: 5)
+        XCTAssertFalse(
+            app.buttons.matching(
+                NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.adjust.")
+            ).firstMatch.exists
+        )
+        XCTAssertFalse(
+            app.buttons.matching(
+                NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.consume.")
+            ).firstMatch.exists
+        )
 
         adjustFirstInventoryItem(by: "100", in: app)
         XCTAssertTrue(app.staticTexts["Current Quantity: 350 g"].waitForExistence(timeout: 5))
@@ -73,8 +83,9 @@ extension CloudBakeOwnerUITests {
 
         let inventoryRow = inventoryRow(named: "Cake flour", in: app)
         scrollToHittable(inventoryRow, in: app)
-        inventoryRow.swipeRight()
         let historyButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.history.")).firstMatch
+        XCTAssertFalse(historyButton.isHittable, "History must remain hidden until the owner swipes right.")
+        inventoryRow.swipeRight()
         XCTAssertTrue(historyButton.waitForExistence(timeout: 5))
         scrollToHittable(historyButton, in: app)
         tapWhenReady(historyButton, timeout: 10)

@@ -11,7 +11,7 @@ Keep active inventory cards lean while preserving quick access to history, archi
 ## Scope
 
 1. Keep only name and current quantity in the active inventory summary row.
-2. Center the existing Adjust (`+`) and Use (`−`) action pills below the summary.
+2. Remove inline Adjust and Use actions from active cards; keep both actions in inventory detail.
 3. Reveal History by swiping an active card to the right.
 4. Reveal Archive and Delete by swiping an active card to the left.
 5. Confirm archive and permanent deletion before changing data.
@@ -19,6 +19,8 @@ Keep active inventory cards lean while preserving quick access to history, archi
 7. Delete only inventory items with no stock batches, transaction history, recipe ingredients,
    order extra ingredients, or recorded order ingredient costs.
 8. When an item is in use, preserve it and direct the owner to archive it instead.
+9. Keep cards centered at rest, with swipe actions hidden until the owner swipes.
+10. Use neutral swipe-action surfaces and carry action color on the icons only.
 
 ## Out Of Scope
 
@@ -29,12 +31,15 @@ Keep active inventory cards lean while preserving quick access to history, archi
 ## Acceptance
 
 1. Active cards do not show minimum quantity or expiry.
-2. A right swipe reveals History and opens the existing history screen.
-3. A left swipe reveals Archive and Delete.
-4. Archive remains reversible from Archived Inventory.
-5. Archived Inventory offers Delete with confirmation.
-6. An unused item is permanently removed.
-7. A referenced item is not deleted and the owner sees archive guidance.
+2. Active cards do not show Adjust or Use actions.
+3. A right swipe reveals History and opens the existing history screen.
+4. A left swipe reveals Archive and Delete.
+5. Archive remains reversible from Archived Inventory.
+6. Archived Inventory offers Delete with confirmation.
+7. An unused item is permanently removed.
+8. A referenced item is not deleted and the owner sees archive guidance.
+9. History is not visible or hittable before a right swipe.
+10. History, Archive, and Delete use colorful icons without colored action backgrounds.
 
 ## Validation
 

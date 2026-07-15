@@ -318,25 +318,30 @@ extension CloudBakeOwnerUITests {
     }
 
     func adjustFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
-        let adjustButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.adjust.")).firstMatch
+        tapWhenReady(firstEditableInventoryRow(in: app), timeout: 10)
+        let adjustButton = app.buttons["inventory.detail.adjust"]
         XCTAssertTrue(adjustButton.waitForExistence(timeout: 5))
         adjustButton.tap()
         XCTAssertTrue(app.navigationBars["Adjust Stock"].waitForExistence(timeout: 5))
         app.textFields["inventory.adjust.quantity"].tap()
         app.textFields["inventory.adjust.quantity"].typeText(quantity)
         app.buttons["inventory.adjust.save"].tap()
+        XCTAssertTrue(app.buttons["inventory.detail.done"].waitForExistence(timeout: 5))
+        app.buttons["inventory.detail.done"].tap()
         assertScreenVisible("screen.inventory", in: app, timeout: 5)
     }
 
     func consumeFirstInventoryItem(by quantity: String, in app: XCUIApplication) {
-        let consumeButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.consume.")).firstMatch
+        tapWhenReady(firstEditableInventoryRow(in: app), timeout: 10)
+        let consumeButton = app.buttons["inventory.detail.consume"]
         XCTAssertTrue(consumeButton.waitForExistence(timeout: 5))
-        scrollToHittable(consumeButton, in: app)
         consumeButton.tap()
         XCTAssertTrue(app.navigationBars["Use Stock"].waitForExistence(timeout: 5))
         app.textFields["inventory.consume.quantity"].tap()
         app.textFields["inventory.consume.quantity"].typeText(quantity)
         app.buttons["inventory.consume.save"].tap()
+        XCTAssertTrue(app.buttons["inventory.detail.done"].waitForExistence(timeout: 5))
+        app.buttons["inventory.detail.done"].tap()
         assertScreenVisible("screen.inventory", in: app, timeout: 5)
     }
 
