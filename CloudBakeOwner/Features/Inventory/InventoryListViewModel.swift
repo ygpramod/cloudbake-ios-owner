@@ -559,6 +559,22 @@ final class InventoryListViewModel: ObservableObject {
         }
     }
 
+    @discardableResult
+    func deleteItem(_ item: InventoryItem) -> Bool {
+        do {
+            try repository.deleteInventoryItem(id: item.id)
+            load()
+            loadArchivedItems()
+            return true
+        } catch InventoryItemDeletionError.inUse {
+            errorMessage = "This inventory item is used by stock history, a recipe, or an order. Archive it instead to preserve those records."
+            return false
+        } catch {
+            errorMessage = "Inventory item could not be deleted."
+            return false
+        }
+    }
+
     func beginAdjusting(_ item: InventoryItem) {
         adjustingItem = item
         draftAdjustmentQuantity = ""

@@ -2185,6 +2185,57 @@ final class CoreDataRepositoryTests: XCTestCase {
             [newerFlourTransaction, olderFlourTransaction]
         )
     }
+
+    func testDeletingUnusedInventoryItemRemovesItPermanently() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-unused",
+            name: "Unused decoration",
+            unit: .each,
+            currentQuantity: 0,
+            minimumQuantity: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(item)
+
+        try repository.deleteInventoryItem(id: item.id)
+
+        XCTAssertNil(try repository.fetchInventoryItem(id: item.id))
+    }
+
+    func testDeletingInventoryItemWithHistoryIsRejected() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-used",
+            name: "Used flour",
+            unit: .gram,
+            currentQuantity: 0,
+            minimumQuantity: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(item)
+        try repository.save(
+            InventoryTransaction(
+                id: "transaction-used",
+                inventoryItemId: item.id,
+                kind: .consumption,
+                quantity: 10,
+                occurredAt: timestamp,
+                note: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+
+        XCTAssertThrowsError(try repository.deleteInventoryItem(id: item.id)) { error in
+            XCTAssertEqual(error as? InventoryItemDeletionError, .inUse)
+        }
+        XCTAssertEqual(try repository.fetchInventoryItem(id: item.id), item)
+    }
 }
 
 private struct TestTimestamps {
