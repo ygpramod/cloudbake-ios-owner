@@ -107,10 +107,7 @@ extension CloudBakeOwnerUITests {
         openDashboardDestination("Inventory", in: app)
 
         XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
-        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "inventory.item.view."))
-            .firstMatch
-            .coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5))
-            .tap()
+        tapWhenReady(firstEditableInventoryRow(in: app), timeout: 10)
     }
 
     func testInventoryCanBeArchivedAndRestored() throws {
@@ -194,6 +191,25 @@ extension CloudBakeOwnerUITests {
         tapWhenReady(app.buttons["inventory.archived.delete.confirm"], timeout: transitionTimeout)
 
         XCTAssertTrue(app.staticTexts["No archived inventory"].waitForExistence(timeout: transitionTimeout))
+    }
+
+    func testInventoryCardsPreserveVerticalScrollingAcrossLongLists() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 20
+        app.launchEnvironment["CLOUDBAKE_SEED_LONG_INVENTORY_FIXTURE"] = "1"
+        app.launch()
+
+        openDashboardDestination("Inventory", in: app, timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["Scroll item 01"].waitForExistence(timeout: transitionTimeout))
+
+        let lastRow = inventoryRow(named: "Scroll item 08", in: app)
+        scrollToHittable(lastRow, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(lastRow.isHittable)
+
+        lastRow.swipeLeft()
+        let deleteButton = app.buttons["inventory.item.delete.inventory-ui-scroll-8"]
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(deleteButton.isHittable)
     }
 
     func testInventoryDetailShowsStockActionsInMoreMenu() throws {

@@ -42,4 +42,3 @@ Keep active inventory cards lean while preserving quick access to history, archi
 2. GRDB integration tests prove unused deletion and history protection.
 3. Inventory acceptance tests cover both swipe directions and the existing archive/restore and
    stock-history journeys.
-
