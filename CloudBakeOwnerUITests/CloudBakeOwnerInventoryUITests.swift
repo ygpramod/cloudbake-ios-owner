@@ -107,6 +107,54 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(lowInventoryAlert.label.contains("Expiring soon"))
     }
 
+    func testInventorySwipeReturnStopsAtClosedCard() throws {
+        let app = makeInventoryFixtureApp()
+        openDashboardDestination("Inventory", in: app)
+
+        let inventoryRow = inventoryRow(named: "Cake flour", in: app)
+        let historyButton = app.buttons["inventory.item.history.inventory-ui-fixture-cake-flour"]
+        let archiveButton = app.buttons["inventory.item.archive.inventory-ui-fixture-cake-flour"]
+        let closeActions = app.otherElements["inventory.item.closeActions.inventory-ui-fixture-cake-flour"]
+        XCTAssertFalse(historyButton.isHittable)
+
+        inventoryRow.swipeRight()
+        XCTAssertTrue(historyButton.waitForExistence(timeout: 5))
+        tapWhenReady(historyButton, timeout: 5)
+        XCTAssertTrue(app.buttons["inventory.history.done"].waitForExistence(timeout: 5))
+        app.buttons["inventory.history.done"].tap()
+
+        inventoryRow.swipeLeft()
+        XCTAssertTrue(archiveButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(closeActions.waitForExistence(timeout: 5))
+        closeActions.swipeRight()
+
+        XCTAssertGreaterThanOrEqual(
+            archiveButton.frame.minX,
+            inventoryRow.frame.maxX,
+            "Returning from Archive and Delete must place Archive beyond the visible card."
+        )
+        XCTAssertLessThanOrEqual(
+            historyButton.frame.maxX,
+            inventoryRow.frame.minX,
+            "Closing destructive actions must not reveal History."
+        )
+
+        inventoryRow.swipeRight()
+        XCTAssertTrue(closeActions.waitForExistence(timeout: 5))
+        closeActions.swipeLeft()
+
+        XCTAssertLessThanOrEqual(
+            historyButton.frame.maxX,
+            inventoryRow.frame.minX,
+            "Returning from History must place History beyond the visible card."
+        )
+        XCTAssertGreaterThanOrEqual(
+            archiveButton.frame.minX,
+            inventoryRow.frame.maxX,
+            "Closing History must not reveal Archive and Delete."
+        )
+    }
+
     private func makeInventoryFixtureApp() -> XCUIApplication {
         let app = makeApp()
         app.launchEnvironment["CLOUDBAKE_SEED_INVENTORY_FIXTURE"] = "1"
@@ -218,11 +266,12 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(lastRow.isHittable)
 
         lastRow.swipeLeft()
-        let deleteButton = app.buttons["inventory.item.delete.inventory-ui-scroll-8"]
-        XCTAssertTrue(deleteButton.waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(deleteButton.isHittable)
+        let archiveButton = app.buttons["inventory.item.archive.inventory-ui-scroll-8"]
+        XCTAssertTrue(archiveButton.waitForExistence(timeout: transitionTimeout))
+        scrollToHittable(archiveButton, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(archiveButton.isHittable)
         XCTAssertTrue(lastRow.isHittable)
-        XCTAssertGreaterThan(deleteButton.frame.midX, app.windows.firstMatch.frame.midX)
+        XCTAssertGreaterThan(archiveButton.frame.midX, app.windows.firstMatch.frame.midX)
     }
 
     func testInventoryDetailShowsStockActionsInMoreMenu() throws {
