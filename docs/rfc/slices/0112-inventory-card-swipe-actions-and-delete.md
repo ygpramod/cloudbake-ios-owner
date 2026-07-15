@@ -24,6 +24,8 @@ Keep active inventory cards lean while preserving quick access to history, archi
 11. Match active card typography, compact row icon, spacing, and density to Home screen rows.
 12. Keep revealed action icons prominent and snap a return swipe to the closed card before the
     opposite action side can be revealed.
+13. Let the owner swipe horizontally on the inventory filter ribbon to move between adjacent
+    filters without intercepting the card-level History, Archive, and Delete swipes.
 
 ## Out Of Scope
 
@@ -45,6 +47,7 @@ Keep active inventory cards lean while preserving quick access to history, archi
 10. History, Archive, and Delete use colorful icons without colored action backgrounds.
 11. Active cards use the same compact row hierarchy as Home cards.
 12. A swipe returning from either action side closes the card without overshooting to the other side.
+13. Filter-ribbon swipes move between All, Low stock, and Expiring soon in order.
 
 ## Validation
 

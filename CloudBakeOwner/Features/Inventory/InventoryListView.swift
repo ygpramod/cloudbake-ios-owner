@@ -64,6 +64,8 @@ struct InventoryListView: View {
                 .background(.white.opacity(0.90), in: Capsule())
                 .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
                 .accessibilityIdentifier("inventory.filter")
+                .contentShape(Rectangle())
+                .simultaneousGesture(inventoryFilterSwipeGesture)
 
                 inventoryResults
                     .contentShape(Rectangle())
@@ -253,6 +255,31 @@ struct InventoryListView: View {
         viewModel.beginViewingItem(item)
         isViewingItem = true
         inventoryNavigationRouter.clearPendingInventoryItemId()
+    }
+
+    private var inventoryFilterSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 36, coordinateSpace: .local)
+            .onEnded(handleInventoryFilterSwipe)
+    }
+
+    private func handleInventoryFilterSwipe(_ value: DragGesture.Value) {
+        let horizontalDistance = value.translation.width
+        let verticalDistance = value.translation.height
+        guard abs(horizontalDistance) >= 72,
+              abs(horizontalDistance) > abs(verticalDistance) * 1.4 else {
+            return
+        }
+
+        let nextFilter = horizontalDistance < 0
+            ? viewModel.itemFilter.next
+            : viewModel.itemFilter.previous
+        guard let nextFilter else {
+            return
+        }
+
+        withAnimation(.easeInOut(duration: 0.18)) {
+            viewModel.itemFilter = nextFilter
+        }
     }
 }
 

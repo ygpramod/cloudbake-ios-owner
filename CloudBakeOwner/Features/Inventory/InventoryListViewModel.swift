@@ -1492,6 +1492,28 @@ enum InventoryItemFilter: String, CaseIterable, Identifiable {
         }
     }
 
+    var next: InventoryItemFilter? {
+        switch self {
+        case .all:
+            return .lowStock
+        case .lowStock:
+            return .expiringSoon
+        case .expiringSoon:
+            return nil
+        }
+    }
+
+    var previous: InventoryItemFilter? {
+        switch self {
+        case .all:
+            return nil
+        case .lowStock:
+            return .all
+        case .expiringSoon:
+            return .lowStock
+        }
+    }
+
     func includes(_ item: InventoryItem) -> Bool {
         switch self {
         case .all:
