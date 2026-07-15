@@ -73,7 +73,7 @@ final class DashboardViewModel: ObservableObject {
                 recipeIngredients: repository.fetchRecipeIngredients(componentId:),
                 orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
             )
-            upcomingOrders = orderPresentation.activeOrders(from: orders)
+            upcomingOrders = orderPresentation.upcomingOrders(from: orders)
             overdueOrderAlert = orderPresentation.primaryOverdueAlert(from: orders)
             errorMessage = nil
         } catch {
