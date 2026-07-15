@@ -243,7 +243,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let app = makeApp(initialDestination: "designs")
         app.launch()
 
-        let addReference = app.buttons["designs.references.add"]
+        let addReference = app.descendants(matching: .any)["designs.references.add"]
         scrollToHittable(addReference, in: app, timeout: 10)
         tapWhenReady(addReference)
         XCTAssertTrue(app.navigationBars["Import Reference"].waitForExistence(timeout: 5))
