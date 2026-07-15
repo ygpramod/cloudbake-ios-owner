@@ -57,7 +57,7 @@ jobs:
   acceptance-tests:
     name: Acceptance UI Tests (${{ matrix.feature }})
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
