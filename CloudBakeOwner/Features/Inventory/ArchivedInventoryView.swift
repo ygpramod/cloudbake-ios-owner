@@ -33,30 +33,51 @@ struct ArchivedInventoryView: View {
                                 }
 
                                 HStack(spacing: 10) {
-                                    Button {
-                                        viewModel.restoreItem(item)
-                                    } label: {
-                                        Label("Restore", systemImage: "arrow.uturn.backward")
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundStyle(.green)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 7)
-                                            .background(Color.green.opacity(0.10), in: Capsule())
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityIdentifier("inventory.archived.restore.\(item.id)")
+                                    if pendingDeleteItem?.id == item.id {
+                                        Button("Cancel") {
+                                            pendingDeleteItem = nil
+                                        }
+                                        .font(.caption.weight(.semibold))
+                                        .buttonStyle(.bordered)
+                                        .buttonBorderShape(.capsule)
+                                        .accessibilityIdentifier("inventory.archived.delete.cancel")
 
-                                    Button(role: .destructive) {
-                                        pendingDeleteItem = item
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                            .font(.caption.weight(.semibold))
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 7)
-                                            .background(Color.red.opacity(0.10), in: Capsule())
+                                        Button("Delete Permanently", role: .destructive) {
+                                            _ = viewModel.deleteItem(item)
+                                            pendingDeleteItem = nil
+                                        }
+                                        .font(.caption.weight(.semibold))
+                                        .buttonStyle(.borderedProminent)
+                                        .buttonBorderShape(.capsule)
+                                        .tint(.red)
+                                        .accessibilityIdentifier("inventory.archived.delete.confirm")
+                                    } else {
+                                        Button {
+                                            viewModel.restoreItem(item)
+                                        } label: {
+                                            Label("Restore", systemImage: "arrow.uturn.backward")
+                                                .font(.caption.weight(.semibold))
+                                                .foregroundStyle(.green)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 7)
+                                                .background(Color.green.opacity(0.10), in: Capsule())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityIdentifier("inventory.archived.restore.\(item.id)")
+
+                                        Button {
+                                            pendingDeleteItem = item
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                                .font(.caption.weight(.semibold))
+                                                .foregroundStyle(.red)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 7)
+                                                .background(Color.red.opacity(0.10), in: Capsule())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityIdentifier("inventory.archived.delete.\(item.id)")
                                     }
-                                    .buttonStyle(.plain)
-                                    .accessibilityIdentifier("inventory.archived.delete.\(item.id)")
                                 }
                             }
                             .padding(20)
@@ -75,22 +96,6 @@ struct ArchivedInventoryView: View {
         }
         .onAppear {
             viewModel.loadArchivedItems()
-        }
-        .cloudBakeCenteredPopup(
-            isPresented: pendingDeleteItem != nil,
-            title: "Delete Inventory?",
-            subtitle: "Delete this unused archived item permanently. Items linked to stock history, recipes, or orders cannot be deleted.",
-            systemImage: "trash",
-            cancelAccessibilityIdentifier: "inventory.archived.delete.cancel",
-            onCancel: { pendingDeleteItem = nil }
-        ) {
-            if let pendingDeleteItem {
-                centeredPopupButton("Delete \(pendingDeleteItem.name)", role: .destructive) {
-                    _ = viewModel.deleteItem(pendingDeleteItem)
-                    self.pendingDeleteItem = nil
-                }
-                .accessibilityIdentifier("inventory.archived.delete.confirm")
-            }
         }
         .accessibilityIdentifier("inventory.archived.screen")
     }
