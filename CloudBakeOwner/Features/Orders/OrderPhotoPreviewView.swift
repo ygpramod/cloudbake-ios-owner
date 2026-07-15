@@ -5,6 +5,8 @@ struct OrderPhotoPreviewView: View {
     let photoSource: CakeDesignPhotoSource?
     let onSaveCaption: (String) -> OrderPhoto?
     let onPromoteToDesign: (String, String) async -> Bool
+    let onAddToDesignReferences: (String) async -> Bool
+    let referenceErrorMessage: () -> String?
     let onClose: () -> Void
     @State private var displayedPhoto: OrderPhoto
     @State private var draftCaption = ""
@@ -13,18 +15,26 @@ struct OrderPhotoPreviewView: View {
     @State private var draftDesignNotes = ""
     @State private var isPromotingToDesign = false
     @State private var isSavingDesign = false
+    @State private var isAddingToReferences = false
+    @State private var draftReferenceTags = ""
+    @State private var referenceError: String?
+    @State private var isAddedToReferences = false
 
     init(
         photo: OrderPhoto,
         photoSource: CakeDesignPhotoSource?,
         onSaveCaption: @escaping (String) -> OrderPhoto?,
         onPromoteToDesign: @escaping (String, String) async -> Bool,
+        onAddToDesignReferences: @escaping (String) async -> Bool,
+        referenceErrorMessage: @escaping () -> String?,
         onClose: @escaping () -> Void
     ) {
         self.photo = photo
         self.photoSource = photoSource
         self.onSaveCaption = onSaveCaption
         self.onPromoteToDesign = onPromoteToDesign
+        self.onAddToDesignReferences = onAddToDesignReferences
+        self.referenceErrorMessage = referenceErrorMessage
         self.onClose = onClose
         _displayedPhoto = State(initialValue: photo)
     }
@@ -65,6 +75,22 @@ struct OrderPhotoPreviewView: View {
                         }
                         .accessibilityLabel("Save Final Photo As Design")
                         .accessibilityIdentifier("orders.detail.photos.preview.promoteDesign")
+                    }
+
+                    if displayedPhoto.kind == .customerReference {
+                        Button {
+                            referenceError = nil
+                            isAddingToReferences = true
+                        } label: {
+                            Label("Add to Design References", systemImage: "photo.badge.plus")
+                                .labelStyle(.iconOnly)
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("Add to Design References")
+                        .accessibilityIdentifier("orders.detail.photos.preview.addToReferences")
+                        .disabled(isAddedToReferences)
                     }
 
                     Spacer()
@@ -182,6 +208,46 @@ struct OrderPhotoPreviewView: View {
                             }
                         }
                         .accessibilityIdentifier("orders.detail.photos.caption.save")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $isAddingToReferences) {
+            NavigationStack {
+                Form {
+                    Section("Reference") {
+                        TextField("Tags separated by commas", text: $draftReferenceTags)
+                            .accessibilityIdentifier("orders.detail.photos.reference.tags")
+                        if let referenceError {
+                            Text(referenceError)
+                                .foregroundStyle(.red)
+                                .accessibilityIdentifier("orders.detail.photos.reference.error")
+                        }
+                    }
+                }
+                .cloudBakeFormScreenStyle()
+                .navigationTitle("Add to References")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { isAddingToReferences = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Add") {
+                            guard !isSavingDesign else { return }
+                            isSavingDesign = true
+                            Task {
+                                if await onAddToDesignReferences(draftReferenceTags) {
+                                    isAddedToReferences = true
+                                    isAddingToReferences = false
+                                } else {
+                                    referenceError = referenceErrorMessage()
+                                        ?? "Reference could not be saved."
+                                }
+                                isSavingDesign = false
+                            }
+                        }
+                        .disabled(isSavingDesign)
+                        .accessibilityIdentifier("orders.detail.photos.reference.add")
                     }
                 }
             }

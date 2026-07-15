@@ -32,7 +32,6 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var customers: [Customer] = []
     @Published private(set) var recipes: [Recipe] = []
     @Published private(set) var cakeDesigns: [CakeDesign] = []
-    @Published private(set) var designCustomerReferences: [CustomerReferenceDesign] = []
     @Published private(set) var selectedOrder: Order?
     @Published private(set) var selectedOrderCustomer: Customer?
     @Published private(set) var selectedOrderRecipe: Recipe?
@@ -219,7 +218,9 @@ final class OrderListViewModel: ObservableObject {
             orders = try repository.fetchOrders()
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
-            cakeDesigns = try repository.fetchCakeDesigns(sourceKind: .ownerMade)
+            cakeDesigns = try repository.fetchCakeDesigns().filter {
+                $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference
+            }
             errorMessage = retryPendingDesignPhotoCleanups()
                 ? nil
                 : "A previous design photo cleanup will be retried automatically."
@@ -359,7 +360,7 @@ final class OrderListViewModel: ObservableObject {
         switch selectedOrderCakeDesign?.sourceKind {
         case .ownerMade: return "My Designs"
         case .internetInspiration: return "Internet Inspiration"
-        case .customerReference: return "Customer Reference"
+        case .customerReference: return "Reference"
         case nil: return nil
         }
     }
@@ -389,42 +390,21 @@ final class OrderListViewModel: ObservableObject {
 
     var mostUsedDesignTags: [String] {
         DesignTagRanking.mostUsed(
-            in: cakeDesigns.filter { $0.sourceKind == .ownerMade }.map(\.tags)
-                + designCustomerReferences.map { $0.photo.tags }
+            in: cakeDesigns
+                .filter { $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference }
+                .map(\.tags)
         )
     }
 
-    func customerReferences(matching searchText: String, tag: String?) -> [CustomerReferenceDesign] {
-        let terms = searchText.split { !$0.isLetter && !$0.isNumber }
-            .map(String.init)
-            .map(TextInputFormatting.normalizedSearchKey)
-            .filter { !$0.isEmpty }
-        return designCustomerReferences.filter { reference in
-            let fields = ([
-                reference.title,
-                reference.order.title,
-                reference.order.customerName
-            ] + reference.photo.tags).map(TextInputFormatting.normalizedSearchKey)
-            let matchesSearch = terms.allSatisfy { term in
-                fields.contains { $0.contains(term) }
-            }
-            guard matchesSearch, let tag else { return matchesSearch }
+    func references(matching searchText: String, tag: String?) -> [CakeDesign] {
+        OrderReferenceSelection.cakeDesigns(cakeDesigns, matching: searchText).filter { design in
+            guard design.sourceKind == .customerReference else { return false }
+            guard let tag else { return true }
             let selectedKey = TextInputFormatting.normalizedSearchKey(tag)
-            return reference.photo.tags.contains {
+            return design.tags.contains {
                 TextInputFormatting.normalizedSearchKey($0) == selectedKey
             }
         }
-    }
-
-    func designPhotoSource(for reference: CustomerReferenceDesign) -> CakeDesignPhotoSource? {
-        let path = reference.photo.localPhotoPath
-        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: path) {
-            return designPhotoLibrary.containsAsset(identifier: identifier)
-                ? .photosAsset(identifier)
-                : nil
-        }
-        let url = photoFileStore.fileURL(for: path)
-        return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
     }
 
     func designPhotoSource(for design: CakeDesign) -> CakeDesignPhotoSource? {
@@ -1093,19 +1073,22 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func updateOrderPhotoCaption(_ photo: OrderPhoto, caption: String) -> Bool {
-        let updatedPhoto = OrderPhoto(
-            id: photo.id,
-            orderId: photo.orderId,
-            kind: photo.kind,
-            localPhotoPath: photo.localPhotoPath,
-            caption: TextInputFormatting.optionalText(caption),
-            tags: photo.tags,
-            isFavorite: photo.isFavorite,
-            createdAt: photo.createdAt,
-            updatedAt: dateProvider()
-        )
-
         do {
+            guard let currentPhoto = try repository.fetchOrderPhoto(id: photo.id) else {
+                errorMessage = "Order photo could not be found."
+                return false
+            }
+            let updatedPhoto = OrderPhoto(
+                id: currentPhoto.id,
+                orderId: currentPhoto.orderId,
+                kind: currentPhoto.kind,
+                localPhotoPath: currentPhoto.localPhotoPath,
+                caption: TextInputFormatting.optionalText(caption),
+                tags: currentPhoto.tags,
+                isFavorite: currentPhoto.isFavorite,
+                createdAt: currentPhoto.createdAt,
+                updatedAt: dateProvider()
+            )
             try repository.save(updatedPhoto)
             if let selectedOrder {
                 loadSelectedOrderPhotos(for: selectedOrder)
@@ -1226,6 +1209,104 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func addCustomerReferencePhotoToDesignReferences(
+        _ photo: OrderPhoto,
+        tags: String
+    ) async -> Bool {
+        guard let selectedOrder, selectedOrder.id == photo.orderId else {
+            errorMessage = "Order could not be found."
+            return false
+        }
+        guard photo.kind == .customerReference else {
+            errorMessage = "Only customer reference photos can be added to References."
+            return false
+        }
+        guard !isPromotingDesign else {
+            errorMessage = "Reference is already being saved."
+            return false
+        }
+        isPromotingDesign = true
+        defer { isPromotingDesign = false }
+        await DesignPromotionCoordinator.shared.acquire(photoId: photo.id)
+        defer { Task { await DesignPromotionCoordinator.shared.release(photoId: photo.id) } }
+
+        do {
+            if try repository.fetchCakeDesign(originatingOrderPhotoId: photo.id) != nil {
+                errorMessage = "This photo is already in Design References."
+                return false
+            }
+        } catch {
+            errorMessage = "Reference history could not be checked."
+            return false
+        }
+
+        let photoReference: String
+        let cleanupRelativePath: String?
+        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: photo.localPhotoPath) {
+            guard designPhotoLibrary.containsAsset(identifier: identifier) else {
+                errorMessage = "Reference photo is no longer available in Photos."
+                return false
+            }
+            photoReference = photo.localPhotoPath
+            cleanupRelativePath = nil
+        } else {
+            do {
+                photoReference = try await designPhotoLibrary.savePhoto(at: orderPhotoURL(photo))
+                cleanupRelativePath = photo.localPhotoPath
+            } catch {
+                errorMessage = "Reference photo could not be saved to Photos."
+                return false
+            }
+        }
+
+        let now = dateProvider()
+        let design = CakeDesign(
+            id: idGenerator(),
+            name: photo.caption ?? "Reference",
+            notes: nil,
+            photoReference: photoReference,
+            sourceKind: .customerReference,
+            originatingOrderPhotoId: photo.id,
+            originatingOrderId: selectedOrder.id,
+            tags: DesignTags.parsed(tags),
+            createdAt: now,
+            updatedAt: now
+        )
+        let migratedPhoto = OrderPhoto(
+            id: photo.id,
+            orderId: photo.orderId,
+            kind: photo.kind,
+            localPhotoPath: photoReference,
+            caption: photo.caption,
+            tags: photo.tags,
+            isFavorite: photo.isFavorite,
+            createdAt: photo.createdAt,
+            updatedAt: now
+        )
+
+        do {
+            try repository.savePromotedDesign(
+                design,
+                linking: selectedOrder,
+                photo: migratedPhoto,
+                cleanupRelativePath: cleanupRelativePath
+            )
+            let didCleanup = cleanupRelativePath.map(cleanupDesignPhoto(at:)) ?? true
+            loadFormReferences()
+            loadSelectedOrderPhotos(for: selectedOrder)
+            errorMessage = didCleanup
+                ? nil
+                : "Reference saved. The old local photo copy will be removed automatically."
+            return true
+        } catch CakeDesignPromotionError.originatingPhotoAlreadyPromoted {
+            errorMessage = "This photo is already in Design References."
+            return false
+        } catch {
+            errorMessage = "Reference could not be saved."
+            return false
+        }
+    }
+
     func orderPhotoURL(_ photo: OrderPhoto) -> URL {
         photoFileStore.fileURL(for: photo.localPhotoPath)
     }
@@ -1269,26 +1350,19 @@ final class OrderListViewModel: ObservableObject {
         do {
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
-            cakeDesigns = try repository.fetchCakeDesigns(sourceKind: .ownerMade)
+            cakeDesigns = try repository.fetchCakeDesigns().filter {
+                $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference
+            }
             if let linkedDesignId = editingOrder?.cakeDesignId,
                !cakeDesigns.contains(where: { $0.id == linkedDesignId }),
                let linkedDesign = try repository.fetchCakeDesign(id: linkedDesignId) {
                 cakeDesigns.append(linkedDesign)
             }
-            let allOrders = try repository.fetchOrders()
-            let ordersById = Dictionary(uniqueKeysWithValues: allOrders.map { ($0.id, $0) })
-            designCustomerReferences = try repository.fetchOrderPhotos(kind: .customerReference)
-                .compactMap { photo in
-                    ordersById[photo.orderId].map {
-                        CustomerReferenceDesign(photo: photo, order: $0)
-                    }
-                }
             availableInventoryItems = try repository.fetchInventoryItems()
         } catch {
             customers = []
             recipes = []
             cakeDesigns = []
-            designCustomerReferences = []
             availableInventoryItems = []
             errorMessage = "Order form references could not be loaded."
         }

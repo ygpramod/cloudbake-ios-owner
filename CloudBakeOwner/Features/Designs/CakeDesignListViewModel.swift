@@ -8,14 +8,6 @@ enum CakeDesignPhotoSource: Hashable {
     case legacyFile(URL)
 }
 
-struct CustomerReferenceDesign: Identifiable, Equatable {
-    let photo: OrderPhoto
-    let order: Order
-
-    var id: String { photo.id }
-    var title: String { photo.caption ?? order.title }
-}
-
 enum DesignLibraryFilter: Hashable, Identifiable {
     case all
     case favorites
@@ -63,10 +55,20 @@ enum DesignTagRanking {
     }
 }
 
+enum CakeDesignPresentation {
+    static func collectionName(for design: CakeDesign) -> String {
+        design.sourceKind == .customerReference ? "References" : "My Designs"
+    }
+
+    static func itemName(for design: CakeDesign) -> String {
+        design.sourceKind == .customerReference ? "Reference" : "Design"
+    }
+}
+
 @MainActor
 final class CakeDesignListViewModel: ObservableObject {
     @Published private(set) var designs: [CakeDesign] = []
-    @Published private(set) var customerReferences: [CustomerReferenceDesign] = []
+    @Published private(set) var references: [CakeDesign] = []
     @Published private(set) var orders: [Order] = []
     @Published var searchText = ""
     @Published var selectedFilter: DesignLibraryFilter = .all
@@ -98,18 +100,10 @@ final class CakeDesignListViewModel: ObservableObject {
     func load() {
         do {
             designs = try repository.fetchCakeDesigns(sourceKind: .ownerMade)
+            references = try repository.fetchCakeDesigns(sourceKind: .customerReference)
             if let customerReferenceRepository {
                 orders = try customerReferenceRepository.fetchOrders()
-                let ordersById = Dictionary(
-                    uniqueKeysWithValues: orders.map { ($0.id, $0) }
-                )
-                customerReferences = try customerReferenceRepository
-                    .fetchOrderPhotos(kind: .customerReference)
-                    .compactMap { photo in
-                        ordersById[photo.orderId].map { CustomerReferenceDesign(photo: photo, order: $0) }
-                    }
             } else {
-                customerReferences = []
                 orders = []
             }
             if !availableFilters.contains(selectedFilter) {
@@ -120,7 +114,7 @@ final class CakeDesignListViewModel: ObservableObject {
                 : "A local photo cleanup will be retried automatically."
         } catch {
             designs = []
-            customerReferences = []
+            references = []
             orders = []
             errorMessage = "Designs could not be loaded."
         }
@@ -146,14 +140,6 @@ final class CakeDesignListViewModel: ObservableObject {
         return availablePhotoURL(for: design).map(CakeDesignPhotoSource.legacyFile)
     }
 
-    func availablePhotoSource(for photo: OrderPhoto) -> CakeDesignPhotoSource? {
-        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: photo.localPhotoPath) {
-            return designPhotoLibrary.containsAsset(identifier: identifier) ? .photosAsset(identifier) : nil
-        }
-        let url = photoFileStore.fileURL(for: photo.localPhotoPath)
-        return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
-    }
-
     var visibleDesigns: [CakeDesign] {
         let terms = searchTerms
         return designs.filter { design in
@@ -165,22 +151,18 @@ final class CakeDesignListViewModel: ObservableObject {
         }
     }
 
-    var visibleCustomerReferences: [CustomerReferenceDesign] {
+    var visibleReferences: [CakeDesign] {
         let terms = searchTerms
-        return customerReferences.filter { reference in
+        return references.filter { design in
             (terms.isEmpty || matchesAllTerms(
                 terms,
-                values: [reference.photo.caption, reference.order.title, reference.order.customerName]
-                    + reference.photo.tags.map(Optional.some)
-            )) && matchesSelectedFilter(
-                tags: reference.photo.tags,
-                isFavorite: reference.photo.isFavorite
-            )
+                values: [design.name, design.notes] + design.tags.map(Optional.some)
+            )) && matchesSelectedFilter(tags: design.tags, isFavorite: design.isFavorite)
         }
     }
 
     var hasContent: Bool {
-        !designs.isEmpty || !customerReferences.isEmpty
+        !designs.isEmpty || !references.isEmpty
     }
 
     func usageOrders(for design: CakeDesign) -> [Order] {
@@ -191,19 +173,6 @@ final class CakeDesignListViewModel: ObservableObject {
 
     func usageCount(for design: CakeDesign) -> Int {
         usageOrders(for: design).count
-    }
-
-    func usageOrders(for reference: CustomerReferenceDesign) -> [Order] {
-        orders
-            .filter {
-                $0.id == reference.order.id
-                    || $0.customerReferencePhotoId == reference.photo.id
-            }
-            .sorted(by: usageOrderSort)
-    }
-
-    func usageCount(for reference: CustomerReferenceDesign) -> Int {
-        usageOrders(for: reference).count
     }
 
     var hasEffectiveSearchQuery: Bool {
@@ -220,10 +189,10 @@ final class CakeDesignListViewModel: ObservableObject {
     var availableFilters: [DesignLibraryFilter] {
         let persistedDesigns = designs
         let topTags = DesignTagRanking.mostUsed(
-            in: persistedDesigns.map(\.tags) + customerReferences.map { $0.photo.tags }
+            in: persistedDesigns.map(\.tags) + references.map(\.tags)
         )
         let hasFavorite = persistedDesigns.contains(where: \.isFavorite)
-            || customerReferences.contains { $0.photo.isFavorite }
+            || references.contains(where: \.isFavorite)
         return [.all]
             + (hasFavorite ? [.favorites] : [])
             + topTags.map(DesignLibraryFilter.tag)
@@ -241,22 +210,6 @@ final class CakeDesignListViewModel: ObservableObject {
         saveDesignCopy(design, tags: DesignTags.parsed(tagsText), isFavorite: design.isFavorite)
     }
 
-    func toggleFavorite(_ reference: CustomerReferenceDesign) -> CustomerReferenceDesign? {
-        saveCustomerReferenceCopy(
-            reference,
-            tags: reference.photo.tags,
-            isFavorite: !reference.photo.isFavorite
-        )
-    }
-
-    func updateTags(_ tagsText: String, for reference: CustomerReferenceDesign) -> CustomerReferenceDesign? {
-        saveCustomerReferenceCopy(
-            reference,
-            tags: DesignTags.parsed(tagsText),
-            isFavorite: reference.photo.isFavorite
-        )
-    }
-
     func delete(_ design: CakeDesign) -> Bool {
         do {
             try repository.deleteCakeDesign(id: design.id)
@@ -264,29 +217,6 @@ final class CakeDesignListViewModel: ObservableObject {
             return true
         } catch {
             errorMessage = "Design could not be removed from CloudBake."
-            return false
-        }
-    }
-
-    func delete(_ reference: CustomerReferenceDesign) -> Bool {
-        guard let customerReferenceRepository else { return false }
-        let cleanupRelativePath = PhotoKitDesignPhotoLibrary
-            .assetIdentifier(from: reference.photo.localPhotoPath) == nil
-            ? reference.photo.localPhotoPath
-            : nil
-        do {
-            try customerReferenceRepository.deleteOrderPhoto(
-                id: reference.photo.id,
-                cleanupRelativePath: cleanupRelativePath
-            )
-            let didCleanup = cleanupRelativePath.map(cleanupPhoto(at:)) ?? true
-            load()
-            if !didCleanup {
-                errorMessage = "Reference removed. The old local photo will be cleaned up automatically."
-            }
-            return true
-        } catch {
-            errorMessage = "Customer reference could not be removed from CloudBake."
             return false
         }
     }
@@ -326,6 +256,43 @@ final class CakeDesignListViewModel: ObservableObject {
             )
         } catch {
             errorMessage = "Design photo could not be saved."
+            return false
+        }
+    }
+
+    func importReference(item: PhotosPickerItem, tags: String = "") async -> Bool {
+        do {
+            let photoReference = try await photosReference(for: item)
+            return saveReference(photoReference: photoReference, tags: tags)
+        } catch {
+            errorMessage = "Reference photo could not be saved."
+            return false
+        }
+    }
+
+    func saveReference(photoReference: String, tags: String = "") -> Bool {
+        guard Self.isValidPhotosReference(photoReference) else {
+            errorMessage = "Reference photo must be stored in Photos."
+            return false
+        }
+        do {
+            let now = dateProvider()
+            try repository.save(
+                CakeDesign(
+                    id: idGenerator(),
+                    name: "Reference",
+                    notes: nil,
+                    photoReference: photoReference,
+                    sourceKind: .customerReference,
+                    tags: DesignTags.parsed(tags),
+                    createdAt: now,
+                    updatedAt: now
+                )
+            )
+            load()
+            return true
+        } catch {
+            errorMessage = "Reference photo could not be saved."
             return false
         }
     }
@@ -459,42 +426,16 @@ final class CakeDesignListViewModel: ObservableObject {
         }
     }
 
-    private func saveCustomerReferenceCopy(
-        _ reference: CustomerReferenceDesign,
-        tags: [String],
-        isFavorite: Bool
-    ) -> CustomerReferenceDesign? {
-        guard let customerReferenceRepository else { return nil }
-        let photo = OrderPhoto(
-            id: reference.photo.id,
-            orderId: reference.photo.orderId,
-            kind: reference.photo.kind,
-            localPhotoPath: reference.photo.localPhotoPath,
-            caption: reference.photo.caption,
-            tags: tags,
-            isFavorite: isFavorite,
-            createdAt: reference.photo.createdAt,
-            updatedAt: dateProvider()
-        )
-        do {
-            try customerReferenceRepository.save(photo)
-            load()
-            return CustomerReferenceDesign(photo: photo, order: reference.order)
-        } catch {
-            errorMessage = "Reference metadata could not be saved."
-            return nil
-        }
-    }
-
     func accessibilityLabel(for design: CakeDesign) -> String {
         let favoriteSuffix = design.isFavorite ? ", favorite" : ""
+        let itemName = CakeDesignPresentation.itemName(for: design).lowercased()
         if design.photoReference == nil {
-            return "\(design.name), design without a linked photo\(favoriteSuffix)"
+            return "\(design.name), \(itemName) without a linked photo\(favoriteSuffix)"
         }
         if availablePhotoSource(for: design) == nil {
             return "\(design.name), photo unavailable\(favoriteSuffix)"
         }
 
-        return "\(design.name), design photo\(favoriteSuffix)"
+        return "\(design.name), \(itemName) photo\(favoriteSuffix)"
     }
 }

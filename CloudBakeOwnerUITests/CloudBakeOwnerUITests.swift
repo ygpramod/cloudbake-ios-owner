@@ -111,24 +111,22 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] = "1"
         app.launch()
 
-        let reference = app.buttons["designs.customerReference.photo-ui-fixture-reference"]
+        let reference = app.buttons["designs.reference.design-ui-fixture-reference"]
         XCTAssertTrue(reference.waitForExistence(timeout: 10))
         scrollToHittable(reference, in: app, timeout: 10)
         tapWhenReady(reference)
-        let useForNewOrder = app.buttons["designs.customerReference.useForNewOrder"]
-        let referenceScroll = app.scrollViews["designs.customerReference.scroll"]
-        XCTAssertTrue(referenceScroll.waitForExistence(timeout: 5))
-        for _ in 0..<2 { referenceScroll.swipeUp() }
+        XCTAssertTrue(app.staticTexts["References"].waitForExistence(timeout: 5))
+        let useForNewOrder = app.buttons["designs.preview.useForNewOrder"]
         tapWhenReady(useForNewOrder, timeout: 15)
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 10))
         let designField = app.buttons["orders.form.design"]
         XCTAssertTrue(designField.waitForExistence(timeout: 5))
-        XCTAssertTrue(designField.label.contains("Customer Reference"))
+        XCTAssertTrue(designField.label.contains("Customer sketch"))
         tapWhenReady(designField)
 
         let currentReference = app.descendants(matching: .any)[
-            "orders.designSelection.customerReference"
+            "orders.designSelection.reference.design-ui-fixture-reference"
         ]
         XCTAssertTrue(currentReference.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["orders.designSelection.none"].isEnabled)
@@ -198,7 +196,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_SEED_DESIGN_SCROLL_FIXTURE"] = "1"
         app.launch()
 
-        let finalReference = app.buttons["designs.customerReference.photo-ui-fixture-reference"]
+        let finalReference = app.buttons["designs.reference.design-ui-fixture-reference"]
         let designsScroll = app.scrollViews["screen.designs"]
         XCTAssertTrue(designsScroll.waitForExistence(timeout: 10))
         for _ in 0..<4 { designsScroll.swipeUp() }
@@ -239,6 +237,26 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.textFields["designs.ownerDesign.name"].exists)
         XCTAssertTrue(app.textFields["designs.ownerDesign.tags"].exists)
         XCTAssertTrue(app.buttons["designs.ownerDesign.save"].exists)
+    }
+
+    func testReferenceImportRequiresAPhotoWithVisibleFeedback() throws {
+        let app = makeApp(initialDestination: "designs")
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] = "1"
+        app.launch()
+
+        let addReference = app.descendants(matching: .any)["designs.references.add"]
+        scrollToHittable(addReference, in: app, timeout: 10)
+        tapWhenReady(addReference)
+        XCTAssertTrue(app.navigationBars["Import Reference"].waitForExistence(timeout: 5))
+
+        tapWhenReady(app.buttons["designs.referenceImport.save"])
+        XCTAssertTrue(
+            app.staticTexts["designs.referenceImport.error"].waitForExistence(timeout: 5)
+        )
+        XCTAssertEqual(
+            app.staticTexts["designs.referenceImport.error"].label,
+            "Reference photo is required."
+        )
     }
 
     func testSettingsShowsInventoryCSVActions() throws {
@@ -1168,13 +1186,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let search = app.textFields["orders.designSelection.search"]
         typeText("Customer sketch", into: search, timeout: transitionTimeout)
         let reference = app.descendants(matching: .any)[
-            "orders.designSelection.customerReference.photo-ui-fixture-reference"
+            "orders.designSelection.reference.design-ui-fixture-reference"
         ]
         XCTAssertTrue(reference.waitForExistence(timeout: transitionTimeout))
         tapWhenReady(reference, timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(app.buttons["orders.form.design"].label.contains("Customer Reference"))
+        XCTAssertTrue(app.buttons["orders.form.design"].label.contains("Customer sketch"))
 
         let titleField = app.textFields["orders.form.title"]
         scrollToHittable(titleField, in: app, timeout: transitionTimeout)
@@ -1203,7 +1221,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Customer sketch"].waitForExistence(timeout: transitionTimeout))
         XCTAssertEqual(
             app.staticTexts["orders.detail.designPhotoPreview.source"].label,
-            "Customer Reference"
+            "Reference"
         )
         tapWhenReady(app.buttons["orders.detail.designPhotoPreview.done"], timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
