@@ -170,6 +170,7 @@ struct CakeDesignListView: View {
                     HStack {
                         Text("References (\(viewModel.visibleReferences.count))")
                             .font(CloudBakeTheme.Typography.sectionTitle)
+                            .accessibilityIdentifier("designs.references.title")
                         Spacer()
                         Button {
                             viewModel.errorMessage = nil
@@ -186,7 +187,6 @@ struct CakeDesignListView: View {
                     }
                         .padding(.top, 10)
                         .padding(.bottom, 10)
-                        .accessibilityIdentifier("designs.customerReferences.title")
                 }
             }
         }
