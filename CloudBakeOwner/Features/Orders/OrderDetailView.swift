@@ -301,6 +301,12 @@ struct OrderDetailView: View {
 
                         return false
                     },
+                    onAddToDesignReferences: { tags in
+                        await viewModel.addCustomerReferencePhotoToDesignReferences(
+                            previewingPhoto,
+                            tags: tags
+                        )
+                    },
                     onClose: {
                         self.previewingPhoto = nil
                     }

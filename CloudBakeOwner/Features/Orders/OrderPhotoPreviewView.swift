@@ -5,6 +5,7 @@ struct OrderPhotoPreviewView: View {
     let photoSource: CakeDesignPhotoSource?
     let onSaveCaption: (String) -> OrderPhoto?
     let onPromoteToDesign: (String, String) async -> Bool
+    let onAddToDesignReferences: (String) async -> Bool
     let onClose: () -> Void
     @State private var displayedPhoto: OrderPhoto
     @State private var draftCaption = ""
@@ -13,18 +14,22 @@ struct OrderPhotoPreviewView: View {
     @State private var draftDesignNotes = ""
     @State private var isPromotingToDesign = false
     @State private var isSavingDesign = false
+    @State private var isAddingToReferences = false
+    @State private var draftReferenceTags = ""
 
     init(
         photo: OrderPhoto,
         photoSource: CakeDesignPhotoSource?,
         onSaveCaption: @escaping (String) -> OrderPhoto?,
         onPromoteToDesign: @escaping (String, String) async -> Bool,
+        onAddToDesignReferences: @escaping (String) async -> Bool,
         onClose: @escaping () -> Void
     ) {
         self.photo = photo
         self.photoSource = photoSource
         self.onSaveCaption = onSaveCaption
         self.onPromoteToDesign = onPromoteToDesign
+        self.onAddToDesignReferences = onAddToDesignReferences
         self.onClose = onClose
         _displayedPhoto = State(initialValue: photo)
     }
@@ -65,6 +70,18 @@ struct OrderPhotoPreviewView: View {
                         }
                         .accessibilityLabel("Save Final Photo As Design")
                         .accessibilityIdentifier("orders.detail.photos.preview.promoteDesign")
+                    }
+
+                    if displayedPhoto.kind == .customerReference {
+                        Button { isAddingToReferences = true } label: {
+                            Label("Add to Design References", systemImage: "photo.badge.plus")
+                                .labelStyle(.iconOnly)
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("Add to Design References")
+                        .accessibilityIdentifier("orders.detail.photos.preview.addToReferences")
                     }
 
                     Spacer()
@@ -182,6 +199,37 @@ struct OrderPhotoPreviewView: View {
                             }
                         }
                         .accessibilityIdentifier("orders.detail.photos.caption.save")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $isAddingToReferences) {
+            NavigationStack {
+                Form {
+                    Section("Reference") {
+                        TextField("Tags separated by commas", text: $draftReferenceTags)
+                            .accessibilityIdentifier("orders.detail.photos.reference.tags")
+                    }
+                }
+                .cloudBakeFormScreenStyle()
+                .navigationTitle("Add to References")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { isAddingToReferences = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Add") {
+                            guard !isSavingDesign else { return }
+                            isSavingDesign = true
+                            Task {
+                                if await onAddToDesignReferences(draftReferenceTags) {
+                                    isAddingToReferences = false
+                                }
+                                isSavingDesign = false
+                            }
+                        }
+                        .disabled(isSavingDesign)
+                        .accessibilityIdentifier("orders.detail.photos.reference.add")
                     }
                 }
             }

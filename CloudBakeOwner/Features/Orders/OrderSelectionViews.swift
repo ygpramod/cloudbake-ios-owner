@@ -36,7 +36,7 @@ struct DesignSelectionView: View {
                             .accessibilityIdentifier("orders.designSelection.customerReference")
                     }
 
-                    if matchingDesigns.isEmpty && matchingCustomerReferences.isEmpty {
+                    if matchingDesigns.isEmpty && matchingReferences.isEmpty {
                         CloudBakeEmptyState(
                             title: "No matching designs",
                             systemImage: "photo.on.rectangle.angled",
@@ -60,17 +60,17 @@ struct DesignSelectionView: View {
                         }
                     }
 
-                    Text("Customer References (\(matchingCustomerReferences.count))")
+                    Text("References (\(matchingReferences.count))")
                         .font(CloudBakeTheme.Typography.sectionTitle)
                         .accessibilityIdentifier("orders.designSelection.customerReferences.title")
 
-                    if !matchingCustomerReferences.isEmpty {
+                    if !matchingReferences.isEmpty {
                         LazyVGrid(
                             columns: [GridItem(.adaptive(minimum: 140), spacing: 14)],
                             spacing: 14
                         ) {
-                            ForEach(matchingCustomerReferences) { reference in
-                                customerReferenceTile(reference)
+                            ForEach(matchingReferences) { reference in
+                                referenceTile(reference)
                             }
                         }
                     }
@@ -107,8 +107,8 @@ struct DesignSelectionView: View {
         viewModel.cakeDesigns(matching: searchText, tag: selectedTag)
     }
 
-    private var matchingCustomerReferences: [CustomerReferenceDesign] {
-        viewModel.customerReferences(matching: searchText, tag: selectedTag)
+    private var matchingReferences: [CakeDesign] {
+        viewModel.references(matching: searchText, tag: selectedTag)
     }
 
     private func filterButton(_ title: String, tag: String?) -> some View {
@@ -161,9 +161,9 @@ struct DesignSelectionView: View {
         .accessibilityIdentifier("orders.designSelection.design.\(design.id)")
     }
 
-    private func customerReferenceTile(_ reference: CustomerReferenceDesign) -> some View {
+    private func referenceTile(_ reference: CakeDesign) -> some View {
         Button {
-            viewModel.selectDraftCustomerReference(photoId: reference.photo.id)
+            viewModel.selectDraftCakeDesign(id: reference.id)
             isPresented = false
         } label: {
             ZStack(alignment: .topTrailing) {
@@ -175,7 +175,7 @@ struct DesignSelectionView: View {
                 .aspectRatio(1, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
-                if viewModel.draftCustomerReferencePhotoId == reference.photo.id {
+                if viewModel.draftCakeDesignId == reference.id {
                     Image(systemName: "checkmark")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.white)
@@ -187,7 +187,7 @@ struct DesignSelectionView: View {
             .overlay {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .stroke(
-                        viewModel.draftCustomerReferencePhotoId == reference.photo.id
+                        viewModel.draftCakeDesignId == reference.id
                             ? Color.cloudBakePink
                             : Color.clear,
                         lineWidth: 3
@@ -197,13 +197,13 @@ struct DesignSelectionView: View {
         .buttonStyle(.plain)
         .cloudBakeCardStyle()
         .accessibilityLabel(
-            "\(reference.title), customer reference from \(reference.order.customerName)"
+            "\(reference.name), reference"
         )
         .accessibilityAddTraits(
-            viewModel.draftCustomerReferencePhotoId == reference.photo.id ? .isSelected : []
+            viewModel.draftCakeDesignId == reference.id ? .isSelected : []
         )
         .accessibilityIdentifier(
-            "orders.designSelection.customerReference.\(reference.photo.id)"
+            "orders.designSelection.reference.\(reference.id)"
         )
     }
 }

@@ -391,6 +391,48 @@ final class OrderPhotoViewModelTests: XCTestCase {
         )
     }
 
+    func testAddCustomerReferenceToDesignReferencesDoesNotRelinkOrder() async {
+        let repository = FakeOrderRepository()
+        let photoLibrary = FakeDesignPhotoLibrary()
+        let now = Date(timeIntervalSince1970: 1_800_160_000)
+        let order = makeOrder(
+            id: "order-reference",
+            cakeDesignId: nil,
+            dueAt: Date(timeIntervalSince1970: 1_800_200_000)
+        )
+        repository.orders = [order]
+        let photo = OrderPhoto(
+            id: "photo-reference",
+            orderId: order.id,
+            kind: .customerReference,
+            localPhotoPath: photoLibrary.savedReference,
+            caption: "Blue flowers",
+            createdAt: now,
+            updatedAt: now
+        )
+        repository.orderPhotos = [photo]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            designPhotoLibrary: photoLibrary,
+            idGenerator: { "design-reference" },
+            dateProvider: { now }
+        )
+        viewModel.beginViewingOrder(order)
+
+        let didAdd = await viewModel.addCustomerReferencePhotoToDesignReferences(
+            photo,
+            tags: " Wedding, wedding, Blue "
+        )
+
+        XCTAssertTrue(didAdd)
+        XCTAssertEqual(repository.orders.first?.cakeDesignId, nil)
+        XCTAssertEqual(repository.orderPhotos.first?.id, photo.id)
+        XCTAssertEqual(repository.cakeDesigns.first?.sourceKind, .customerReference)
+        XCTAssertEqual(repository.cakeDesigns.first?.originatingOrderPhotoId, photo.id)
+        XCTAssertEqual(repository.cakeDesigns.first?.tags, ["Wedding", "Blue"])
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testDeleteOrderPhotoRemovesMetadataAndStoredFile() {
         let repository = FakeOrderRepository()
         let photoFileStore = FakeOrderPhotoFileStore()

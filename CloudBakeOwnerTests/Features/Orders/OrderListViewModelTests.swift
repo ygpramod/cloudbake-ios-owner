@@ -452,7 +452,7 @@ final class OrderListViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.draftCakeDesignId, "design-floral")
         XCTAssertEqual(viewModel.draftCakeDesignName(), "Pink florals")
-        XCTAssertEqual(viewModel.cakeDesigns, [minimalist, floral])
+        XCTAssertEqual(viewModel.cakeDesigns, [minimalist, floral, hiddenInternet])
         XCTAssertEqual(viewModel.cakeDesigns(matching: "palette"), [floral])
         XCTAssertEqual(viewModel.cakeDesigns(matching: "pink birthday"), [floral])
         XCTAssertEqual(viewModel.cakeDesigns(matching: "", tag: "Floral"), [floral])
@@ -488,30 +488,22 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(repository.orders.first?.cakeDesignId)
     }
 
-    func testOrderDesignPickerLoadsAndSearchesCustomerReferences() {
+    func testOrderDesignPickerLoadsAndSearchesExplicitReferences() {
         let repository = FakeOrderRepository()
-        let sourceOrder = makeOrder(
-            id: "order-reference-source",
-            title: "Blue wedding cake",
-            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
-        )
-        let photo = makeOrderPhoto(
-            id: "photo-reference-picker",
-            orderId: sourceOrder.id,
-            kind: .customerReference,
-            caption: "Floral sketch",
+        let reference = makeCakeDesign(
+            id: "design-reference-picker",
+            name: "Floral sketch",
+            sourceKind: .customerReference,
             tags: ["Wedding", "Blue"]
         )
-        repository.orders = [sourceOrder]
-        repository.orderPhotos = [photo]
+        repository.cakeDesigns = [reference]
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.beginAddingOrder()
 
-        XCTAssertEqual(viewModel.designCustomerReferences.map(\.id), [photo.id])
         XCTAssertEqual(
-            viewModel.customerReferences(matching: "blue floral", tag: "Wedding").map(\.id),
-            [photo.id]
+            viewModel.references(matching: "blue floral", tag: "Wedding").map(\.id),
+            [reference.id]
         )
         XCTAssertEqual(viewModel.mostUsedDesignTags, ["Blue", "Wedding"])
     }
