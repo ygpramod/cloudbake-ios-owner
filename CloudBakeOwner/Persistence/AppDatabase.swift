@@ -584,6 +584,20 @@ final class AppDatabase {
             )
         )
         try repository.save(
+            CakeDesign(
+                id: "design-ui-fixture-reference",
+                name: "Customer sketch",
+                notes: nil,
+                photoReference: "OrderPhotos/order-ui-fixture-photos/photo-ui-fixture-reference.jpg",
+                sourceKind: .customerReference,
+                originatingOrderPhotoId: "photo-ui-fixture-reference",
+                originatingOrderId: order.id,
+                tags: ["Wedding"],
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+        try repository.save(
             OrderPhoto(
                 id: "photo-ui-fixture-final",
                 orderId: order.id,
