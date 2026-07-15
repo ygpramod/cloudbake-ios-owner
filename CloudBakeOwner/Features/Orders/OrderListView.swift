@@ -78,7 +78,10 @@ struct OrderListView: View {
             onCancel: { pendingStatusChange = nil }
         ) {
             if let request = pendingStatusChange {
-                centeredPopupButton(statusConfirmationTitle(for: request), role: .destructive) {
+                centeredPopupButton(
+                    "Mark \(request.status.displayName) And Deduct",
+                    role: .destructive
+                ) {
                     _ = viewModel.changeOrderStatus(request.order, to: request.status)
                     pendingStatusChange = nil
                 }
@@ -217,7 +220,11 @@ struct OrderListView: View {
             dueDateDisplay: dueDateDisplay,
             isOverdue: viewModel.isOverdue(order),
             onChangeStatus: { status in
-                pendingStatusChange = OrderStatusChangeRequest(order: order, status: status)
+                if viewModel.requiresInventoryDeductionConfirmation(for: order, to: status) {
+                    pendingStatusChange = OrderStatusChangeRequest(order: order, status: status)
+                } else {
+                    _ = viewModel.changeOrderStatus(order, to: status)
+                }
             },
             onMarkPaid: {
                 _ = viewModel.markOrderPaid(order)
@@ -326,13 +333,6 @@ struct OrderListView: View {
         }
     }
 
-    private func statusConfirmationTitle(for request: OrderStatusChangeRequest) -> String {
-        if request.requiresInventoryDeductionConfirmation {
-            return "Mark \(request.status.displayName) And Deduct"
-        }
-
-        return "Mark \(request.status.displayName)"
-    }
 }
 
 private struct OrderStatusChangeRequest: Identifiable {
@@ -340,10 +340,6 @@ private struct OrderStatusChangeRequest: Identifiable {
     let order: Order
     let status: OrderStatus
 
-    var requiresInventoryDeductionConfirmation: Bool {
-        order.status.recordsRecipeUsage(whenChangingTo: status) &&
-            order.recipeId != nil
-    }
 }
 
 private enum OrderScope: CaseIterable {
