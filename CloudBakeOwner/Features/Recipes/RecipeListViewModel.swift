@@ -10,36 +10,6 @@ struct RecipeListSummary: Equatable {
     }
 }
 
-enum RecipeFilter: String, CaseIterable, Identifiable {
-    case all
-    case withIngredients
-    case needsIngredients
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .all:
-            return "All"
-        case .withIngredients:
-            return "With ingredients"
-        case .needsIngredients:
-            return "Needs ingredients"
-        }
-    }
-
-    func includes(_ summary: RecipeListSummary?) -> Bool {
-        switch self {
-        case .all:
-            return true
-        case .withIngredients:
-            return (summary?.ingredientCount ?? 0) > 0
-        case .needsIngredients:
-            return (summary?.ingredientCount ?? 0) == 0
-        }
-    }
-}
-
 @MainActor
 final class RecipeListViewModel: ObservableObject {
     @Published private(set) var recipes: [Recipe] = []
@@ -56,7 +26,6 @@ final class RecipeListViewModel: ObservableObject {
     @Published var draftIngredientNote = ""
     @Published var importIngredientDrafts: [RecipeImportIngredientDraftRow] = []
     @Published var searchText = ""
-    @Published var recipeFilter: RecipeFilter = .all
     @Published var errorMessage: String?
     @Published private(set) var isRecognizingRecipeScan = false
     @Published private(set) var editingIngredient: RecipeIngredient?
@@ -89,10 +58,6 @@ final class RecipeListViewModel: ObservableObject {
         let query = TextInputFormatting.normalizedSearchKey(searchText)
         return recipes.filter { recipe in
             let summary = recipeSummaries[recipe.id]
-            guard recipeFilter.includes(summary) else {
-                return false
-            }
-
             guard !query.isEmpty else {
                 return true
             }

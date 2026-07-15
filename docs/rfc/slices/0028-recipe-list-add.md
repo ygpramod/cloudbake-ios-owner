@@ -100,3 +100,5 @@ Updated:
 
 - Recipe cards use the shared compact primary-row hierarchy established by Home, Inventory, and
   Orders: compact icon, shared row typography, compact metadata spacing, and standard card padding.
+- The recipe list stays search-focused and shows recipes regardless of whether ingredients have
+  been added; ingredient-state filter tabs are intentionally omitted.

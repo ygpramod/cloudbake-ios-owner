@@ -44,17 +44,6 @@ struct RecipeListView: View {
                     isFocused: $isSearchFocused
                 )
 
-                Picker("Recipe filter", selection: $viewModel.recipeFilter) {
-                    ForEach(RecipeFilter.allCases) { filter in
-                        Text(filter.title).tag(filter)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(6)
-                .background(.white.opacity(0.90), in: Capsule())
-                .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
-                .accessibilityIdentifier("recipes.filter")
-
                 recipeResults
                     .contentShape(Rectangle())
                     .simultaneousGesture(
