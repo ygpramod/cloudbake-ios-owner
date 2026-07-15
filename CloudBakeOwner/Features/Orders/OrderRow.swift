@@ -92,13 +92,14 @@ struct OrderRow: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("orders.item.\(order.id)")
 
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 if order.hasActiveReminderState {
                     CloudBakeAdaptiveActionMenu(
                         title: "Status",
                         systemImage: "arrow.triangle.2.circlepath",
                         tint: .cloudBakePurple,
-                        accessibilityIdentifier: "orders.item.status.\(order.id)"
+                        accessibilityIdentifier: "orders.item.status.\(order.id)",
+                        isCompact: true
                     ) {
                         ForEach(OrderStatus.allCases, id: \.self) { status in
                             Button {
@@ -120,7 +121,8 @@ struct OrderRow: View {
                     title: "Payment",
                     systemImage: "banknote",
                     tint: .cloudBakeMint,
-                    accessibilityIdentifier: "orders.item.payment.\(order.id)"
+                    accessibilityIdentifier: "orders.item.payment.\(order.id)",
+                    isCompact: true
                 ) {
                     Button("Mark Paid", action: onMarkPaid)
                         .accessibilityIdentifier("orders.row.payment.paid.\(order.id)")
@@ -134,6 +136,7 @@ struct OrderRow: View {
                         systemImage: "message",
                         tint: .cloudBakePink,
                         accessibilityIdentifier: "orders.item.message.\(order.id)",
+                        isCompact: true,
                         action: onSendMessage
                     )
                 }

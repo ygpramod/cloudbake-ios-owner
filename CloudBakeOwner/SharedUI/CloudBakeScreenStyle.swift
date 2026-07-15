@@ -616,11 +616,19 @@ struct CloudBakeAdaptiveActionButton: View {
     let systemImage: String
     let tint: Color
     let accessibilityIdentifier: String
+    var isCompact = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            if verticalSizeClass == .compact {
+            if isCompact {
+                CloudBakeCompactAdaptiveActionLabel(
+                    title: title,
+                    systemImage: systemImage,
+                    tint: tint,
+                    showsTitle: verticalSizeClass == .compact
+                )
+            } else if verticalSizeClass == .compact {
                 Label(title, systemImage: systemImage)
                     .font(CloudBakeTheme.Typography.rowDetail.weight(.semibold))
                     .foregroundStyle(tint)
@@ -649,11 +657,19 @@ struct CloudBakeAdaptiveActionMenu<Content: View>: View {
     let systemImage: String
     let tint: Color
     let accessibilityIdentifier: String
+    var isCompact = false
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         Menu(content: content) {
-            if verticalSizeClass == .compact {
+            if isCompact {
+                CloudBakeCompactAdaptiveActionLabel(
+                    title: title,
+                    systemImage: systemImage,
+                    tint: tint,
+                    showsTitle: verticalSizeClass == .compact
+                )
+            } else if verticalSizeClass == .compact {
                 Label(title, systemImage: systemImage)
                     .font(CloudBakeTheme.Typography.rowDetail.weight(.semibold))
                     .foregroundStyle(tint)
@@ -672,6 +688,31 @@ struct CloudBakeAdaptiveActionMenu<Content: View>: View {
         .buttonStyle(.plain)
         .accessibilityLabel(title)
         .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
+private struct CloudBakeCompactAdaptiveActionLabel: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let showsTitle: Bool
+
+    var body: some View {
+        Group {
+            if showsTitle {
+                Label(title, systemImage: systemImage)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+            } else {
+                Image(systemName: systemImage)
+                    .font(.subheadline.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
+        }
+        .foregroundStyle(tint)
+        .frame(maxWidth: .infinity, minHeight: 34, maxHeight: 34)
+        .background(tint.opacity(0.10), in: Capsule())
+        .padding(.vertical, 5)
     }
 }
 
