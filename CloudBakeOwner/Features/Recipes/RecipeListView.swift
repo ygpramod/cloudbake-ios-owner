@@ -122,35 +122,36 @@ struct RecipeListView: View {
             viewModel.beginViewingRecipe(recipe)
             isViewingRecipe = true
         } label: {
-            HStack(spacing: 18) {
-                CloudBakeRowIcon(systemImage: "book", tint: .cloudBakeMint)
+            HStack(spacing: CloudBakeTheme.Spacing.rowContent) {
+                CloudBakeCompactRowIcon(systemImage: "book", tint: .cloudBakeMint)
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(recipe.name)
-                        .font(.title3.weight(.semibold))
+                        .font(CloudBakeTheme.Typography.rowTitle)
                         .foregroundStyle(.primary)
                         .lineLimit(2)
 
                     if let notes = recipe.notes {
                         Text(notes)
-                            .font(.subheadline)
+                            .font(CloudBakeTheme.Typography.rowDetail)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
 
                     Text(viewModel.recipeSummaries[recipe.id]?.ingredientCountText ?? "0 ingredients")
-                        .font(CloudBakeTheme.Typography.metadata.weight(.semibold))
+                        .font(CloudBakeTheme.Typography.rowDetail.weight(.medium))
                         .foregroundStyle(Color.cloudBakeMint)
                 }
 
                 Spacer(minLength: 8)
 
                 Image(systemName: "chevron.right")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(Color.cloudBakePink.opacity(0.72))
+                    .font(CloudBakeTheme.Typography.rowTitle)
+                    .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
             }
-            .padding(20)
+            .padding(.horizontal, CloudBakeTheme.Spacing.cardPadding)
+            .padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
