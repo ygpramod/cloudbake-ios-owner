@@ -68,6 +68,9 @@ or Perishable. See Slice RFC-0094.
 
 The slice adds a Settings screen with Import Inventory CSV and Export Inventory CSV actions.
 
+Inventory and Recipe imports use the shared UIKit document-picker bridge and defer presentation
+until the confirmation popup has dismissed, so iOS cannot drop the file-selection request.
+
 Inventory CSV behavior lives in `InventoryCSVService` so parsing, validation, grouping, and export
 formatting are testable outside SwiftUI.
 

@@ -204,8 +204,7 @@ struct SettingsView: View {
     @AppStorage(AppSettings.logoRevisionKey) private var logoRevision = 0
     @State private var isSelectingCurrency = false
     @State private var selectedLogoItem: PhotosPickerItem?
-    @State private var isImportingInventory = false
-    @State private var isImportingRecipes = false
+    @State private var activeFileImport: SettingsFileImportKind?
     @State private var pendingDataOperation: SettingsDataOperation?
     @State private var isBackupExpanded = false
     @State private var isDataManagementExpanded = false
@@ -526,25 +525,20 @@ struct SettingsView: View {
                 .accessibilityIdentifier(pendingDataOperation.primaryAccessibilityIdentifier)
             }
         }
-        .fileImporter(
-            isPresented: $isImportingInventory,
-            allowedContentTypes: [.commaSeparatedText, .plainText],
-            allowsMultipleSelection: false
-        ) { result in
-            guard case .success(let urls) = result,
-                  let url = urls.first else {
-                return
+        .sheet(item: $activeFileImport) { importKind in
+            SettingsFileImporter(
+                allowedContentTypes: [.commaSeparatedText, .plainText]
+            ) { url in
+                activeFileImport = nil
+                guard let url else { return }
+                switch importKind {
+                case .inventory:
+                    viewModel.importInventoryCSV(from: url)
+                case .recipes:
+                    viewModel.importRecipeCSV(from: url)
+                }
             }
-
-            viewModel.importInventoryCSV(from: url)
-        }
-        .fileImporter(
-            isPresented: $isImportingRecipes,
-            allowedContentTypes: [.commaSeparatedText, .plainText],
-            allowsMultipleSelection: false
-        ) { result in
-            guard case .success(let urls) = result, let url = urls.first else { return }
-            viewModel.importRecipeCSV(from: url)
+            .interactiveDismissDisabled()
         }
         .sheet(item: $activeFileExport) { export in
             SettingsFileExporter(fileURL: export.fileURL) { result in
@@ -699,7 +693,9 @@ struct SettingsView: View {
         switch operation {
         case .importInventory:
             pendingDataOperation = nil
-            isImportingInventory = true
+            DispatchQueue.main.async {
+                activeFileImport = .inventory
+            }
         case .exportInventory:
             let document = viewModel.exportInventoryDocument()
             pendingDataOperation = nil
@@ -708,7 +704,9 @@ struct SettingsView: View {
             }
         case .importRecipes:
             pendingDataOperation = nil
-            isImportingRecipes = true
+            DispatchQueue.main.async {
+                activeFileImport = .recipes
+            }
         case .exportRecipes:
             let document = viewModel.exportRecipeDocument()
             pendingDataOperation = nil
@@ -745,6 +743,13 @@ private struct SettingsFileExport: Identifiable {
         case recipes
         case manualBackup(ManualBackupExport)
     }
+}
+
+private enum SettingsFileImportKind: String, Identifiable {
+    case inventory
+    case recipes
+
+    var id: String { rawValue }
 }
 
 private enum SettingsExportKind {

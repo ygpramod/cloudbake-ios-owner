@@ -296,6 +296,28 @@ final class CloudBakeOwnerUITests: XCTestCase {
         }
     }
 
+    func testInventoryCSVImportPresentsFilePicker() throws {
+        let app = makeApp()
+        app.launch()
+
+        openDashboardDestination("Settings", in: app)
+        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        app.swipeUp()
+        let importButton = app.buttons["settings.inventory.import"]
+        scrollToVisible(importButton, in: app)
+        tapWhenReady(importButton)
+        let continueButton = app.buttons["settings.inventory.import.continue"]
+        if !continueButton.waitForExistence(timeout: 10) {
+            XCTFail("Inventory import confirmation did not appear. Hierarchy: \(app.debugDescription)")
+        }
+        tapWhenReady(continueButton)
+
+        let importer = app.descendants(matching: .any)["settings.fileImporter"]
+        if !importer.waitForExistence(timeout: 10) {
+            XCTFail("Inventory importer did not appear. Hierarchy: \(app.debugDescription)")
+        }
+    }
+
     func testManualFullBackupPresentsDestinationPicker() throws {
         let app = makeApp()
         app.launch()
