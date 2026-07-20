@@ -293,6 +293,27 @@ struct SettingsView: View {
                 }
             }
 
+            CloudBakeSection("Help") {
+                CloudBakeDetailCard {
+                    NavigationLink {
+                        HelpGuideView()
+                    } label: {
+                        HStack(spacing: 16) {
+                            CloudBakeRowIcon(systemImage: "questionmark.circle", tint: .cloudBakePink)
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("Help & Guide").font(.headline).foregroundStyle(.primary)
+                                Text("Learn CloudBake features and common workflows.")
+                                    .font(.footnote).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").foregroundStyle(.secondary)
+                        }.padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.helpGuide")
+                }
+            }
+
             CloudBakeSection {
                 DisclosureGroup(isExpanded: $isBackupExpanded) {
                     CloudBackupSettingsCard(viewModel: cloudBackupViewModel)
