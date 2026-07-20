@@ -97,13 +97,27 @@ struct HelpGuideView: View {
     ]
 
     var body: some View {
+        if isShowingIntroduction {
+            AppIntroductionView {
+                isShowingIntroduction = false
+            }
+        } else {
+            helpContent
+        }
+    }
+
+    private var helpContent: some View {
         CloudBakeDetailScaffold(title: "Help & Guide", backAccessibilityIdentifier: "help.back", onBack: { dismiss() }) {
             CloudBakeSection("Getting Started") {
                 CloudBakeDetailCard {
-                    Button { isShowingIntroduction = true } label: {
+                    Button {
+                        isShowingIntroduction = true
+                    } label: {
                         CloudBakeDetailRow("View Introduction") {
                             Image(systemName: "chevron.right").foregroundStyle(Color.cloudBakePink)
                         }
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("help.viewIntroduction")
@@ -124,8 +138,5 @@ struct HelpGuideView: View {
             }
         }
         .accessibilityIdentifier("screen.helpGuide")
-        .fullScreenCover(isPresented: $isShowingIntroduction) {
-            AppIntroductionView { isShowingIntroduction = false }
-        }
     }
 }
