@@ -59,6 +59,9 @@ GitHub Actions time-boxes the unit/integration job and feature-sharded acceptanc
 automation fails clearly instead of blocking a pull request indefinitely. Acceptance UI tests run in
 six parallel shards: `core-recipes`, `orders-core`, `order-links`, `customers`, `inventory`, and
 `designs`.
+Each pull request or branch has only one active CI generation. Pushing a newer commit automatically
+cancels any superseded workflow run for that same pull request or branch so its macOS runners are
+released for the new head commit.
 CI prefers known iPhone simulator names when available, falls back to the first available iPhone,
 and uploads the Xcode result bundle for failed test jobs.
 
