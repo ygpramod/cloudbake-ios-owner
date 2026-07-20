@@ -90,8 +90,13 @@ struct RootView: View {
         }
         .onAppear {
             let environment = ProcessInfo.processInfo.environment
+            let hasExistingOwnerData = (try? OwnerInstallationState(database: database).hasRestorableData()) ?? false
+            if hasExistingOwnerData && !hasCompletedIntroduction {
+                hasCompletedIntroduction = true
+            }
             isPresentingIntroduction = AppIntroductionPolicy.shouldPresent(
                 hasCompleted: hasCompletedIntroduction,
+                hasExistingOwnerData: hasExistingOwnerData,
                 isAutomatedTest: environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1",
                 forcesPresentation: environment["CLOUDBAKE_TEST_INTRODUCTION"] == "1"
             )
@@ -272,7 +277,10 @@ struct RootView: View {
                     manualBackupService: try? ManualBackupService.live(database: database)
                 ),
                 cloudBackupService: cloudBackupSettingsService,
-                cloudRestoreService: cloudRestoreSettingsService
+                cloudRestoreService: cloudRestoreSettingsService,
+                onShowIntroduction: {
+                    isPresentingIntroduction = true
+                }
             )
         case .designs:
             let repository = database.makeCoreDataRepository()

@@ -210,12 +210,15 @@ struct SettingsView: View {
     @State private var isDataManagementExpanded = false
     @State private var isConfirmingManualBackup = false
     @State private var activeFileExport: SettingsFileExport?
+    private let onShowIntroduction: () -> Void
 
     init(
         viewModel: SettingsViewModel,
         cloudBackupService: (any CloudBackupSettingsServing)? = nil,
-        cloudRestoreService: (any CloudRestoreSettingsServing)? = nil
+        cloudRestoreService: (any CloudRestoreSettingsServing)? = nil,
+        onShowIntroduction: @escaping () -> Void = {}
     ) {
+        self.onShowIntroduction = onShowIntroduction
         _viewModel = StateObject(wrappedValue: viewModel)
         _cloudBackupViewModel = StateObject(
             wrappedValue: CloudBackupSettingsViewModel(
@@ -296,7 +299,7 @@ struct SettingsView: View {
             CloudBakeSection("Help") {
                 CloudBakeDetailCard {
                     NavigationLink {
-                        HelpGuideView()
+                        HelpGuideView(onShowIntroduction: onShowIntroduction)
                     } label: {
                         HStack(spacing: 16) {
                             CloudBakeRowIcon(systemImage: "questionmark.circle", tint: .cloudBakePink)

@@ -16,8 +16,13 @@ struct AppIntroductionPage: Equatable, Identifiable {
 }
 
 enum AppIntroductionPolicy {
-    static func shouldPresent(hasCompleted: Bool, isAutomatedTest: Bool, forcesPresentation: Bool) -> Bool {
-        forcesPresentation || (!hasCompleted && !isAutomatedTest)
+    static func shouldPresent(
+        hasCompleted: Bool,
+        hasExistingOwnerData: Bool,
+        isAutomatedTest: Bool,
+        forcesPresentation: Bool
+    ) -> Bool {
+        forcesPresentation || (!hasCompleted && !hasExistingOwnerData && !isAutomatedTest)
     }
 }
 
@@ -84,35 +89,44 @@ struct AppIntroductionView: View {
 
 struct HelpGuideView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var isShowingIntroduction = false
+    let onShowIntroduction: () -> Void
 
-    private let topics: [(String, String, String)] = [
-        ("Home", "house", "Review upcoming orders, reminders, and inventory warnings."),
-        ("Orders", "calendar", "Create quotes, link customers, recipes and designs, record payments, and complete preparation."),
-        ("Inventory", "shippingbox", "Add purchases, use or adjust stock, manage expiry, aliases, archived items, CSV files, and voice drafts."),
-        ("Recipes", "book", "Save ingredients and quantities, import scans or CSV files, and link recipes to orders."),
-        ("Designs & References", "photo.on.rectangle", "Import searchable cake photos, edit tags, and link the right reference to an order."),
-        ("Customers", "person.2", "Keep contact details, preferences, allergies, references, and order history together."),
-        ("Backup & Restore", "icloud", "Run Cloud Backup for disaster recovery, create full file backups, and confirm a restore before replacing local data.")
+    private let topics: [HelpTopic] = [
+        HelpTopic(title: "Home", systemImage: "house", summary: "Review what needs attention today.", steps: [
+            "Open an upcoming order to continue its preparation.",
+            "Open a reminder or stock warning to address it at the source."
+        ]),
+        HelpTopic(title: "Orders", systemImage: "calendar", summary: "Plan and complete a customer order.", steps: [
+            "Tap +, choose the customer and due date, then add pricing and payment details.",
+            "Link recipes and designs, adjust ingredients as work changes, and update the status through Completed."
+        ]),
+        HelpTopic(title: "Inventory", systemImage: "shippingbox", summary: "Keep ingredient quantities and costs current.", steps: [
+            "Tap + to add an item, or use the menu to import a bill, CSV file, or voice draft.",
+            "Open an item to add a purchase batch; swipe a card for history, archive, or delete actions."
+        ]),
+        HelpTopic(title: "Recipes", systemImage: "book", summary: "Save reusable ingredient quantities.", steps: [
+            "Tap + beside Recipes, name the recipe, and add each ingredient and quantity.",
+            "Link the recipe from an order so CloudBake can estimate cost and required stock."
+        ]),
+        HelpTopic(title: "Designs & References", systemImage: "photo.on.rectangle", summary: "Keep cake ideas easy to find and reuse.", steps: [
+            "Import a photo into Designs or add an order reference to the design library.",
+            "Edit tags for searching, then choose the design from an order to link it."
+        ]),
+        HelpTopic(title: "Customers", systemImage: "person.2", summary: "Keep customer context with their orders.", steps: [
+            "Add contact details, preferences, allergies, and notes to the customer.",
+            "Use the customer ribbon to call, open WhatsApp, or create a new order."
+        ]),
+        HelpTopic(title: "Backup & Restore", systemImage: "icloud", summary: "Protect the complete app state.", steps: [
+            "Expand Backup in Settings to run Cloud Backup or create a full file backup.",
+            "Use Restore only when replacing local data, then review and confirm before proceeding."
+        ])
     ]
 
     var body: some View {
-        if isShowingIntroduction {
-            AppIntroductionView {
-                isShowingIntroduction = false
-            }
-        } else {
-            helpContent
-        }
-    }
-
-    private var helpContent: some View {
         CloudBakeDetailScaffold(title: "Help & Guide", backAccessibilityIdentifier: "help.back", onBack: { dismiss() }) {
             CloudBakeSection("Getting Started") {
                 CloudBakeDetailCard {
-                    Button {
-                        isShowingIntroduction = true
-                    } label: {
+                    Button(action: onShowIntroduction) {
                         CloudBakeDetailRow("View Introduction") {
                             Image(systemName: "chevron.right").foregroundStyle(Color.cloudBakePink)
                         }
@@ -124,13 +138,18 @@ struct HelpGuideView: View {
                 }
             }
             CloudBakeSection("How to use CloudBake") {
-                ForEach(Array(topics.enumerated()), id: \.offset) { _, topic in
+                ForEach(topics) { topic in
                     CloudBakeDetailCard {
                         HStack(alignment: .top, spacing: 16) {
-                            CloudBakeRowIcon(systemImage: topic.1, tint: .cloudBakePink)
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(topic.0).font(CloudBakeTheme.Typography.rowTitle)
-                                Text(topic.2).font(.footnote).foregroundStyle(.secondary)
+                            CloudBakeRowIcon(systemImage: topic.systemImage, tint: .cloudBakePink)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(topic.title).font(CloudBakeTheme.Typography.rowTitle)
+                                Text(topic.summary).font(.footnote).foregroundStyle(.secondary)
+                                ForEach(Array(topic.steps.enumerated()), id: \.offset) { index, step in
+                                    Text("\(index + 1). \(step)")
+                                        .font(.footnote)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                         }.padding(.vertical, 12)
                     }
@@ -139,4 +158,13 @@ struct HelpGuideView: View {
         }
         .accessibilityIdentifier("screen.helpGuide")
     }
+}
+
+private struct HelpTopic: Identifiable {
+    let title: String
+    let systemImage: String
+    let summary: String
+    let steps: [String]
+
+    var id: String { title }
 }
