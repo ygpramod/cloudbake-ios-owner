@@ -7,9 +7,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.descendants(matching: .any)["introduction.page.home"].waitForExistence(timeout: 10))
-        tapWhenReady(app.buttons["introduction.next"])
+        tapWhenReady(app.buttons["Next"])
         XCTAssertTrue(app.descendants(matching: .any)["introduction.page.orders"].waitForExistence(timeout: 5))
-        tapWhenReady(app.buttons["introduction.skip"])
+        tapWhenReady(app.buttons["Skip"])
         assertDashboardVisible(in: app)
     }
 
@@ -23,8 +23,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(helpButton)
         assertScreenVisible("screen.helpGuide", in: app)
         tapWhenReady(app.buttons["help.viewIntroduction"])
-        XCTAssertTrue(app.descendants(matching: .any)["screen.introduction"].waitForExistence(timeout: 5))
-        tapWhenReady(app.buttons["introduction.skip"])
+        XCTAssertTrue(app.descendants(matching: .any)["introduction.page.home"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["Skip"])
         assertScreenVisible("screen.helpGuide", in: app)
     }
 
