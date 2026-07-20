@@ -14,6 +14,13 @@
 		410000000000000000000081 /* InventoryCSVService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000081 /* InventoryCSVService.swift */; };
 		410000000000000000000082 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000082 /* SettingsView.swift */; };
 		4100000000000000000000F6 /* HelpGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000F6 /* HelpGuideView.swift */; };
+		4100000000000000000000F7 /* AppIntroductionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000F7 /* AppIntroductionTests.swift */; };
+		4100000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift */; };
+		4100000000000000000000F9 /* GRDBRecipeRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000F9 /* GRDBRecipeRepositoryTests.swift */; };
+		4100000000000000000000FA /* GRDBOrderRecipeUsageRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000FA /* GRDBOrderRecipeUsageRepositoryTests.swift */; };
+		4100000000000000000000FB /* GRDBOrderPhotoDesignRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000FB /* GRDBOrderPhotoDesignRepositoryTests.swift */; };
+		4100000000000000000000FC /* GRDBOrderLifecycleRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000FC /* GRDBOrderLifecycleRepositoryTests.swift */; };
+		4100000000000000000000FD /* GRDBInventoryRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000FD /* GRDBInventoryRepositoryTests.swift */; };
 		410000000000000000000083 /* InventoryCSVServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000083 /* InventoryCSVServiceTests.swift */; };
 		4100000000000000000000D0 /* AppLogoStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D0 /* AppLogoStoreTests.swift */; };
 		4100000000000000000000D1 /* BackupManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000D1 /* BackupManifest.swift */; };
@@ -203,6 +210,13 @@
 		420000000000000000000081 /* InventoryCSVService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCSVService.swift; sourceTree = "<group>"; };
 		420000000000000000000082 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4200000000000000000000F6 /* HelpGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpGuideView.swift; sourceTree = "<group>"; };
+		4200000000000000000000F7 /* AppIntroductionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntroductionTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBCoreDataRepositoryTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000F9 /* GRDBRecipeRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBRecipeRepositoryTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000FA /* GRDBOrderRecipeUsageRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBOrderRecipeUsageRepositoryTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000FB /* GRDBOrderPhotoDesignRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBOrderPhotoDesignRepositoryTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000FC /* GRDBOrderLifecycleRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBOrderLifecycleRepositoryTests.swift; sourceTree = "<group>"; };
+		4200000000000000000000FD /* GRDBInventoryRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBInventoryRepositoryTests.swift; sourceTree = "<group>"; };
 		420000000000000000000083 /* InventoryCSVServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCSVServiceTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000D0 /* AppLogoStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogoStoreTests.swift; sourceTree = "<group>"; };
 		420000000000000000000084 /* CakeDesignListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CakeDesignListView.swift; sourceTree = "<group>"; };
@@ -691,6 +705,12 @@
 			children = (
 				420000000000000000000014 /* AppDatabaseTests.swift */,
 				420000000000000000000019 /* CoreDataRepositoryTests.swift */,
+				4200000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift */,
+				4200000000000000000000FD /* GRDBInventoryRepositoryTests.swift */,
+				4200000000000000000000FC /* GRDBOrderLifecycleRepositoryTests.swift */,
+				4200000000000000000000FB /* GRDBOrderPhotoDesignRepositoryTests.swift */,
+				4200000000000000000000FA /* GRDBOrderRecipeUsageRepositoryTests.swift */,
+				4200000000000000000000F9 /* GRDBRecipeRepositoryTests.swift */,
 			);
 			path = Persistence;
 			sourceTree = "<group>";
@@ -781,6 +801,7 @@
 		450000000000000000000022 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				4200000000000000000000F7 /* AppIntroductionTests.swift */,
 				4200000000000000000000D0 /* AppLogoStoreTests.swift */,
 				420000000000000000000083 /* InventoryCSVServiceTests.swift */,
 			);
@@ -1102,6 +1123,7 @@
 				4100000000000000000000D6 /* PhotoKitBackupAssetResolverTests.swift in Sources */,
 				4100000000000000000000D8 /* ManualBackupServiceTests.swift in Sources */,
 				4100000000000000000000EC /* CloudBackupSettingsTests.swift in Sources */,
+				4100000000000000000000F7 /* AppIntroductionTests.swift in Sources */,
 				4100000000000000000000F1 /* RestoreCoordinatorTests.swift in Sources */,
 				4100000000000000000000F3 /* LocalRestoreServiceTests.swift in Sources */,
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
@@ -1109,6 +1131,12 @@
 					410000000000000000000018 /* BakingCatalogTests.swift in Sources */,
 					410000000000000000000010 /* CoreModelsTests.swift in Sources */,
 					410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
+					4100000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift in Sources */,
+					4100000000000000000000FD /* GRDBInventoryRepositoryTests.swift in Sources */,
+					4100000000000000000000FC /* GRDBOrderLifecycleRepositoryTests.swift in Sources */,
+					4100000000000000000000FB /* GRDBOrderPhotoDesignRepositoryTests.swift in Sources */,
+					4100000000000000000000FA /* GRDBOrderRecipeUsageRepositoryTests.swift in Sources */,
+					4100000000000000000000F9 /* GRDBRecipeRepositoryTests.swift in Sources */,
 					4100000000000000000000B5 /* InventoryAliasesTests.swift in Sources */,
 					4100000000000000000000C2 /* ProjectedIngredientDemandTests.swift in Sources */,
 					4100000000000000000000C4 /* OrderIngredientCostCalculationTests.swift in Sources */,
