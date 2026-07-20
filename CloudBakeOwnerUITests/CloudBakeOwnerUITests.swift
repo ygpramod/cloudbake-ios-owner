@@ -1,6 +1,33 @@
 import XCTest
 
 final class CloudBakeOwnerUITests: XCTestCase {
+    func testFirstLaunchIntroductionSupportsNextAndSkip() {
+        let app = makeApp()
+        app.launchEnvironment["CLOUDBAKE_TEST_INTRODUCTION"] = "1"
+        app.launch()
+
+        XCTAssertTrue(app.descendants(matching: .any)["introduction.page.home"].waitForExistence(timeout: 10))
+        tapWhenReady(app.buttons["introduction.next"])
+        XCTAssertTrue(app.descendants(matching: .any)["introduction.page.orders"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["introduction.skip"])
+        assertDashboardVisible(in: app)
+    }
+
+    func testSettingsOpensHelpGuideAndReplaysIntroduction() {
+        let app = makeApp()
+        app.launch()
+
+        openDashboardDestination("Settings", in: app)
+        let helpButton = app.buttons["settings.helpGuide"]
+        scrollToVisible(helpButton, in: app)
+        tapWhenReady(helpButton)
+        assertScreenVisible("screen.helpGuide", in: app)
+        tapWhenReady(app.buttons["help.viewIntroduction"])
+        XCTAssertTrue(app.descendants(matching: .any)["screen.introduction"].waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["introduction.skip"])
+        assertScreenVisible("screen.helpGuide", in: app)
+    }
+
     override func setUpWithError() throws {
         continueAfterFailure = false
     }

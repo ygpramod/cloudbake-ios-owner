@@ -1,5 +1,13 @@
 # Current App Capabilities
 
+## Help and first launch
+
+- A new installation presents a five-page introduction to Home, Orders, Inventory, the bakery
+  library, and backup. The owner can move with **Next**, leave with **Skip**, or finish with
+  **Get Started**.
+- **Settings → Help & Guide** provides offline guidance for the app's main workflows and can replay
+  the introduction at any time.
+
 This page lists what the app currently supports. It should stay factual and product-focused.
 
 ## Available Now
