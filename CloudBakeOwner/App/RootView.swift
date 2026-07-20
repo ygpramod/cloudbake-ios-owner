@@ -12,6 +12,8 @@ struct RootView: View {
     @State private var navigationPath: [AppDestination] = []
     @State private var restoredDataRevision = 0
     @State private var isRestoreRecoveryRequired = false
+    @AppStorage(AppSettings.hasCompletedIntroductionKey) private var hasCompletedIntroduction = false
+    @State private var isPresentingIntroduction = false
     @StateObject private var emptyRestoreViewModel: CloudRestoreSettingsViewModel
     private let maximumSectionHistoryCount = 4
 
@@ -87,11 +89,23 @@ struct RootView: View {
                 .accessibilityIdentifier("restore.recoveryRequired.message")
         }
         .onAppear {
+            let environment = ProcessInfo.processInfo.environment
+            isPresentingIntroduction = AppIntroductionPolicy.shouldPresent(
+                hasCompleted: hasCompletedIntroduction,
+                isAutomatedTest: environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1",
+                forcesPresentation: environment["CLOUDBAKE_TEST_INTRODUCTION"] == "1"
+            )
             navigateToOrdersWhenNotificationIsPending()
             navigateToOrdersWhenNewOrderIsPending()
             navigateToInventoryWhenItemIsPending()
         }
         .environment(\.navigateToAppDestination, navigate)
+        .fullScreenCover(isPresented: $isPresentingIntroduction) {
+            AppIntroductionView {
+                hasCompletedIntroduction = true
+                isPresentingIntroduction = false
+            }
+        }
         .onChange(of: orderNotificationRouter.pendingOrderId) { _, orderId in
             guard orderId != nil else {
                 return
