@@ -334,14 +334,16 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         openDashboardDestination("Settings", in: app)
         tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
-        app.swipeUp()
+        let settingsScroll = app.scrollViews["screen.settings"]
+        XCTAssertTrue(settingsScroll.waitForExistence(timeout: 5))
         let importButton = app.buttons["settings.inventory.import"]
-        scrollToVisible(importButton, in: app)
-        tapWhenReady(importButton)
         let continueButton = app.buttons["settings.inventory.import.continue"]
-        if !continueButton.waitForExistence(timeout: 10) {
-            XCTFail("Inventory import confirmation did not appear. Hierarchy: \(app.debugDescription)")
-        }
+        tapScrollableAction(
+            importButton,
+            in: settingsScroll,
+            waitingFor: continueButton,
+            in: app
+        )
         tapWhenReady(continueButton)
 
         let importer = app.descendants(matching: .any)["settings.fileImporter"]
@@ -442,16 +444,28 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let settingsScroll = app.scrollViews["screen.settings"]
+        XCTAssertTrue(settingsScroll.waitForExistence(timeout: 5))
         let deleteButton = app.buttons["settings.cloudBackup.delete"]
-        scrollToHittable(deleteButton, in: app)
-        tapWhenReady(deleteButton)
+        let confirmButton = app.buttons["settings.cloudBackup.delete.confirm"]
+        tapScrollableAction(
+            deleteButton,
+            in: settingsScroll,
+            waitingFor: confirmButton,
+            in: app
+        )
 
         XCTAssertTrue(app.staticTexts["Delete Cloud Backup?"].waitForExistence(timeout: 5))
         tapWhenReady(app.buttons["settings.cloudBackup.delete.cancel"])
         XCTAssertTrue(deleteButton.waitForExistence(timeout: 5))
 
-        tapWhenReady(deleteButton)
-        tapWhenReady(app.buttons["settings.cloudBackup.delete.confirm"])
+        tapScrollableAction(
+            deleteButton,
+            in: settingsScroll,
+            waitingFor: confirmButton,
+            in: app
+        )
+        tapWhenReady(confirmButton)
         XCTAssertTrue(
             app.staticTexts["settings.cloudBackup.delete.message"].waitForExistence(timeout: 5)
         )
@@ -464,10 +478,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let settingsScroll = app.scrollViews["screen.settings"]
+        XCTAssertTrue(settingsScroll.waitForExistence(timeout: 5))
         let deleteButton = app.buttons["settings.cloudBackup.delete"]
-        scrollToHittable(deleteButton, in: app)
-        tapWhenReady(deleteButton)
-        tapWhenReady(app.buttons["settings.cloudBackup.delete.confirm"])
+        let confirmButton = app.buttons["settings.cloudBackup.delete.confirm"]
+        tapScrollableAction(
+            deleteButton,
+            in: settingsScroll,
+            waitingFor: confirmButton,
+            in: app
+        )
+        tapWhenReady(confirmButton)
 
         let message = app.staticTexts["settings.cloudBackup.delete.message"]
         XCTAssertTrue(message.waitForExistence(timeout: 5))

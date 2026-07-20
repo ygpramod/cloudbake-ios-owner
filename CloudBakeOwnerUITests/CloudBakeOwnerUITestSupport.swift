@@ -407,6 +407,68 @@ extension CloudBakeOwnerUITests {
         )
     }
 
+    func tapScrollableAction(
+        _ element: XCUIElement,
+        in scrollContainer: XCUIElement,
+        waitingFor destination: XCUIElement,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let deadline = Date().addingTimeInterval(timeout)
+        scrollToHittable(
+            element,
+            in: app,
+            scrollContainer: scrollContainer,
+            timeout: timeout,
+            file: file,
+            line: line
+        )
+        let scrollFrame = scrollContainer.frame
+        let reliableTop = scrollFrame.minY + 100
+        let reliableBottom = scrollFrame.maxY - 140
+
+        while element.exists, Date() < deadline {
+            if element.frame.midY > reliableBottom {
+                dragPrimaryScrollableArea(
+                    in: app,
+                    preferred: scrollContainer,
+                    fromY: 0.72,
+                    toY: 0.42
+                )
+            } else if element.frame.midY < reliableTop {
+                dragPrimaryScrollableArea(
+                    in: app,
+                    preferred: scrollContainer,
+                    fromY: 0.34,
+                    toY: 0.58
+                )
+            } else {
+                break
+            }
+
+            _ = element.waitForExistence(timeout: 0.5)
+        }
+
+        XCTAssertTrue(
+            element.isHittable
+                && element.frame.midY >= reliableTop
+                && element.frame.midY <= reliableBottom,
+            "Element was not positioned safely between navigation overlays.",
+            file: file,
+            line: line
+        )
+        tapWhenReady(
+            element,
+            waitingFor: destination,
+            in: app,
+            timeout: max(1, deadline.timeIntervalSinceNow),
+            file: file,
+            line: line
+        )
+    }
+
     func tapExisting(
         _ element: XCUIElement,
         timeout: TimeInterval = 10,
