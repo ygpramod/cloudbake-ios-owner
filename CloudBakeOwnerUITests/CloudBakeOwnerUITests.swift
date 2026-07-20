@@ -24,7 +24,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertScreenVisible("screen.helpGuide", in: app)
         tapWhenReady(app.buttons["help.viewIntroduction"])
         XCTAssertTrue(app.descendants(matching: .any)["introduction.page.home"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["bottom.navigation.more"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["bottom.navigation.more"].isHittable)
         for pageID in ["orders", "inventory", "library", "backup"] {
             tapWhenReady(app.buttons["Next"])
             XCTAssertTrue(app.descendants(matching: .any)["introduction.page.\(pageID)"].waitForExistence(timeout: 5))
