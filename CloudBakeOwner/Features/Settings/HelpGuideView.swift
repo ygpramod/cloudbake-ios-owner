@@ -101,8 +101,8 @@ struct HelpGuideView: View {
             "Link recipes and designs, adjust ingredients as work changes, and update the status through Completed."
         ]),
         HelpTopic(title: "Inventory", systemImage: "shippingbox", summary: "Keep ingredient quantities and costs current.", steps: [
-            "Tap + to add an item, or use the menu to import a bill, CSV file, or voice draft.",
-            "Open an item to add a purchase batch; swipe a card for history, archive, or delete actions."
+            "Tap + to add an item, or use the Inventory menu to import a bill or create a voice draft.",
+            "Import a CSV from Settings > Data Management, or swipe a card for history, archive, and delete actions."
         ]),
         HelpTopic(title: "Recipes", systemImage: "book", summary: "Save reusable ingredient quantities.", steps: [
             "Tap + beside Recipes, name the recipe, and add each ingredient and quantity.",
