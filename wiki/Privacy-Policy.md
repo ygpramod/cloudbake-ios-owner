@@ -55,6 +55,6 @@ privacy terms.
 
 ## Privacy Questions
 
-For privacy or support questions, use the
-[CloudBake support repository](https://github.com/ygpramod/cloudbake-ios-owner/issues). Do not include
-customer details, recipes, photos, or other private bakery information in a public support request.
+For privacy or support questions, email [pramodyg@yahoo.in](mailto:pramodyg@yahoo.in). Do not include
+customer details, recipes, photos, or other private bakery information unless needed to resolve your
+request.

@@ -8,6 +8,7 @@ struct PrivacyPolicySection: Equatable, Identifiable {
 
 enum PrivacyPolicyContent {
     static let effectiveDate = "21 July 2026"
+    static let supportEmail = "pramodyg@yahoo.in"
     static let onlinePolicyURL = URL(
         string: "https://github.com/ygpramod/cloudbake-ios-owner/blob/main/wiki/Privacy-Policy.md"
     )
@@ -50,7 +51,7 @@ enum PrivacyPolicyContent {
             title: "Sharing and Contact",
             paragraphs: [
                 "CloudBake does not sell personal information and does not share bakery data with advertisers or data brokers.",
-                "For privacy questions, use the CloudBake support repository. Do not include customer details, recipes, photos, or other private bakery information in a public support request."
+                "For privacy or support questions, email \(supportEmail). Do not include customer details, recipes, photos, or other private bakery information unless needed to resolve your request."
             ]
         )
     ]
