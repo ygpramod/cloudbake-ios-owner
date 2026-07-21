@@ -13,6 +13,7 @@ tests, and code.
 3. [Owner Workflows](Owner-Workflows.md)
 4. [Inventory Guide](Inventory-Guide.md)
 5. [Current App Capabilities](Current-App-Capabilities.md)
+6. [Privacy Policy](Privacy-Policy.md)
 
 ## Source Of Truth
 
