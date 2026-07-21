@@ -18,6 +18,8 @@ for App Store submission.
 4. Publish the matching policy as repo-local wiki source and provide its public `main` URL for App
    Store Connect.
 5. Cover policy content and Settings navigation with automated tests.
+6. Declare that CloudBake does not use non-exempt encryption so App Store Connect can apply the
+   correct export-compliance path to each uploaded build.
 
 ## Privacy Classification
 
@@ -47,6 +49,7 @@ The manifest declares:
 - The policy accurately explains local storage, private CloudKit backup, device permissions,
   retention, deletion, and sharing.
 - The public policy source is ready to use as the App Store Connect Privacy Policy URL after merge.
+- The app bundle declares `ITSAppUsesNonExemptEncryption` as false.
 
 ## Wiki Decision
 
