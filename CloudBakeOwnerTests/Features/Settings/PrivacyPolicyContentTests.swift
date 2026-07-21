@@ -2,6 +2,10 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class PrivacyPolicyContentTests: XCTestCase {
+    func testSupportEmailUsesPublicReleaseContact() {
+        XCTAssertEqual(PrivacyPolicyContent.supportEmail, "pramodyg@yahoo.in")
+    }
+
     func testPolicyExplainsStorageBackupPermissionsRetentionAndSharing() {
         XCTAssertEqual(
             PrivacyPolicyContent.sections.map(\.id),
