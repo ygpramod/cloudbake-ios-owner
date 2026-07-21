@@ -70,9 +70,16 @@ jobs:
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testAppLaunchesToDashboard
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testFirstLaunchIntroductionSupportsNextAndSkip
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsOpensHelpGuideAndReplaysIntroduction
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOverdueAutomaticBackupOnCellularDoesNotDelayLaunchOrStartTransfer
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testPrimaryNavigationDestinationsAreReachable
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipesCanBeAdded
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeNotesCanBeEditedFromDetail
+          - feature: settings
+            only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsOpensHelpGuideAndReplaysIntroduction
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsOpensPrivacyPolicy
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOverdueAutomaticBackupOnCellularDoesNotDelayLaunchOrStartTransfer
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsShowsInventoryCSVActions
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCSVExportPresentsDestinationPicker
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCSVImportPresentsFilePicker
@@ -87,10 +94,6 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreExplainsWhenAppUpdateIsRequired
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreReportsSuccessfulRollbackAfterActivationFailure
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreBlocksAppWhenRollbackCannotBeGuaranteed
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipesCanBeAdded
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeNotesCanBeEditedFromDetail
           - feature: orders-core
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeAddedAndListed
