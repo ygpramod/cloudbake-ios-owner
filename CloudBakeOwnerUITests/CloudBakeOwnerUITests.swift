@@ -493,10 +493,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_DELETE_FAILURE"] = "1"
         app.launch()
 
-        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
         let settingsScroll = app.scrollViews["screen.settings"]
         XCTAssertTrue(settingsScroll.waitForExistence(timeout: 5))
         let deleteButton = app.buttons["settings.cloudBackup.delete"]
+        tapScrollableAction(
+            app.buttons["settings.dataManagement.disclosure"],
+            in: settingsScroll,
+            waitingFor: deleteButton,
+            in: app
+        )
         let confirmButton = app.buttons["settings.cloudBackup.delete.confirm"]
         tapScrollableAction(
             deleteButton,
@@ -545,11 +550,20 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         assertScreenVisible("screen.settings", in: app)
-        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
-
+        let settingsScroll = app.scrollViews["screen.settings"]
         let restoreButton = app.buttons["settings.cloudBackup.restore"]
-        scrollToHittable(restoreButton, in: app)
-        tapWhenReady(restoreButton)
+        tapScrollableAction(
+            app.buttons["settings.dataManagement.disclosure"],
+            in: settingsScroll,
+            waitingFor: restoreButton,
+            in: app
+        )
+        tapScrollableAction(
+            restoreButton,
+            in: settingsScroll,
+            waitingFor: app.staticTexts["Replace Local Data?"],
+            in: app
+        )
 
         XCTAssertTrue(app.staticTexts["Replace Local Data?"].waitForExistence(timeout: 5))
         tapWhenReady(app.buttons["settings.cloudRestore.replace.confirm"])
@@ -576,12 +590,21 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         assertScreenVisible("screen.settings", in: app)
-        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let settingsScroll = app.scrollViews["screen.settings"]
         let restoreButton = app.buttons["settings.cloudBackup.restore"]
-        scrollToHittable(restoreButton, in: app)
-        tapWhenReady(restoreButton)
-
         let message = app.staticTexts["settings.cloudRestore.message"]
+        tapScrollableAction(
+            app.buttons["settings.dataManagement.disclosure"],
+            in: settingsScroll,
+            waitingFor: restoreButton,
+            in: app
+        )
+        tapScrollableAction(
+            restoreButton,
+            in: settingsScroll,
+            waitingFor: message,
+            in: app
+        )
         XCTAssertTrue(message.waitForExistence(timeout: 5))
         XCTAssertEqual(
             message.label,
@@ -596,11 +619,22 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         assertScreenVisible("screen.settings", in: app)
-        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let settingsScroll = app.scrollViews["screen.settings"]
         let restoreButton = app.buttons["settings.cloudBackup.restore"]
-        scrollToHittable(restoreButton, in: app)
-        tapWhenReady(restoreButton)
-        tapWhenReady(app.buttons["settings.cloudRestore.replace.confirm"])
+        let replaceButton = app.buttons["settings.cloudRestore.replace.confirm"]
+        tapScrollableAction(
+            app.buttons["settings.dataManagement.disclosure"],
+            in: settingsScroll,
+            waitingFor: restoreButton,
+            in: app
+        )
+        tapScrollableAction(
+            restoreButton,
+            in: settingsScroll,
+            waitingFor: replaceButton,
+            in: app
+        )
+        tapWhenReady(replaceButton)
 
         let message = app.staticTexts["settings.cloudRestore.message"]
         XCTAssertTrue(message.waitForExistence(timeout: 5))
@@ -617,11 +651,22 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         assertScreenVisible("screen.settings", in: app)
-        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let settingsScroll = app.scrollViews["screen.settings"]
         let restoreButton = app.buttons["settings.cloudBackup.restore"]
-        scrollToHittable(restoreButton, in: app)
-        tapWhenReady(restoreButton)
-        tapWhenReady(app.buttons["settings.cloudRestore.replace.confirm"])
+        let replaceButton = app.buttons["settings.cloudRestore.replace.confirm"]
+        tapScrollableAction(
+            app.buttons["settings.dataManagement.disclosure"],
+            in: settingsScroll,
+            waitingFor: restoreButton,
+            in: app
+        )
+        tapScrollableAction(
+            restoreButton,
+            in: settingsScroll,
+            waitingFor: replaceButton,
+            in: app
+        )
+        tapWhenReady(replaceButton)
 
         XCTAssertTrue(
             app.staticTexts["Reopen CloudBake to Finish Recovery"].waitForExistence(timeout: 5)
