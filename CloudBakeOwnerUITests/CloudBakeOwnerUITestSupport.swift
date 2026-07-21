@@ -416,7 +416,6 @@ extension CloudBakeOwnerUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        let deadline = Date().addingTimeInterval(timeout)
         scrollToHittable(
             element,
             in: app,
@@ -425,11 +424,12 @@ extension CloudBakeOwnerUITests {
             file: file,
             line: line
         )
+        let positioningDeadline = Date().addingTimeInterval(timeout)
         let scrollFrame = scrollContainer.frame
         let reliableTop = scrollFrame.minY + 100
         let reliableBottom = scrollFrame.maxY - 140
 
-        while element.exists, Date() < deadline {
+        while element.exists, Date() < positioningDeadline {
             if element.frame.midY > reliableBottom {
                 dragPrimaryScrollableArea(
                     in: app,
@@ -463,7 +463,7 @@ extension CloudBakeOwnerUITests {
             element,
             waitingFor: destination,
             in: app,
-            timeout: max(1, deadline.timeIntervalSinceNow),
+            timeout: timeout,
             file: file,
             line: line
         )
