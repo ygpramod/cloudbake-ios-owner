@@ -15,6 +15,9 @@
 		410000000000000000000082 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000082 /* SettingsView.swift */; };
 		4100000000000000000000F6 /* HelpGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000F6 /* HelpGuideView.swift */; };
 		4100000000000000000000F7 /* AppIntroductionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000F7 /* AppIntroductionTests.swift */; };
+		410000000000000000000100 /* PrivacyPolicyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000100 /* PrivacyPolicyView.swift */; };
+		410000000000000000000101 /* PrivacyPolicyContentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000101 /* PrivacyPolicyContentTests.swift */; };
+		410000000000000000000102 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000102 /* PrivacyInfo.xcprivacy */; };
 		4100000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift */; };
 		4100000000000000000000F9 /* GRDBRecipeRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000F9 /* GRDBRecipeRepositoryTests.swift */; };
 		4100000000000000000000FA /* GRDBOrderRecipeUsageRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000FA /* GRDBOrderRecipeUsageRepositoryTests.swift */; };
@@ -211,6 +214,9 @@
 		420000000000000000000082 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4200000000000000000000F6 /* HelpGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpGuideView.swift; sourceTree = "<group>"; };
 		4200000000000000000000F7 /* AppIntroductionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntroductionTests.swift; sourceTree = "<group>"; };
+		420000000000000000000100 /* PrivacyPolicyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicyView.swift; sourceTree = "<group>"; };
+		420000000000000000000101 /* PrivacyPolicyContentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicyContentTests.swift; sourceTree = "<group>"; };
+		420000000000000000000102 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4200000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBCoreDataRepositoryTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000F9 /* GRDBRecipeRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBRecipeRepositoryTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000FA /* GRDBOrderRecipeUsageRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBOrderRecipeUsageRepositoryTests.swift; sourceTree = "<group>"; };
@@ -537,6 +543,7 @@
 			children = (
 				4200000000000000000000F6 /* HelpGuideView.swift */,
 				420000000000000000000081 /* InventoryCSVService.swift */,
+				420000000000000000000100 /* PrivacyPolicyView.swift */,
 				4200000000000000000000ED /* CloudBackupSettingsCard.swift */,
 				4200000000000000000000DC /* SettingsFileExporter.swift */,
 				420000000000000000000082 /* SettingsView.swift */,
@@ -696,6 +703,7 @@
 			children = (
 				420000000000000000000025 /* Assets.xcassets */,
 				420000000000000000000021 /* BakingCatalog.json */,
+				420000000000000000000102 /* PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -804,6 +812,7 @@
 				4200000000000000000000F7 /* AppIntroductionTests.swift */,
 				4200000000000000000000D0 /* AppLogoStoreTests.swift */,
 				420000000000000000000083 /* InventoryCSVServiceTests.swift */,
+				420000000000000000000101 /* PrivacyPolicyContentTests.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -974,6 +983,7 @@
 			files = (
 				41000000000000000000001D /* Assets.xcassets in Resources */,
 				410000000000000000000019 /* BakingCatalog.json in Resources */,
+				410000000000000000000102 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1105,6 +1115,7 @@
 				4100000000000000000000DC /* SettingsFileExporter.swift in Sources */,
 				410000000000000000000082 /* SettingsView.swift in Sources */,
 				4100000000000000000000F6 /* HelpGuideView.swift in Sources */,
+				410000000000000000000100 /* PrivacyPolicyView.swift in Sources */,
 				4100000000000000000000F5 /* CloudRestorePrompt.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1124,6 +1135,7 @@
 				4100000000000000000000D8 /* ManualBackupServiceTests.swift in Sources */,
 				4100000000000000000000EC /* CloudBackupSettingsTests.swift in Sources */,
 				4100000000000000000000F7 /* AppIntroductionTests.swift in Sources */,
+				410000000000000000000101 /* PrivacyPolicyContentTests.swift in Sources */,
 				4100000000000000000000F1 /* RestoreCoordinatorTests.swift in Sources */,
 				4100000000000000000000F3 /* LocalRestoreServiceTests.swift in Sources */,
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
