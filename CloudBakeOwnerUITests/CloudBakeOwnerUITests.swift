@@ -33,6 +33,22 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertScreenVisible("screen.helpGuide", in: app)
     }
 
+    func testSettingsOpensPrivacyPolicy() {
+        let app = makeApp()
+        app.launch()
+
+        openDashboardDestination("Settings", in: app)
+        let settingsScroll = app.scrollViews["screen.settings"]
+        XCTAssertTrue(settingsScroll.waitForExistence(timeout: 5))
+        tapScrollableAction(
+            app.buttons["settings.privacyPolicy"],
+            in: settingsScroll,
+            waitingFor: app.descendants(matching: .any)["screen.privacyPolicy"],
+            in: app
+        )
+        XCTAssertTrue(app.buttons["privacy.onlinePolicy"].waitForExistence(timeout: 5))
+    }
+
     override func setUpWithError() throws {
         continueAfterFailure = false
     }

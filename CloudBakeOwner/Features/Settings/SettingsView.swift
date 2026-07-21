@@ -314,6 +314,25 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("settings.helpGuide")
+
+                    CloudBakeDetailDivider()
+
+                    NavigationLink {
+                        PrivacyPolicyView()
+                    } label: {
+                        HStack(spacing: 16) {
+                            CloudBakeRowIcon(systemImage: "hand.raised", tint: .cloudBakePink)
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("Privacy Policy").font(.headline).foregroundStyle(.primary)
+                                Text("Understand local storage, Cloud Backup, and your controls.")
+                                    .font(.footnote).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").foregroundStyle(.secondary)
+                        }.padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.privacyPolicy")
                 }
             }
 
