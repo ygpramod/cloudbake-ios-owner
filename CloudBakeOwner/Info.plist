@@ -48,6 +48,8 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>CloudBake uses the camera to scan purchase bills and recipes, and to capture order photos.</string>
 	<key>NSContactsUsageDescription</key>
