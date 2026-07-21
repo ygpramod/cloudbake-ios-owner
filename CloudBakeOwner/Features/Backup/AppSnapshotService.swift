@@ -61,7 +61,7 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         minimumCompatibleAppVersion: String,
         currentAppVersion: String,
         externalAssetResolver: any BackupExternalAssetResolving = PhotoKitBackupAssetResolver(),
-        now: @escaping @Sendable () -> Date = Date.init,
+        now: @escaping @Sendable () -> Date = { Date() },
         makeGenerationID: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() },
         didCaptureDatabase: @escaping @Sendable () throws -> Void = {},
         didCopyAsset: @escaping @Sendable (String) throws -> Void = { _ in },

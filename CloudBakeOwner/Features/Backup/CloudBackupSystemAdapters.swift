@@ -192,7 +192,7 @@ final class VolumeBackupStorageChecker: BackupStorageChecking, @unchecked Sendab
     }
 }
 
-struct SystemBackupBackgroundScheduler: BackupBackgroundScheduling {
+actor SystemBackupBackgroundScheduler: BackupBackgroundScheduling {
     static let taskIdentifier = "com.cloudbake.owner.cloud-backup"
 
     private let scheduler: BGTaskScheduler

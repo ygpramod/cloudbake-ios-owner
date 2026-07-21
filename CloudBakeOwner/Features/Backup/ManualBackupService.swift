@@ -52,7 +52,7 @@ actor ManualBackupService: ManualBackupPreparing {
 
     init(
         snapshotCreator: any AppSnapshotCreating,
-        dateProvider: @escaping @Sendable () -> Date = Date.init,
+        dateProvider: @escaping @Sendable () -> Date = { Date() },
         completedPackageRoot: URL? = nil,
         fileManager: FileManager = .default,
         archiver: any ManualBackupArchiving = ZIPManualBackupArchiver()
