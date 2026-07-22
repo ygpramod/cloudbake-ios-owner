@@ -253,8 +253,10 @@ recipe changes. Extra ingredients appear as a simple list under the linked recip
 modify the saved recipe, and are deducted with the linked recipe when the one-time usage event is
 recorded. Extra
 ingredient quantities are exact order quantities and are not multiplied by the recipe multiplier.
-Partial recipe usage, multi-recipe orders, inventory reservation, and serving/yield modeling remain
-future work.
+When usable stock is insufficient, CloudBake shows the exact shortfall and requires another owner
+confirmation. Continuing consumes available non-expired stock without making inventory negative,
+records the undeducted quantity, and completes the status change atomically. Multi-recipe orders,
+inventory reservation, and serving/yield modeling remain future work.
 
 ## Design And Photo Relationship
 

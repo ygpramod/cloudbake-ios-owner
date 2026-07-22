@@ -228,6 +228,10 @@ usable batches, the oldest-expiring stock is reduced before newer stock. If usab
 cover the requested quantity, CloudBake stops the consumption and explains that non-expired stock
 is insufficient.
 
+This strict rule applies to manual inventory use. When an order is moved to Ready or Completed,
+CloudBake may continue after a separate shortage confirmation: it consumes available non-expired
+stock, leaves expired stock untouched, and records the undeducted order quantity as a shortfall.
+
 ## Dispose Expired Stock
 
 Open an inventory item and use the trash action beside Expiry to dispose of all remaining expired
