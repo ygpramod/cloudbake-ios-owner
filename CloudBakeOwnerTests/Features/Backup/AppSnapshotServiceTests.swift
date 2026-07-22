@@ -33,7 +33,7 @@ final class AppSnapshotServiceTests: XCTestCase {
         XCTAssertFalse(try XCTUnwrap(recoveredExternalReference).hasPrefix("photos://"))
 
         let manifest = try fixture.decodeManifest(at: package.manifestURL)
-        XCTAssertEqual(manifest.databaseSchemaVersion, "0028_add_inventory_default_expiry_days")
+        XCTAssertEqual(manifest.databaseSchemaVersion, "0029_add_order_ingredient_shortfall")
         XCTAssertEqual(
             manifest.assets.map(\.originalRelativePath),
             [
