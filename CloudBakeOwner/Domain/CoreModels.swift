@@ -529,7 +529,30 @@ struct OrderIngredientCost: Equatable {
     let unit: InventoryUnit
     let knownCost: Decimal
     let missingPriceQuantity: Double
+    let shortfallQuantity: Double
     let recordedAt: Date
+
+    init(
+        id: String,
+        orderId: String,
+        inventoryItemId: String,
+        quantity: Double,
+        unit: InventoryUnit,
+        knownCost: Decimal,
+        missingPriceQuantity: Double,
+        shortfallQuantity: Double = 0,
+        recordedAt: Date
+    ) {
+        self.id = id
+        self.orderId = orderId
+        self.inventoryItemId = inventoryItemId
+        self.quantity = quantity
+        self.unit = unit
+        self.knownCost = knownCost
+        self.missingPriceQuantity = missingPriceQuantity
+        self.shortfallQuantity = shortfallQuantity
+        self.recordedAt = recordedAt
+    }
 }
 
 struct OrderExtraIngredient: Equatable {

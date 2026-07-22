@@ -19,6 +19,7 @@ final class OrderIngredientCostCalculationTests: XCTestCase {
 
         XCTAssertEqual(summary.knownCost, decimal("50"))
         XCTAssertEqual(summary.lines[0].missingPriceQuantity, 20, accuracy: 0.001)
+        XCTAssertEqual(summary.lines[0].shortfallQuantity, 0, accuracy: 0.001)
         XCTAssertEqual(summary.itemsMissingPrice, ["Cake flour"])
     }
 
@@ -39,7 +40,7 @@ final class OrderIngredientCostCalculationTests: XCTestCase {
         XCTAssertEqual(summary.lines[0].missingPriceQuantity, 0, accuracy: 0.001)
     }
 
-    func testReportsRequiredQuantityThatHasNoUsableStockAsMissingPrice() throws {
+    func testUsesLatestKnownPriceForRequiredQuantityBeyondUsableStock() throws {
         let item = makeItem()
         let batches = [makeBatch(id: "priced", quantity: 100, amount: 50, expiresIn: 1)]
 
@@ -49,17 +50,58 @@ final class OrderIngredientCostCalculationTests: XCTestCase {
             at: now
         )
 
-        XCTAssertEqual(summary.knownCost, decimal("50"))
-        XCTAssertEqual(summary.lines[0].missingPriceQuantity, 200, accuracy: 0.001)
+        XCTAssertEqual(summary.knownCost, decimal("150"))
+        XCTAssertEqual(summary.lines[0].missingPriceQuantity, 0, accuracy: 0.001)
+        XCTAssertEqual(summary.lines[0].shortfallQuantity, 200, accuracy: 0.001)
+        XCTAssertTrue(summary.itemsMissingPrice.isEmpty)
+    }
+
+    func testUsesNewestHistoricalPriceWithoutConsumingExpiredStock() throws {
+        let item = makeItem(currentQuantity: 0)
+        let older = makeBatch(id: "older", quantity: 0, amount: nil, expiresIn: -5, createdAt: now.addingTimeInterval(-20))
+        let newer = InventoryStockBatch(
+            id: "newer",
+            inventoryItemId: item.id,
+            remainingQuantity: 0,
+            expiresAt: now.addingTimeInterval(-86_400),
+            amount: 80,
+            unitCost: decimal("0.8"),
+            createdAt: now.addingTimeInterval(-10),
+            updatedAt: now.addingTimeInterval(-10)
+        )
+
+        let summary = try OrderIngredientCostCalculation.summary(
+            requirements: [(item, 100)],
+            batches: { _ in [older, newer] },
+            at: now
+        )
+
+        XCTAssertEqual(summary.knownCost, decimal("80"))
+        XCTAssertEqual(summary.lines[0].shortfallQuantity, 100, accuracy: 0.001)
+        XCTAssertTrue(summary.itemsMissingPrice.isEmpty)
+    }
+
+    func testKeepsMissingPriceWarningWhenNoHistoricalPriceExists() throws {
+        let item = makeItem(currentQuantity: 0)
+
+        let summary = try OrderIngredientCostCalculation.summary(
+            requirements: [(item, 100)],
+            batches: { _ in [] },
+            at: now
+        )
+
+        XCTAssertEqual(summary.knownCost, 0)
+        XCTAssertEqual(summary.lines[0].missingPriceQuantity, 100, accuracy: 0.001)
+        XCTAssertEqual(summary.lines[0].shortfallQuantity, 100, accuracy: 0.001)
         XCTAssertEqual(summary.itemsMissingPrice, ["Cake flour"])
     }
 
-    private func makeItem() -> InventoryItem {
+    private func makeItem(currentQuantity: Double = 150) -> InventoryItem {
         InventoryItem(
             id: "flour",
             name: "Cake flour",
             unit: .gram,
-            currentQuantity: 150,
+            currentQuantity: currentQuantity,
             minimumQuantity: 10,
             createdAt: now,
             updatedAt: now
@@ -70,7 +112,8 @@ final class OrderIngredientCostCalculationTests: XCTestCase {
         id: String,
         quantity: Double,
         amount: Decimal?,
-        expiresIn days: Double
+        expiresIn days: Double,
+        createdAt: Date? = nil
     ) -> InventoryStockBatch {
         InventoryStockBatch(
             id: id,
@@ -78,8 +121,8 @@ final class OrderIngredientCostCalculationTests: XCTestCase {
             remainingQuantity: quantity,
             expiresAt: now.addingTimeInterval(days * 86_400),
             amount: amount,
-            createdAt: now,
-            updatedAt: now
+            createdAt: createdAt ?? now,
+            updatedAt: createdAt ?? now
         )
     }
 }
