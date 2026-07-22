@@ -75,3 +75,10 @@ and uploads the Xcode result bundle for failed test jobs.
 - Require status checks to pass before merging once CI exists.
 - Block force pushes.
 - Block branch deletion.
+
+## App Store Releases
+
+After a release candidate is reviewed, green, and merged, follow
+[`app-store-release-runbook.md`](app-store-release-runbook.md). It records the archive and upload
+commands, App Store Connect metadata, TestFlight setup, real-device smoke test, final submission
+sequence, release evidence, and complications observed during the first CloudBake release.

@@ -131,6 +131,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Local guardrails: `docs/engineering-guardrails.md`
 - Architecture decisions: `docs/adr/`
 - Slice RFCs: `docs/rfc/slices/`
+- App Store release runbook: `docs/app-store-release-runbook.md`
 - Wiki source: `wiki/`
 
 The repo-local `wiki/` directory is the authored source for GitHub Wiki pages. Update it in the
