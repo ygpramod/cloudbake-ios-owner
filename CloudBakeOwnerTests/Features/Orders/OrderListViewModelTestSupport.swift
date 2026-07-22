@@ -217,6 +217,7 @@ final class FakeOrderRepository: OrderRepository,
     var recordedTransactionIds: [String] = []
     var recordRecipeUsageError: Error?
     var changeOrderStatusError: Error?
+    var allowInventoryShortageRequests: [Bool] = []
     var savePromotedDesignError: Error?
     var pendingDesignPhotoCleanupPaths: [String] = []
 
@@ -546,11 +547,20 @@ final class FakeOrderRepository: OrderRepository,
         updatedAt: Date,
         usageId: String,
         extraIngredients: [OrderExtraIngredient]?,
-        allowInventoryShortage _: Bool,
+        allowInventoryShortage: Bool,
         transactionIdProvider: () -> String
     ) throws -> Order {
+        allowInventoryShortageRequests.append(allowInventoryShortage)
         if let changeOrderStatusError {
-            throw changeOrderStatusError
+            let isOverridableShortage: Bool
+            if case .insufficientStock = changeOrderStatusError as? OrderRecipeUsageError {
+                isOverridableShortage = true
+            } else {
+                isOverridableShortage = false
+            }
+            if !allowInventoryShortage || !isOverridableShortage {
+                throw changeOrderStatusError
+            }
         }
 
         if let extraIngredients {

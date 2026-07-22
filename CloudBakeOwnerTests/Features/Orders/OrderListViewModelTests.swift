@@ -1209,7 +1209,17 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.saveEditedOrder(confirmingRecipeUsage: true))
 
         XCTAssertTrue(repository.extraIngredients.isEmpty)
-        XCTAssertEqual(viewModel.errorMessage, "Not enough Almonds in inventory.")
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertEqual(viewModel.inventoryShortageWarningMessage, "Almonds: short by 40 g")
+
+        XCTAssertTrue(
+            viewModel.saveEditedOrder(
+                confirmingRecipeUsage: true,
+                allowingInventoryShortage: true
+            )
+        )
+        XCTAssertEqual(viewModel.selectedOrder?.status, .ready)
+        XCTAssertEqual(repository.extraIngredients.count, 1)
     }
 
 }

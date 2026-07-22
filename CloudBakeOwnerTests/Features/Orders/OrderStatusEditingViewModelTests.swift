@@ -83,7 +83,7 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
         XCTAssertEqual(repository.recordedTransactionIds, ["generated-2"])
     }
 
-    func testChangeSelectedOrderStatusShowsRecipeUsageError() {
+    func testChangeSelectedOrderStatusRequiresShortageConfirmationBeforeOverride() {
         let repository = FakeOrderRepository()
         let order = makeOrder(
             id: "order-vanilla",
@@ -107,7 +107,14 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
 
         XCTAssertFalse(viewModel.changeSelectedOrderStatus(to: .ready))
         XCTAssertEqual(viewModel.selectedOrder?.status, .confirmed)
-        XCTAssertEqual(viewModel.errorMessage, "Not enough Cake Flour in inventory.")
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertEqual(viewModel.pendingInventoryShortages.count, 1)
+        XCTAssertEqual(viewModel.inventoryShortageWarningMessage, "Cake Flour: short by 50 g")
+
+        XCTAssertTrue(viewModel.changeSelectedOrderStatus(to: .ready, allowingInventoryShortage: true))
+        XCTAssertEqual(viewModel.selectedOrder?.status, .ready)
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertEqual(repository.allowInventoryShortageRequests, [false, true])
     }
 
     func testBeginViewingUnlinkedOrderClearsLinkedCustomer() {

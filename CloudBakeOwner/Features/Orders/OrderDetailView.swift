@@ -8,8 +8,10 @@ struct OrderDetailView: View {
     let showsDoneButton: Bool
     @State private var isEditingOrder = false
     @State private var statusPendingInventoryDeduction: OrderStatus?
+    @State private var statusPendingInventoryShortage: OrderStatus?
     @State private var statusChangeErrorMessage: String?
     @State private var isConfirmingEditedOrderInventoryDeduction = false
+    @State private var isConfirmingEditedOrderInventoryShortage = false
     @State private var isAddingPartialPayment = false
     @State private var selectedCustomerReferencePhotoItem: PhotosPickerItem?
     @State private var selectedFinalCakePhotoItem: PhotosPickerItem?
@@ -340,12 +342,43 @@ struct OrderDetailView: View {
                 centeredPopupButton("Mark \(status.displayName)", role: .destructive) {
                     let didChangeStatus = viewModel.changeSelectedOrderStatus(to: status)
                     statusPendingInventoryDeduction = nil
-                    if !didChangeStatus {
+                    if !didChangeStatus, !viewModel.pendingInventoryShortages.isEmpty {
+                        statusPendingInventoryShortage = status
+                    } else if !didChangeStatus {
                         statusChangeErrorMessage = viewModel.errorMessage
                             ?? "Order status could not be updated."
                     }
                 }
                 .accessibilityIdentifier("orders.detail.confirmInventoryDeduction")
+            }
+        }
+        .centeredOrderPopup(
+            isPresented: statusPendingInventoryShortage != nil,
+            title: "Inventory Shortage",
+            onCancel: {
+                statusPendingInventoryShortage = nil
+                viewModel.cancelInventoryShortageOverride()
+            }
+        ) {
+            Text(viewModel.inventoryShortageWarningMessage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("orders.detail.inventoryShortage.message")
+
+            if let status = statusPendingInventoryShortage {
+                centeredPopupButton("Continue And Mark \(status.displayName)", role: .destructive) {
+                    let didChangeStatus = viewModel.changeSelectedOrderStatus(
+                        to: status,
+                        allowingInventoryShortage: true
+                    )
+                    statusPendingInventoryShortage = nil
+                    if !didChangeStatus {
+                        statusChangeErrorMessage = viewModel.errorMessage
+                            ?? "Order status could not be updated."
+                    }
+                }
+                .accessibilityIdentifier("orders.detail.inventoryShortage.continue")
             }
         }
         .centeredOrderPopup(
@@ -414,14 +447,42 @@ struct OrderDetailView: View {
                     titleVisibility: .visible
                 ) {
                     Button("Save And Deduct") {
-                        if viewModel.saveEditedOrder(confirmingRecipeUsage: true) {
-                            isConfirmingEditedOrderInventoryDeduction = false
+                        let didSave = viewModel.saveEditedOrder(confirmingRecipeUsage: true)
+                        isConfirmingEditedOrderInventoryDeduction = false
+                        if didSave {
                             isEditingOrder = false
+                        } else if !viewModel.pendingInventoryShortages.isEmpty {
+                            isConfirmingEditedOrderInventoryShortage = true
                         }
                     }
                     .accessibilityIdentifier("orders.form.confirmInventoryDeduction")
 
                     Button("Cancel", role: .cancel) {}
+                }
+                .centeredOrderPopup(
+                    isPresented: isConfirmingEditedOrderInventoryShortage,
+                    title: "Inventory Shortage",
+                    onCancel: {
+                        isConfirmingEditedOrderInventoryShortage = false
+                        viewModel.cancelInventoryShortageOverride()
+                    }
+                ) {
+                    Text(viewModel.inventoryShortageWarningMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("orders.form.inventoryShortage.message")
+
+                    centeredPopupButton("Continue And Save", role: .destructive) {
+                        if viewModel.saveEditedOrder(
+                            confirmingRecipeUsage: true,
+                            allowingInventoryShortage: true
+                        ) {
+                            isConfirmingEditedOrderInventoryShortage = false
+                            isEditingOrder = false
+                        }
+                    }
+                    .accessibilityIdentifier("orders.form.inventoryShortage.continue")
                 }
             }
         }
@@ -939,6 +1000,11 @@ private struct OrderIngredientCostBreakdownContent: View {
                                 .foregroundStyle(.secondary)
                             if line.hasMissingPrice {
                                 Text("Price missing for \(line.missingPriceQuantity.formatted()) \(line.unit.displayName)")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.orange)
+                            }
+                            if line.hasShortfall {
+                                Text("Inventory shortfall: \(line.shortfallQuantity.formatted()) \(line.unit.displayName)")
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(.orange)
                             }
