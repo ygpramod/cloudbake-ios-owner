@@ -102,8 +102,30 @@ protocol OrderStatusChangeRepository {
         updatedAt: Date,
         usageId: String,
         extraIngredients: [OrderExtraIngredient]?,
+        allowInventoryShortage: Bool,
         transactionIdProvider: () -> String
     ) throws -> Order
+}
+
+extension OrderStatusChangeRepository {
+    func changeOrderStatus(
+        order: Order,
+        status: OrderStatus,
+        updatedAt: Date,
+        usageId: String,
+        extraIngredients: [OrderExtraIngredient]?,
+        transactionIdProvider: () -> String
+    ) throws -> Order {
+        try changeOrderStatus(
+            order: order,
+            status: status,
+            updatedAt: updatedAt,
+            usageId: usageId,
+            extraIngredients: extraIngredients,
+            allowInventoryShortage: false,
+            transactionIdProvider: transactionIdProvider
+        )
+    }
 }
 
 protocol OrderRecipeUsageRepository {

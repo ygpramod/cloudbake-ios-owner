@@ -621,7 +621,18 @@ enum OrderRecipeUsageError: Error, Equatable {
     case recipeHasNoIngredients
     case missingInventoryItem(String)
     case incompatibleIngredientUnit(itemName: String)
-    case insufficientStock(itemName: String)
+    case insufficientStock([OrderInventoryShortage])
+}
+
+struct OrderInventoryShortage: Equatable, Identifiable {
+    let inventoryItemId: String
+    let inventoryItemName: String
+    let requiredQuantity: Double
+    let availableQuantity: Double
+    let unit: InventoryUnit
+
+    var id: String { inventoryItemId }
+    var shortfallQuantity: Double { max(0, requiredQuantity - availableQuantity) }
 }
 
 enum InventoryTransactionKind: String, Equatable {

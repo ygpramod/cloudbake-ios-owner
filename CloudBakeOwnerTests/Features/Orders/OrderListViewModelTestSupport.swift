@@ -546,6 +546,7 @@ final class FakeOrderRepository: OrderRepository,
         updatedAt: Date,
         usageId: String,
         extraIngredients: [OrderExtraIngredient]?,
+        allowInventoryShortage _: Bool,
         transactionIdProvider: () -> String
     ) throws -> Order {
         if let changeOrderStatusError {

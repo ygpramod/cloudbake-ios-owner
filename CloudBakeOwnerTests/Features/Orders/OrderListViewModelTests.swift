@@ -1189,7 +1189,15 @@ final class OrderListViewModelTests: XCTestCase {
         repository.orders = [order]
         repository.recipes = [makeRecipe(id: "recipe-vanilla", name: "Vanilla Sponge")]
         repository.inventoryItems = [makeInventoryItem(id: "inventory-almonds", name: "Almonds")]
-        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock(itemName: "Almonds")
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: "inventory-almonds",
+                inventoryItemName: "Almonds",
+                requiredQuantity: 40,
+                availableQuantity: 0,
+                unit: .gram
+            )
+        ])
         let viewModel = OrderListViewModel(repository: repository)
         viewModel.beginViewingOrder(order)
         viewModel.beginEditingOrder()

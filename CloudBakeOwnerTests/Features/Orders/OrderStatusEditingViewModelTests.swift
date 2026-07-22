@@ -92,7 +92,15 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
             dueAt: Date(timeIntervalSince1970: 1_800_150_000)
         )
         repository.orders = [order]
-        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock(itemName: "Cake Flour")
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: "inventory-flour",
+                inventoryItemName: "Cake Flour",
+                requiredQuantity: 100,
+                availableQuantity: 50,
+                unit: .gram
+            )
+        ])
         let viewModel = OrderListViewModel(repository: repository)
 
         viewModel.beginViewingOrder(order)
