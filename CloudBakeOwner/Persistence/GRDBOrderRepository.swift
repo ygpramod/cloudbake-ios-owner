@@ -36,6 +36,7 @@ extension GRDBCoreDataRepository {
         updatedAt: Date,
         usageId: String,
         extraIngredients: [OrderExtraIngredient]? = nil,
+        allowInventoryShortage: Bool = false,
         transactionIdProvider: () -> String
     ) throws -> Order {
         let updatedOrder = Order(
@@ -71,6 +72,7 @@ extension GRDBCoreDataRepository {
                     recipeId: recipeId,
                     usageId: usageId,
                     usedAt: updatedAt,
+                    allowInventoryShortage: allowInventoryShortage,
                     transactionIdProvider: transactionIdProvider,
                     in: db
                 )
@@ -119,6 +121,7 @@ extension GRDBCoreDataRepository {
                     unit: unit,
                     knownCost: knownCost,
                     missingPriceQuantity: row["missing_price_quantity"],
+                    shortfallQuantity: row["shortfall_quantity"],
                     recordedAt: date(row["recorded_at_unix_time"])
                 )
             }
@@ -395,6 +398,7 @@ private extension GRDBCoreDataRepository {
         recipeId: String,
         usageId: String,
         usedAt: Date,
+        allowInventoryShortage: Bool,
         transactionIdProvider: () -> String,
         in db: Database
     ) throws {
@@ -407,6 +411,7 @@ private extension GRDBCoreDataRepository {
             recipeId: recipeId,
             usageId: usageId,
             usedAt: usedAt,
+            allowInventoryShortage: allowInventoryShortage,
             transactionIdProvider: transactionIdProvider,
             in: db
         )
@@ -421,6 +426,7 @@ private extension GRDBCoreDataRepository {
         recipeId: String,
         usageId: String,
         usedAt: Date,
+        allowInventoryShortage: Bool = false,
         transactionIdProvider: () -> String,
         in db: Database
     ) throws {
@@ -431,7 +437,12 @@ private extension GRDBCoreDataRepository {
             scaleMultiplier: order.recipeScaleMultiplier,
             in: db
         )
-        try validateStock(for: pendingUsages, at: usedAt, in: db)
+        try validateStock(
+            for: pendingUsages,
+            at: usedAt,
+            allowInventoryShortage: allowInventoryShortage,
+            in: db
+        )
         try applyRecipeUsage(
             pendingUsages,
             order: order,
@@ -682,23 +693,45 @@ private extension GRDBCoreDataRepository {
     func validateStock(
         for pendingUsages: [PendingInventoryUsage],
         at usedAt: Date,
+        allowInventoryShortage: Bool,
         in db: Database
     ) throws {
-        for pendingUsage in pendingUsages {
-            guard pendingUsage.item.currentQuantity - pendingUsage.quantity >= 0 else {
-                throw OrderRecipeUsageError.insufficientStock(itemName: pendingUsage.item.name)
+        let shortages = try pendingUsages.compactMap { pendingUsage -> OrderInventoryShortage? in
+            let batches = try inventoryStockBatches(inventoryItemId: pendingUsage.item.id, in: db)
+            let availableQuantity = availableInventoryQuantity(
+                item: pendingUsage.item,
+                batches: batches,
+                at: usedAt
+            )
+            guard availableQuantity < pendingUsage.quantity else {
+                return nil
             }
 
-            let batches = try inventoryStockBatches(inventoryItemId: pendingUsage.item.id, in: db)
-            if !batches.isEmpty {
-                let availableBatchQuantity = batches
-                    .filter { $0.isUsable(at: usedAt) }
-                    .reduce(0) { $0 + $1.remainingQuantity }
-                guard availableBatchQuantity - pendingUsage.quantity >= 0 else {
-                    throw OrderRecipeUsageError.insufficientStock(itemName: pendingUsage.item.name)
-                }
-            }
+            return OrderInventoryShortage(
+                inventoryItemId: pendingUsage.item.id,
+                inventoryItemName: pendingUsage.item.name,
+                requiredQuantity: pendingUsage.quantity,
+                availableQuantity: availableQuantity,
+                unit: pendingUsage.item.unit
+            )
         }
+
+        if !allowInventoryShortage && !shortages.isEmpty {
+            throw OrderRecipeUsageError.insufficientStock(shortages)
+        }
+    }
+
+    func availableInventoryQuantity(
+        item: InventoryItem,
+        batches: [InventoryStockBatch],
+        at date: Date
+    ) -> Double {
+        let currentQuantity = max(0, item.currentQuantity)
+        guard !batches.isEmpty else { return currentQuantity }
+        let usableBatchQuantity = batches
+            .filter { $0.isUsable(at: date) }
+            .reduce(0) { $0 + $1.remainingQuantity }
+        return min(currentQuantity, usableBatchQuantity)
     }
 
     func applyRecipeUsage(
@@ -710,6 +743,11 @@ private extension GRDBCoreDataRepository {
     ) throws {
         for pendingUsage in pendingUsages {
             let item = pendingUsage.item
+            let batches = try inventoryStockBatches(inventoryItemId: item.id, in: db)
+            let consumedQuantity = min(
+                pendingUsage.quantity,
+                availableInventoryQuantity(item: item, batches: batches, at: usedAt)
+            )
             let updatedItem = InventoryItem(
                 id: item.id,
                 name: item.name,
@@ -717,7 +755,7 @@ private extension GRDBCoreDataRepository {
                 type: item.type,
                 defaultExpiryDays: item.defaultExpiryDays,
                 unit: item.unit,
-                currentQuantity: item.currentQuantity - pendingUsage.quantity,
+                currentQuantity: max(0, item.currentQuantity - consumedQuantity),
                 minimumQuantity: item.minimumQuantity,
                 earliestExpiryAt: item.earliestExpiryAt,
                 hasExpiredStock: item.hasExpiredStock,
@@ -726,7 +764,6 @@ private extension GRDBCoreDataRepository {
                 updatedAt: usedAt,
                 archivedAt: item.archivedAt
             )
-            let batches = try inventoryStockBatches(inventoryItemId: item.id, in: db)
             let costSummary = try OrderIngredientCostCalculation.summary(
                 requirements: [(item, pendingUsage.quantity)],
                 batches: { _ in batches },
@@ -742,26 +779,29 @@ private extension GRDBCoreDataRepository {
                         unit: item.unit,
                         knownCost: costLine.knownCost,
                         missingPriceQuantity: costLine.missingPriceQuantity,
+                        shortfallQuantity: costLine.shortfallQuantity,
                         recordedAt: usedAt
                     ),
                     in: db
                 )
             }
-            try consume(quantity: pendingUsage.quantity, from: batches, updatedAt: usedAt, in: db)
-            try save(updatedItem, in: db)
-            try save(
-                InventoryTransaction(
-                    id: transactionIdProvider(),
-                    inventoryItemId: item.id,
-                    kind: .consumption,
-                    quantity: pendingUsage.quantity,
-                    occurredAt: usedAt,
-                    note: "Order recipe usage: \(order.title)",
-                    createdAt: usedAt,
-                    updatedAt: usedAt
-                ),
-                in: db
-            )
+            if consumedQuantity > 0 {
+                try consume(quantity: consumedQuantity, from: batches, updatedAt: usedAt, in: db)
+                try save(updatedItem, in: db)
+                try save(
+                    InventoryTransaction(
+                        id: transactionIdProvider(),
+                        inventoryItemId: item.id,
+                        kind: .consumption,
+                        quantity: consumedQuantity,
+                        occurredAt: usedAt,
+                        note: "Order recipe usage: \(order.title)",
+                        createdAt: usedAt,
+                        updatedAt: usedAt
+                    ),
+                    in: db
+                )
+            }
         }
     }
 
@@ -788,13 +828,14 @@ private extension GRDBCoreDataRepository {
         try db.execute(
             sql: """
                 INSERT INTO order_ingredient_costs
-                (id, order_id, inventory_item_id, quantity, unit, known_cost_decimal, missing_price_quantity, recorded_at_unix_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (id, order_id, inventory_item_id, quantity, unit, known_cost_decimal, missing_price_quantity, shortfall_quantity, recorded_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(order_id, inventory_item_id) DO UPDATE SET
                 quantity = excluded.quantity,
                 unit = excluded.unit,
                 known_cost_decimal = excluded.known_cost_decimal,
                 missing_price_quantity = excluded.missing_price_quantity,
+                shortfall_quantity = excluded.shortfall_quantity,
                 recorded_at_unix_time = excluded.recorded_at_unix_time
                 """,
             arguments: arguments([
@@ -805,6 +846,7 @@ private extension GRDBCoreDataRepository {
                 cost.unit.rawValue,
                 decimalString(cost.knownCost),
                 cost.missingPriceQuantity,
+                cost.shortfallQuantity,
                 cost.recordedAt.timeIntervalSince1970
             ])
         )

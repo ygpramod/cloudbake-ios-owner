@@ -1511,7 +1511,8 @@ final class OrderListViewModel: ObservableObject {
                             quantity: cost.quantity,
                             unit: cost.unit,
                             knownCost: cost.knownCost,
-                            missingPriceQuantity: cost.missingPriceQuantity
+                            missingPriceQuantity: cost.missingPriceQuantity,
+                            shortfallQuantity: cost.shortfallQuantity
                         )
                     }
                 )
@@ -1647,8 +1648,9 @@ final class OrderListViewModel: ObservableObject {
             return "Recipe ingredient inventory item could not be found."
         case .incompatibleIngredientUnit(let itemName):
             return "\(itemName) has an incompatible recipe unit."
-        case .insufficientStock(let itemName):
-            return "Not enough \(itemName) in inventory."
+        case .insufficientStock(let shortages):
+            let itemNames = shortages.map(\.inventoryItemName).joined(separator: ", ")
+            return "Not enough \(itemNames) in inventory."
         }
     }
 

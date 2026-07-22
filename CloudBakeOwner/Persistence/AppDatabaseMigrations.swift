@@ -437,6 +437,14 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0029_add_order_ingredient_shortfall") { db in
+            try db.alter(table: "order_ingredient_costs") { table in
+                table.add(column: "shortfall_quantity", .double)
+                    .notNull()
+                    .defaults(to: 0)
+            }
+        }
+
         return migrator
     }
 }
