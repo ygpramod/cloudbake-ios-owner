@@ -10,6 +10,7 @@ struct OrderListView: View {
     @State private var isViewingOrder = false
     @State private var orderScope: OrderScope = .active
     @State private var pendingStatusChange: OrderStatusChangeRequest?
+    @State private var shortageOverrideRequest: OrderStatusChangeRequest?
     @State private var orderAddingPartialPayment: Order?
     @State private var partialPaymentAmount = ""
     @State private var canOpenWhatsApp = false
@@ -82,10 +83,39 @@ struct OrderListView: View {
                     "Mark \(request.status.displayName) And Deduct",
                     role: .destructive
                 ) {
-                    _ = viewModel.changeOrderStatus(request.order, to: request.status)
+                    let didChangeStatus = viewModel.changeOrderStatus(request.order, to: request.status)
                     pendingStatusChange = nil
+                    if !didChangeStatus, !viewModel.pendingInventoryShortages.isEmpty {
+                        shortageOverrideRequest = request
+                    }
                 }
                 .accessibilityIdentifier("orders.row.confirmStatus")
+            }
+        }
+        .centeredOrderPopup(
+            isPresented: shortageOverrideRequest != nil,
+            title: "Inventory Shortage",
+            onCancel: {
+                shortageOverrideRequest = nil
+                viewModel.cancelInventoryShortageOverride()
+            }
+        ) {
+            Text(viewModel.inventoryShortageWarningMessage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("orders.row.inventoryShortage.message")
+
+            if let request = shortageOverrideRequest {
+                centeredPopupButton("Continue And Mark \(request.status.displayName)", role: .destructive) {
+                    _ = viewModel.changeOrderStatus(
+                        request.order,
+                        to: request.status,
+                        allowingInventoryShortage: true
+                    )
+                    shortageOverrideRequest = nil
+                }
+                .accessibilityIdentifier("orders.row.inventoryShortage.continue")
             }
         }
         .centeredOrderPopup(

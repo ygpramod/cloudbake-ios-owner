@@ -74,6 +74,7 @@ final class OrderListViewModel: ObservableObject {
     @Published var searchText = ""
     @Published var errorMessage: String?
     @Published private(set) var isPromotingDesign = false
+    @Published private(set) var pendingInventoryShortages: [OrderInventoryShortage] = []
 
     private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
@@ -249,12 +250,14 @@ final class OrderListViewModel: ObservableObject {
     func beginAddingOrder() {
         resetDraft()
         draftExtraIngredientRows = []
+        pendingInventoryShortages = []
         errorMessage = nil
         loadFormReferences()
     }
 
     func beginViewingOrder(_ order: Order) {
         selectedOrder = order
+        pendingInventoryShortages = []
         errorMessage = nil
         loadSelectedOrderCustomer(for: order)
         loadSelectedOrderRecipe(for: order)
@@ -282,6 +285,7 @@ final class OrderListViewModel: ObservableObject {
         draftChecklistItemTitle = ""
         resetExtraIngredientDraft()
         editingOrder = nil
+        pendingInventoryShortages = []
         errorMessage = nil
     }
 
@@ -510,7 +514,13 @@ final class OrderListViewModel: ObservableObject {
             selectedOrderRecipeUsage == nil
     }
 
-    func saveEditedOrder(confirmingRecipeUsage: Bool = false) -> Bool {
+    func saveEditedOrder(
+        confirmingRecipeUsage: Bool = false,
+        allowingInventoryShortage: Bool = false
+    ) -> Bool {
+        if !allowingInventoryShortage {
+            pendingInventoryShortages = []
+        }
         guard let editingOrder else {
             errorMessage = "Order could not be found."
             return false
@@ -577,6 +587,7 @@ final class OrderListViewModel: ObservableObject {
                     updatedAt: now,
                     usageId: idGenerator(),
                     extraIngredients: draftExtraIngredients(for: orderBeforeStatusChange, updatedAt: now),
+                    allowInventoryShortage: allowingInventoryShortage,
                     transactionIdProvider: idGenerator
                 )
             } else {
@@ -596,7 +607,12 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderExtraIngredients(for: savedOrder)
             loadSelectedOrderChecklistItems(for: savedOrder)
             loadSelectedOrderPhotos(for: savedOrder)
+            pendingInventoryShortages = []
             return true
+        } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
+            pendingInventoryShortages = shortages
+            errorMessage = nil
+            return false
         } catch let error as OrderRecipeUsageError {
             errorMessage = recipeUsageErrorMessage(for: error)
             return false
@@ -606,16 +622,30 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
-    func changeSelectedOrderStatus(to status: OrderStatus) -> Bool {
+    func changeSelectedOrderStatus(
+        to status: OrderStatus,
+        allowingInventoryShortage: Bool = false
+    ) -> Bool {
         guard let selectedOrder else {
             errorMessage = "Order could not be found."
             return false
         }
 
-        return changeOrderStatus(selectedOrder, to: status)
+        return changeOrderStatus(
+            selectedOrder,
+            to: status,
+            allowingInventoryShortage: allowingInventoryShortage
+        )
     }
 
-    func changeOrderStatus(_ order: Order, to status: OrderStatus) -> Bool {
+    func changeOrderStatus(
+        _ order: Order,
+        to status: OrderStatus,
+        allowingInventoryShortage: Bool = false
+    ) -> Bool {
+        if !allowingInventoryShortage {
+            pendingInventoryShortages = []
+        }
         guard order.status != status else {
             return true
         }
@@ -628,11 +658,17 @@ final class OrderListViewModel: ObservableObject {
                 updatedAt: now,
                 usageId: idGenerator(),
                 extraIngredients: nil,
+                allowInventoryShortage: allowingInventoryShortage,
                 transactionIdProvider: idGenerator
             )
             refreshAfterSavingOrder(updatedOrder)
+            pendingInventoryShortages = []
             errorMessage = nil
             return true
+        } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
+            pendingInventoryShortages = shortages
+            errorMessage = nil
+            return false
         } catch let error as OrderRecipeUsageError {
             errorMessage = recipeUsageErrorMessage(for: error)
             return false
@@ -640,6 +676,16 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = "Order status could not be updated."
             return false
         }
+    }
+
+    func cancelInventoryShortageOverride() {
+        pendingInventoryShortages = []
+    }
+
+    var inventoryShortageWarningMessage: String {
+        pendingInventoryShortages.map { shortage in
+            "\(shortage.inventoryItemName): short by \(shortage.shortfallQuantity.formatted()) \(shortage.unit.displayName)"
+        }.joined(separator: "\n")
     }
 
     func requiresInventoryDeductionConfirmation(for order: Order, to status: OrderStatus) -> Bool {
@@ -1343,6 +1389,7 @@ final class OrderListViewModel: ObservableObject {
         resetDraft()
         resetExtraIngredientDraft()
         draftExtraIngredientRows = []
+        pendingInventoryShortages = []
         errorMessage = nil
     }
 
