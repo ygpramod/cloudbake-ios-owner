@@ -1494,6 +1494,36 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["orders.detail.status"].label.contains("Draft"))
     }
 
+    func testOrderCanContinueAfterInventoryShortageWarning() throws {
+        let app = makeApp(initialDestination: "orders")
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_STATUS_FAILURE_FIXTURE"] = "1"
+        app.launch()
+
+        assertScreenVisible("screen.orders", in: app)
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Inventory shortage cake"
+            )
+        ).firstMatch
+        tapWhenReady(orderRow)
+
+        assertExistsAfterScrolling(app.buttons["orders.detail.statusMenu"], in: app)
+        tapWhenReady(app.buttons["orders.detail.statusMenu"])
+        tapExisting(app.buttons["Ready"])
+        tapExisting(app.buttons["orders.detail.confirmInventoryDeduction"])
+
+        let warning = app.staticTexts["orders.detail.inventoryShortage.message"]
+        XCTAssertTrue(warning.waitForExistence(timeout: 5))
+        XCTAssertTrue(warning.label.contains("Shortage sugar: short by 50 g"))
+        tapWhenReady(app.buttons["orders.detail.inventoryShortage.continue"])
+
+        let status = app.staticTexts["orders.detail.status"]
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        XCTAssertTrue(status.label.contains("Ready"))
+    }
+
     func testOrderCalendarViewShowsOrders() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15

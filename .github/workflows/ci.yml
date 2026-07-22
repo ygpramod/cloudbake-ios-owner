@@ -104,6 +104,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderIngredientCostShowsPartialTotalAndMissingPriceWarning
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderStatusFailureIsShownImmediatelyFromDetail
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDraftOrderCannotBypassInventoryDeductionWhenMarkedReady
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanContinueAfterInventoryShortageWarning
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeEditedFromDetail
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrderAppearsInCompletedTab

@@ -402,6 +402,7 @@ final class AppDatabase {
                 updatedAt: timestamp
             )
         )
+
     }
 
     private func seedCompletedOrderFixtureIfRequested() throws {
@@ -471,6 +472,74 @@ final class AppDatabase {
                 customerName: "Amy",
                 status: .draft,
                 dueAt: Date(timeIntervalSince1970: 1_800_150_000),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+
+        let shortageItem = InventoryItem(
+            id: "inventory-ui-fixture-shortage-sugar",
+            name: "Shortage sugar",
+            unit: .gram,
+            currentQuantity: 50,
+            minimumQuantity: 10,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let shortageRecipe = Recipe(
+            id: "recipe-ui-fixture-shortage",
+            name: "Shortage recipe",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let shortageComponent = RecipeComponent(
+            id: "component-ui-fixture-shortage",
+            recipeId: shortageRecipe.id,
+            name: "Cake",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(shortageItem)
+        try repository.save(
+            InventoryStockBatch(
+                id: "batch-ui-fixture-shortage-sugar",
+                inventoryItemId: shortageItem.id,
+                remainingQuantity: 50,
+                expiresAt: nil,
+                amount: 25,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+        try repository.save(shortageRecipe)
+        try repository.save(shortageComponent)
+        try repository.save(
+            RecipeIngredient(
+                id: "ingredient-ui-fixture-shortage",
+                componentId: shortageComponent.id,
+                inventoryItemId: shortageItem.id,
+                quantity: 100,
+                unit: .gram,
+                note: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        )
+        try repository.save(
+            Order(
+                id: "order-ui-fixture-inventory-shortage",
+                customerId: nil,
+                cakeDesignId: nil,
+                recipeId: shortageRecipe.id,
+                title: "Inventory shortage cake",
+                customerName: "Amy",
+                status: .confirmed,
+                dueAt: Date(timeIntervalSince1970: 1_800_160_000),
                 fulfillmentType: .pickup,
                 deliveryAddress: nil,
                 cakeNotes: nil,
