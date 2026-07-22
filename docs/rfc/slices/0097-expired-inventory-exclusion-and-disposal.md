@@ -40,3 +40,7 @@ of it.
 
 The Inventory Guide and Business Concepts wiki sources are updated because expiry handling and the
 new transaction type are durable owner-facing behavior.
+
+Slice RFC-0117 later allows an owner-confirmed order status transition to continue when non-expired
+stock is short. Expired batches remain excluded and untouched; the override consumes only usable
+stock and records the remainder as a shortfall.

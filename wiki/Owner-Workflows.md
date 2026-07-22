@@ -505,8 +505,10 @@ When an order with an unused linked recipe is marked Ready or Completed from ord
 the app asks for confirmation and then deducts the recipe's inventory-backed ingredient rows. When
 the same status transition is saved through edit order, the app uses the same one-time deduction
 rule. Draft and In Progress orders cannot bypass deduction by moving directly to Ready or Completed.
-If validation fails, CloudBake immediately explains the missing recipe data, incompatible unit, or
-insufficient stock and keeps the previous status.
+If recipe data is missing or units are incompatible, CloudBake explains the problem and keeps the
+previous status. If usable stock is insufficient, CloudBake shows each shortfall and asks whether to
+continue. Cancelling changes nothing. Continuing consumes only available non-expired stock, records
+the remaining shortfall, and completes the status change without making inventory negative.
 The order form includes a Recipe Multiplier for scaling the linked recipe up or down before usage.
 Quantities are converted into each inventory item's unit when compatible, then multiplied by the
 order recipe multiplier. Order form and order detail can also add order-specific extra ingredients
@@ -539,8 +541,10 @@ Cost beside the quoted-price input so the owner can use it while preparing a quo
 updates when the recipe, scale, or extra ingredients change. It includes every priced portion and
 displays a warning when a required batch has no purchase amount. Order detail shows the same estimate;
 tap that row to expand the per-ingredient breakdown. After inventory is deducted, the row becomes
-Actual Ingredient Cost and uses the cost of the exact usable batches consumed. Expired stock never
-contributes cost, and ingredient cost does not change the quoted price automatically.
+Actual Ingredient Cost and uses the cost of the exact usable batches consumed. When stock is short,
+the newest historically known purchase price values the remainder and the breakdown identifies the
+shortfall. Expired stock never contributes consumable quantity, and ingredient cost does not change
+the quoted price automatically.
 
 CloudBake keeps separately entered priced purchases as separate batches, even when their expiry date
 and amount match. This preserves the purchase quantity and unit cost used by order costing.

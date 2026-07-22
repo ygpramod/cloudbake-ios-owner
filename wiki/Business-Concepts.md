@@ -112,13 +112,16 @@ Estimated ingredient cost helps the owner quote an order. It combines the order'
 extra ingredients, then uses the purchase amount and quantity of usable inventory batches to derive
 cost in earliest-expiry-first order. Expired batches are excluded.
 
-When some used quantity has no saved purchase amount, CloudBake shows the total for every priced
-portion and warns which ingredients still have missing prices. Missing prices are not treated as
-zero.
+When required quantity exceeds usable stock, CloudBake prices the available portion from its usable
+batches and prices the shortfall with the newest historically known purchase unit price. A depleted
+or expired batch may provide that price reference, but it is never treated as consumable stock.
+When no historical price exists, CloudBake shows the total for every priced portion and warns which
+ingredients still have missing prices. Missing prices are not treated as zero.
 
 When order inventory is deducted, CloudBake saves the actual per-ingredient cost from the batches
-consumed. Later inventory price edits do not rewrite that actual cost. Deductions recorded before
-ingredient costing was introduced are not backfilled.
+consumed plus any fallback-priced shortfall, and records the shortfall separately. Later inventory
+price edits do not rewrite that actual cost. Deductions recorded before ingredient costing was
+introduced are not backfilled.
 
 Pre-existing batches are left without a derived unit cost because their original purchased quantity
 is not available after earlier consumption. The owner can correct their amount to establish a new

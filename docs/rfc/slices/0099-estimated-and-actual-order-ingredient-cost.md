@@ -51,3 +51,7 @@ expiry date and total amount match, because combining their quantities would cor
 
 Business Concepts and Owner Workflows are updated because ingredient-cost semantics and the order
 pricing workflow are durable owner-facing behavior.
+
+Slice RFC-0117 extends estimated and actual costing for inventory shortages. Quantity beyond usable
+stock uses the newest historically known purchase unit price, while a missing-price warning remains
+when no historical price exists.

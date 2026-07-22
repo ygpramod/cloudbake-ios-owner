@@ -100,3 +100,7 @@ the app asks for confirmation and then uses the atomic repository status-change 
 - `wiki/Owner-Workflows.md` explains the owner workflow and one-time deduction behavior.
 - `wiki/Business-Concepts.md` describes order recipe usage as the first recipe-driven inventory
   deduction path.
+
+Slice RFC-0117 supersedes the insufficient-stock failure for order usage only. Ready and Completed
+may continue after a second owner confirmation, consuming available usable stock and recording the
+remaining shortfall. Manual inventory consumption remains strict.

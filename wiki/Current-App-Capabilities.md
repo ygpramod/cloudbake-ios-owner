@@ -199,6 +199,9 @@ The app currently supports:
     that preserves linked stock, recipe, and order records.
 132. owner-requested cloud backups that always create a fresh snapshot, even with unchanged app
     data, with size-aware cellular consent required separately for every manual attempt.
+133. owner-confirmed Ready and Completed transitions when usable inventory is short, including
+    partial non-expired deduction, persisted shortfall, non-negative stock, and full ingredient
+    costing from the newest known purchase price when available.
 
 ## Partially Prepared
 
