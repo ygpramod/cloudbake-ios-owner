@@ -14,6 +14,7 @@ tests, and code.
 4. [Inventory Guide](Inventory-Guide.md)
 5. [Current App Capabilities](Current-App-Capabilities.md)
 6. [Privacy Policy](Privacy-Policy.md)
+7. [App Store Release](App-Store-Release.md)
 
 ## Source Of Truth
 
