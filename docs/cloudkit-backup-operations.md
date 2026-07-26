@@ -165,10 +165,14 @@ drill because the app does not implement it.
 3. Expand **Settings → Backup**, confirm the intended iCloud account if prompted, and choose
    **Back Up Now**.
 4. On cellular, confirm the displayed size only for this attempt; otherwise use Wi-Fi.
-5. Verify Settings reports a successful backup with a fresh time and plausible estimated size.
-6. Verify restore inspection discovers a snapshot with the same created time, size, photo count,
-   integrity, and compatibility. This is the production-safe proof that the current pointer resolves
-   to the newly validated generation; private record identifiers must not be copied into evidence.
+5. Record the backup-attempt start and completion time as a narrow time window. Verify Settings
+   reports a successful backup within that window and a plausible estimated upload size.
+6. Open restore inspection and separately record the manifest creation time, payload size, photo
+   count, integrity, and compatibility. The manifest creation time must fall within the recorded
+   attempt window. Confirm through this fresh restore inspection that the production current pointer
+   resolves to the newly validated snapshot; do not compare the intentionally different Settings
+   publication time/estimated upload size with the manifest creation time/payload size, and do not
+   copy private record identifiers into evidence.
 7. If testing omission recovery, delete one disposable source photo from Photos, empty it from
    Recently Deleted, run **Back Up Now**, choose **Back Up Without Photos**, and verify the persisted
    omitted count. Do not use a real customer image.
@@ -205,8 +209,11 @@ Production schema verified: yes/no + method
 Device model/iOS:
 Xcode version:
 Representative anonymous record counts created:
-Back Up Now result/time/estimated size:
-Restore inspection matched created time/size/photo count/integrity/compatibility: yes/no
+Back Up Now result/start-completion window/estimated upload size:
+Expected photo count:
+Restore inspection actual creation time/payload size/photo count/integrity/compatibility:
+Manifest creation time within backup-attempt window: yes/no
+Current pointer resolves to newly validated generation: yes/no + privacy-safe method
 Unavailable-photo choice/count (if exercised):
 Clean-install method:
 Explicit restore confirmation completed: yes/no
