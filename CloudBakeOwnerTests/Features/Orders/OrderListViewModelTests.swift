@@ -269,6 +269,25 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
+    func testChoosingDefaultsReplacesCustomDraftWithCurrentDefaults() throws {
+        let repository = FakeOrderRepository()
+        repository.defaultOrderReminderConfiguration = try OrderReminderConfiguration(
+            mode: .defaultSnapshot,
+            dayOffsets: [6, 1],
+            includesDueTime: false
+        )
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.draftReminderMode = .custom
+        viewModel.draftReminderDayOffsets = "20"
+        viewModel.draftReminderIncludesDueTime = true
+
+        viewModel.selectDraftReminderMode(.useDefaults)
+
+        XCTAssertEqual(viewModel.draftReminderMode, .useDefaults)
+        XCTAssertEqual(viewModel.draftReminderDayOffsets, "6, 1")
+        XCTAssertFalse(viewModel.draftReminderIncludesDueTime)
+    }
+
     func testCalendarDaysUseFilteredActiveOrders() {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()

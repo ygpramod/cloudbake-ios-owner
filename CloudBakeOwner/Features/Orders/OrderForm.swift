@@ -118,7 +118,13 @@ struct OrderForm: View {
             }
 
             Section("Reminders") {
-                Picker("Reminder Plan", selection: $viewModel.draftReminderMode) {
+                Picker(
+                    "Reminder Plan",
+                    selection: Binding(
+                        get: { viewModel.draftReminderMode },
+                        set: viewModel.selectDraftReminderMode
+                    )
+                ) {
                     ForEach(OrderReminderDraftMode.allCases, id: \.self) { mode in
                         Text(mode.displayName).tag(mode)
                     }

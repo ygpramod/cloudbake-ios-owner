@@ -277,6 +277,13 @@ final class OrderListViewModel: ObservableObject {
         loadFormReferences()
     }
 
+    func selectDraftReminderMode(_ mode: OrderReminderDraftMode) {
+        draftReminderMode = mode
+        if mode == .useDefaults {
+            loadDefaultReminderDraft()
+        }
+    }
+
     func beginViewingOrder(_ order: Order) {
         selectedOrder = order
         pendingInventoryShortages = []
