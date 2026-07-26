@@ -17,6 +17,7 @@ final class CustomerListViewModel: ObservableObject {
     @Published private(set) var selectedCustomer: Customer?
     @Published private(set) var selectedCustomerImportantDates: [CustomerImportantDate] = []
     @Published private(set) var selectedCustomerOrders: [Order] = []
+    @Published private(set) var canLoadMoreSelectedCustomerOrders = false
     @Published private(set) var editingCustomer: Customer?
     @Published private(set) var lastSavedCustomer: Customer?
     @Published var draftName = ""
@@ -38,6 +39,8 @@ final class CustomerListViewModel: ObservableObject {
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private var acknowledgedDuplicateKey: String?
+    private var selectedCustomerOrderCursor: OrderPageCursor?
+    private static let orderPageSize = 25
 
     init(
         repository: any CustomerRepository & CustomerImportantDateRepository & OrderRepository,
@@ -124,7 +127,29 @@ final class CustomerListViewModel: ObservableObject {
         selectedCustomer = nil
         selectedCustomerImportantDates = []
         selectedCustomerOrders = []
+        selectedCustomerOrderCursor = nil
+        canLoadMoreSelectedCustomerOrders = false
         errorMessage = nil
+    }
+
+    func loadMoreSelectedCustomerOrders() {
+        guard let selectedCustomer, let selectedCustomerOrderCursor else {
+            return
+        }
+
+        do {
+            let page = try repository.fetchOrderPage(
+                query: .customer(id: selectedCustomer.id),
+                after: selectedCustomerOrderCursor,
+                limit: Self.orderPageSize
+            )
+            selectedCustomerOrders.append(contentsOf: page.orders)
+            self.selectedCustomerOrderCursor = page.nextCursor
+            canLoadMoreSelectedCustomerOrders = page.nextCursor != nil
+            errorMessage = nil
+        } catch {
+            errorMessage = "More customer orders could not be loaded."
+        }
     }
 
     func beginAddingCustomer(importedDraft: CustomerContactDraft? = nil) {
@@ -306,20 +331,27 @@ final class CustomerListViewModel: ObservableObject {
         guard let selectedCustomer else {
             selectedCustomerImportantDates = []
             selectedCustomerOrders = []
+            selectedCustomerOrderCursor = nil
+            canLoadMoreSelectedCustomerOrders = false
             return
         }
 
         do {
             selectedCustomerImportantDates = try repository.fetchCustomerImportantDates(customerId: selectedCustomer.id)
-            selectedCustomerOrders = try repository.fetchOrders()
-                .filter { $0.customerId == selectedCustomer.id }
-                .sorted { lhs, rhs in
-                    lhs.dueAt == rhs.dueAt ? lhs.title < rhs.title : lhs.dueAt < rhs.dueAt
-                }
+            let page = try repository.fetchOrderPage(
+                query: .customer(id: selectedCustomer.id),
+                after: nil,
+                limit: Self.orderPageSize
+            )
+            selectedCustomerOrders = page.orders
+            selectedCustomerOrderCursor = page.nextCursor
+            canLoadMoreSelectedCustomerOrders = page.nextCursor != nil
             errorMessage = nil
         } catch {
             selectedCustomerImportantDates = []
             selectedCustomerOrders = []
+            selectedCustomerOrderCursor = nil
+            canLoadMoreSelectedCustomerOrders = false
             errorMessage = "Customer details could not be loaded."
         }
     }

@@ -307,6 +307,45 @@ final class CustomerListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.selectedCustomerOrders.isEmpty)
     }
 
+    func testCustomerDetailLoadsOrderHistoryInBoundedPages() {
+        let repository = FakeCustomerRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_100_000)
+        let customer = Customer(
+            id: "customer-amy",
+            name: "Amy",
+            phone: "5550101",
+            email: nil,
+            address: nil,
+            likes: nil,
+            dislikes: nil,
+            allergies: nil,
+            dietaryRestrictions: nil,
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.orders = (0..<26).map { index in
+            makeOrder(
+                id: String(format: "order-%02d", index),
+                customerId: customer.id,
+                title: "Order \(index)",
+                dueAt: timestamp.addingTimeInterval(TimeInterval(index))
+            )
+        }
+        let viewModel = CustomerListViewModel(repository: repository)
+
+        viewModel.beginViewingCustomer(customer)
+
+        XCTAssertEqual(viewModel.selectedCustomerOrders.count, 25)
+        XCTAssertTrue(viewModel.canLoadMoreSelectedCustomerOrders)
+
+        viewModel.loadMoreSelectedCustomerOrders()
+
+        XCTAssertEqual(viewModel.selectedCustomerOrders.count, 26)
+        XCTAssertEqual(viewModel.selectedCustomerOrders.last?.id, "order-25")
+        XCTAssertFalse(viewModel.canLoadMoreSelectedCustomerOrders)
+    }
+
     func testSaveEditedCustomerPersistsFieldsAndPreservesCreatedAt() {
         let repository = FakeCustomerRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_060_000)

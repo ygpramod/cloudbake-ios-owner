@@ -164,6 +164,18 @@ struct CustomerDetailView: View {
                                 CloudBakeDetailDivider()
                             }
                         }
+
+                        if viewModel.canLoadMoreSelectedCustomerOrders {
+                            Button("Load More Orders") {
+                                viewModel.loadMoreSelectedCustomerOrders()
+                            }
+                            .buttonStyle(.borderless)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.cloudBakePink)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .accessibilityIdentifier("customers.detail.orders.loadMore")
+                        }
                     }
                     }
                 }
