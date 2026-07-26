@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import os
 
 private let reservationRepairLogger = Logger(
@@ -168,6 +169,15 @@ struct RootView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .cloudBakeRestoreRecoveryRequired)) { _ in
             isRestoreRecoveryRequired = true
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIApplication.significantTimeChangeNotification
+            )
+        ) { _ in
+            Task {
+                await refreshLocalReminders()
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else {
