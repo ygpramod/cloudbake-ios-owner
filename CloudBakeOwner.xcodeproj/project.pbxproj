@@ -171,6 +171,9 @@
 		41000000000000000000005F /* PhotoPickerImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000067 /* PhotoPickerImageLoader.swift */; };
 		410000000000000000000060 /* CloudBakeOwnerRecipeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000068 /* CloudBakeOwnerRecipeUITests.swift */; };
 		410000000000000000000061 /* CloudBakeOwnerCustomerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000069 /* CloudBakeOwnerCustomerUITests.swift */; };
+		C13000000000000000000001 /* CloudBakeOwnerAppSettingsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14000000000000000000001 /* CloudBakeOwnerAppSettingsUITests.swift */; };
+		C13000000000000000000002 /* CloudBakeOwnerDesignUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14000000000000000000002 /* CloudBakeOwnerDesignUITests.swift */; };
+		C13000000000000000000003 /* CloudBakeOwnerOrderUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14000000000000000000003 /* CloudBakeOwnerOrderUITests.swift */; };
 		410000000000000000000062 /* OrderDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006A /* OrderDraftValidation.swift */; };
 		410000000000000000000063 /* OrderDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006B /* OrderDraftValidationTests.swift */; };
 		410000000000000000000064 /* OrderPhotoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006C /* OrderPhotoViewModelTests.swift */; };
@@ -388,6 +391,9 @@
 		420000000000000000000067 /* PhotoPickerImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPickerImageLoader.swift; sourceTree = "<group>"; };
 		420000000000000000000068 /* CloudBakeOwnerRecipeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerRecipeUITests.swift; sourceTree = "<group>"; };
 		420000000000000000000069 /* CloudBakeOwnerCustomerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerCustomerUITests.swift; sourceTree = "<group>"; };
+		C14000000000000000000001 /* CloudBakeOwnerAppSettingsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerAppSettingsUITests.swift; sourceTree = "<group>"; };
+		C14000000000000000000002 /* CloudBakeOwnerDesignUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerDesignUITests.swift; sourceTree = "<group>"; };
+		C14000000000000000000003 /* CloudBakeOwnerOrderUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerOrderUITests.swift; sourceTree = "<group>"; };
 		42000000000000000000006A /* OrderDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDraftValidation.swift; sourceTree = "<group>"; };
 		42000000000000000000006B /* OrderDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDraftValidationTests.swift; sourceTree = "<group>"; };
 		42000000000000000000006C /* OrderPhotoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoViewModelTests.swift; sourceTree = "<group>"; };
@@ -903,9 +909,12 @@
 			isa = PBXGroup;
 			children = (
 				420000000000000000000007 /* CloudBakeOwnerUITests.swift */,
+				C14000000000000000000001 /* CloudBakeOwnerAppSettingsUITests.swift */,
 				420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */,
 				420000000000000000000069 /* CloudBakeOwnerCustomerUITests.swift */,
+				C14000000000000000000002 /* CloudBakeOwnerDesignUITests.swift */,
 				420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */,
+				C14000000000000000000003 /* CloudBakeOwnerOrderUITests.swift */,
 				420000000000000000000068 /* CloudBakeOwnerRecipeUITests.swift */,
 			);
 			path = CloudBakeOwnerUITests;
@@ -1261,9 +1270,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				410000000000000000000007 /* CloudBakeOwnerUITests.swift in Sources */,
+				C13000000000000000000001 /* CloudBakeOwnerAppSettingsUITests.swift in Sources */,
 				41000000000000000000005C /* CloudBakeOwnerUITestSupport.swift in Sources */,
 				410000000000000000000061 /* CloudBakeOwnerCustomerUITests.swift in Sources */,
+				C13000000000000000000002 /* CloudBakeOwnerDesignUITests.swift in Sources */,
 				41000000000000000000005D /* CloudBakeOwnerInventoryUITests.swift in Sources */,
+				C13000000000000000000003 /* CloudBakeOwnerOrderUITests.swift in Sources */,
 				410000000000000000000060 /* CloudBakeOwnerRecipeUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
