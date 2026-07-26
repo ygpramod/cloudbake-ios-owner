@@ -349,6 +349,7 @@ extension GRDBCoreDataRepository {
         guard (1...60).contains(limit) else {
             throw ScheduledOrderReminderQueryError.invalidLimit
         }
+        let dueThrough = cutoff.addingTimeInterval(30 * 24 * 60 * 60)
         return try writer.read { db in
             try Row.fetchAll(
                 db,
@@ -360,13 +361,14 @@ extension GRDBCoreDataRepository {
                             due_at_unix_time
                                 - (CAST(offset.value AS INTEGER) * 86400)
                                 AS reminder_at_unix_time
-                        FROM orders
+                        FROM orders INDEXED BY orders_on_status_due_id
                         JOIN order_reminder_configurations
                           ON order_reminder_configurations.order_id = orders.id
                         JOIN json_each(
                             order_reminder_configurations.day_offsets_json
                         ) AS offset
                         WHERE orders.status IN (?, ?, ?)
+                          AND orders.due_at_unix_time <= ?
                           AND order_reminder_configurations.mode != ?
 
                         UNION ALL
@@ -375,10 +377,11 @@ extension GRDBCoreDataRepository {
                             orders.*,
                             0 AS reminder_offset_days,
                             due_at_unix_time AS reminder_at_unix_time
-                        FROM orders
+                        FROM orders INDEXED BY orders_on_status_due_id
                         JOIN order_reminder_configurations
                           ON order_reminder_configurations.order_id = orders.id
                         WHERE orders.status IN (?, ?, ?)
+                          AND orders.due_at_unix_time <= ?
                           AND order_reminder_configurations.mode != ?
                           AND order_reminder_configurations.includes_due_time = 1
                     )
@@ -396,10 +399,12 @@ extension GRDBCoreDataRepository {
                     OrderStatus.confirmed.rawValue,
                     OrderStatus.inProgress.rawValue,
                     OrderStatus.ready.rawValue,
+                    dueThrough.timeIntervalSince1970,
                     OrderReminderConfigurationMode.disabled.rawValue,
                     OrderStatus.confirmed.rawValue,
                     OrderStatus.inProgress.rawValue,
                     OrderStatus.ready.rawValue,
+                    dueThrough.timeIntervalSince1970,
                     OrderReminderConfigurationMode.disabled.rawValue,
                     cutoff.timeIntervalSince1970,
                     limit

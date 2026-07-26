@@ -153,6 +153,42 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         ])
     }
 
+    func testScheduledOrderReminderOccurrencesExcludeOrdersBeyondThirtyDayHorizon() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let order = Order(
+            id: "order-beyond-horizon",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Beyond horizon",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: now.addingTimeInterval(31 * 86_400),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: now,
+            updatedAt: now
+        )
+        try repository.save(order)
+        try repository.saveOrderReminderConfiguration(
+            try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [30],
+                includesDueTime: true
+            ),
+            orderId: order.id,
+            updatedAt: now
+        )
+
+        XCTAssertTrue(
+            try repository.fetchScheduledOrderReminderOccurrences(
+                after: now,
+                limit: 60
+            ).isEmpty
+        )
+    }
+
     func testPaymentPendingSummaryAggregatesEligibleOrdersInSQL() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let now = Date(timeIntervalSince1970: 1_800_000_000)
