@@ -326,7 +326,10 @@ struct RootView: View {
                 viewModel: SettingsViewModel(
                     repository: repository,
                     recipeRepository: repository,
-                    manualBackupService: try? ManualBackupService.live(database: database)
+                    manualBackupService: try? ManualBackupService.live(database: database),
+                    refreshReminderSchedule: {
+                        await refreshLocalReminders()
+                    }
                 ),
                 orderReminderSettingsViewModel: OrderReminderSettingsViewModel(
                     repository: repository

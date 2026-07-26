@@ -23,7 +23,7 @@ final class SettingsViewModel: ObservableObject {
     private let logoStore: AppLogoStore
     private let manualBackupService: (any ManualBackupPreparing)?
     private let manualBackupPreferences: ManualBackupPreferences
-    private let manualBackupReminderScheduler: ManualBackupReminderScheduler
+    private let refreshReminderSchedule: () async -> Void
 
     init(
         repository: any InventoryItemRepository & InventoryStockBatchRepository,
@@ -33,7 +33,8 @@ final class SettingsViewModel: ObservableObject {
         logoStore: AppLogoStore = AppLogoStore(),
         manualBackupService: (any ManualBackupPreparing)? = nil,
         manualBackupPreferences: ManualBackupPreferences = ManualBackupPreferences(),
-        manualBackupReminderScheduler: ManualBackupReminderScheduler? = nil
+        manualBackupReminderScheduler: ManualBackupReminderScheduler? = nil,
+        refreshReminderSchedule: (() async -> Void)? = nil
     ) {
         self.repository = repository
         self.csvService = csvService
@@ -42,8 +43,11 @@ final class SettingsViewModel: ObservableObject {
         self.logoStore = logoStore
         self.manualBackupService = manualBackupService
         self.manualBackupPreferences = manualBackupPreferences
-        self.manualBackupReminderScheduler = manualBackupReminderScheduler
+        let fallbackScheduler = manualBackupReminderScheduler
             ?? ManualBackupReminderScheduler(preferences: manualBackupPreferences)
+        self.refreshReminderSchedule = refreshReminderSchedule ?? {
+            _ = await fallbackScheduler.refreshReminder()
+        }
         lastManualBackupDate = manualBackupPreferences.lastSuccessfulExport
         lastManualBackupOmittedAssetCount =
             manualBackupPreferences.lastSuccessfulOmittedAssetCount
@@ -147,7 +151,8 @@ final class SettingsViewModel: ObservableObject {
             statusMessage = "CloudBake backup saved successfully."
         }
         errorMessage = nil
-        manualBackupReminderStatus = await manualBackupReminderScheduler.refreshReminder()
+        await refreshReminderSchedule()
+        manualBackupReminderStatus = manualBackupPreferences.reminderDeliveryStatus
         nextManualBackupReminderDate = manualBackupPreferences.nextReminderDate
     }
 
@@ -160,7 +165,8 @@ final class SettingsViewModel: ObservableObject {
         manualBackupPreferences.isReminderEnabled = isEnabled
         isWeeklyBackupReminderEnabled = isEnabled
         Task {
-            manualBackupReminderStatus = await manualBackupReminderScheduler.refreshReminder()
+            await refreshReminderSchedule()
+            manualBackupReminderStatus = manualBackupPreferences.reminderDeliveryStatus
             nextManualBackupReminderDate = manualBackupPreferences.nextReminderDate
         }
     }
