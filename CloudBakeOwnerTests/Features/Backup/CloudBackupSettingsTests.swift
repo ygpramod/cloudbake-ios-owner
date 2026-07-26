@@ -1,5 +1,6 @@
-import XCTest
+import Combine
 import UserNotifications
+import XCTest
 @testable import CloudBakeOwner
 
 @MainActor
@@ -475,6 +476,23 @@ final class CloudBackupSettingsTests: XCTestCase {
                 .brokenAssets(.removeReferences)
             ]
         )
+    }
+
+    func testRestoreViewModelEnablesConfirmationBeforePublishingPrompt() async {
+        let service = CloudRestoreSettingsServiceSpy()
+        let viewModel = CloudRestoreSettingsViewModel(service: service)
+        var wasWorkingWhenPromptPublished: Bool?
+        let observation = viewModel.$prompt
+            .dropFirst()
+            .compactMap { $0 }
+            .sink { _ in
+                wasWorkingWhenPromptPublished = viewModel.isWorking
+            }
+
+        _ = await viewModel.inspect()
+
+        XCTAssertEqual(wasWorkingWhenPromptPublished, false)
+        withExtendedLifetime(observation) {}
     }
 
     func testStartFreshCancelsRestoreWithoutChangingBackup() async {
