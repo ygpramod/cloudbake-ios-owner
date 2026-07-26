@@ -232,15 +232,15 @@ struct InventoryItemDetailView: View {
                 )
             }
         }
-        .cloudBakeCenteredPopup(
-            isPresented: isConfirmingExpiredDisposal,
+        .cloudBakeConfirmationDialog(
+            isPresented: $isConfirmingExpiredDisposal,
             title: "Dispose Expired Stock?",
-            subtitle: "Remove \(viewModel.selectedExpiredQuantity.formatted()) \(viewModel.selectedItem?.unit.displayName ?? "") of expired stock. This records an inventory disposal and cannot be undone.",
+            message: "Remove \(viewModel.selectedExpiredQuantity.formatted()) \(viewModel.selectedItem?.unit.displayName ?? "") of expired stock. This records an inventory disposal and cannot be undone.",
             systemImage: "trash",
             cancelAccessibilityIdentifier: "inventory.disposeExpired.cancel",
             onCancel: { isConfirmingExpiredDisposal = false }
         ) {
-            centeredPopupButton("Dispose Expired Stock", role: .destructive) {
+            nativeDialogButton("Dispose Expired Stock", role: .destructive) {
                 if viewModel.disposeSelectedExpiredStock() {
                     isConfirmingExpiredDisposal = false
                 }

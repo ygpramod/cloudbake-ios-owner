@@ -81,19 +81,15 @@ struct RootView: View {
             offersStartFresh: true
         )
         .disabled(isRestoreRecoveryRequired)
-        .cloudBakeCenteredPopup(
-            isPresented: isRestoreRecoveryRequired,
+        .cloudBakeConfirmationDialog(
+            isPresented: .constant(isRestoreRecoveryRequired),
             title: "Reopen CloudBake to Finish Recovery",
-            subtitle: "CloudBake has stopped access to your data because restore could not return safely to the previous state. Close and reopen the app before making changes.",
+            message: "CloudBake has stopped access to your data because restore could not return safely to the previous state. No changes can be made until CloudBake is closed and reopened.",
             systemImage: "exclamationmark.triangle",
+            messageAccessibilityIdentifier: "restore.recoveryRequired.message",
             showsCancelButton: false,
             onCancel: {}
-        ) {
-            Text("No changes can be made until CloudBake is reopened.")
-                .font(.subheadline.weight(.semibold))
-                .multilineTextAlignment(.center)
-                .accessibilityIdentifier("restore.recoveryRequired.message")
-        }
+        ) {}
         .onAppear {
             let hasExistingOwnerData = (try? OwnerInstallationState(database: database).hasRestorableData()) ?? false
             if hasExistingOwnerData && !hasCompletedIntroduction {

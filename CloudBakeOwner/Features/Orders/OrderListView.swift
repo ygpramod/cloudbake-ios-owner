@@ -31,21 +31,17 @@ struct OrderListView: View {
                     onCancel: viewModel.cancelAddOrder,
                     onSave: saveAddedOrder
                 )
-                .centeredOrderPopup(
-                    isPresented: isConfirmingAddedOrderInventoryShortage,
+                .orderConfirmationDialog(
+                    isPresented: $isConfirmingAddedOrderInventoryShortage,
                     title: "Inventory Shortage",
+                    message: viewModel.inventoryShortageWarningMessage,
+                    messageAccessibilityIdentifier: "orders.form.inventoryShortage.message",
                     onCancel: {
                         isConfirmingAddedOrderInventoryShortage = false
                         viewModel.cancelInventoryShortageOverride()
                     }
                 ) {
-                    Text(viewModel.inventoryShortageWarningMessage)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("orders.form.inventoryShortage.message")
-
-                    centeredPopupButton("Continue And Save", role: .destructive) {
+                    nativeDialogButton("Continue And Save", role: .destructive) {
                         if viewModel.addOrder(allowingInventoryShortage: true) {
                             isConfirmingAddedOrderInventoryShortage = false
                             isAddingOrder = false
@@ -109,13 +105,13 @@ struct OrderListView: View {
         }
         .contentShape(Rectangle())
         .simultaneousGesture(orderScopeSwipeGesture)
-        .centeredOrderPopup(
-            isPresented: pendingStatusChange != nil,
+        .orderConfirmationDialog(
+            isPresented: optionalPresentationBinding($pendingStatusChange),
             title: "Confirm Status Change",
             onCancel: { pendingStatusChange = nil }
         ) {
             if let request = pendingStatusChange {
-                centeredPopupButton(
+                nativeDialogButton(
                     "Mark \(request.status.displayName) And Deduct",
                     role: .destructive
                 ) {
@@ -128,22 +124,18 @@ struct OrderListView: View {
                 .accessibilityIdentifier("orders.row.confirmStatus")
             }
         }
-        .centeredOrderPopup(
-            isPresented: shortageOverrideRequest != nil,
+        .orderConfirmationDialog(
+            isPresented: optionalPresentationBinding($shortageOverrideRequest),
             title: "Inventory Shortage",
+            message: viewModel.inventoryShortageWarningMessage,
+            messageAccessibilityIdentifier: "orders.row.inventoryShortage.message",
             onCancel: {
                 shortageOverrideRequest = nil
                 viewModel.cancelInventoryShortageOverride()
             }
         ) {
-            Text(viewModel.inventoryShortageWarningMessage)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .accessibilityIdentifier("orders.row.inventoryShortage.message")
-
             if let request = shortageOverrideRequest {
-                centeredPopupButton("Continue And Mark \(request.status.displayName)", role: .destructive) {
+                nativeDialogButton("Continue And Mark \(request.status.displayName)", role: .destructive) {
                     _ = viewModel.changeOrderStatus(
                         request.order,
                         to: request.status,
@@ -154,36 +146,30 @@ struct OrderListView: View {
                 .accessibilityIdentifier("orders.row.inventoryShortage.continue")
             }
         }
-        .centeredOrderPopup(
-            isPresented: orderAddingPartialPayment != nil,
-            title: "Add Partial Payment",
-            showsCancelButton: false,
-            onCancel: {
-                orderAddingPartialPayment = nil
-                partialPaymentAmount = ""
-            }
+        .alert(
+            "Add Partial Payment",
+            isPresented: optionalPresentationBinding($orderAddingPartialPayment)
         ) {
             TextField("Amount", text: $partialPaymentAmount)
                 .keyboardType(.decimalPad)
-                .textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("orders.row.payment.partial.amount")
 
-            HStack(spacing: 16) {
-                centeredPopupPillButton("Cancel") {
+            Button("Cancel", role: .cancel) {
+                orderAddingPartialPayment = nil
+                partialPaymentAmount = ""
+            }
+            .accessibilityIdentifier("orders.row.payment.partial.cancel")
+
+            Button("Save") {
+                if let order = orderAddingPartialPayment,
+                   viewModel.addPayment(to: order, amountText: partialPaymentAmount) {
                     orderAddingPartialPayment = nil
                     partialPaymentAmount = ""
                 }
-                .accessibilityIdentifier("orders.row.payment.partial.cancel")
-
-                centeredPopupPillButton("Save") {
-                    if let order = orderAddingPartialPayment,
-                       viewModel.addPayment(to: order, amountText: partialPaymentAmount) {
-                        orderAddingPartialPayment = nil
-                        partialPaymentAmount = ""
-                    }
-                }
-                .accessibilityIdentifier("orders.row.payment.partial.save")
             }
+            .accessibilityIdentifier("orders.row.payment.partial.save")
+        } message: {
+            Text("Add the amount received.")
         }
     }
 

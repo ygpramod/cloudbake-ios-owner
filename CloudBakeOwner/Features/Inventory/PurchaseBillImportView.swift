@@ -405,15 +405,15 @@ struct VoiceInventoryImportView: View {
                 }
             }
         }
-        .cloudBakeCenteredPopup(
-            isPresented: pendingUnknownDraftId != nil,
+        .cloudBakeConfirmationDialog(
+            isPresented: optionalPresentationBinding($pendingUnknownDraftId),
             title: "Inventory Item Not Found",
-            subtitle: unknownDraftSubtitle,
+            message: unknownDraftSubtitle,
             systemImage: "questionmark.circle",
             cancelAccessibilityIdentifier: "inventory.voice.unknown.cancel",
             onCancel: { pendingUnknownDraftId = nil }
         ) {
-            centeredPopupButton("Map to Existing Inventory") {
+            nativeDialogButton("Map to Existing Inventory") {
                 let draftId = pendingUnknownDraftId
                 pendingUnknownDraftId = nil
                 DispatchQueue.main.async {
@@ -422,7 +422,7 @@ struct VoiceInventoryImportView: View {
             }
             .accessibilityIdentifier("inventory.voice.unknown.map")
 
-            centeredPopupButton("Create as New Inventory") {
+            nativeDialogButton("Create as New Inventory") {
                 if let pendingUnknownDraftId {
                     viewModel.resolveVoiceInventoryDraftAsNew(pendingUnknownDraftId)
                 }

@@ -658,15 +658,15 @@ struct SettingsView: View {
         .accessibilityIdentifier(AppDestination.settings.screenAccessibilityIdentifier)
         .cloudBackupPrompts(viewModel: cloudBackupViewModel)
         .cloudRestorePrompts(viewModel: cloudRestoreViewModel)
-        .cloudBakeCenteredPopup(
-            isPresented: cloudBackupViewModel.isConfirmingDeletion,
+        .cloudBakeConfirmationDialog(
+            isPresented: $cloudBackupViewModel.isConfirmingDeletion,
             title: "Delete Cloud Backup?",
-            subtitle: "This permanently removes CloudBake's complete recovery backup from the current iCloud account. Your database and photos on this iPhone will not be changed. Cloud backup will be turned off after deletion.",
+            message: "This permanently removes CloudBake's complete recovery backup from the current iCloud account. Your database and photos on this iPhone will not be changed. Cloud backup will be turned off after deletion.",
             systemImage: "trash",
             cancelAccessibilityIdentifier: "settings.cloudBackup.delete.cancel",
             onCancel: { cloudBackupViewModel.cancelCloudBackupDeletion() }
         ) {
-            centeredPopupButton("Delete Cloud Backup", role: .destructive) {
+            nativeDialogButton("Delete Cloud Backup", role: .destructive) {
                 Task { await cloudBackupViewModel.confirmCloudBackupDeletion() }
             }
             .accessibilityIdentifier("settings.cloudBackup.delete.confirm")
@@ -697,67 +697,77 @@ struct SettingsView: View {
                 }
             }
         }
-        .cloudBakeCenteredPopup(
-            isPresented: isConfirmingManualBackup,
+        .cloudBakeConfirmationDialog(
+            isPresented: $isConfirmingManualBackup,
             title: "Create Full Backup?",
-            subtitle: "CloudBake will prepare the complete database, app-managed photos, lightweight recovery copies of linked Photos-library images, and your custom logo. You will choose where to save the package.",
+            message: "CloudBake will prepare the complete database, app-managed photos, lightweight recovery copies of linked Photos-library images, and your custom logo. You will choose where to save the package.",
             systemImage: "externaldrive.badge.plus",
             cancelAccessibilityIdentifier: "settings.backup.cancel",
             onCancel: { isConfirmingManualBackup = false }
         ) {
-            centeredPopupButton("Create Backup") {
+            nativeDialogButton("Create Backup") {
                 dismissManualBackupPopupAndPrepare()
             }
             .accessibilityIdentifier("settings.backup.create.continue")
         }
-        .cloudBakeCenteredPopup(
-            isPresented: viewModel.pendingManualBackupPhotoProposal != nil
-                && !viewModel.isConfirmingManualBackupPhotoRemoval,
+        .cloudBakeConfirmationDialog(
+            isPresented: Binding(
+                get: {
+                    viewModel.pendingManualBackupPhotoProposal != nil
+                        && !viewModel.isConfirmingManualBackupPhotoRemoval
+                },
+                set: { isPresented in
+                    guard !isPresented,
+                          viewModel.pendingManualBackupPhotoProposal != nil,
+                          !viewModel.isConfirmingManualBackupPhotoRemoval else { return }
+                    Task { await viewModel.cancelManualBackupPhotoDecision() }
+                }
+            ),
             title: "Unavailable Photos",
-            subtitle: manualBackupUnavailablePhotoDescription,
+            message: manualBackupUnavailablePhotoDescription,
             systemImage: "photo.badge.exclamationmark",
             cancelAccessibilityIdentifier: "settings.manualBackup.photos.cancel",
             onCancel: {
                 Task { await viewModel.cancelManualBackupPhotoDecision() }
             }
         ) {
-            centeredPopupButton("Back Up Without Photos") {
+            nativeDialogButton("Back Up Without Photos") {
                 continueManualBackup {
                     await viewModel.approveManualBackupPhotoOmissions()
                 }
             }
             .accessibilityIdentifier("settings.manualBackup.photos.omit")
 
-            centeredPopupButton("Remove From CloudBake And Back Up", role: .destructive) {
+            nativeDialogButton("Remove From CloudBake And Back Up", role: .destructive) {
                 viewModel.requestManualBackupPhotoRemoval()
             }
             .accessibilityIdentifier("settings.manualBackup.photos.remove")
         }
-        .cloudBakeCenteredPopup(
-            isPresented: viewModel.isConfirmingManualBackupPhotoRemoval,
+        .cloudBakeConfirmationDialog(
+            isPresented: $viewModel.isConfirmingManualBackupPhotoRemoval,
             title: "Remove Broken References?",
-            subtitle: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
+            message: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
             systemImage: "trash",
             cancelAccessibilityIdentifier: "settings.manualBackup.photos.remove.cancel",
             onCancel: { viewModel.cancelManualBackupPhotoRemoval() }
         ) {
-            centeredPopupButton("Remove And Back Up", role: .destructive) {
+            nativeDialogButton("Remove And Back Up", role: .destructive) {
                 continueManualBackup {
                     await viewModel.confirmManualBackupPhotoRemoval()
                 }
             }
             .accessibilityIdentifier("settings.manualBackup.photos.remove.confirm")
         }
-        .cloudBakeCenteredPopup(
-            isPresented: pendingDataOperation != nil,
+        .cloudBakeConfirmationDialog(
+            isPresented: optionalPresentationBinding($pendingDataOperation),
             title: pendingDataOperation?.title ?? "Inventory CSV",
-            subtitle: pendingDataOperation?.explanation ?? "",
+            message: pendingDataOperation?.explanation ?? "",
             systemImage: pendingDataOperation?.systemImage ?? "tablecells",
             cancelAccessibilityIdentifier: "settings.data.cancel",
             onCancel: { pendingDataOperation = nil }
         ) {
             if let pendingDataOperation {
-                centeredPopupButton(pendingDataOperation.primaryActionTitle) {
+                nativeDialogButton(pendingDataOperation.primaryActionTitle) {
                     continueDataOperation(pendingDataOperation)
                 }
                 .accessibilityIdentifier(pendingDataOperation.primaryAccessibilityIdentifier)

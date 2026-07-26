@@ -17,50 +17,69 @@ extension View {
 private struct CloudRestorePromptModifier: ViewModifier {
     @ObservedObject var viewModel: CloudRestoreSettingsViewModel
     let offersStartFresh: Bool
+    @State private var presentedPrompt: CloudRestorePrompt?
 
     func body(content: Content) -> some View {
-        content.cloudBakeCenteredPopup(
-            isPresented: viewModel.prompt != nil,
-            title: title,
-            subtitle: subtitle,
-            systemImage: systemImage,
+        content.cloudBakeConfirmationDialog(
+            isPresented: Binding(
+                get: { presentedPrompt != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        presentedPrompt = nil
+                    }
+                }
+            ),
+            title: title(for: presentedPrompt),
+            message: message(for: presentedPrompt),
             showsCancelButton: !offersStartFresh && !viewModel.isWorking,
             cancelAccessibilityIdentifier: "settings.cloudRestore.cancel",
             onCancel: {
                 guard !viewModel.isWorking else { return }
+                presentedPrompt = nil
                 Task { await viewModel.cancel() }
             }
         ) {
-            promptActions
+            promptActions(for: presentedPrompt)
                 .disabled(viewModel.isWorking)
+        }
+        .onAppear {
+            presentedPrompt = viewModel.prompt
+        }
+        .onChange(of: viewModel.prompt) { _, prompt in
+            presentedPrompt = prompt
         }
     }
 
     @ViewBuilder
-    private var promptActions: some View {
-        switch viewModel.prompt {
+    private func promptActions(for prompt: CloudRestorePrompt?) -> some View {
+        switch prompt {
         case .restore:
-            centeredPopupButton("Restore Backup") {
+            nativeDialogButton("Restore Backup") {
+                presentedPrompt = nil
                 Task { await viewModel.startRestore() }
             }
             .accessibilityIdentifier("settings.cloudRestore.confirm")
         case .replace:
-            centeredPopupButton("Replace and Restore", role: .destructive) {
+            nativeDialogButton("Replace and Restore", role: .destructive) {
+                presentedPrompt = nil
                 Task { await viewModel.confirmReplacement() }
             }
             .accessibilityIdentifier("settings.cloudRestore.replace.confirm")
         case .cellular:
-            centeredPopupButton("Restore Using Cellular") {
+            nativeDialogButton("Restore Using Cellular") {
+                presentedPrompt = nil
                 Task { await viewModel.confirmCellular() }
             }
             .accessibilityIdentifier("settings.cloudRestore.cellular.confirm")
         case .brokenAssets:
-            centeredPopupButton("Ignore Broken Photos") {
+            nativeDialogButton("Ignore Broken Photos") {
+                presentedPrompt = nil
                 Task { await viewModel.resolveBrokenAssets(.ignore) }
             }
             .accessibilityIdentifier("settings.cloudRestore.assets.ignore")
 
-            centeredPopupButton("Remove Photo References", role: .destructive) {
+            nativeDialogButton("Remove Photo References", role: .destructive) {
+                presentedPrompt = nil
                 Task { await viewModel.resolveBrokenAssets(.removeReferences) }
             }
             .accessibilityIdentifier("settings.cloudRestore.assets.remove")
@@ -69,15 +88,16 @@ private struct CloudRestorePromptModifier: ViewModifier {
         }
 
         if offersStartFresh {
-            centeredPopupButton("Start Fresh") {
+            nativeDialogButton("Start Fresh") {
+                presentedPrompt = nil
                 Task { await viewModel.startFresh() }
             }
             .accessibilityIdentifier("settings.cloudRestore.startFresh")
         }
     }
 
-    private var title: String {
-        switch viewModel.prompt {
+    private func title(for prompt: CloudRestorePrompt?) -> String {
+        switch prompt {
         case .restore: "Restore Cloud Backup?"
         case .replace: "Replace Local Data?"
         case .cellular: "Use Cellular Data?"
@@ -86,16 +106,8 @@ private struct CloudRestorePromptModifier: ViewModifier {
         }
     }
 
-    private var systemImage: String {
-        switch viewModel.prompt {
-        case .replace, .brokenAssets: "exclamationmark.triangle"
-        case .cellular: "antenna.radiowaves.left.and.right"
-        default: "icloud.and.arrow.down"
-        }
-    }
-
-    private var subtitle: String {
-        switch viewModel.prompt {
+    private func message(for prompt: CloudRestorePrompt?) -> String {
+        switch prompt {
         case .restore(let proposal):
             "Backup from \(date(proposal)), \(size(proposal)), with \(proposal.snapshot.assetCount) photos. Integrity: \(integrity(proposal))."
         case .replace(let proposal):

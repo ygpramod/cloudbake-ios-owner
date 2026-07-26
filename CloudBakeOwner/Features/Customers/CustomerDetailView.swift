@@ -188,16 +188,16 @@ struct CustomerDetailView: View {
                 }
             }
         }
-        .cloudBakeCenteredPopup(
-            isPresented: isConfirmingDelete,
+        .cloudBakeConfirmationDialog(
+            isPresented: $isConfirmingDelete,
             title: "Delete Customer?",
-            subtitle: "Delete this customer record. Existing orders keep their customer name snapshot.",
+            message: "Delete this customer record. Existing orders keep their customer name snapshot.",
             systemImage: "trash",
             cancelAccessibilityIdentifier: "customers.delete.cancel",
             onCancel: { isConfirmingDelete = false }
         ) {
             if let customer = viewModel.selectedCustomer {
-                centeredPopupButton("Delete \(customer.name)", role: .destructive) {
+                nativeDialogButton("Delete \(customer.name)", role: .destructive) {
                     if viewModel.deleteSelectedCustomer() {
                         isConfirmingDelete = false
                         isPresented = false
