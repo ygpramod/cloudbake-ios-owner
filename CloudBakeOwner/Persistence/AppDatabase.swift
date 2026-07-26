@@ -125,25 +125,25 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     #if DEBUG
-    func seedAcceptanceFixturesIfRequested() throws {
-        try seedCustomerFixtureIfRequested()
-        try seedOrderCustomerLinkFixtureIfRequested()
-        try seedCompletedOrderFixtureIfRequested()
-        try seedCompletedOrderPaginationFixtureIfRequested()
-        try seedOrderReminderFixtureIfRequested()
-        try seedOrderStatusFailureFixtureIfRequested()
-        try seedInventoryFixtureIfRequested()
-        try seedLongInventoryFixtureIfRequested()
-        try seedExpiredInventoryFixtureIfRequested()
-        try seedProjectedDemandFixtureIfRequested()
-        try seedCakeDesignFixtureIfRequested()
-        try seedDesignGalleryFixtureIfRequested()
-        try seedDesignScrollFixtureIfRequested()
-        try seedOrderPhotoFixtureIfRequested()
+    func seedAcceptanceFixturesIfRequested(environment: [String: String]) throws {
+        try seedCustomerFixtureIfRequested(environment: environment)
+        try seedOrderCustomerLinkFixtureIfRequested(environment: environment)
+        try seedCompletedOrderFixtureIfRequested(environment: environment)
+        try seedCompletedOrderPaginationFixtureIfRequested(environment: environment)
+        try seedOrderReminderFixtureIfRequested(environment: environment)
+        try seedOrderStatusFailureFixtureIfRequested(environment: environment)
+        try seedInventoryFixtureIfRequested(environment: environment)
+        try seedLongInventoryFixtureIfRequested(environment: environment)
+        try seedExpiredInventoryFixtureIfRequested(environment: environment)
+        try seedProjectedDemandFixtureIfRequested(environment: environment)
+        try seedCakeDesignFixtureIfRequested(environment: environment)
+        try seedDesignGalleryFixtureIfRequested(environment: environment)
+        try seedDesignScrollFixtureIfRequested(environment: environment)
+        try seedOrderPhotoFixtureIfRequested(environment: environment)
     }
 
-    private func seedCustomerFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] == "1" else {
+    private func seedCustomerFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] == "1" else {
             return
         }
 
@@ -176,8 +176,8 @@ final class AppDatabase: @unchecked Sendable {
         )
     }
 
-    private func seedOrderReminderFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_ORDER_REMINDER_FIXTURE"] == "1" else {
+    private func seedOrderReminderFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_ORDER_REMINDER_FIXTURE"] == "1" else {
             return
         }
 
@@ -205,8 +205,8 @@ final class AppDatabase: @unchecked Sendable {
         try repository.save(order)
     }
 
-    private func seedInventoryFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_INVENTORY_FIXTURE"] == "1" else {
+    private func seedInventoryFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_INVENTORY_FIXTURE"] == "1" else {
             return
         }
 
@@ -239,8 +239,8 @@ final class AppDatabase: @unchecked Sendable {
         )
     }
 
-    private func seedLongInventoryFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_LONG_INVENTORY_FIXTURE"] == "1" else {
+    private func seedLongInventoryFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_LONG_INVENTORY_FIXTURE"] == "1" else {
             return
         }
 
@@ -261,8 +261,8 @@ final class AppDatabase: @unchecked Sendable {
         }
     }
 
-    private func seedExpiredInventoryFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_EXPIRED_INVENTORY_FIXTURE"] == "1" else {
+    private func seedExpiredInventoryFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_EXPIRED_INVENTORY_FIXTURE"] == "1" else {
             return
         }
         let repository = makeCoreDataRepository()
@@ -299,8 +299,8 @@ final class AppDatabase: @unchecked Sendable {
         )
     }
 
-    private func seedProjectedDemandFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_PROJECTED_DEMAND_FIXTURE"] == "1" else {
+    private func seedProjectedDemandFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_PROJECTED_DEMAND_FIXTURE"] == "1" else {
             return
         }
 
@@ -391,8 +391,8 @@ final class AppDatabase: @unchecked Sendable {
         }
     }
 
-    private func seedOrderCustomerLinkFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_ORDER_CUSTOMER_LINK_FIXTURE"] == "1" else {
+    private func seedOrderCustomerLinkFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_ORDER_CUSTOMER_LINK_FIXTURE"] == "1" else {
             return
         }
 
@@ -433,8 +433,8 @@ final class AppDatabase: @unchecked Sendable {
 
     }
 
-    private func seedCompletedOrderFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_COMPLETED_ORDER_FIXTURE"] == "1" else {
+    private func seedCompletedOrderFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_COMPLETED_ORDER_FIXTURE"] == "1" else {
             return
         }
 
@@ -458,8 +458,8 @@ final class AppDatabase: @unchecked Sendable {
         )
     }
 
-    private func seedCompletedOrderPaginationFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment[
+    private func seedCompletedOrderPaginationFixtureIfRequested(environment: [String: String]) throws {
+        guard environment[
             "CLOUDBAKE_SEED_COMPLETED_ORDER_PAGINATION_FIXTURE"
         ] == "1" else {
             return
@@ -492,8 +492,8 @@ final class AppDatabase: @unchecked Sendable {
         }
     }
 
-    private func seedOrderStatusFailureFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_ORDER_STATUS_FAILURE_FIXTURE"] == "1" else {
+    private func seedOrderStatusFailureFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_ORDER_STATUS_FAILURE_FIXTURE"] == "1" else {
             return
         }
 
@@ -611,8 +611,8 @@ final class AppDatabase: @unchecked Sendable {
         )
     }
 
-    private func seedCakeDesignFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] == "1" else {
+    private func seedCakeDesignFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] == "1" else {
             return
         }
 
@@ -632,8 +632,8 @@ final class AppDatabase: @unchecked Sendable {
         )
     }
 
-    private func seedDesignGalleryFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_DESIGN_GALLERY_FIXTURE"] == "1" else {
+    private func seedDesignGalleryFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_DESIGN_GALLERY_FIXTURE"] == "1" else {
             return
         }
 
@@ -657,8 +657,8 @@ final class AppDatabase: @unchecked Sendable {
         }
     }
 
-    private func seedDesignScrollFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_DESIGN_SCROLL_FIXTURE"] == "1" else {
+    private func seedDesignScrollFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_DESIGN_SCROLL_FIXTURE"] == "1" else {
             return
         }
 
@@ -678,8 +678,8 @@ final class AppDatabase: @unchecked Sendable {
         }
     }
 
-    private func seedOrderPhotoFixtureIfRequested() throws {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] == "1" else {
+    private func seedOrderPhotoFixtureIfRequested(environment: [String: String]) throws {
+        guard environment["CLOUDBAKE_SEED_ORDER_PHOTO_FIXTURE"] == "1" else {
             return
         }
 

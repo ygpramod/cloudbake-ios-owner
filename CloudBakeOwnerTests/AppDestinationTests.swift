@@ -42,6 +42,54 @@ final class AppDestinationTests: XCTestCase {
         )
     }
 
+    func testAcceptanceOverridesRequireExplicitInMemoryDatabaseFlag() {
+        let fixtureOnly = ["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS": "1"]
+        let acceptanceFixture = [
+            "CLOUDBAKE_USE_IN_MEMORY_DATABASE": "1",
+            "CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS": "1"
+        ]
+
+        XCTAssertFalse(
+            AcceptanceTestRuntime.isEnabled(
+                "CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS",
+                environment: fixtureOnly
+            )
+        )
+        XCTAssertTrue(
+            AcceptanceTestRuntime.isEnabled(
+                "CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS",
+                environment: acceptanceFixture
+            )
+        )
+        XCTAssertFalse(
+            AcceptanceTestRuntime.usesCloudRestoreFixture(
+                environment: ["CLOUDBAKE_TEST_EMPTY_RESTORE": "1"]
+            )
+        )
+        XCTAssertTrue(
+            AcceptanceTestRuntime.usesCloudRestoreFixture(
+                environment: [
+                    "CLOUDBAKE_USE_IN_MEMORY_DATABASE": "1",
+                    "CLOUDBAKE_TEST_EMPTY_RESTORE": "1"
+                ]
+            )
+        )
+    }
+
+    func testAcceptanceDatabaseUsesInjectedEnvironmentForSeeding() throws {
+        let database = try XCTUnwrap(
+            AcceptanceTestDatabaseFixtures.openIfRequested(
+                environment: [
+                    "CLOUDBAKE_USE_IN_MEMORY_DATABASE": "1",
+                    "CLOUDBAKE_SEED_CUSTOMER_FIXTURE": "1"
+                ]
+            )
+        )
+
+        let customers = try database.makeCoreDataRepository().fetchCustomers()
+        XCTAssertEqual(customers.map(\.name), ["Amy"])
+    }
+
     func testReservationRepairRunnerDrainsFullBatchesAndStopsAfterPartialBatch() async throws {
         let repository = FakeReservationRepairRepository(
             summaries: [

@@ -10,7 +10,7 @@ enum AcceptanceTestDatabaseFixtures {
         }
 
         let database = try AppDatabase.makeInMemory()
-        try database.seedAcceptanceFixturesIfRequested()
+        try database.seedAcceptanceFixturesIfRequested(environment: environment)
         return database
     }
 }
