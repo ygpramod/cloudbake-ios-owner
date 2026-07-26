@@ -65,6 +65,8 @@ final class ReportsViewModelTests: XCTestCase {
         viewModel.load()
 
         XCTAssertEqual(viewModel.receivedPayments.count, 1)
+        XCTAssertEqual(viewModel.receivedPaymentSections.count, 1)
+        XCTAssertEqual(viewModel.receivedPaymentSections.first?.rows.count, 1)
         XCTAssertEqual(
             viewModel.delayText(for: viewModel.receivedPayments[0]),
             "1 day late"

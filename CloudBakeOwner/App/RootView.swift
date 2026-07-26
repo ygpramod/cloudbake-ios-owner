@@ -224,7 +224,7 @@ struct RootView: View {
             return
         }
 
-        navigate(.reminders)
+        navigate(.reports)
         orderNotificationRouter.clearPendingPaymentReport()
     }
 
@@ -318,6 +318,14 @@ struct RootView: View {
                             }
                         }
                     )
+                }
+            )
+        case .reports:
+            let repository = database.makeCoreDataRepository()
+            ReportsView(
+                viewModel: ReportsViewModel(repository: repository),
+                makeOrderViewModel: {
+                    makeOrderListViewModel(repository: repository)
                 }
             )
         case .settings:
@@ -563,6 +571,10 @@ private struct MoreView: View {
             destinations: [.recipes, .designs, .customers]
         ),
         MoreSection(
+            title: "Business",
+            destinations: [.reminders, .reports]
+        ),
+        MoreSection(
             title: "App",
             destinations: [.settings]
         )
@@ -629,6 +641,10 @@ private struct MoreView: View {
             CloudBakeTheme.ColorToken.customerAccent
         case .designs:
             CloudBakeTheme.ColorToken.primaryAction
+        case .reminders:
+            CloudBakeTheme.ColorToken.secondaryAction
+        case .reports:
+            .cloudBakePurple
         case .settings:
             .gray
         default:
@@ -644,6 +660,10 @@ private struct MoreView: View {
             "Contacts, preferences, allergies, and order history"
         case .designs:
             "Cake photo references and design ideas"
+        case .reminders:
+            "Orders, payments, and inventory needing attention"
+        case .reports:
+            "Payments, ingredient margins, sales, and orders"
         case .settings:
             "Pricing, currency, and inventory data tools"
         default:

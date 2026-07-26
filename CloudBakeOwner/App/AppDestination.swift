@@ -8,6 +8,7 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
     case recipes
     case designs
     case reminders
+    case reports
     case customers
     case settings
 
@@ -22,6 +23,7 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
         case .recipes: "Recipes"
         case .designs: "Designs"
         case .reminders: "Reminders"
+        case .reports: "Reports"
         case .customers: "Customers"
         case .settings: "Settings"
         }
@@ -36,6 +38,7 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
         case .recipes: "book"
         case .designs: "photo.on.rectangle"
         case .reminders: "bell"
+        case .reports: "chart.bar.xaxis"
         case .customers: "person.2"
         case .settings: "gearshape"
         }
@@ -51,7 +54,7 @@ enum AppDestination: String, CaseIterable, Hashable, Identifiable {
 
     var isGroupedUnderMore: Bool {
         switch self {
-        case .recipes, .designs, .reminders, .customers, .settings:
+        case .recipes, .designs, .reminders, .reports, .customers, .settings:
             return true
         case .dashboard, .orders, .inventory, .more:
             return false

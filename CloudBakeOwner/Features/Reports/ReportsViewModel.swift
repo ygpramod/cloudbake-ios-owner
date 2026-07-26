@@ -65,6 +65,18 @@ struct SalesOrderBucket: Equatable, Identifiable {
     var id: Date { dateRange.start }
 }
 
+struct ReceivedPaymentSection: Identifiable {
+    let id: Date
+    let title: String
+    let rows: [PaymentReceiptReportRow]
+}
+
+struct OutstandingOrderSection: Identifiable {
+    let id: Date
+    let title: String
+    let orders: [Order]
+}
+
 @MainActor
 final class ReportsViewModel: ObservableObject {
     typealias Repository = PaymentReportRepository
@@ -224,13 +236,45 @@ final class ReportsViewModel: ObservableObject {
     }
 
     func bucketTitle(_ bucket: SalesOrderBucket) -> String {
+        groupingTitle(for: bucket.dateRange.start)
+    }
+
+    var receivedPaymentSections: [ReceivedPaymentSection] {
+        Dictionary(grouping: receivedPayments) {
+            bucketStart(containing: $0.receipt.receivedAt)
+        }
+        .map {
+            ReceivedPaymentSection(
+                id: $0.key,
+                title: groupingTitle(for: $0.key),
+                rows: $0.value
+            )
+        }
+        .sorted { $0.id > $1.id }
+    }
+
+    var outstandingOrderSections: [OutstandingOrderSection] {
+        Dictionary(grouping: outstandingOrders) {
+            bucketStart(containing: $0.dueAt)
+        }
+        .map {
+            OutstandingOrderSection(
+                id: $0.key,
+                title: groupingTitle(for: $0.key),
+                orders: $0.value
+            )
+        }
+        .sorted { $0.id > $1.id }
+    }
+
+    private func groupingTitle(for date: Date) -> String {
         switch grouping {
         case .day:
-            return bucket.dateRange.start.formatted(date: .abbreviated, time: .omitted)
+            return date.formatted(date: .abbreviated, time: .omitted)
         case .week:
-            return "Week of \(bucket.dateRange.start.formatted(date: .abbreviated, time: .omitted))"
+            return "Week of \(date.formatted(date: .abbreviated, time: .omitted))"
         case .month:
-            return bucket.dateRange.start.formatted(.dateTime.month(.wide).year())
+            return date.formatted(.dateTime.month(.wide).year())
         }
     }
 

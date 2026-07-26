@@ -5,7 +5,7 @@ final class AppDestinationTests: XCTestCase {
     func testPrimaryNavigationDestinationsAreInExpectedOrder() {
         XCTAssertEqual(
             AppDestination.allCases.map(\.title),
-            ["Dashboard", "Orders", "Inventory", "More", "Recipes", "Designs", "Reminders", "Customers", "Settings"]
+            ["Dashboard", "Orders", "Inventory", "More", "Recipes", "Designs", "Reminders", "Reports", "Customers", "Settings"]
         )
     }
 
@@ -19,7 +19,7 @@ final class AppDestinationTests: XCTestCase {
     func testSecondaryDestinationsAreGroupedUnderMore() {
         XCTAssertEqual(
             AppDestination.allCases.filter(\.isGroupedUnderMore).map(\.title),
-            ["Recipes", "Designs", "Reminders", "Customers", "Settings"]
+            ["Recipes", "Designs", "Reminders", "Reports", "Customers", "Settings"]
         )
     }
 

@@ -163,6 +163,7 @@
 		A20000000000000000000001 /* PaymentReportRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* PaymentReportRepository.swift */; };
 		A20000000000000000000002 /* ReportsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ReportsViewModel.swift */; };
 		A20000000000000000000003 /* ReportsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* ReportsViewModelTests.swift */; };
+		A20000000000000000000004 /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* ReportsView.swift */; };
 		41000000000000000000005C /* CloudBakeOwnerUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */; };
 		41000000000000000000005D /* CloudBakeOwnerInventoryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */; };
 		41000000000000000000005E /* InventoryListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000066 /* InventoryListViewModelTestSupport.swift */; };
@@ -375,6 +376,7 @@
 		A10000000000000000000001 /* PaymentReportRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentReportRepository.swift; sourceTree = "<group>"; };
 		A10000000000000000000002 /* ReportsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsViewModel.swift; sourceTree = "<group>"; };
 		A10000000000000000000003 /* ReportsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsViewModelTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000004 /* ReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsView.swift; sourceTree = "<group>"; };
 		420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerUITestSupport.swift; sourceTree = "<group>"; };
 		420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerInventoryUITests.swift; sourceTree = "<group>"; };
 		420000000000000000000066 /* InventoryListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModelTestSupport.swift; sourceTree = "<group>"; };
@@ -538,6 +540,7 @@
 		A30000000000000000000001 /* Reports */ = {
 			isa = PBXGroup;
 			children = (
+				A10000000000000000000004 /* ReportsView.swift */,
 				A10000000000000000000002 /* ReportsViewModel.swift */,
 			);
 			path = Reports;
@@ -1083,6 +1086,7 @@
 				41000000000000000000005B /* GRDBOrderRepository.swift in Sources */,
 				A20000000000000000000001 /* PaymentReportRepository.swift in Sources */,
 				A20000000000000000000002 /* ReportsViewModel.swift in Sources */,
+				A20000000000000000000004 /* ReportsView.swift in Sources */,
 				41000000000000000000005A /* GRDBPricingRepository.swift in Sources */,
 				410000000000000000000058 /* GRDBRecipeRepository.swift in Sources */,
 				410000000000000000000055 /* TextInputFormatting.swift in Sources */,
