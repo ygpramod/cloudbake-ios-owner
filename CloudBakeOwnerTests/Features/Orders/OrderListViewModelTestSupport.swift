@@ -489,6 +489,30 @@ final class FakeOrderRepository: OrderRepository,
         orderReminderConfigurations[order.id] = reminderConfiguration
     }
 
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients replacement: [OrderExtraIngredient],
+        reminderConfiguration: OrderReminderConfiguration,
+        openingPayment: NewPaymentReceipt?,
+        allowInventoryShortage: Bool
+    ) throws {
+        try saveOrder(
+            order,
+            replacingExtraIngredients: replacement,
+            reminderConfiguration: reminderConfiguration,
+            allowInventoryShortage: allowInventoryShortage
+        )
+        if let openingPayment {
+            _ = try recordPayment(
+                orderId: order.id,
+                amount: openingPayment.amount,
+                receivedAt: openingPayment.receivedAt,
+                note: openingPayment.note,
+                createdAt: openingPayment.createdAt
+            )
+        }
+    }
+
     func repairOrderInventoryReservations(
         limit _: Int,
         at _: Date,

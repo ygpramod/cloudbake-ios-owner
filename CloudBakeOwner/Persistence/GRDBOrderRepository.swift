@@ -360,6 +360,34 @@ extension GRDBCoreDataRepository {
         )
     }
 
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
+        reminderConfiguration: OrderReminderConfiguration,
+        openingPayment: NewPaymentReceipt?,
+        allowInventoryShortage: Bool
+    ) throws {
+        try writer.write { db in
+            try saveOrder(
+                order,
+                replacingExtraIngredients: extraIngredients,
+                reminderConfiguration: reminderConfiguration,
+                allowInventoryShortage: allowInventoryShortage,
+                in: db
+            )
+            if let openingPayment {
+                _ = try recordPayment(
+                    orderId: order.id,
+                    amount: openingPayment.amount,
+                    receivedAt: openingPayment.receivedAt,
+                    note: openingPayment.note,
+                    createdAt: openingPayment.createdAt,
+                    in: db
+                )
+            }
+        }
+    }
+
     private func saveOrder(
         _ order: Order,
         replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
@@ -367,47 +395,63 @@ extension GRDBCoreDataRepository {
         allowInventoryShortage: Bool
     ) throws {
         try writer.write { db in
-            let persistedOrder = try self.order(id: order.id, in: db)
-            let previousStatus = persistedOrder?.status
-            let isEnteringConsumedStatus = previousStatus != order.status &&
-                (order.status == .ready || order.status == .completed)
-            if isEnteringConsumedStatus,
-               (order.recipeId != nil || persistedOrder?.recipeId != nil),
-               try !hasOrderRecipeUsage(orderId: order.id, in: db) {
-                throw OrderRecipeUsageError.inventoryConsumptionRequired
-            }
-            try save(order, in: db)
-            if let reminderConfiguration {
-                try saveOrderReminderConfiguration(
-                    reminderConfiguration,
-                    orderId: order.id,
-                    createdAt: order.createdAt,
-                    updatedAt: order.updatedAt,
-                    in: db
-                )
-            }
-            try replaceOrderExtraIngredients(
-                orderId: order.id,
-                with: extraIngredients,
-                in: db
-            )
-            let reason = previousStatus.map {
-                $0 == order.status
-                    ? OrderInventoryReservationEventReason.orderEdited
-                    : reservationEventReason(from: $0, to: order.status)
-            } ?? (
-                order.status == .confirmed || order.status == .inProgress
-                    ? .orderConfirmed
-                    : .orderEdited
-            )
-            try synchronizeOrderInventoryReservation(
-                for: order,
-                at: order.updatedAt,
-                reason: reason,
+            try saveOrder(
+                order,
+                replacingExtraIngredients: extraIngredients,
+                reminderConfiguration: reminderConfiguration,
                 allowInventoryShortage: allowInventoryShortage,
                 in: db
             )
         }
+    }
+
+    private func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
+        reminderConfiguration: OrderReminderConfiguration?,
+        allowInventoryShortage: Bool,
+        in db: Database
+    ) throws {
+        let persistedOrder = try self.order(id: order.id, in: db)
+        let previousStatus = persistedOrder?.status
+        let isEnteringConsumedStatus = previousStatus != order.status &&
+            (order.status == .ready || order.status == .completed)
+        if isEnteringConsumedStatus,
+           (order.recipeId != nil || persistedOrder?.recipeId != nil),
+           try !hasOrderRecipeUsage(orderId: order.id, in: db) {
+            throw OrderRecipeUsageError.inventoryConsumptionRequired
+        }
+        try save(order, in: db)
+        if let reminderConfiguration {
+            try saveOrderReminderConfiguration(
+                reminderConfiguration,
+                orderId: order.id,
+                createdAt: order.createdAt,
+                updatedAt: order.updatedAt,
+                in: db
+            )
+        }
+        try replaceOrderExtraIngredients(
+            orderId: order.id,
+            with: extraIngredients,
+            in: db
+        )
+        let reason = previousStatus.map {
+            $0 == order.status
+                ? OrderInventoryReservationEventReason.orderEdited
+                : reservationEventReason(from: $0, to: order.status)
+        } ?? (
+            order.status == .confirmed || order.status == .inProgress
+                ? .orderConfirmed
+                : .orderEdited
+        )
+        try synchronizeOrderInventoryReservation(
+            for: order,
+            at: order.updatedAt,
+            reason: reason,
+            allowInventoryShortage: allowInventoryShortage,
+            in: db
+        )
     }
 
     func repairOrderInventoryReservations(

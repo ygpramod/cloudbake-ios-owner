@@ -593,6 +593,8 @@ final class OrderListViewModelTests: XCTestCase {
                 )
             ]
         )
+        XCTAssertEqual(repository.paymentReceipts.map(\.amount), [decimal("25.50")])
+        XCTAssertEqual(repository.paymentReceipts.first?.receivedAt, now)
         XCTAssertEqual(viewModel.draftTitle, "")
         XCTAssertNil(viewModel.errorMessage)
     }

@@ -896,6 +896,82 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchLegacyPaidAmount(orderId: "receipt-order"), 0)
     }
 
+    func testOpeningPaymentIsAtomicWithNewOrder() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(
+            writer: queue,
+            idProvider: { "opening-receipt" }
+        )
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        let order = pagedOrder(
+            id: "opening-payment-order",
+            status: .confirmed,
+            dueAt: timestamp,
+            quotedPrice: 100
+        )
+
+        try repository.saveOrder(
+            order,
+            replacingExtraIngredients: [],
+            reminderConfiguration: .initialDefault,
+            openingPayment: NewPaymentReceipt(
+                amount: 25,
+                receivedAt: timestamp,
+                note: "Opening deposit",
+                createdAt: timestamp
+            ),
+            allowInventoryShortage: false
+        )
+
+        XCTAssertEqual(
+            try repository.fetchOrder(id: order.id)?.depositPaid,
+            25
+        )
+        XCTAssertEqual(
+            try repository.fetchPaymentReceipts(orderId: order.id).map(\.amount),
+            [25]
+        )
+    }
+
+    func testInvalidOpeningPaymentRollsBackNewOrder() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        let order = pagedOrder(
+            id: "invalid-opening-payment",
+            status: .confirmed,
+            dueAt: timestamp,
+            quotedPrice: 100
+        )
+
+        XCTAssertThrowsError(
+            try repository.saveOrder(
+                order,
+                replacingExtraIngredients: [],
+                reminderConfiguration: .initialDefault,
+                openingPayment: NewPaymentReceipt(
+                    amount: 125,
+                    receivedAt: timestamp,
+                    note: nil,
+                    createdAt: timestamp
+                ),
+                allowInventoryShortage: false
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? PaymentReceiptPersistenceError,
+                .exceedsBalance
+            )
+        }
+        XCTAssertNil(try repository.fetchOrder(id: order.id))
+        XCTAssertEqual(
+            try repository.fetchPaymentReceipts(orderId: order.id),
+            []
+        )
+    }
+
     func testFailedPaymentInsertRollsBackDerivedPaidTotal() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         try AppDatabaseMigrations.makeMigrator().migrate(queue)

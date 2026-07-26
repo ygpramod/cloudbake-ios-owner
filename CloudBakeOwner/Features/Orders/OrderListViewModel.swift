@@ -564,7 +564,7 @@ final class OrderListViewModel: ObservableObject {
             cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
             cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
             quotedPrice: draft.quotedPrice,
-            depositPaid: draft.depositPaid,
+            depositPaid: nil,
             paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
             createdAt: now,
             updatedAt: now
@@ -576,6 +576,14 @@ final class OrderListViewModel: ObservableObject {
                 order,
                 replacingExtraIngredients: draftExtraIngredients(for: order, updatedAt: now),
                 reminderConfiguration: reminderConfiguration,
+                openingPayment: draft.depositPaid.map {
+                    NewPaymentReceipt(
+                        amount: $0,
+                        receivedAt: now,
+                        note: nil,
+                        createdAt: now
+                    )
+                },
                 allowInventoryShortage: allowingInventoryShortage
             )
             resetDraft()

@@ -411,6 +411,13 @@ struct PaymentReceipt: Equatable {
     }
 }
 
+struct NewPaymentReceipt: Equatable {
+    let amount: Decimal
+    let receivedAt: Date
+    let note: String?
+    let createdAt: Date
+}
+
 enum PaymentReceiptPersistenceError: Error, Equatable {
     case orderNotFound
     case quotedPriceMissing
@@ -578,6 +585,13 @@ protocol OrderReminderPlanOrderMutationRepository {
         _ order: Order,
         replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
         reminderConfiguration: OrderReminderConfiguration,
+        allowInventoryShortage: Bool
+    ) throws
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
+        reminderConfiguration: OrderReminderConfiguration,
+        openingPayment: NewPaymentReceipt?,
         allowInventoryShortage: Bool
     ) throws
     func changeOrderStatus(
