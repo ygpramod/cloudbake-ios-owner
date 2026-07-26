@@ -291,6 +291,28 @@ classification.
 Inventory usage and waste, upcoming workload, customer summary, and recipe/design popularity
 reports are outside this improvement point.
 
+### Order Profitability Contract
+
+1. The default scope includes Confirmed, In Progress, Ready, and Completed orders.
+2. Draft and Cancelled orders are excluded by default but remain available through a status filter.
+3. Active orders use estimated ingredient cost. Completed orders use actual ingredient cost.
+4. Missing ingredient prices preserve the partial calculated cost and show a visible incomplete-cost
+   warning; they never silently become zero.
+5. Each bounded, paged row shows order, customer, due date, status, quoted price, relevant ingredient
+   cost, ingredient margin amount and percentage, amount paid, and balance due.
+6. Ingredient margin means quoted price minus ingredient cost. It is not labelled net profit or
+   accounting gross profit because labor, overhead, tax, and delivery costs are out of scope.
+
+### Sales & Orders Contract
+
+1. The default scope includes Confirmed, In Progress, Ready, and Completed orders.
+2. Draft and Cancelled orders are excluded by default but remain available through a status filter.
+3. For each selected Day, Week, or Month bucket, show order count, quoted total, average quoted
+   order value, amount received, and outstanding balance.
+4. Show the status breakdown without loading every contributing order.
+5. Received and outstanding totals reconcile with legacy paid amounts and non-void payment receipts.
+6. Selecting a bucket opens a bounded, paged order drill-down using the same filters.
+
 CSV export is deferred. This improvement point first delivers reliable on-screen reports; export
 can follow in a separate slice after the owner validates the final columns and filters.
 
