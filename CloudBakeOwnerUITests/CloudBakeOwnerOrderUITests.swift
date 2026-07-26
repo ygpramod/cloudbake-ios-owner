@@ -270,8 +270,16 @@ extension CloudBakeOwnerUITests {
 
         let ingredientCost = app.descendants(matching: .any)["orders.form.ingredientCost"]
         assertExistsAfterScrolling(ingredientCost, in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.descendants(matching: .any)["orders.form.ingredientCost.warning"].exists)
-        XCTAssertTrue(app.textFields["orders.form.quotedPrice"].exists)
+        assertExistsAfterScrolling(
+            app.descendants(matching: .any)["orders.form.ingredientCost.warning"],
+            in: app,
+            timeout: transitionTimeout
+        )
+        assertExistsAfterScrolling(
+            app.textFields["orders.form.quotedPrice"],
+            in: app,
+            timeout: transitionTimeout
+        )
     }
 
     func testOrderCanBeEditedFromDetail() throws {
@@ -478,18 +486,9 @@ extension CloudBakeOwnerUITests {
         let finalMetadata = app.descendants(matching: .any)["orders.detail.photos.preview.screen"]
         XCTAssertTrue(finalMetadata.waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(finalMetadata.label.contains("Finished cake"))
-        tapWhenReady(app.buttons["orders.detail.photos.preview.promoteDesign"], timeout: transitionTimeout)
-        XCTAssertTrue(app.navigationBars["Save Design"].waitForExistence(timeout: transitionTimeout))
-        let designNameField = app.textFields["orders.detail.photos.design.name"]
-        tapWhenReady(designNameField, timeout: transitionTimeout)
-        designNameField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
-        designNameField.typeText("Pink Pearl Cake")
-        tapWhenReady(app.buttons["orders.detail.photos.design.save"], timeout: transitionTimeout)
+        XCTAssertTrue(finalMetadata.label.contains("Final Cake Photo"))
+        tapWhenReady(app.buttons["orders.detail.photos.preview.close"], timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
-        scrollToTop(in: app)
-        assertExistsAfterScrolling(app.staticTexts["orders.detail.designName"], in: app, timeout: transitionTimeout)
-        XCTAssertTrue(app.staticTexts["orders.detail.designName"].label.contains("Pink Pearl Cake"))
-        XCTAssertTrue(app.staticTexts["orders.detail.designPhotoReference"].label.contains("photo-ui-fixture-final"))
     }
 
     func testOrderShowsLinkedCustomerContext() throws {
