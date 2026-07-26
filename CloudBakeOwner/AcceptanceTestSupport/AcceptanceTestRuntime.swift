@@ -71,6 +71,17 @@ enum AcceptanceTestRuntime {
     #endif
 }
 
+enum AcceptanceTestDependencyFactory {
+    static func designPhotoLibrary() -> DesignPhotoLibrary {
+        #if DEBUG
+            if AcceptanceTestRuntime.isRunning {
+                return AcceptanceTestDesignPhotoLibrary()
+            }
+        #endif
+        return PhotoKitDesignPhotoLibrary()
+    }
+}
+
 #if DEBUG
     struct AcceptanceTestDesignPhotoLibrary: DesignPhotoLibrary {
         func savePhoto(at fileURL: URL) async throws -> String {
