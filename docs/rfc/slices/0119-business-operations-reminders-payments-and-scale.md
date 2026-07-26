@@ -2,8 +2,7 @@
 
 ## Status
 
-Proposed. Payment-report presentation and payment-history correction rules require owner
-confirmation before implementation.
+In progress. Payment-report presentation and payment-history correction rules are owner-confirmed.
 
 ## Parent RFCs
 
@@ -292,12 +291,11 @@ classification.
 Inventory usage and waste, upcoming workload, customer summary, and recipe/design popularity
 reports are outside this improvement point.
 
-The following also require owner confirmation before implementation:
+CSV export is deferred. This improvement point first delivers reliable on-screen reports; export
+can follow in a separate slice after the owner validates the final columns and filters.
 
-1. whether CSV export is required in this slice.
-
-Do not implement the report UI or destructive payment correction behavior until these decisions are
-recorded here.
+The payment-report interview decisions are complete. Report UI and append-only payment correction
+implementation may proceed under this contract.
 
 ## Scale-Oriented Order Queries
 
