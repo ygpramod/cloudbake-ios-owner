@@ -71,12 +71,13 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
                 ViewThatFits(in: .vertical) {
                     popupCard(scrollsContent: false)
                         .fixedSize(horizontal: false, vertical: true)
+                        .popupCardBackground()
 
                     popupCard(scrollsContent: true)
+                        .frame(maxHeight: max(proxy.size.height - 32, 240))
+                        .popupCardBackground()
                 }
                 .frame(maxWidth: 360)
-                .frame(maxHeight: max(proxy.size.height - 32, 240))
-                .background(.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .padding(.horizontal, 24)
                 .shadow(color: .black.opacity(0.20), radius: 24, y: 14)
                 .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
@@ -162,6 +163,15 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
             .contentShape(Rectangle())
             .accessibilityIdentifier(cancelAccessibilityIdentifier)
         }
+    }
+}
+
+private extension View {
+    func popupCardBackground() -> some View {
+        background(
+            .white.opacity(0.90),
+            in: RoundedRectangle(cornerRadius: 28, style: .continuous)
+        )
     }
 }
 
