@@ -950,6 +950,25 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let balanceDue = app.staticTexts.matching(identifier: "orders.detail.balanceDue").firstMatch
         assertExistsAfterScrolling(balanceDue, in: app, timeout: transitionTimeout)
         XCTAssertTrue(balanceDue.label.contains("0"))
+
+        let paymentActions = app.buttons.matching(
+            NSPredicate(format: "label == %@", "Payment Actions")
+        ).firstMatch
+        scrollToHittable(paymentActions, in: app, timeout: transitionTimeout)
+        tapWhenReady(paymentActions, timeout: transitionTimeout)
+        tapExisting(app.buttons["Void Payment"], timeout: transitionTimeout)
+        XCTAssertTrue(
+            app.textFields["orders.detail.payment.void.reason"]
+                .waitForExistence(timeout: transitionTimeout)
+        )
+        XCTAssertTrue(
+            app.buttons["orders.detail.payment.void.confirm"]
+                .waitForExistence(timeout: transitionTimeout)
+        )
+        tapExisting(
+            app.buttons["orders.detail.payment.void.cancel"],
+            timeout: transitionTimeout
+        )
     }
 
     func testOrderShowsDueRemindersAndReminderPlan() throws {

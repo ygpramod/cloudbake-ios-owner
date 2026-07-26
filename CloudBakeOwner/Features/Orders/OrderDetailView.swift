@@ -429,24 +429,26 @@ struct OrderDetailView: View {
                 .accessibilityIdentifier("orders.detail.confirmInventoryDeduction")
             }
         }
-        .alert(
-            "Void Payment",
-            isPresented: Binding(
-                get: { receiptPendingVoid != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        receiptPendingVoid = nil
-                        paymentVoidReason = ""
-                    }
-                }
-            )
-        ) {
-            TextField("Reason (optional)", text: $paymentVoidReason)
-            Button("Cancel", role: .cancel) {
+        .centeredOrderPopup(
+            isPresented: receiptPendingVoid != nil,
+            title: "Void Payment",
+            cancelAccessibilityIdentifier: "orders.detail.payment.void.cancel",
+            onCancel: {
                 receiptPendingVoid = nil
                 paymentVoidReason = ""
             }
-            Button("Void Payment", role: .destructive) {
+        ) {
+            Text("The original payment stays in history and is excluded from totals.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("orders.detail.payment.void.message")
+
+            TextField("Reason (optional)", text: $paymentVoidReason)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("orders.detail.payment.void.reason")
+
+            centeredPopupButton("Void Payment", role: .destructive) {
                 if let receiptPendingVoid {
                     _ = viewModel.voidPaymentReceipt(
                         receiptPendingVoid,
@@ -456,8 +458,7 @@ struct OrderDetailView: View {
                 self.receiptPendingVoid = nil
                 paymentVoidReason = ""
             }
-        } message: {
-            Text("The original payment stays in history and is excluded from totals.")
+            .accessibilityIdentifier("orders.detail.payment.void.confirm")
         }
         .centeredOrderPopup(
             isPresented: statusPendingInventoryShortage != nil,

@@ -31,6 +31,7 @@ extension View {
         isPresented: Bool,
         title: String,
         showsCancelButton: Bool = true,
+        cancelAccessibilityIdentifier: String = "orders.popup.cancel",
         onCancel: @escaping () -> Void,
         @ViewBuilder content: @escaping () -> PopupContent
     ) -> some View {
@@ -40,7 +41,7 @@ extension View {
             subtitle: orderPopupSubtitle(for: title),
             systemImage: orderPopupIconName(for: title),
             showsCancelButton: showsCancelButton,
-            cancelAccessibilityIdentifier: "orders.popup.cancel",
+            cancelAccessibilityIdentifier: cancelAccessibilityIdentifier,
             onCancel: onCancel,
             content: content
         )
