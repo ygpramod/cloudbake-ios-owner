@@ -57,6 +57,149 @@ final class AppDatabaseTests: XCTestCase {
         XCTAssertEqual(try repository.fetchPaymentReminderConfiguration(), changed)
     }
 
+    func testPaymentReceiptMigrationPreservesLegacyPaidAmountAndCreatesLedger() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0038_add_inventory_expiry_query_index")
+        let timestamp = 1_800_001_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time, deposit_paid_decimal,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "legacy-payment-order",
+                    "Legacy payment cake",
+                    OrderStatus.completed.rawValue,
+                    timestamp,
+                    "125.50",
+                    timestamp,
+                    timestamp
+                ]
+            )
+        }
+
+        try migrator.migrate(queue)
+
+        try queue.read { db in
+            let row = try Row.fetchOne(
+                db,
+                sql: """
+                    SELECT deposit_paid_decimal, legacy_paid_amount_decimal
+                    FROM orders
+                    WHERE id = ?
+                    """,
+                arguments: ["legacy-payment-order"]
+            )
+            XCTAssertEqual(row?["deposit_paid_decimal"] as String?, "125.50")
+            XCTAssertEqual(row?["legacy_paid_amount_decimal"] as String?, "125.50")
+            XCTAssertTrue(try db.tableExists("payment_receipts"))
+            XCTAssertTrue(try db.tableExists("payment_receipt_voids"))
+
+            let indexes = try String.fetchAll(
+                db,
+                sql: """
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type = 'index'
+                      AND name LIKE 'payment_receipts_on_%'
+                    ORDER BY name
+                    """
+            )
+            XCTAssertEqual(
+                indexes,
+                [
+                    "payment_receipts_on_order_received_at_id",
+                    "payment_receipts_on_received_at_id"
+                ]
+            )
+        }
+    }
+
+    func testPaymentReceiptLedgerRejectsInvalidAmountsAndDuplicateVoids() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let timestamp = 1_800_001_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "receipt-constraints-order",
+                    "Receipt constraints",
+                    OrderStatus.completed.rawValue,
+                    timestamp,
+                    timestamp,
+                    timestamp
+                ]
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO payment_receipts
+                        (id, order_id, amount_decimal, received_at_unix_time,
+                         created_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "invalid-receipt",
+                        "receipt-constraints-order",
+                        "0",
+                        timestamp,
+                        timestamp
+                    ]
+                )
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO payment_receipts
+                    (id, order_id, amount_decimal, received_at_unix_time,
+                     created_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "valid-receipt",
+                    "receipt-constraints-order",
+                    "25",
+                    timestamp,
+                    timestamp
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO payment_receipt_voids
+                    (id, receipt_id, voided_at_unix_time, created_at_unix_time)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                arguments: ["void-1", "valid-receipt", timestamp, timestamp]
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO payment_receipt_voids
+                        (id, receipt_id, voided_at_unix_time, created_at_unix_time)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "void-2",
+                        "valid-receipt",
+                        timestamp + 1,
+                        timestamp + 1
+                    ]
+                )
+            )
+        }
+    }
+
     func testOrderCompletedAtMigrationLeavesLegacyCompletionUnknown() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         let migrator = AppDatabaseMigrations.makeMigrator()

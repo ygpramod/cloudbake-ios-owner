@@ -777,6 +777,54 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0039_add_payment_receipt_ledger") { db in
+            try db.alter(table: "orders") { table in
+                table.add(column: "legacy_paid_amount_decimal", .text)
+                    .notNull()
+                    .defaults(to: "0")
+            }
+            try db.execute(
+                sql: """
+                    UPDATE orders
+                    SET legacy_paid_amount_decimal = COALESCE(deposit_paid_decimal, '0')
+                    """
+            )
+
+            try db.create(table: "payment_receipts") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .cascade)
+                table.column("amount_decimal", .text)
+                    .notNull()
+                    .check(sql: "CAST(amount_decimal AS REAL) > 0")
+                table.column("received_at_unix_time", .double).notNull()
+                table.column("note", .text)
+                table.column("created_at_unix_time", .double).notNull()
+            }
+            try db.create(
+                index: "payment_receipts_on_received_at_id",
+                on: "payment_receipts",
+                columns: ["received_at_unix_time", "id"]
+            )
+            try db.create(
+                index: "payment_receipts_on_order_received_at_id",
+                on: "payment_receipts",
+                columns: ["order_id", "received_at_unix_time", "id"]
+            )
+
+            try db.create(table: "payment_receipt_voids") { table in
+                table.column("id", .text).primaryKey()
+                table.column("receipt_id", .text)
+                    .notNull()
+                    .unique()
+                    .references("payment_receipts", onDelete: .cascade)
+                table.column("reason", .text)
+                table.column("voided_at_unix_time", .double).notNull()
+                table.column("created_at_unix_time", .double).notNull()
+            }
+        }
+
         return migrator
     }
 }
