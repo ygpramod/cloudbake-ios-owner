@@ -13,6 +13,8 @@
 		410000000000000000000080 /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000080 /* AppNavigation.swift */; };
 		410000000000000000000081 /* InventoryCSVService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000081 /* InventoryCSVService.swift */; };
 		410000000000000000000082 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000082 /* SettingsView.swift */; };
+		A11000000000000000000001 /* OrderReminderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12000000000000000000001 /* OrderReminderSettingsView.swift */; };
+		A11000000000000000000002 /* OrderReminderSettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12000000000000000000002 /* OrderReminderSettingsViewModelTests.swift */; };
 		4100000000000000000000F6 /* HelpGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000F6 /* HelpGuideView.swift */; };
 		4100000000000000000000F7 /* AppIntroductionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4200000000000000000000F7 /* AppIntroductionTests.swift */; };
 		410000000000000000000100 /* PrivacyPolicyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000100 /* PrivacyPolicyView.swift */; };
@@ -212,6 +214,8 @@
 		420000000000000000000080 /* AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigation.swift; sourceTree = "<group>"; };
 		420000000000000000000081 /* InventoryCSVService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCSVService.swift; sourceTree = "<group>"; };
 		420000000000000000000082 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A12000000000000000000001 /* OrderReminderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderReminderSettingsView.swift; sourceTree = "<group>"; };
+		A12000000000000000000002 /* OrderReminderSettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderReminderSettingsViewModelTests.swift; sourceTree = "<group>"; };
 		4200000000000000000000F6 /* HelpGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpGuideView.swift; sourceTree = "<group>"; };
 		4200000000000000000000F7 /* AppIntroductionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntroductionTests.swift; sourceTree = "<group>"; };
 		420000000000000000000100 /* PrivacyPolicyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicyView.swift; sourceTree = "<group>"; };
@@ -545,6 +549,7 @@
 				420000000000000000000081 /* InventoryCSVService.swift */,
 				420000000000000000000100 /* PrivacyPolicyView.swift */,
 				4200000000000000000000ED /* CloudBackupSettingsCard.swift */,
+				A12000000000000000000001 /* OrderReminderSettingsView.swift */,
 				4200000000000000000000DC /* SettingsFileExporter.swift */,
 				420000000000000000000082 /* SettingsView.swift */,
 				4200000000000000000000F5 /* CloudRestorePrompt.swift */,
@@ -812,6 +817,7 @@
 				4200000000000000000000F7 /* AppIntroductionTests.swift */,
 				4200000000000000000000D0 /* AppLogoStoreTests.swift */,
 				420000000000000000000083 /* InventoryCSVServiceTests.swift */,
+				A12000000000000000000002 /* OrderReminderSettingsViewModelTests.swift */,
 				420000000000000000000101 /* PrivacyPolicyContentTests.swift */,
 			);
 			path = Settings;
@@ -1114,6 +1120,7 @@
 				4100000000000000000000ED /* CloudBackupSettingsCard.swift in Sources */,
 				4100000000000000000000DC /* SettingsFileExporter.swift in Sources */,
 				410000000000000000000082 /* SettingsView.swift in Sources */,
+				A11000000000000000000001 /* OrderReminderSettingsView.swift in Sources */,
 				4100000000000000000000F6 /* HelpGuideView.swift in Sources */,
 				410000000000000000000100 /* PrivacyPolicyView.swift in Sources */,
 				4100000000000000000000F5 /* CloudRestorePrompt.swift in Sources */,
@@ -1136,6 +1143,7 @@
 				4100000000000000000000EC /* CloudBackupSettingsTests.swift in Sources */,
 				4100000000000000000000F7 /* AppIntroductionTests.swift in Sources */,
 				410000000000000000000101 /* PrivacyPolicyContentTests.swift in Sources */,
+				A11000000000000000000002 /* OrderReminderSettingsViewModelTests.swift in Sources */,
 				4100000000000000000000F1 /* RestoreCoordinatorTests.swift in Sources */,
 				4100000000000000000000F3 /* LocalRestoreServiceTests.swift in Sources */,
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,

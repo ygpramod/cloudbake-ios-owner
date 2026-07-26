@@ -284,6 +284,9 @@ struct RootView: View {
                     recipeRepository: repository,
                     manualBackupService: try? ManualBackupService.live(database: database)
                 ),
+                orderReminderSettingsViewModel: OrderReminderSettingsViewModel(
+                    repository: repository
+                ),
                 cloudBackupService: cloudBackupSettingsService,
                 cloudRestoreService: cloudRestoreSettingsService,
                 onShowIntroduction: {

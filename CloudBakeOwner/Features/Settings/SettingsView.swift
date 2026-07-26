@@ -306,6 +306,7 @@ final class SettingsViewModel: ObservableObject {
 
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
+    @StateObject private var orderReminderSettingsViewModel: OrderReminderSettingsViewModel
     @StateObject private var cloudBackupViewModel: CloudBackupSettingsViewModel
     @StateObject private var cloudRestoreViewModel: CloudRestoreSettingsViewModel
     @AppStorage(AppSettings.currencySymbolKey) private var selectedCurrencySymbol = AppCurrency.defaultCurrency.symbol
@@ -322,12 +323,16 @@ struct SettingsView: View {
 
     init(
         viewModel: SettingsViewModel,
+        orderReminderSettingsViewModel: OrderReminderSettingsViewModel,
         cloudBackupService: (any CloudBackupSettingsServing)? = nil,
         cloudRestoreService: (any CloudRestoreSettingsServing)? = nil,
         onShowIntroduction: @escaping () -> Void = {}
     ) {
         self.onShowIntroduction = onShowIntroduction
         _viewModel = StateObject(wrappedValue: viewModel)
+        _orderReminderSettingsViewModel = StateObject(
+            wrappedValue: orderReminderSettingsViewModel
+        )
         _cloudBackupViewModel = StateObject(
             wrappedValue: CloudBackupSettingsViewModel(
                 service: cloudBackupService ?? UnavailableCloudBackupSettingsService()
@@ -401,6 +406,37 @@ struct SettingsView: View {
                         .padding(.vertical, 12)
                         .accessibilityIdentifier("settings.logo.restoreDefault")
                     }
+                }
+            }
+
+            CloudBakeSection("Reminders") {
+                CloudBakeDetailCard {
+                    NavigationLink {
+                        OrderReminderSettingsView(
+                            viewModel: orderReminderSettingsViewModel
+                        )
+                    } label: {
+                        HStack(spacing: 16) {
+                            CloudBakeRowIcon(
+                                systemImage: "bell.badge",
+                                tint: .cloudBakePink
+                            )
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("Order Reminders")
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text("Choose the default schedule copied to new orders.")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.orderReminders")
                 }
             }
 
