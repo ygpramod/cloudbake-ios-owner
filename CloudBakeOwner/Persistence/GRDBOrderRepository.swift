@@ -126,7 +126,14 @@ extension GRDBCoreDataRepository {
                 sql: """
                     SELECT order_id
                     FROM order_inventory_reservation_repairs
-                    WHERE state IN (?, ?)
+                    WHERE state = ?
+                       OR (
+                           state = ?
+                           AND (
+                               last_attempted_at_unix_time IS NULL
+                               OR last_attempted_at_unix_time < ?
+                           )
+                       )
                     ORDER BY
                         CASE state WHEN ? THEN 0 ELSE 1 END,
                         updated_at_unix_time,
@@ -136,6 +143,7 @@ extension GRDBCoreDataRepository {
                 arguments: [
                     OrderInventoryReservationRepairState.pending.rawValue,
                     OrderInventoryReservationRepairState.failed.rawValue,
+                    timestamp.timeIntervalSince1970,
                     OrderInventoryReservationRepairState.pending.rawValue,
                     limit
                 ]
@@ -194,9 +202,13 @@ extension GRDBCoreDataRepository {
                 }
             }
         }
+        let hasMore = try hasEligibleInventoryReservationRepairs(
+            before: timestamp
+        )
         return OrderInventoryReservationRepairSummary(
             completedCount: completedCount,
-            failedCount: failedCount
+            failedCount: failedCount,
+            hasMore: hasMore
         )
     }
 
@@ -915,6 +927,13 @@ private extension GRDBCoreDataRepository {
             reason: reason,
             in: db
         )
+        if reason != .migrationRepair {
+            try completeInventoryReservationRepairIfNeeded(
+                orderId: order.id,
+                at: timestamp,
+                in: db
+            )
+        }
     }
 
     func synchronizeReservationsAfterRecipeIngredientMutation(
@@ -969,6 +988,11 @@ private extension GRDBCoreDataRepository {
                 with: proposedReservation.usages,
                 at: timestamp,
                 reason: .recipeEdited,
+                in: db
+            )
+            try completeInventoryReservationRepairIfNeeded(
+                orderId: proposedReservation.order.id,
+                at: timestamp,
                 in: db
             )
         }
@@ -1108,6 +1132,59 @@ private extension GRDBCoreDataRepository {
         guard shortages.isEmpty else {
             throw OrderRecipeUsageError.insufficientStock(shortages)
         }
+    }
+
+    func hasEligibleInventoryReservationRepairs(
+        before timestamp: Date
+    ) throws -> Bool {
+        try writer.read { db in
+            try Bool.fetchOne(
+                db,
+                sql: """
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM order_inventory_reservation_repairs
+                        WHERE state = ?
+                           OR (
+                               state = ?
+                               AND (
+                                   last_attempted_at_unix_time IS NULL
+                                   OR last_attempted_at_unix_time < ?
+                               )
+                           )
+                    )
+                    """,
+                arguments: [
+                    OrderInventoryReservationRepairState.pending.rawValue,
+                    OrderInventoryReservationRepairState.failed.rawValue,
+                    timestamp.timeIntervalSince1970
+                ]
+            ) ?? false
+        }
+    }
+
+    func completeInventoryReservationRepairIfNeeded(
+        orderId: String,
+        at timestamp: Date,
+        in db: Database
+    ) throws {
+        try db.execute(
+            sql: """
+                UPDATE order_inventory_reservation_repairs
+                SET state = ?,
+                    failure_code = NULL,
+                    updated_at_unix_time = ?
+                WHERE order_id = ?
+                  AND state IN (?, ?)
+                """,
+            arguments: [
+                OrderInventoryReservationRepairState.complete.rawValue,
+                timestamp.timeIntervalSince1970,
+                orderId,
+                OrderInventoryReservationRepairState.pending.rawValue,
+                OrderInventoryReservationRepairState.failed.rawValue
+            ]
+        )
     }
 
     func reservationRepairFailure(

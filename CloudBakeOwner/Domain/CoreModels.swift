@@ -629,6 +629,17 @@ struct OrderInventoryReservationRepair: Equatable {
 struct OrderInventoryReservationRepairSummary: Equatable {
     let completedCount: Int
     let failedCount: Int
+    let hasMore: Bool
+
+    init(
+        completedCount: Int,
+        failedCount: Int,
+        hasMore: Bool = false
+    ) {
+        self.completedCount = completedCount
+        self.failedCount = failedCount
+        self.hasMore = hasMore
+    }
 }
 
 struct OrderChecklistItem: Equatable {

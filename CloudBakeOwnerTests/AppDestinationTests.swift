@@ -28,11 +28,13 @@ final class AppDestinationTests: XCTestCase {
             summaries: [
                 OrderInventoryReservationRepairSummary(
                     completedCount: 50,
-                    failedCount: 0
+                    failedCount: 0,
+                    hasMore: true
                 ),
                 OrderInventoryReservationRepairSummary(
                     completedCount: 49,
-                    failedCount: 1
+                    failedCount: 1,
+                    hasMore: true
                 ),
                 OrderInventoryReservationRepairSummary(
                     completedCount: 2,
@@ -56,6 +58,7 @@ final class AppDestinationTests: XCTestCase {
         )
         XCTAssertEqual(repository.requestedLimits, [50, 50, 50])
         XCTAssertEqual(repository.requestedDates, [timestamp, timestamp, timestamp])
+        XCTAssertFalse(summary.hasMore)
     }
 
     func testReservationRepairRunnerHonorsMaximumBatchCount() throws {
@@ -63,7 +66,8 @@ final class AppDestinationTests: XCTestCase {
             summaries: Array(
                 repeating: OrderInventoryReservationRepairSummary(
                     completedCount: 50,
-                    failedCount: 0
+                    failedCount: 0,
+                    hasMore: true
                 ),
                 count: 3
             )
@@ -76,6 +80,7 @@ final class AppDestinationTests: XCTestCase {
 
         XCTAssertEqual(summary.completedCount, 100)
         XCTAssertEqual(repository.requestedLimits, [50, 50])
+        XCTAssertTrue(summary.hasMore)
     }
 }
 

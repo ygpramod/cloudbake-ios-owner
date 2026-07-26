@@ -22,6 +22,7 @@ struct RootView: View {
     @State private var isPresentingIntroduction = false
     @StateObject private var emptyRestoreViewModel: CloudRestoreSettingsViewModel
     private let maximumSectionHistoryCount = 4
+    private let reservationRepairCoordinator = OrderInventoryReservationRepairCoordinator()
 
     init(database: AppDatabase, cloudBackupRuntime: CloudBackupRuntime? = nil) {
         self.database = database
@@ -140,7 +141,7 @@ struct RootView: View {
         }
         .task {
             await prepareInitialRestoreOrBackup()
-            repairInventoryReservations()
+            await repairInventoryReservations()
             navigateToInitialUITestDestination()
             await refreshLocalReminders()
         }
@@ -315,12 +316,9 @@ struct RootView: View {
         await ManualBackupReminderScheduler().refreshReminder()
     }
 
-    private func repairInventoryReservations() {
-        let repository = database.makeCoreDataRepository()
+    private func repairInventoryReservations() async {
         do {
-            _ = try OrderInventoryReservationRepairRunner(
-                repository: repository
-            ).run()
+            _ = try await reservationRepairCoordinator.repair(database: database)
         } catch {
             reservationRepairLogger.error(
                 "Inventory reservation repair stopped after a persistence failure"
@@ -344,7 +342,7 @@ struct RootView: View {
     private func refreshAfterRestore() async {
         navigationPath.removeAll()
         restoredDataRevision += 1
-        repairInventoryReservations()
+        await repairInventoryReservations()
         await RestoreCompletionReconciler(
             refreshReminders: refreshLocalReminders,
             resumeBackup: { cloudBackupRuntime?.startPostRestoreCatchUp() }
@@ -368,6 +366,7 @@ struct OrderInventoryReservationRepairRunner {
 
         var completedCount = 0
         var failedCount = 0
+        var hasMore = false
         let timestamp = dateProvider()
         for _ in 0..<maximumBatchCount {
             let summary = try repository.repairOrderInventoryReservations(
@@ -376,13 +375,49 @@ struct OrderInventoryReservationRepairRunner {
             )
             completedCount += summary.completedCount
             failedCount += summary.failedCount
-            guard summary.completedCount + summary.failedCount == batchLimit else {
+            hasMore = summary.hasMore
+            guard summary.hasMore else {
                 break
             }
         }
         return OrderInventoryReservationRepairSummary(
             completedCount: completedCount,
-            failedCount: failedCount
+            failedCount: failedCount,
+            hasMore: hasMore
+        )
+    }
+}
+
+actor OrderInventoryReservationRepairCoordinator {
+    func repair(
+        database: AppDatabase,
+        dateProvider: () -> Date = Date.init
+    ) async throws -> OrderInventoryReservationRepairSummary {
+        let repository = database.makeCoreDataRepository()
+        let timestamp = dateProvider()
+        var completedCount = 0
+        var failedCount = 0
+
+        while !Task.isCancelled {
+            let summary = try OrderInventoryReservationRepairRunner(
+                repository: repository,
+                dateProvider: { timestamp }
+            ).run()
+            completedCount += summary.completedCount
+            failedCount += summary.failedCount
+            guard summary.hasMore else {
+                return OrderInventoryReservationRepairSummary(
+                    completedCount: completedCount,
+                    failedCount: failedCount
+                )
+            }
+            await Task.yield()
+        }
+
+        return OrderInventoryReservationRepairSummary(
+            completedCount: completedCount,
+            failedCount: failedCount,
+            hasMore: true
         )
     }
 }

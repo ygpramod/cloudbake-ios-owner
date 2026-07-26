@@ -1584,6 +1584,25 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertNil(failureEvent.inventoryItemId)
         XCTAssertNil(failureEvent.unit)
 
+        XCTAssertEqual(
+            try repository.repairOrderInventoryReservations(limit: 50, at: repairedAt),
+            OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 0)
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: invalidOrder.id)?.attemptCount,
+            1
+        )
+
+        let retryAt = repairedAt.addingTimeInterval(20)
+        XCTAssertEqual(
+            try repository.repairOrderInventoryReservations(limit: 50, at: retryAt),
+            OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 1)
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: invalidOrder.id)?.attemptCount,
+            2
+        )
+
         try repository.save(
             RecipeIngredient(
                 id: invalidIngredient.id,
@@ -1596,12 +1615,7 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
                 updatedAt: repairedAt.addingTimeInterval(10)
             )
         )
-        let retryAt = repairedAt.addingTimeInterval(20)
 
-        XCTAssertEqual(
-            try repository.repairOrderInventoryReservations(limit: 50, at: retryAt),
-            OrderInventoryReservationRepairSummary(completedCount: 1, failedCount: 0)
-        )
         XCTAssertEqual(
             try repository.fetchOrderInventoryReservationRepair(orderId: invalidOrder.id)?.state,
             .complete
@@ -1619,6 +1633,67 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertEqual(
             try repository.repairOrderInventoryReservations(limit: 50, at: retryAt),
             OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 0)
+        )
+    }
+
+    func testReservationRepairReportsPendingRowsBeyondBatchLimit() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_085_000)
+
+        for index in 1...2 {
+            let order = Order(
+                id: "order-repair-page-\(index)",
+                customerId: nil,
+                cakeDesignId: nil,
+                title: "Repair page \(index)",
+                customerName: "Amy",
+                status: .draft,
+                dueAt: timestamp.addingTimeInterval(10_000),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+            try repository.save(order)
+            try queue.write { db in
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservation_repairs
+                        (order_id, state, attempt_count, updated_at_unix_time)
+                        VALUES (?, ?, 0, ?)
+                        """,
+                    arguments: [
+                        order.id,
+                        OrderInventoryReservationRepairState.pending.rawValue,
+                        timestamp.timeIntervalSince1970
+                    ]
+                )
+            }
+        }
+
+        XCTAssertEqual(
+            try repository.repairOrderInventoryReservations(
+                limit: 1,
+                at: timestamp.addingTimeInterval(10)
+            ),
+            OrderInventoryReservationRepairSummary(
+                completedCount: 1,
+                failedCount: 0,
+                hasMore: true
+            )
+        )
+        XCTAssertEqual(
+            try repository.repairOrderInventoryReservations(
+                limit: 1,
+                at: timestamp.addingTimeInterval(10)
+            ),
+            OrderInventoryReservationRepairSummary(
+                completedCount: 1,
+                failedCount: 0
+            )
         )
     }
 
