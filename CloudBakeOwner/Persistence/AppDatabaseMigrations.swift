@@ -659,6 +659,58 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0033_add_order_reminder_configurations") { db in
+            try db.create(table: "order_reminder_defaults") { table in
+                table.column("id", .integer)
+                    .primaryKey()
+                    .check { $0 == 1 }
+                table.column("day_offsets_json", .text).notNull()
+                table.column("includes_due_time", .boolean).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO order_reminder_defaults
+                    (id, day_offsets_json, includes_due_time, updated_at_unix_time)
+                    VALUES (1, '[3,2,1]', 1, 0)
+                    """
+            )
+
+            try db.create(table: "order_reminder_configurations") { table in
+                table.column("order_id", .text)
+                    .primaryKey()
+                    .references("orders", onDelete: .cascade)
+                table.column("mode", .text)
+                    .notNull()
+                    .check(sql: "mode IN ('defaultSnapshot', 'custom', 'disabled')")
+                table.column("day_offsets_json", .text).notNull()
+                table.column("includes_due_time", .boolean).notNull()
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO order_reminder_configurations
+                    (
+                        order_id,
+                        mode,
+                        day_offsets_json,
+                        includes_due_time,
+                        created_at_unix_time,
+                        updated_at_unix_time
+                    )
+                    SELECT
+                        id,
+                        'defaultSnapshot',
+                        '[3,2,1]',
+                        1,
+                        created_at_unix_time,
+                        updated_at_unix_time
+                    FROM orders
+                    """
+            )
+        }
+
         return migrator
     }
 }

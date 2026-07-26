@@ -3,6 +3,51 @@ import GRDB
 @testable import CloudBakeOwner
 
 final class AppDatabaseTests: XCTestCase {
+    func testOrderReminderConfigurationMigrationBackfillsExistingOrders() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0032_track_reservation_repair_activation")
+        let timestamp = 1_800_001_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "order-reminder-migration",
+                    "Reminder migration cake",
+                    OrderStatus.draft.rawValue,
+                    timestamp,
+                    timestamp,
+                    timestamp
+                ]
+            )
+        }
+
+        try migrator.migrate(queue)
+
+        try queue.read { db in
+            XCTAssertTrue(try db.tableExists("order_reminder_defaults"))
+            XCTAssertTrue(try db.tableExists("order_reminder_configurations"))
+            let row = try Row.fetchOne(
+                db,
+                sql: """
+                    SELECT mode, day_offsets_json, includes_due_time
+                    FROM order_reminder_configurations
+                    WHERE order_id = ?
+                    """,
+                arguments: ["order-reminder-migration"]
+            )
+            XCTAssertEqual(row?["mode"] as String?, "defaultSnapshot")
+            XCTAssertEqual(row?["day_offsets_json"] as String?, "[3,2,1]")
+            XCTAssertEqual(row?["includes_due_time"] as Bool?, true)
+        }
+    }
+
     @MainActor
     func testPersistedDesignLibrarySearchCompletesWithinBudget() throws {
         let database = try AppDatabase.makeInMemory()

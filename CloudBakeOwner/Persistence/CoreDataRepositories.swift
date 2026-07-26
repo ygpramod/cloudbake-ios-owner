@@ -113,6 +113,23 @@ protocol OrderRepository {
     func fetchOrders() throws -> [Order]
 }
 
+protocol OrderReminderConfigurationRepository {
+    func fetchDefaultOrderReminderConfiguration() throws -> OrderReminderConfiguration
+    func saveDefaultOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        updatedAt: Date
+    ) throws
+    func fetchOrderReminderConfiguration(orderId: String) throws -> OrderReminderConfiguration?
+    func fetchOrderReminderConfigurations(
+        orderIds: [String]
+    ) throws -> [String: OrderReminderConfiguration]
+    func saveOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        orderId: String,
+        updatedAt: Date
+    ) throws
+}
+
 protocol OrderStatusChangeRepository {
     func changeOrderStatus(
         order: Order,

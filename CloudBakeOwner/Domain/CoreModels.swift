@@ -668,6 +668,82 @@ struct OrderInventoryRequirement: Equatable {
     let unit: InventoryUnit
 }
 
+enum OrderReminderConfigurationMode: String, Equatable {
+    case defaultSnapshot
+    case custom
+    case disabled
+}
+
+enum OrderReminderConfigurationError: Error, Equatable {
+    case invalidDayOffset(Int)
+    case duplicateDayOffset(Int)
+    case emptyEnabledSchedule
+    case invalidDisabledSchedule
+}
+
+struct OrderReminderConfiguration: Equatable {
+    static let initialDefault = try! OrderReminderConfiguration(
+        mode: .defaultSnapshot,
+        dayOffsets: [3, 2, 1],
+        includesDueTime: true
+    )
+
+    static let disabled = try! OrderReminderConfiguration(
+        mode: .disabled,
+        dayOffsets: [],
+        includesDueTime: false
+    )
+
+    let mode: OrderReminderConfigurationMode
+    let dayOffsets: [Int]
+    let includesDueTime: Bool
+
+    init(
+        mode: OrderReminderConfigurationMode,
+        dayOffsets: [Int],
+        includesDueTime: Bool
+    ) throws {
+        if mode == .disabled {
+            guard dayOffsets.isEmpty, !includesDueTime else {
+                throw OrderReminderConfigurationError.invalidDisabledSchedule
+            }
+            self.mode = mode
+            self.dayOffsets = []
+            self.includesDueTime = false
+            return
+        }
+
+        var seenOffsets = Set<Int>()
+        for offset in dayOffsets {
+            guard (1...30).contains(offset) else {
+                throw OrderReminderConfigurationError.invalidDayOffset(offset)
+            }
+            guard seenOffsets.insert(offset).inserted else {
+                throw OrderReminderConfigurationError.duplicateDayOffset(offset)
+            }
+        }
+        guard !dayOffsets.isEmpty || includesDueTime else {
+            throw OrderReminderConfigurationError.emptyEnabledSchedule
+        }
+
+        self.mode = mode
+        self.dayOffsets = dayOffsets.sorted(by: >)
+        self.includesDueTime = includesDueTime
+    }
+
+    var isEnabled: Bool {
+        mode != .disabled
+    }
+
+    func snapshotAsDefault() throws -> OrderReminderConfiguration {
+        try OrderReminderConfiguration(
+            mode: .defaultSnapshot,
+            dayOffsets: dayOffsets,
+            includesDueTime: includesDueTime
+        )
+    }
+}
+
 struct OrderChecklistItem: Equatable {
     let id: String
     let orderId: String

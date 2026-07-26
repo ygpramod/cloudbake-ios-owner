@@ -3,6 +3,118 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
+    func testOrderReminderConfigurationsSnapshotDefaultsAndPersistOverrides() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_005_000)
+        let firstOrder = Order(
+            id: "order-reminder-original-default",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Original reminder cake",
+            customerName: "Amy",
+            status: .draft,
+            dueAt: timestamp.addingTimeInterval(100_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(firstOrder)
+
+        XCTAssertEqual(
+            try repository.fetchDefaultOrderReminderConfiguration(),
+            .initialDefault
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderReminderConfiguration(orderId: firstOrder.id),
+            .initialDefault
+        )
+
+        let changedDefault = try OrderReminderConfiguration(
+            mode: .custom,
+            dayOffsets: [7, 1],
+            includesDueTime: false
+        )
+        try repository.saveDefaultOrderReminderConfiguration(
+            changedDefault,
+            updatedAt: timestamp.addingTimeInterval(10)
+        )
+        XCTAssertEqual(
+            try repository.fetchDefaultOrderReminderConfiguration(),
+            try changedDefault.snapshotAsDefault()
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderReminderConfiguration(orderId: firstOrder.id),
+            .initialDefault
+        )
+
+        let secondOrder = Order(
+            id: "order-reminder-new-default",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "New reminder cake",
+            customerName: "Amy",
+            status: .draft,
+            dueAt: timestamp.addingTimeInterval(200_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp.addingTimeInterval(20),
+            updatedAt: timestamp.addingTimeInterval(20)
+        )
+        try repository.save(secondOrder)
+        XCTAssertEqual(
+            try repository.fetchOrderReminderConfiguration(orderId: secondOrder.id),
+            try changedDefault.snapshotAsDefault()
+        )
+
+        let customConfiguration = try OrderReminderConfiguration(
+            mode: .custom,
+            dayOffsets: [14, 2],
+            includesDueTime: true
+        )
+        try repository.saveOrderReminderConfiguration(
+            customConfiguration,
+            orderId: firstOrder.id,
+            updatedAt: timestamp.addingTimeInterval(30)
+        )
+        try repository.saveOrderReminderConfiguration(
+            .disabled,
+            orderId: secondOrder.id,
+            updatedAt: timestamp.addingTimeInterval(30)
+        )
+
+        let configurations = try repository.fetchOrderReminderConfigurations(
+            orderIds: [firstOrder.id, secondOrder.id]
+                + (0..<1_001).map { "unknown-order-\($0)" }
+        )
+        XCTAssertEqual(configurations[firstOrder.id], customConfiguration)
+        XCTAssertEqual(configurations[secondOrder.id], .disabled)
+        XCTAssertEqual(configurations.count, 2)
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE order_reminder_configurations
+                    SET day_offsets_json = ?
+                    WHERE order_id = ?
+                    """,
+                arguments: ["invalid-json", firstOrder.id]
+            )
+        }
+        XCTAssertThrowsError(
+            try repository.fetchOrderReminderConfiguration(orderId: firstOrder.id)
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderReminderConfigurationPersistenceError,
+                .invalidDayOffsets
+            )
+        }
+    }
+
     func testOrderRecipeUsageDeductsInventoryFromOldestExpiringBatches() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)

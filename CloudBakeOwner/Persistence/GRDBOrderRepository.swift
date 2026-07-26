@@ -1,6 +1,12 @@
 import Foundation
 import GRDB
 
+enum OrderReminderConfigurationPersistenceError: Error, Equatable {
+    case defaultConfigurationMissing
+    case invalidMode(String)
+    case invalidDayOffsets
+}
+
 extension GRDBCoreDataRepository {
     func saveRecipeIngredient(
         _ ingredient: RecipeIngredient,
@@ -233,6 +239,126 @@ extension GRDBCoreDataRepository {
                     ORDER BY due_at_unix_time ASC, lower(title), title
                     """
             ).map(order)
+        }
+    }
+
+    func fetchDefaultOrderReminderConfiguration() throws -> OrderReminderConfiguration {
+        try writer.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: "SELECT * FROM order_reminder_defaults WHERE id = 1"
+            ) else {
+                throw OrderReminderConfigurationPersistenceError.defaultConfigurationMissing
+            }
+            return try orderReminderConfiguration(
+                from: row,
+                mode: .defaultSnapshot
+            )
+        }
+    }
+
+    func saveDefaultOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        updatedAt: Date
+    ) throws {
+        let snapshot = try configuration.snapshotAsDefault()
+        try writer.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE order_reminder_defaults
+                    SET day_offsets_json = ?,
+                        includes_due_time = ?,
+                        updated_at_unix_time = ?
+                    WHERE id = 1
+                    """,
+                arguments: [
+                    try orderReminderDayOffsetsJSON(snapshot.dayOffsets),
+                    snapshot.includesDueTime,
+                    updatedAt.timeIntervalSince1970
+                ]
+            )
+            guard db.changesCount == 1 else {
+                throw OrderReminderConfigurationPersistenceError.defaultConfigurationMissing
+            }
+        }
+    }
+
+    func fetchOrderReminderConfiguration(
+        orderId: String
+    ) throws -> OrderReminderConfiguration? {
+        try writer.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: """
+                    SELECT *
+                    FROM order_reminder_configurations
+                    WHERE order_id = ?
+                    """,
+                arguments: [orderId]
+            ) else {
+                return nil
+            }
+            return try orderReminderConfiguration(from: row)
+        }
+    }
+
+    func fetchOrderReminderConfigurations(
+        orderIds: [String]
+    ) throws -> [String: OrderReminderConfiguration] {
+        let uniqueOrderIds = Array(Set(orderIds)).sorted()
+        guard !uniqueOrderIds.isEmpty else {
+            return [:]
+        }
+
+        return try writer.read { db in
+            var configurations: [String: OrderReminderConfiguration] = [:]
+            for chunkStart in stride(from: 0, to: uniqueOrderIds.count, by: 400) {
+                let chunkEnd = min(chunkStart + 400, uniqueOrderIds.count)
+                let chunk = Array(uniqueOrderIds[chunkStart..<chunkEnd])
+                let placeholders = chunk.map { _ in "?" }.joined(separator: ", ")
+                let rows = try Row.fetchAll(
+                    db,
+                    sql: """
+                        SELECT *
+                        FROM order_reminder_configurations
+                        WHERE order_id IN (\(placeholders))
+                        """,
+                    arguments: StatementArguments(chunk)
+                )
+                for row in rows {
+                    let orderId: String = row["order_id"]
+                    configurations[orderId] = try orderReminderConfiguration(from: row)
+                }
+            }
+            return configurations
+        }
+    }
+
+    func saveOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        orderId: String,
+        updatedAt: Date
+    ) throws {
+        try writer.write { db in
+            guard try order(id: orderId, in: db) != nil else {
+                throw OrderRecipeUsageError.orderNotFound
+            }
+            let createdAt = try Double.fetchOne(
+                db,
+                sql: """
+                    SELECT created_at_unix_time
+                    FROM order_reminder_configurations
+                    WHERE order_id = ?
+                    """,
+                arguments: [orderId]
+            ) ?? updatedAt.timeIntervalSince1970
+            try saveOrderReminderConfiguration(
+                configuration,
+                orderId: orderId,
+                createdAt: Date(timeIntervalSince1970: createdAt),
+                updatedAt: updatedAt,
+                in: db
+            )
         }
     }
 
@@ -1693,6 +1819,123 @@ private extension GRDBCoreDataRepository {
                 order.updatedAt.timeIntervalSince1970
             ])
         )
+        try ensureOrderReminderConfiguration(for: order, in: db)
+    }
+
+    private func ensureOrderReminderConfiguration(
+        for order: Order,
+        in db: Database
+    ) throws {
+        try db.execute(
+            sql: """
+                INSERT OR IGNORE INTO order_reminder_configurations
+                (
+                    order_id,
+                    mode,
+                    day_offsets_json,
+                    includes_due_time,
+                    created_at_unix_time,
+                    updated_at_unix_time
+                )
+                SELECT
+                    ?,
+                    'defaultSnapshot',
+                    day_offsets_json,
+                    includes_due_time,
+                    ?,
+                    ?
+                FROM order_reminder_defaults
+                WHERE id = 1
+                """,
+            arguments: [
+                order.id,
+                order.createdAt.timeIntervalSince1970,
+                order.updatedAt.timeIntervalSince1970
+            ]
+        )
+        guard try Bool.fetchOne(
+            db,
+            sql: """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM order_reminder_configurations
+                    WHERE order_id = ?
+                )
+                """,
+            arguments: [order.id]
+        ) == true else {
+            throw OrderReminderConfigurationPersistenceError.defaultConfigurationMissing
+        }
+    }
+
+    private func saveOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        orderId: String,
+        createdAt: Date,
+        updatedAt: Date,
+        in db: Database
+    ) throws {
+        try db.execute(
+            sql: """
+                INSERT INTO order_reminder_configurations
+                (
+                    order_id,
+                    mode,
+                    day_offsets_json,
+                    includes_due_time,
+                    created_at_unix_time,
+                    updated_at_unix_time
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(order_id) DO UPDATE SET
+                    mode = excluded.mode,
+                    day_offsets_json = excluded.day_offsets_json,
+                    includes_due_time = excluded.includes_due_time,
+                    updated_at_unix_time = excluded.updated_at_unix_time
+                """,
+            arguments: [
+                orderId,
+                configuration.mode.rawValue,
+                try orderReminderDayOffsetsJSON(configuration.dayOffsets),
+                configuration.includesDueTime,
+                createdAt.timeIntervalSince1970,
+                updatedAt.timeIntervalSince1970
+            ]
+        )
+    }
+
+    private func orderReminderConfiguration(
+        from row: Row,
+        mode explicitMode: OrderReminderConfigurationMode? = nil
+    ) throws -> OrderReminderConfiguration {
+        let mode: OrderReminderConfigurationMode
+        if let explicitMode {
+            mode = explicitMode
+        } else {
+            let modeValue: String = row["mode"]
+            guard let parsedMode = OrderReminderConfigurationMode(rawValue: modeValue) else {
+                throw OrderReminderConfigurationPersistenceError.invalidMode(modeValue)
+            }
+            mode = parsedMode
+        }
+        let offsetsJSON: String = row["day_offsets_json"]
+        guard let data = offsetsJSON.data(using: .utf8),
+              let offsets = try? JSONDecoder().decode([Int].self, from: data) else {
+            throw OrderReminderConfigurationPersistenceError.invalidDayOffsets
+        }
+        return try OrderReminderConfiguration(
+            mode: mode,
+            dayOffsets: offsets,
+            includesDueTime: row["includes_due_time"]
+        )
+    }
+
+    private func orderReminderDayOffsetsJSON(_ offsets: [Int]) throws -> String {
+        let data = try JSONEncoder().encode(offsets)
+        guard let json = String(data: data, encoding: .utf8) else {
+            throw OrderReminderConfigurationPersistenceError.invalidDayOffsets
+        }
+        return json
     }
 
     func save(_ item: OrderChecklistItem, in db: Database) throws {
