@@ -46,7 +46,9 @@ protocol CloudBackupSettingsServing: Sendable {
     func confirmAccountBackup(_ proposal: ManualAccountBackupProposal) async -> ManualBackupResult
     func cancelAccountBackup(_ proposal: ManualAccountBackupProposal) async
     func confirmCellularBackup(_ proposal: ManualCellularBackupProposal) async -> ManualBackupResult
-    func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async
+    func cancelCellularBackup(
+        _ proposal: ManualCellularBackupProposal
+    ) async -> ManualBackupCancellationResult
     func approveUnavailablePhotoOmissions(
         _ proposal: ManualUnavailablePhotoBackupProposal
     ) async -> ManualBackupResult
@@ -55,7 +57,7 @@ protocol CloudBackupSettingsServing: Sendable {
     ) async -> ManualBackupResult
     func cancelUnavailablePhotoDecision(
         _ proposal: ManualUnavailablePhotoBackupProposal
-    ) async
+    ) async -> ManualBackupCancellationResult
     func deleteCloudBackup() async -> CloudBackupDeletionResult
 }
 
@@ -66,6 +68,12 @@ extension CloudBackupSettingsServing {
 
     func cancelAccountBackup(_ proposal: ManualAccountBackupProposal) async {}
 
+    func cancelCellularBackup(
+        _ proposal: ManualCellularBackupProposal
+    ) async -> ManualBackupCancellationResult {
+        .ignored
+    }
+
     func approveUnavailablePhotoOmissions(
         _ proposal: ManualUnavailablePhotoBackupProposal
     ) async -> ManualBackupResult {
@@ -80,7 +88,9 @@ extension CloudBackupSettingsServing {
 
     func cancelUnavailablePhotoDecision(
         _ proposal: ManualUnavailablePhotoBackupProposal
-    ) async {}
+    ) async -> ManualBackupCancellationResult {
+        .ignored
+    }
 
     func deleteCloudBackup() async -> CloudBackupDeletionResult { .failed(.unknown) }
 }
@@ -207,8 +217,9 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         guard let proposal = pendingUnavailablePhotoProposal else { return }
         pendingUnavailablePhotoProposal = nil
         isConfirmingUnavailablePhotoRemoval = false
-        await service.cancelUnavailablePhotoDecision(proposal)
+        let result = await service.cancelUnavailablePhotoDecision(proposal)
         snapshot = await service.currentSettings()
+        reportCancellation(result)
     }
 
     func requestCloudBackupDeletion() {
@@ -237,8 +248,9 @@ final class CloudBackupSettingsViewModel: ObservableObject {
     func cancelCellularBackup() async {
         guard let proposal = pendingCellularProposal else { return }
         pendingCellularProposal = nil
-        await service.cancelCellularBackup(proposal)
+        let result = await service.cancelCellularBackup(proposal)
         snapshot = await service.currentSettings()
+        reportCancellation(result)
     }
 
     var statusTitle: String {
@@ -352,6 +364,11 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         }
     }
 
+    private func reportCancellation(_ result: ManualBackupCancellationResult) {
+        guard result == .cancelledAfterPhotoRemoval else { return }
+        actionMessage = "The unavailable photo references were removed from CloudBake. The backup was cancelled, and your previous cloud backup is unchanged."
+    }
+
     private func makeActiveStatusRefreshTask() -> Task<Void, Never> {
         Task { [weak self, service] in
             while !Task.isCancelled {
@@ -444,7 +461,11 @@ struct UnavailableCloudBackupSettingsService: CloudBackupSettingsServing {
     func confirmCellularBackup(_ proposal: ManualCellularBackupProposal) async -> ManualBackupResult {
         .deferred(.iCloudUnavailable)
     }
-    func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {}
+    func cancelCellularBackup(
+        _ proposal: ManualCellularBackupProposal
+    ) async -> ManualBackupCancellationResult {
+        .ignored
+    }
     func deleteCloudBackup() async -> CloudBackupDeletionResult { .failed(.iCloudUnavailable) }
 }
 
@@ -538,8 +559,11 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
         )
     }
 
-    func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {
+    func cancelCellularBackup(
+        _ proposal: ManualCellularBackupProposal
+    ) async -> ManualBackupCancellationResult {
         snapshot.state = .enabled
+        return .cancelled
     }
 
     func approveUnavailablePhotoOmissions(
@@ -574,8 +598,9 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
 
     func cancelUnavailablePhotoDecision(
         _ proposal: ManualUnavailablePhotoBackupProposal
-    ) async {
+    ) async -> ManualBackupCancellationResult {
         snapshot.state = .enabled
+        return .cancelled
     }
 
     func deleteCloudBackup() async -> CloudBackupDeletionResult {

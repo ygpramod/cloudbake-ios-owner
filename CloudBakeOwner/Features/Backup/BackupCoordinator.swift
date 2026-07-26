@@ -92,6 +92,12 @@ enum ManualBackupResult: Equatable, Sendable {
     case failedAfterPhotoRemoval(CloudBackupErrorCategory)
 }
 
+enum ManualBackupCancellationResult: Equatable, Sendable {
+    case cancelled
+    case cancelledAfterPhotoRemoval
+    case ignored
+}
+
 enum CloudBackupDeletionResult: Equatable, Sendable {
     case deleted
     case busy
@@ -402,11 +408,17 @@ actor BackupCoordinator {
         )
     }
 
-    func cancelManualUnavailablePhotoDecision(proposalID: String) {
+    func cancelManualUnavailablePhotoDecision(
+        proposalID: String
+    ) -> ManualBackupCancellationResult {
         guard case .awaitingManualUnavailablePhotoDecision = activeOperation,
-              pendingUnavailablePhotoProposal?.id == proposalID else { return }
+              let proposal = pendingUnavailablePhotoProposal,
+              proposal.id == proposalID else { return .ignored }
         pendingUnavailablePhotoProposal = nil
         finishOperation()
+        return proposal.didRemoveUnavailablePhotoReferences
+            ? .cancelledAfterPhotoRemoval
+            : .cancelled
     }
 
     func deleteCloudBackup() async -> CloudBackupDeletionResult {
@@ -470,16 +482,23 @@ actor BackupCoordinator {
         )
     }
 
-    func cancelManualCellularBackup(proposalID: String) async {
+    func cancelManualCellularBackup(
+        proposalID: String
+    ) async -> ManualBackupCancellationResult {
         guard case .awaitingManualCellularApproval = activeOperation,
               let preparedManualBackup,
-              preparedManualBackup.proposal.id == proposalID else { return }
+              preparedManualBackup.proposal.id == proposalID else { return .ignored }
+        let didRemoveUnavailablePhotoReferences =
+            preparedManualBackup.didRemoveUnavailablePhotoReferences
         activeOperation = .cancellingManual
         await packageCleaner.removePackage(generationID: preparedManualBackup.package.generationID)
         self.preparedManualBackup = nil
         clearActiveOperationMetadata()
         finishOperation()
         await scheduleNextAttempt(from: scheduleStore.load(), fallbackDate: now())
+        return didRemoveUnavailablePhotoReferences
+            ? .cancelledAfterPhotoRemoval
+            : .cancelled
     }
 
     func currentScheduleMetadata() -> BackupScheduleMetadata {

@@ -706,6 +706,66 @@ final class BackupCoordinatorTests: XCTestCase {
         )
     }
 
+    func testCancellingCellularConsentAfterPhotoRemovalReportsTheLocalChange() async {
+        let fixture = CoordinatorFixture(connection: .cellular)
+        let reference = "photos://missing"
+        await fixture.snapshotCreator.reportUnavailable(
+            references: [reference],
+            clearAfterReporting: true
+        )
+        guard case .requiresUnavailablePhotoDecision(let photoProposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected an unavailable-photo decision")
+        }
+        guard case .requiresCellularConfirmation(let cellularProposal) =
+                await fixture.coordinator.removeManualUnavailablePhotos(
+                    proposalID: photoProposal.id
+                ) else {
+            return XCTFail("Expected cellular confirmation after removal")
+        }
+
+        let result = await fixture.coordinator.cancelManualCellularBackup(
+            proposalID: cellularProposal.id
+        )
+
+        XCTAssertEqual(result, .cancelledAfterPhotoRemoval)
+        XCTAssertEqual(
+            fixture.unavailableAssetRemover.removedReferences,
+            [Set([reference])]
+        )
+    }
+
+    func testCancellingASecondPhotoDecisionReportsTheEarlierRemoval() async {
+        let fixture = CoordinatorFixture()
+        let firstReference = "photos://missing-first"
+        await fixture.snapshotCreator.reportUnavailable(
+            references: [firstReference]
+        )
+        guard case .requiresUnavailablePhotoDecision(let firstProposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected the first unavailable-photo decision")
+        }
+        await fixture.snapshotCreator.reportUnavailable(
+            references: ["photos://missing-second"]
+        )
+        guard case .requiresUnavailablePhotoDecision(let secondProposal) =
+                await fixture.coordinator.removeManualUnavailablePhotos(
+                    proposalID: firstProposal.id
+                ) else {
+            return XCTFail("Expected a second unavailable-photo decision")
+        }
+
+        let result = await fixture.coordinator.cancelManualUnavailablePhotoDecision(
+            proposalID: secondProposal.id
+        )
+
+        XCTAssertEqual(result, .cancelledAfterPhotoRemoval)
+        XCTAssertEqual(
+            fixture.unavailableAssetRemover.removedReferences,
+            [Set([firstReference])]
+        )
+    }
+
     func testAutomaticBackupReportsNewUnavailablePhotoWithoutPublishing() async {
         var metadata = BackupScheduleMetadata.initial
         metadata.lastSuccessAt = Date(timeIntervalSince1970: 1_799_000_000)

@@ -168,6 +168,49 @@ final class CloudBackupSettingsTests: XCTestCase {
         )
     }
 
+    func testViewModelReportsPhotoRemovalWhenLaterCellularConsentIsCancelled() async {
+        let proposal = ManualCellularBackupProposal(
+            id: "cellular-proposal",
+            generationID: "generation",
+            estimatedUploadByteCount: 4_096
+        )
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .enabled),
+            backupResult: .requiresCellularConfirmation(proposal),
+            cancellationResult: .cancelledAfterPhotoRemoval
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+        await viewModel.backUpNow()
+
+        await viewModel.cancelCellularBackup()
+
+        XCTAssertEqual(
+            viewModel.actionMessage,
+            "The unavailable photo references were removed from CloudBake. The backup was cancelled, and your previous cloud backup is unchanged."
+        )
+    }
+
+    func testViewModelReportsPhotoRemovalWhenASecondPhotoDecisionIsCancelled() async {
+        let proposal = ManualUnavailablePhotoBackupProposal(
+            id: "photo-proposal",
+            unavailablePhotoCount: 1
+        )
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .enabled),
+            backupResult: .requiresUnavailablePhotoDecision(proposal),
+            cancellationResult: .cancelledAfterPhotoRemoval
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+        await viewModel.backUpNow()
+
+        await viewModel.cancelUnavailablePhotoDecision()
+
+        XCTAssertEqual(
+            viewModel.actionMessage,
+            "The unavailable photo references were removed from CloudBake. The backup was cancelled, and your previous cloud backup is unchanged."
+        )
+    }
+
     func testViewModelPresentsVerificationAsDistinctActiveStatus() async {
         let service = CloudBackupSettingsServiceSpy(
             snapshot: settingsSnapshot(state: .verifying)
@@ -680,7 +723,11 @@ private actor DelayedCloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
         .deferred(.disabled)
     }
 
-    func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {}
+    func cancelCellularBackup(
+        _ proposal: ManualCellularBackupProposal
+    ) async -> ManualBackupCancellationResult {
+        .cancelled
+    }
 
     private func resumeSatisfiedWaiters(
         _ waiters: inout [(count: Int, continuation: CheckedContinuation<Void, Never>)],
@@ -738,6 +785,7 @@ private actor CloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
     private let backupResult: ManualBackupResult
     private let deletionResult: CloudBackupDeletionResult
     private let photoDecisionResult: ManualBackupResult
+    private let cancellationResult: ManualBackupCancellationResult
     private(set) var approvedProposalIDs: [String] = []
     private(set) var removedProposalIDs: [String] = []
 
@@ -745,12 +793,14 @@ private actor CloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
         snapshot: CloudBackupSettingsSnapshot,
         backupResult: ManualBackupResult = .deferred(.disabled),
         deletionResult: CloudBackupDeletionResult = .failed(.unknown),
-        photoDecisionResult: ManualBackupResult = .failed(.photoUnavailable)
+        photoDecisionResult: ManualBackupResult = .failed(.photoUnavailable),
+        cancellationResult: ManualBackupCancellationResult = .cancelled
     ) {
         self.snapshot = snapshot
         self.backupResult = backupResult
         self.deletionResult = deletionResult
         self.photoDecisionResult = photoDecisionResult
+        self.cancellationResult = cancellationResult
     }
 
     func currentSettings() async -> CloudBackupSettingsSnapshot { snapshot }
@@ -772,7 +822,11 @@ private actor CloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
         .deferred(.disabled)
     }
 
-    func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {}
+    func cancelCellularBackup(
+        _ proposal: ManualCellularBackupProposal
+    ) async -> ManualBackupCancellationResult {
+        cancellationResult
+    }
 
     func approveUnavailablePhotoOmissions(
         _ proposal: ManualUnavailablePhotoBackupProposal
@@ -786,6 +840,12 @@ private actor CloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
     ) async -> ManualBackupResult {
         removedProposalIDs.append(proposal.id)
         return photoDecisionResult
+    }
+
+    func cancelUnavailablePhotoDecision(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupCancellationResult {
+        cancellationResult
     }
 
     func deleteCloudBackup() async -> CloudBackupDeletionResult {

@@ -24,6 +24,18 @@ struct ManualBackupExport: Sendable {
 struct ManualBackupUnavailablePhotoProposal: Equatable, Sendable {
     let id: String
     let unavailablePhotoCount: Int
+    let didRemoveUnavailablePhotoReferences: Bool
+
+    init(
+        id: String,
+        unavailablePhotoCount: Int,
+        didRemoveUnavailablePhotoReferences: Bool = false
+    ) {
+        self.id = id
+        self.unavailablePhotoCount = unavailablePhotoCount
+        self.didRemoveUnavailablePhotoReferences =
+            didRemoveUnavailablePhotoReferences
+    }
 }
 
 enum ManualBackupPreparationResult: Sendable {
@@ -35,6 +47,7 @@ enum ManualBackupServiceError: Error, Equatable {
     case invalidUnavailablePhotoDecision
     case unavailablePhotoRemovalNotConfigured
     case backupFailedAfterPhotoRemoval
+    case photosAccessDeniedAfterPhotoRemoval
 }
 
 protocol ManualBackupPreparing: Sendable {
@@ -45,7 +58,9 @@ protocol ManualBackupPreparing: Sendable {
     func removeUnavailablePhotos(
         proposalID: String
     ) async throws -> ManualBackupPreparationResult
-    func cancelUnavailablePhotoDecision(proposalID: String) async
+    func cancelUnavailablePhotoDecision(
+        proposalID: String
+    ) async -> ManualBackupCancellationResult
 }
 
 protocol ManualBackupArchiving: Sendable {
@@ -123,7 +138,10 @@ actor ManualBackupService: ManualBackupPreparing {
         let decision = try pendingDecision(matching: proposalID)
         omissionStore.approve(sourceReferences: decision.sourceReferences)
         pendingUnavailablePhotoDecision = nil
-        return try await prepareFreshBackup()
+        return try await prepareFreshBackup(
+            didRemoveUnavailablePhotoReferences:
+                decision.proposal.didRemoveUnavailablePhotoReferences
+        )
     }
 
     func removeUnavailablePhotos(
@@ -143,22 +161,39 @@ actor ManualBackupService: ManualBackupPreparing {
                 confirmedReferences
             )
         }
+        let didRemoveUnavailablePhotoReferences =
+            decision.proposal.didRemoveUnavailablePhotoReferences
+            || !confirmedReferences.isEmpty
         do {
-            return try await prepareFreshBackup()
+            return try await prepareFreshBackup(
+                didRemoveUnavailablePhotoReferences:
+                    didRemoveUnavailablePhotoReferences
+            )
         } catch {
-            if confirmedReferences.isEmpty {
+            if !didRemoveUnavailablePhotoReferences {
                 throw error
+            }
+            if error as? BackupExternalAssetResolverError == .accessDenied {
+                throw ManualBackupServiceError.photosAccessDeniedAfterPhotoRemoval
             }
             throw ManualBackupServiceError.backupFailedAfterPhotoRemoval
         }
     }
 
-    func cancelUnavailablePhotoDecision(proposalID: String) {
-        guard pendingUnavailablePhotoDecision?.proposal.id == proposalID else { return }
+    func cancelUnavailablePhotoDecision(
+        proposalID: String
+    ) -> ManualBackupCancellationResult {
+        guard let decision = pendingUnavailablePhotoDecision,
+              decision.proposal.id == proposalID else { return .ignored }
         pendingUnavailablePhotoDecision = nil
+        return decision.proposal.didRemoveUnavailablePhotoReferences
+            ? .cancelledAfterPhotoRemoval
+            : .cancelled
     }
 
-    private func prepareFreshBackup() async throws -> ManualBackupPreparationResult {
+    private func prepareFreshBackup(
+        didRemoveUnavailablePhotoReferences: Bool = false
+    ) async throws -> ManualBackupPreparationResult {
         try removeCompletedStagingPackages()
         let package: AppSnapshotPackage
         do {
@@ -169,7 +204,9 @@ actor ManualBackupService: ManualBackupPreparing {
             let sourceReferences = Set(error.assets.map(\.sourceReference))
             let proposal = ManualBackupUnavailablePhotoProposal(
                 id: makeProposalID(),
-                unavailablePhotoCount: sourceReferences.count
+                unavailablePhotoCount: sourceReferences.count,
+                didRemoveUnavailablePhotoReferences:
+                    didRemoveUnavailablePhotoReferences
             )
             pendingUnavailablePhotoDecision = PendingUnavailablePhotoDecision(
                 proposal: proposal,
