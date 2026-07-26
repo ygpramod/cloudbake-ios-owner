@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import CloudBakeOwner
 
 @MainActor
@@ -10,10 +11,10 @@ extension InventoryListViewModelTests {
             idGenerator: { ids.removeFirst() }
         )
         viewModel.purchaseBillRecognizedText = """
-        Cake Flour 1 kg
-        Laundry Detergent 1 L
-        Unsalted Butter 500 g
-        """
+            Cake Flour 1 kg
+            Laundry Detergent 1 L
+            Unsalted Butter 500 g
+            """
 
         XCTAssertTrue(viewModel.createPurchaseBillDrafts(catalog: purchaseBillCatalog))
 
@@ -39,7 +40,7 @@ extension InventoryListViewModelTests {
                     minimumQuantityText: "0",
                     expiryDate: viewModel.purchaseBillDrafts[1].expiryDate,
                     isSelected: true
-                )
+                ),
             ]
         )
         XCTAssertNil(viewModel.errorMessage)
@@ -355,7 +356,7 @@ extension InventoryListViewModelTests {
                 minimumQuantityText: "0",
                 expiryDate: expiry,
                 isSelected: false
-            )
+            ),
         ]
 
         XCTAssertTrue(viewModel.savePurchaseBillDrafts())
@@ -578,7 +579,7 @@ extension InventoryListViewModelTests {
                 minimumQuantityText: "0",
                 expiryDate: Date(timeIntervalSince1970: 1_800_202_800),
                 isSelected: true
-            )
+            ),
         ]
 
         XCTAssertTrue(viewModel.savePurchaseBillDrafts())
@@ -633,7 +634,7 @@ final class VoiceInventoryDraftParserTests: XCTestCase {
                 ParsedVoiceInventoryItem(name: "flour", sourcePhrase: "flour 800 grams", quantity: 800, unit: .gram),
                 ParsedVoiceInventoryItem(name: "strawberry", sourcePhrase: "strawberry 100 g", quantity: 100, unit: .gram),
                 ParsedVoiceInventoryItem(name: "cake box", sourcePhrase: "cake box 2 pieces", quantity: 2, unit: .each),
-                ParsedVoiceInventoryItem(name: "vanilla", sourcePhrase: "vanilla 50 ml", quantity: 50, unit: .milliliter)
+                ParsedVoiceInventoryItem(name: "vanilla", sourcePhrase: "vanilla 50 ml", quantity: 50, unit: .milliliter),
             ]
         )
     }
@@ -650,7 +651,7 @@ final class VoiceInventoryDraftParserTests: XCTestCase {
             ),
             [
                 ParsedVoiceInventoryItem(name: "flour", sourcePhrase: "flour 800 grams", quantity: 800, unit: .gram),
-                ParsedVoiceInventoryItem(name: "strawberry", sourcePhrase: "strawberry 100 grams", quantity: 100, unit: .gram)
+                ParsedVoiceInventoryItem(name: "strawberry", sourcePhrase: "strawberry 100 grams", quantity: 100, unit: .gram),
             ]
         )
     }
@@ -685,10 +686,12 @@ extension InventoryListViewModelTests {
 
         XCTAssertTrue(viewModel.createVoiceInventoryDrafts())
 
-        XCTAssertEqual(viewModel.voiceInventoryDrafts.map(\.destination), [
-            .existingItem("inventory-flour"),
-            .unresolved
-        ])
+        XCTAssertEqual(
+            viewModel.voiceInventoryDrafts.map(\.destination),
+            [
+                .existingItem("inventory-flour"),
+                .unresolved,
+            ])
         XCTAssertEqual(viewModel.voiceInventoryDrafts.map(\.showsMinimumQuantity), [false, true])
         XCTAssertEqual(
             viewModel.voiceInventoryDrafts[0].expiryDate,
@@ -753,6 +756,23 @@ extension InventoryListViewModelTests {
         XCTAssertNil(repository.batches.first?.expiresAt)
     }
 
+    func testVoiceDraftSaveAcceptsAGroupedQuantity() {
+        let repository = FakeInventoryItemRepository()
+        var ids = ["draft-sugar", "inventory-sugar", "batch-sugar"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() }
+        )
+        viewModel.voiceInventoryTranscript = "Sugar 1000 grams"
+        XCTAssertTrue(viewModel.createVoiceInventoryDrafts())
+        viewModel.voiceInventoryDrafts[0].quantityText = "1,000"
+        viewModel.resolveVoiceInventoryDraftAsNew("draft-sugar")
+
+        XCTAssertTrue(viewModel.saveVoiceInventoryDrafts())
+        XCTAssertEqual(repository.items.first?.currentQuantity, 1_000)
+        XCTAssertEqual(repository.batches.first?.remainingQuantity, 1_000)
+    }
+
     func testVoiceDraftSaveRequiresUnknownItemDecision() {
         let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
         viewModel.voiceInventoryTranscript = "Strawberry 100 grams"
@@ -814,7 +834,7 @@ extension InventoryListViewModelTests {
                 minimumQuantity: 25,
                 createdAt: now,
                 updatedAt: now
-            )
+            ),
         ]
         let viewModel = InventoryListViewModel(repository: repository, idGenerator: { "draft-flour" })
         viewModel.load()
@@ -953,7 +973,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         XCTAssertEqual(
             accumulator.merge([
                 segment("flour", at: 0, duration: 0.3),
-                segment("800", at: 0.4, duration: 0.2)
+                segment("800", at: 0.4, duration: 0.2),
             ]),
             "flour 800"
         )
@@ -961,7 +981,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
             accumulator.merge([
                 segment("flour", at: 0, duration: 0.3),
                 segment("800", at: 0.4, duration: 0.2),
-                segment("grams", at: 0.7, duration: 0.3)
+                segment("grams", at: 0.7, duration: 0.3),
             ]),
             "flour 800 grams"
         )
@@ -972,14 +992,14 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         _ = accumulator.merge([
             segment("flour", at: 0, duration: 0.3),
             segment("800", at: 0.4, duration: 0.2),
-            segment("grams", at: 0.7, duration: 0.3)
+            segment("grams", at: 0.7, duration: 0.3),
         ])
 
         XCTAssertEqual(
             accumulator.merge([
                 segment("strawberry", at: 2.2, duration: 0.5),
                 segment("100", at: 2.8, duration: 0.2),
-                segment("grams", at: 3.1, duration: 0.3)
+                segment("grams", at: 3.1, duration: 0.3),
             ]),
             "flour 800 grams\nstrawberry 100 grams"
         )
@@ -990,7 +1010,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         _ = accumulator.merge([
             segment("flour", at: 0, duration: 0.3),
             segment("800", at: 0.4, duration: 0.2),
-            segment("grams", at: 0.7, duration: 0.3)
+            segment("grams", at: 0.7, duration: 0.3),
         ])
 
         XCTAssertEqual(
@@ -998,7 +1018,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
                 [
                     segment("flour", at: 1.5, duration: 0.3),
                     segment("800", at: 1.9, duration: 0.2),
-                    segment("grams", at: 2.2, duration: 0.3)
+                    segment("grams", at: 2.2, duration: 0.3),
                 ],
                 isFinal: true
             ),
@@ -1008,7 +1028,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
             accumulator.merge([
                 segment("strawberry", at: 0, duration: 0.5),
                 segment("100", at: 0.6, duration: 0.2),
-                segment("grams", at: 0.9, duration: 0.3)
+                segment("grams", at: 0.9, duration: 0.3),
             ]),
             "flour 800 grams\nstrawberry 100 grams"
         )
@@ -1018,12 +1038,12 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         var accumulator = VoiceInventoryTranscriptAccumulator()
         _ = accumulator.merge([
             segment("flour", at: 0, duration: 0.3),
-            segment("800", at: 0.4, duration: 0.2)
+            segment("800", at: 0.4, duration: 0.2),
         ])
         XCTAssertEqual(
             accumulator.merge([
                 segment("flour", at: 1.5, duration: 0.3),
-                segment("800", at: 1.9, duration: 0.2)
+                segment("800", at: 1.9, duration: 0.2),
             ]),
             "flour 800"
         )
@@ -1031,7 +1051,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         XCTAssertEqual(
             accumulator.merge([
                 segment("sugar", at: 0, duration: 0.3),
-                segment("100", at: 0.4, duration: 0.2)
+                segment("100", at: 0.4, duration: 0.2),
             ]),
             "flour 800\nsugar 100"
         )
@@ -1041,14 +1061,14 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         var accumulator = VoiceInventoryTranscriptAccumulator()
         _ = accumulator.merge([
             segment("flower", at: 0, duration: 0.3),
-            segment("800", at: 0.4, duration: 0.2)
+            segment("800", at: 0.4, duration: 0.2),
         ])
 
         XCTAssertEqual(
             accumulator.merge([
                 segment("flour", at: 0, duration: 0.3),
                 segment("800", at: 0.4, duration: 0.2),
-                segment("grams", at: 0.7, duration: 0.3)
+                segment("grams", at: 0.7, duration: 0.3),
             ]),
             "flour 800 grams"
         )
@@ -1058,14 +1078,14 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         var accumulator = VoiceInventoryTranscriptAccumulator()
         _ = accumulator.merge([
             segment("flour", at: 0, duration: 0.3),
-            segment("eight", at: 0.4, duration: 0.2)
+            segment("eight", at: 0.4, duration: 0.2),
         ])
 
         XCTAssertEqual(
             accumulator.merge(
                 [
                     segment("flour", at: 0, duration: 0.3),
-                    segment("800", at: 0.4, duration: 0.2)
+                    segment("800", at: 0.4, duration: 0.2),
                 ],
                 isFinal: true
             ),
@@ -1074,7 +1094,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         XCTAssertEqual(
             accumulator.merge([
                 segment("sugar", at: 0, duration: 0.3),
-                segment("100", at: 0.4, duration: 0.2)
+                segment("100", at: 0.4, duration: 0.2),
             ]),
             "flour 800\nsugar 100"
         )
@@ -1084,14 +1104,14 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         var accumulator = VoiceInventoryTranscriptAccumulator()
         _ = accumulator.merge([
             segment("Sugar", at: 0, duration: 0.3),
-            segment("three", at: 0.4, duration: 0.3)
+            segment("three", at: 0.4, duration: 0.3),
         ])
 
         let transcript = accumulator.merge([
             segment("Sugar", at: 0, duration: 0.3),
             segment("3", at: 0.4, duration: 0.1),
             segment("00", at: 0.55, duration: 0.15),
-            segment("g", at: 0.8, duration: 0.1)
+            segment("g", at: 0.8, duration: 0.1),
         ])
 
         XCTAssertEqual(transcript, "Sugar 300 g")
@@ -1115,7 +1135,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
                 segment("Sugar", at: 0, duration: 0.3),
                 segment("3", at: 0.4, duration: 0.1),
                 segment("00", at: 0.55, duration: 0.15),
-                segment("g", at: 0.8, duration: 0.1)
+                segment("g", at: 0.8, duration: 0.1),
             ]
         )
         accumulator.rebase(to: "Brown sugar 250 g")
@@ -1127,7 +1147,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
                 segment("g", at: 0.7, duration: 0.1),
                 segment("Flour", at: 1.7, duration: 0.3),
                 segment("800", at: 2.1, duration: 0.2),
-                segment("g", at: 2.4, duration: 0.1)
+                segment("g", at: 2.4, duration: 0.1),
             ]),
             "Brown sugar 250 g\nFlour 800 g"
         )
@@ -1137,7 +1157,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         var accumulator = VoiceInventoryTranscriptAccumulator()
         _ = accumulator.merge([
             segment("Sugar", at: 0, duration: 0.3),
-            segment("three", at: 0.4, duration: 0.3)
+            segment("three", at: 0.4, duration: 0.3),
         ])
         accumulator.rebase(to: "Brown sugar 250 g")
 
@@ -1149,7 +1169,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
                 segment("g", at: 0.8, duration: 0.1),
                 segment("Flour", at: 1.7, duration: 0.3),
                 segment("800", at: 2.1, duration: 0.2),
-                segment("g", at: 2.4, duration: 0.1)
+                segment("g", at: 2.4, duration: 0.1),
             ]),
             "Brown sugar 250 g\nFlour 800 g"
         )
@@ -1160,14 +1180,14 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         _ = accumulator.merge([
             segment("Sugar", at: 0, duration: 0.3),
             segment("300", at: 0.4, duration: 0.2),
-            segment("g", at: 0.7, duration: 0.1)
+            segment("g", at: 0.7, duration: 0.1),
         ])
         accumulator.rebase(to: "Brown sugar 250 g")
 
         XCTAssertEqual(
             accumulator.merge([
                 segment("Sugar", at: 0, duration: 0.3),
-                segment("300", at: 0.4, duration: 0.2)
+                segment("300", at: 0.4, duration: 0.2),
             ]),
             "Brown sugar 250 g"
         )
@@ -1177,14 +1197,14 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         var accumulator = VoiceInventoryTranscriptAccumulator()
         _ = accumulator.merge([
             segment("cake", at: 0, duration: 0.3),
-            segment("flower", at: 0.4, duration: 0.4)
+            segment("flower", at: 0.4, duration: 0.4),
         ])
 
         XCTAssertEqual(
             accumulator.merge([
                 segment("flour", at: 0.4, duration: 0.4),
                 segment("800", at: 0.9, duration: 0.2),
-                segment("grams", at: 1.2, duration: 0.3)
+                segment("grams", at: 1.2, duration: 0.3),
             ]),
             "cake flour 800 grams"
         )
@@ -1198,7 +1218,7 @@ final class VoiceInventoryTranscriptAccumulatorTests: XCTestCase {
         let transcript = accumulator.merge([
             segment("flour", at: 1.2, duration: 0.3),
             segment("800", at: 1.6, duration: 0.2),
-            segment("grams", at: 1.9, duration: 0.3)
+            segment("grams", at: 1.9, duration: 0.3),
         ])
 
         XCTAssertEqual(transcript, "cake\nflour 800 grams")
