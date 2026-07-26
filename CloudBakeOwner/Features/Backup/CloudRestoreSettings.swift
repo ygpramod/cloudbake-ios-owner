@@ -41,8 +41,8 @@ final class CloudRestoreSettingsViewModel: ObservableObject {
     func inspect() async -> Bool {
         isWorking = true
         actionMessage = nil
-        defer { isWorking = false }
         let result = await service.inspectRestore()
+        isWorking = false
         handle(result)
         return prompt != nil
     }
