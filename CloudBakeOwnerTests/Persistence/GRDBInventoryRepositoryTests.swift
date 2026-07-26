@@ -3,6 +3,85 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class GRDBInventoryRepositoryTests: XCTestCase {
+    func testExpiryReminderCandidateQueryStaysBoundedAndIndexedAtScale() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let now = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-expiry-query-scale",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: now,
+            updatedAt: now
+        )
+        try repository.save(item)
+        for index in 0..<500 {
+            try repository.save(
+                InventoryStockBatch(
+                    id: String(
+                        format: "batch-expiry-scale-%03d",
+                        index
+                    ),
+                    inventoryItemId: item.id,
+                    remainingQuantity: 1,
+                    expiresAt: now.addingTimeInterval(
+                        TimeInterval(index * 60)
+                    ),
+                    createdAt: now,
+                    updatedAt: now
+                )
+            )
+        }
+
+        let recorder = InventorySQLStatementRecorder()
+        repository.writer.writeWithoutTransaction { db in
+            db.trace(options: .statement) { event in
+                recorder.record(event.expandedDescription)
+            }
+        }
+
+        let candidates =
+            try repository.fetchInventoryExpiryReminderCandidates(
+                expiringFrom: now,
+                through: now.addingTimeInterval(500 * 60),
+                limit: 60
+            )
+
+        XCTAssertEqual(candidates.count, 60)
+        XCTAssertEqual(
+            candidates.map(\.batch.id),
+            (0..<60).map {
+                String(format: "batch-expiry-scale-%03d", $0)
+            }
+        )
+        XCTAssertLessThanOrEqual(
+            recorder.statementCount,
+            5,
+            recorder.recordedStatements.joined(separator: "\n")
+        )
+        let candidateStatement = try XCTUnwrap(
+            recorder.recordedStatements.first {
+                $0.contains("FROM inventory_stock_batches")
+                    && $0.contains("inventory_item_name")
+            }
+        )
+        let queryPlan = try repository.writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: "EXPLAIN QUERY PLAN \(candidateStatement)"
+            ).map { row in
+                row["detail"] as String
+            }
+        }
+        XCTAssertTrue(
+            queryPlan.contains {
+                $0.contains("inventory_batches_on_expiry_remaining_id")
+            },
+            queryPlan.joined(separator: "\n")
+        )
+    }
+
     func testExpiryReminderCandidatesAreOrderedAndHardLimitedInSQL() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let now = Date(timeIntervalSince1970: 1_800_020_000)
@@ -847,5 +926,28 @@ final class GRDBInventoryRepositoryTests: XCTestCase {
         }
         XCTAssertNotNil(try repository.fetchInventoryItem(id: item.id))
         XCTAssertEqual(try repository.fetchOrderIngredientCosts(orderId: order.id), recordedCosts)
+    }
+}
+
+private final class InventorySQLStatementRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var statements: [String] = []
+
+    var statementCount: Int {
+        lock.withLock {
+            statements.count
+        }
+    }
+
+    var recordedStatements: [String] {
+        lock.withLock {
+            statements
+        }
+    }
+
+    func record(_ statement: String) {
+        lock.withLock {
+            statements.append(statement)
+        }
     }
 }
