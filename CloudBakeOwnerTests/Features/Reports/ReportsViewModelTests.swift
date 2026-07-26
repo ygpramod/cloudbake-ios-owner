@@ -109,6 +109,10 @@ final class ReportsViewModelTests: XCTestCase {
         XCTAssertEqual(populatedBucket.summary.quotedTotal, 120)
         XCTAssertEqual(populatedBucket.summary.receivedTotal, 20)
         XCTAssertEqual(populatedBucket.summary.outstandingTotal, 100)
+
+        viewModel.loadSalesDrillDown(populatedBucket)
+        XCTAssertEqual(viewModel.salesDrillDownOrders.map(\.id), [order.id])
+        XCTAssertFalse(viewModel.canLoadMoreSalesDrillDown)
     }
 
     private func makeRepository() throws -> GRDBCoreDataRepository {

@@ -146,6 +146,21 @@ final class CloudBakeOwnerUITests: XCTestCase {
         }
     }
 
+    func testReportsOpenOnOutstandingPaymentLedger() {
+        let app = makeApp(initialDestination: "reports")
+        app.launch()
+
+        assertScreenVisible("screen.reports", in: app, timeout: 10)
+        XCTAssertTrue(
+            app.segmentedControls["reports.payment.scope"]
+                .waitForExistence(timeout: 5)
+        )
+        XCTAssertTrue(
+            app.descendants(matching: .any)["reports.filters"].exists
+        )
+        XCTAssertTrue(app.buttons["Outstanding"].isSelected)
+    }
+
     func testDesignRemovalCanBeCancelledAndConfirmed() throws {
         let app = makeApp(initialDestination: "designs")
         app.launchEnvironment["CLOUDBAKE_SEED_CAKE_DESIGN_FIXTURE"] = "1"

@@ -41,13 +41,24 @@ extension CloudBakeOwnerUITests {
         case "Settings":
             identifier = "navigation.settings"
             screenIdentifier = "screen.settings"
+        case "Reminders":
+            identifier = "navigation.reminders"
+            screenIdentifier = "screen.reminders"
+        case "Reports":
+            identifier = "navigation.reports"
+            screenIdentifier = "screen.reports"
         default:
             XCTFail("Unsupported dashboard destination: \(title)", file: file, line: line)
             return
         }
 
         let destinationButton: XCUIElement
-        if title == "Recipes" || title == "Customers" || title == "Designs" || title == "Settings" {
+        if title == "Recipes"
+            || title == "Customers"
+            || title == "Designs"
+            || title == "Reminders"
+            || title == "Reports"
+            || title == "Settings" {
             let moreTab = app.buttons["bottom.navigation.more"]
             tapWhenReady(moreTab, timeout: timeout, file: file, line: line)
             assertScreenVisible("screen.more", in: app, timeout: timeout, file: file, line: line)

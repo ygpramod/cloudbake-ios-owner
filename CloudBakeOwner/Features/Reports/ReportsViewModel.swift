@@ -106,6 +106,8 @@ final class ReportsViewModel: ObservableObject {
     @Published private(set) var outstandingOrders: [Order] = []
     @Published private(set) var profitabilityRows: [OrderProfitabilityRow] = []
     @Published private(set) var salesBuckets: [SalesOrderBucket] = []
+    @Published private(set) var salesDrillDownOrders: [Order] = []
+    @Published private(set) var canLoadMoreSalesDrillDown = false
     @Published private(set) var canLoadMore = false
     @Published var errorMessage: String?
 
@@ -114,6 +116,8 @@ final class ReportsViewModel: ObservableObject {
     private let calendar: Calendar
     private var paymentCursor: PaymentReceiptPageCursor?
     private var orderCursor: OrderPageCursor?
+    private var salesDrillDownCursor: OrderPageCursor?
+    private var salesDrillDownRange: ReportDateRange?
     private static let pageSize = 25
     static let defaultStatuses: Set<OrderStatus> = [
         .confirmed, .inProgress, .ready, .completed
@@ -205,6 +209,56 @@ final class ReportsViewModel: ObservableObject {
         } catch {
             errorMessage = "More report rows could not be loaded."
         }
+    }
+
+    func loadSalesDrillDown(_ bucket: SalesOrderBucket) {
+        do {
+            let page = try repository.fetchReportOrderPage(
+                dateRange: bucket.dateRange,
+                statuses: selectedStatuses,
+                after: nil,
+                limit: Self.pageSize
+            )
+            salesDrillDownOrders = page.orders
+            salesDrillDownCursor = page.nextCursor
+            salesDrillDownRange = bucket.dateRange
+            canLoadMoreSalesDrillDown = page.nextCursor != nil
+            errorMessage = nil
+        } catch {
+            salesDrillDownOrders = []
+            salesDrillDownCursor = nil
+            salesDrillDownRange = nil
+            canLoadMoreSalesDrillDown = false
+            errorMessage = "Sales order details could not be loaded."
+        }
+    }
+
+    func loadMoreSalesDrillDown() {
+        guard let salesDrillDownCursor,
+              let salesDrillDownRange else {
+            return
+        }
+        do {
+            let page = try repository.fetchReportOrderPage(
+                dateRange: salesDrillDownRange,
+                statuses: selectedStatuses,
+                after: salesDrillDownCursor,
+                limit: Self.pageSize
+            )
+            salesDrillDownOrders.append(contentsOf: page.orders)
+            self.salesDrillDownCursor = page.nextCursor
+            canLoadMoreSalesDrillDown = page.nextCursor != nil
+            errorMessage = nil
+        } catch {
+            errorMessage = "More sales order details could not be loaded."
+        }
+    }
+
+    func closeSalesDrillDown() {
+        salesDrillDownOrders = []
+        salesDrillDownCursor = nil
+        salesDrillDownRange = nil
+        canLoadMoreSalesDrillDown = false
     }
 
     func delayText(for row: PaymentReceiptReportRow) -> String {
