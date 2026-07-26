@@ -122,9 +122,13 @@ final class SettingsViewModel: ObservableObject {
               let proposal = pendingManualBackupPhotoProposal else { return }
         pendingManualBackupPhotoProposal = nil
         isConfirmingManualBackupPhotoRemoval = false
-        await manualBackupService.cancelUnavailablePhotoDecision(
+        let result = await manualBackupService.cancelUnavailablePhotoDecision(
             proposalID: proposal.id
         )
+        if result == .cancelledAfterPhotoRemoval {
+            statusMessage = "The unavailable photo references were removed from CloudBake. The backup was cancelled."
+            errorMessage = nil
+        }
     }
 
     func markManualBackupExported(
@@ -288,7 +292,9 @@ final class SettingsViewModel: ObservableObject {
 
     private func handleManualBackupPreparationFailure(_ error: Error) {
         statusMessage = nil
-        if error as? ManualBackupServiceError == .backupFailedAfterPhotoRemoval {
+        if error as? ManualBackupServiceError == .photosAccessDeniedAfterPhotoRemoval {
+            errorMessage = "The unavailable photo references were removed from CloudBake, but the backup did not complete. Allow CloudBake full access to Photos in iPhone Settings, then try again."
+        } else if error as? ManualBackupServiceError == .backupFailedAfterPhotoRemoval {
             errorMessage = "The unavailable photo references were removed, but CloudBake could not create the backup. Try again."
         } else if error as? BackupExternalAssetResolverError == .accessDenied {
             errorMessage = "Allow CloudBake full access to Photos in iPhone Settings, then try again."

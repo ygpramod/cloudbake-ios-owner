@@ -255,6 +255,75 @@ final class ManualBackupServiceTests: XCTestCase {
         XCTAssertTrue(remover.removedReferences.isEmpty)
     }
 
+    func testPostRemovalPhotoAccessFailurePreservesSpecificGuidance() async throws {
+        let root = try makeManualBackupRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let references = Set(["photos://missing"])
+        let snapshotCreator = RecoverableManualBackupSnapshotCreator(
+            package: makeManualBackupPackage(at: root),
+            unavailableReferences: references,
+            errorAfterRemoval: BackupExternalAssetResolverError.accessDenied
+        )
+        let service = ManualBackupService(
+            snapshotCreator: snapshotCreator,
+            omissionStore: ManualBackupOmissionStore(),
+            unavailablePhotoRevalidator: ManualBackupPhotoRevalidator(),
+            unavailableAssetRemover: ManualBackupAssetRemover(
+                snapshotCreator: snapshotCreator
+            ),
+            makeProposalID: { "photo-decision" },
+            archiver: RecordingManualBackupArchiver()
+        )
+        guard case .requiresUnavailablePhotoDecision(let proposal) =
+                try await service.prepareBackup() else {
+            return XCTFail("Expected an unavailable-photo decision")
+        }
+
+        do {
+            _ = try await service.removeUnavailablePhotos(proposalID: proposal.id)
+            XCTFail("Expected Photos access failure")
+        } catch let error as ManualBackupServiceError {
+            XCTAssertEqual(error, .photosAccessDeniedAfterPhotoRemoval)
+        }
+    }
+
+    func testCancellingASecondManualPhotoDecisionReportsTheEarlierRemoval() async throws {
+        let root = try makeManualBackupRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let firstReference = "photos://missing-first"
+        let snapshotCreator = RecoverableManualBackupSnapshotCreator(
+            package: makeManualBackupPackage(at: root),
+            unavailableReferences: [firstReference],
+            referencesAddedAfterRemoval: ["photos://missing-second"]
+        )
+        let service = ManualBackupService(
+            snapshotCreator: snapshotCreator,
+            omissionStore: ManualBackupOmissionStore(),
+            unavailablePhotoRevalidator: ManualBackupPhotoRevalidator(),
+            unavailableAssetRemover: ManualBackupAssetRemover(
+                snapshotCreator: snapshotCreator
+            ),
+            makeProposalID: { UUID().uuidString },
+            archiver: RecordingManualBackupArchiver()
+        )
+        guard case .requiresUnavailablePhotoDecision(let firstProposal) =
+                try await service.prepareBackup() else {
+            return XCTFail("Expected the first unavailable-photo decision")
+        }
+        guard case .requiresUnavailablePhotoDecision(let secondProposal) =
+                try await service.removeUnavailablePhotos(
+                    proposalID: firstProposal.id
+                ) else {
+            return XCTFail("Expected a second unavailable-photo decision")
+        }
+
+        let result = await service.cancelUnavailablePhotoDecision(
+            proposalID: secondProposal.id
+        )
+
+        XCTAssertEqual(result, .cancelledAfterPhotoRemoval)
+    }
+
     func testManualBackupExportRemovesArchiveAndSnapshotStaging() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -341,6 +410,54 @@ final class ManualBackupServiceTests: XCTestCase {
         XCTAssertEqual(
             viewModel.errorMessage,
             "Allow CloudBake full access to Photos in iPhone Settings, then try again."
+        )
+    }
+
+    @MainActor
+    func testSettingsReportsPhotoRemovalWhenLaterManualDecisionIsCancelled() async throws {
+        let database = try AppDatabase.makeInMemory()
+        let proposal = ManualBackupUnavailablePhotoProposal(
+            id: "photo-decision",
+            unavailablePhotoCount: 1,
+            didRemoveUnavailablePhotoReferences: true
+        )
+        let service = ManualBackupPreparingSpy(
+            initialResult: .requiresUnavailablePhotoDecision(proposal),
+            decisionResult: .requiresUnavailablePhotoDecision(proposal),
+            cancellationResult: .cancelledAfterPhotoRemoval
+        )
+        let viewModel = SettingsViewModel(
+            repository: database.makeCoreDataRepository(),
+            manualBackupService: service
+        )
+        _ = await viewModel.prepareManualBackup()
+
+        await viewModel.cancelManualBackupPhotoDecision()
+
+        XCTAssertEqual(
+            viewModel.statusMessage,
+            "The unavailable photo references were removed from CloudBake. The backup was cancelled."
+        )
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    @MainActor
+    func testSettingsPreservesPhotoGuidanceAfterRemovalFailure() async throws {
+        let database = try AppDatabase.makeInMemory()
+        let viewModel = SettingsViewModel(
+            repository: database.makeCoreDataRepository(),
+            manualBackupService: ManualBackupPreparingStub(
+                result: .failure(
+                    ManualBackupServiceError.photosAccessDeniedAfterPhotoRemoval
+                )
+            )
+        )
+
+        _ = await viewModel.prepareManualBackup()
+
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "The unavailable photo references were removed from CloudBake, but the backup did not complete. Allow CloudBake full access to Photos in iPhone Settings, then try again."
         )
     }
 
@@ -488,7 +605,11 @@ private struct ManualBackupPreparingStub: ManualBackupPreparing {
         try result.get()
     }
 
-    func cancelUnavailablePhotoDecision(proposalID: String) async {}
+    func cancelUnavailablePhotoDecision(
+        proposalID: String
+    ) async -> ManualBackupCancellationResult {
+        .cancelled
+    }
 }
 
 private enum TestError: Error {
@@ -523,10 +644,20 @@ private final class RecoverableManualBackupSnapshotCreator: RecoverableAppSnapsh
     private let lock = NSLock()
     private let package: AppSnapshotPackage
     private var unavailableReferences: Set<String>
+    private let errorAfterRemoval: Error?
+    private let referencesAddedAfterRemoval: Set<String>
+    private var didRemoveReferences = false
 
-    init(package: AppSnapshotPackage, unavailableReferences: Set<String>) {
+    init(
+        package: AppSnapshotPackage,
+        unavailableReferences: Set<String>,
+        errorAfterRemoval: Error? = nil,
+        referencesAddedAfterRemoval: Set<String> = []
+    ) {
         self.package = package
         self.unavailableReferences = unavailableReferences
+        self.errorAfterRemoval = errorAfterRemoval
+        self.referencesAddedAfterRemoval = referencesAddedAfterRemoval
     }
 
     func createSnapshot() async throws -> AppSnapshotPackage {
@@ -537,6 +668,9 @@ private final class RecoverableManualBackupSnapshotCreator: RecoverableAppSnapsh
         approvedOmissionDigests: Set<String>
     ) async throws -> AppSnapshotPackage {
         try lock.withLock {
+            if didRemoveReferences, let errorAfterRemoval {
+                throw errorAfterRemoval
+            }
             let unresolved = unavailableReferences.filter {
                 !approvedOmissionDigests.contains(
                     BackupChecksum.sha256(of: Data($0.utf8))
@@ -569,6 +703,8 @@ private final class RecoverableManualBackupSnapshotCreator: RecoverableAppSnapsh
     func remove(references: Set<String>) {
         lock.withLock {
             unavailableReferences.subtract(references)
+            unavailableReferences.formUnion(referencesAddedAfterRemoval)
+            didRemoveReferences = true
         }
     }
 }
@@ -618,15 +754,18 @@ private final class ManualBackupOmissionStore: BackupAssetOmissionStoring,
 private actor ManualBackupPreparingSpy: ManualBackupPreparing {
     private let initialResult: ManualBackupPreparationResult
     private let decisionResult: ManualBackupPreparationResult
+    private let cancellationResult: ManualBackupCancellationResult
     private(set) var approvedProposalIDs: [String] = []
     private(set) var removedProposalIDs: [String] = []
 
     init(
         initialResult: ManualBackupPreparationResult,
-        decisionResult: ManualBackupPreparationResult
+        decisionResult: ManualBackupPreparationResult,
+        cancellationResult: ManualBackupCancellationResult = .cancelled
     ) {
         self.initialResult = initialResult
         self.decisionResult = decisionResult
+        self.cancellationResult = cancellationResult
     }
 
     func prepareBackup() async throws -> ManualBackupPreparationResult {
@@ -647,5 +786,9 @@ private actor ManualBackupPreparingSpy: ManualBackupPreparing {
         return decisionResult
     }
 
-    func cancelUnavailablePhotoDecision(proposalID: String) async {}
+    func cancelUnavailablePhotoDecision(
+        proposalID: String
+    ) async -> ManualBackupCancellationResult {
+        cancellationResult
+    }
 }

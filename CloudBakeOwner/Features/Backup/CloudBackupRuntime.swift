@@ -101,7 +101,9 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
         return result
     }
 
-    func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {
+    func cancelCellularBackup(
+        _ proposal: ManualCellularBackupProposal
+    ) async -> ManualBackupCancellationResult {
         await coordinator.cancelManualCellularBackup(proposalID: proposal.id)
     }
 
@@ -127,7 +129,7 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
 
     func cancelUnavailablePhotoDecision(
         _ proposal: ManualUnavailablePhotoBackupProposal
-    ) async {
+    ) async -> ManualBackupCancellationResult {
         await coordinator.cancelManualUnavailablePhotoDecision(proposalID: proposal.id)
     }
 
