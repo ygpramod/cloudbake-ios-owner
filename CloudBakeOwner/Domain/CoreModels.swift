@@ -757,6 +757,37 @@ struct OrderReminderConfiguration: Equatable {
     }
 }
 
+enum PaymentReminderConfigurationError: Error, Equatable {
+    case invalidHour(Int)
+    case invalidMinute(Int)
+}
+
+struct PaymentReminderConfiguration: Equatable {
+    static let initialDefault = PaymentReminderConfiguration(
+        validatedHour: 9,
+        minute: 0
+    )
+
+    let hour: Int
+    let minute: Int
+
+    init(hour: Int, minute: Int) throws {
+        guard (0...23).contains(hour) else {
+            throw PaymentReminderConfigurationError.invalidHour(hour)
+        }
+        guard (0...59).contains(minute) else {
+            throw PaymentReminderConfigurationError.invalidMinute(minute)
+        }
+        self.hour = hour
+        self.minute = minute
+    }
+
+    private init(validatedHour hour: Int, minute: Int) {
+        self.hour = hour
+        self.minute = minute
+    }
+}
+
 struct OrderChecklistItem: Equatable {
     let id: String
     let orderId: String

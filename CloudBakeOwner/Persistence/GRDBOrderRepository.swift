@@ -320,6 +320,46 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchPaymentReminderConfiguration() throws -> PaymentReminderConfiguration {
+        try writer.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: "SELECT hour, minute FROM payment_reminder_configuration WHERE id = 1"
+            ) else {
+                throw PaymentReminderConfigurationPersistenceError.configurationMissing
+            }
+            return try PaymentReminderConfiguration(
+                hour: row["hour"],
+                minute: row["minute"]
+            )
+        }
+    }
+
+    func savePaymentReminderConfiguration(
+        _ configuration: PaymentReminderConfiguration,
+        updatedAt: Date
+    ) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE payment_reminder_configuration
+                    SET hour = ?,
+                        minute = ?,
+                        updated_at_unix_time = ?
+                    WHERE id = 1
+                    """,
+                arguments: [
+                    configuration.hour,
+                    configuration.minute,
+                    updatedAt.timeIntervalSince1970
+                ]
+            )
+            guard db.changesCount == 1 else {
+                throw PaymentReminderConfigurationPersistenceError.configurationMissing
+            }
+        }
+    }
+
     func fetchOrderReminderConfiguration(
         orderId: String
     ) throws -> OrderReminderConfiguration? {

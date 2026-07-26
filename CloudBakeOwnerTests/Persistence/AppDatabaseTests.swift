@@ -3,6 +3,22 @@ import GRDB
 @testable import CloudBakeOwner
 
 final class AppDatabaseTests: XCTestCase {
+    func testPaymentReminderConfigurationDefaultsToNineAndPersistsChanges() throws {
+        let database = try AppDatabase.makeInMemory()
+        let repository = database.makeCoreDataRepository()
+        let updatedAt = Date(timeIntervalSince1970: 1_800_001_000)
+
+        XCTAssertEqual(
+            try repository.fetchPaymentReminderConfiguration(),
+            .initialDefault
+        )
+
+        let changed = try PaymentReminderConfiguration(hour: 14, minute: 30)
+        try repository.savePaymentReminderConfiguration(changed, updatedAt: updatedAt)
+
+        XCTAssertEqual(try repository.fetchPaymentReminderConfiguration(), changed)
+    }
+
     func testOrderCompletedAtMigrationLeavesLegacyCompletionUnknown() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         let migrator = AppDatabaseMigrations.makeMigrator()

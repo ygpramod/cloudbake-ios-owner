@@ -17,6 +17,10 @@ enum OrderInventoryReservationQueryError: Error, Equatable {
     case invalidLimit
 }
 
+enum PaymentReminderConfigurationPersistenceError: Error, Equatable {
+    case configurationMissing
+}
+
 final class GRDBCoreDataRepository: InventoryItemRepository,
     RecipeRepository,
     RecipeComponentRepository,
@@ -28,6 +32,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     CustomerImportantDateRepository,
     OrderRepository,
     OrderReminderConfigurationRepository,
+    PaymentReminderConfigurationRepository,
     OrderStatusChangeRepository,
     OrderRecipeUsageRepository,
     OrderIngredientCostRepository,

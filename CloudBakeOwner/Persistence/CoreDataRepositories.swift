@@ -130,6 +130,14 @@ protocol OrderReminderConfigurationRepository {
     ) throws
 }
 
+protocol PaymentReminderConfigurationRepository {
+    func fetchPaymentReminderConfiguration() throws -> PaymentReminderConfiguration
+    func savePaymentReminderConfiguration(
+        _ configuration: PaymentReminderConfiguration,
+        updatedAt: Date
+    ) throws
+}
+
 protocol OrderStatusChangeRepository {
     func changeOrderStatus(
         order: Order,

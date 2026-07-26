@@ -717,6 +717,28 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0035_add_payment_reminder_configuration") { db in
+            try db.create(table: "payment_reminder_configuration") { table in
+                table.column("id", .integer)
+                    .primaryKey()
+                    .check { $0 == 1 }
+                table.column("hour", .integer)
+                    .notNull()
+                    .check { (0...23).contains($0) }
+                table.column("minute", .integer)
+                    .notNull()
+                    .check { (0...59).contains($0) }
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO payment_reminder_configuration
+                    (id, hour, minute, updated_at_unix_time)
+                    VALUES (1, 9, 0, 0)
+                    """
+            )
+        }
+
         return migrator
     }
 }

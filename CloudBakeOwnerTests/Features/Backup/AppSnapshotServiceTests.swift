@@ -54,7 +54,7 @@ final class AppSnapshotServiceTests: XCTestCase {
         let manifest = try fixture.decodeManifest(at: package.manifestURL)
         XCTAssertEqual(
             manifest.databaseSchemaVersion,
-            "0034_add_order_completed_at"
+            "0035_add_payment_reminder_configuration"
         )
         XCTAssertEqual(
             manifest.assets.map(\.originalRelativePath),
