@@ -1198,11 +1198,22 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             dateRange: range,
             statuses: statuses
         )
+        let sales = try repository.fetchSalesOrderSummary(
+            dateRange: range,
+            statuses: statuses
+        )
 
         XCTAssertEqual(page.orders.map(\.id), ["confirmed-outstanding"])
         XCTAssertNil(page.nextCursor)
         XCTAssertEqual(summary.outstandingTotal, 75)
         XCTAssertEqual(summary.outstandingOrderCount, 1)
+        XCTAssertEqual(sales.orderCount, 2)
+        XCTAssertEqual(sales.quotedTotal, 180)
+        XCTAssertEqual(sales.averageQuotedValue, 90)
+        XCTAssertEqual(sales.receivedTotal, 105)
+        XCTAssertEqual(sales.outstandingTotal, 75)
+        XCTAssertEqual(sales.statusCounts[.confirmed], 1)
+        XCTAssertEqual(sales.statusCounts[.completed], 1)
     }
 
     func testVoidingReceiptAppendsCorrectionAndReconcilesPaidTotal() throws {

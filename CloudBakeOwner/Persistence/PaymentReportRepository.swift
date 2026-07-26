@@ -42,6 +42,21 @@ struct PaymentLedgerSummary: Equatable {
     let outstandingOrderCount: Int
 }
 
+struct SalesOrderSummary: Equatable {
+    let orderCount: Int
+    let quotedTotal: Decimal
+    let receivedTotal: Decimal
+    let outstandingTotal: Decimal
+    let statusCounts: [OrderStatus: Int]
+
+    var averageQuotedValue: Decimal? {
+        guard orderCount > 0 else {
+            return nil
+        }
+        return quotedTotal / Decimal(orderCount)
+    }
+}
+
 enum PaymentReportQueryError: Error, Equatable {
     case invalidDateRange
     case dateRangeTooLarge
@@ -72,6 +87,10 @@ protocol PaymentReportRepository {
         dateRange: ReportDateRange,
         statuses: Set<OrderStatus>
     ) throws -> PaymentLedgerSummary
+    func fetchSalesOrderSummary(
+        dateRange: ReportDateRange,
+        statuses: Set<OrderStatus>
+    ) throws -> SalesOrderSummary
 }
 
 extension GRDBCoreDataRepository: PaymentReportRepository {
@@ -241,6 +260,64 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
         }
     }
 
+    func fetchSalesOrderSummary(
+        dateRange: ReportDateRange,
+        statuses: Set<OrderStatus>
+    ) throws -> SalesOrderSummary {
+        try dateRange.validate()
+        guard !statuses.isEmpty else {
+            throw PaymentReportQueryError.noStatuses
+        }
+        return try writer.read { db in
+            let statusValues = statuses.map(\.rawValue).sorted()
+            let placeholders = Array(repeating: "?", count: statusValues.count)
+                .joined(separator: ", ")
+            var values: [(any DatabaseValueConvertible)?] = [
+                dateRange.start.timeIntervalSince1970,
+                dateRange.end.timeIntervalSince1970
+            ]
+            values.append(contentsOf: statusValues)
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT
+                        orders.status,
+                        orders.quoted_price_decimal,
+                        orders.deposit_paid_decimal
+                    FROM orders
+                    WHERE orders.due_at_unix_time >= ?
+                      AND orders.due_at_unix_time <= ?
+                      AND orders.status IN (\(placeholders))
+                    """,
+                arguments: arguments(values)
+            )
+            var quotedTotal = Decimal.zero
+            var receivedTotal = Decimal.zero
+            var outstandingTotal = Decimal.zero
+            var statusCounts: [OrderStatus: Int] = [:]
+            for row in rows {
+                let status = OrderStatus(rawValue: row["status"]) ?? .draft
+                statusCounts[status, default: 0] += 1
+                let quotedPrice = try optionalReportDecimal(
+                    row["quoted_price_decimal"]
+                ) ?? 0
+                let paid = try optionalReportDecimal(
+                    row["deposit_paid_decimal"]
+                ) ?? 0
+                quotedTotal += quotedPrice
+                receivedTotal += paid
+                outstandingTotal += max(quotedPrice - paid, 0)
+            }
+            return SalesOrderSummary(
+                orderCount: rows.count,
+                quotedTotal: quotedTotal,
+                receivedTotal: receivedTotal,
+                outstandingTotal: outstandingTotal,
+                statusCounts: statusCounts
+            )
+        }
+    }
+
     private func fetchReportOrderPage(
         dateRange: ReportDateRange,
         statuses: Set<OrderStatus>,
@@ -347,6 +424,16 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
     private func reportDecimal(_ value: String?) throws -> Decimal {
         guard let value,
               let decimal = Decimal(string: value) else {
+            throw PaymentReportQueryError.invalidStoredAmount
+        }
+        return decimal
+    }
+
+    private func optionalReportDecimal(_ value: String?) throws -> Decimal? {
+        guard let value else {
+            return nil
+        }
+        guard let decimal = Decimal(string: value) else {
             throw PaymentReportQueryError.invalidStoredAmount
         }
         return decimal
