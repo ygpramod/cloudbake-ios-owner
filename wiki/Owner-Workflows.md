@@ -327,7 +327,8 @@ section behaves like going back to that screen instead of opening a duplicate co
 
 Detail screens use a focused version of the same visual language: custom compact header, hero
 summary card, titled card sections, visible row actions, native menus for compact choices, and
-centered confirmation popups for protected mutations and input.
+native iOS alerts or confirmation dialogs for protected mutations and short input. Workflows that
+need richer controls use a native sheet rather than a custom popup overlay.
 
 Order detail overview focuses on balance due and delivery address when the order is a delivery.
 Notes and cake message content are shown as left-aligned block text below their labels so longer
