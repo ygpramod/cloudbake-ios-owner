@@ -135,6 +135,9 @@ enum ScreenState {
 
 - Navigation should be explicit and testable.
 - Accessibility identifiers are required for acceptance-testable navigation and critical workflows.
+- Acceptance-only environment parsing, in-memory database selection, fixture seeding, and service
+  substitution must be isolated behind Debug-only test support. App Store Release builds must not
+  contain acceptance environment keys or fixture activation paths.
 - Support Dynamic Type, VoiceOver-friendly labels, and sufficient contrast for critical information.
 - Optimize layouts for supported iPhone sizes without speculative iPad-specific abstractions.
 - Avoid fixed-size layouts that break on smaller iPhones, landscape orientation, or large text settings.
