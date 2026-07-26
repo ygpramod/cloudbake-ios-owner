@@ -332,7 +332,7 @@ struct InventoryImportWorkflow {
     }
 
     private func quantity(from text: String) -> Double? {
-        Double(TextInputFormatting.trimmed(text))
+        InventoryDraftValidation.quantity(from: text)
     }
 
     private func error(_ message: String) -> InventoryImportWorkflowError {
