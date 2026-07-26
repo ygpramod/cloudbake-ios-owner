@@ -249,9 +249,10 @@ Settings and defaults to 9:00 AM.
    paid total. This rule supersedes RFC-0053's directly editable paid/deposit total.
 10. Migration copies an existing paid aggregate into a separate immutable `legacyPaidAmount`.
     Derived paid total is `legacyPaidAmount + non-void receipt amounts`, so new receipt operations
-    reconcile without fabricating historical events. After the owner approves the legacy rule
-    below, an atomic migration may convert that amount to a labelled opening receipt and zero the
-    legacy field, or keep it outside the receipt ledger.
+    reconcile without fabricating historical events. It remains outside the receipt ledger and is
+    shown on the order as `Legacy payment — date unknown`. It contributes to paid total, remaining
+    balance, and order profitability, but not to received-payment trends or payment-delay
+    calculations.
 11. A receipt is never edited or deleted. Correcting a mistake appends one timestamped void entry
     with an optional owner reason, excludes that receipt from derived totals, and leaves both the
     original receipt and correction visible in payment history. The corrected amount is recorded
@@ -293,9 +294,7 @@ reports are outside this improvement point.
 
 The following also require owner confirmation before implementation:
 
-1. whether pre-migration aggregate paid amounts should become one clearly labelled opening receipt
-   or remain outside the receipt ledger with a migration note;
-2. whether CSV export is required in this slice.
+1. whether CSV export is required in this slice.
 
 Do not implement the report UI or destructive payment correction behavior until these decisions are
 recorded here.
