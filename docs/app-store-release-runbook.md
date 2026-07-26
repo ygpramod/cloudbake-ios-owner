@@ -226,6 +226,11 @@ Upload succeeded. Uploaded CloudBakeOwner.
 ** EXPORT SUCCEEDED **
 ```
 
+Release candidate `1.0 (3)` repeated the same successful result on 26 July 2026 after the
+App Store Connect account-access recovery described below. Apple processed the unchanged archive,
+and Build 3 became available to the `CloudBake Internal Testers` group with a 90-day TestFlight
+window.
+
 ### 3. Wait for Apple processing
 
 Upload success does not make the build immediately selectable. App Store Connect processes the
@@ -559,6 +564,12 @@ Recovery:
    Apple limits distribution-certificate creation to the Account Holder or Admin.
 6. Preserve the `.xcdistributionlogs` bundle and verify that a retry advances beyond
    `IDEDistributionUploadAccountStep`.
+
+For release candidate `1.0 (3)`, the unchanged archive was retried after confirming the signed-in
+Apple Account's App Store Connect access. The retry advanced through upload, ended with
+`Upload succeeded`, and Apple processed Build 3 for internal TestFlight testing. No certificate
+revocation, rebuild, or build-number increment was required. This validates the diagnostic:
+the failure was account-session/access state rather than the archive or application binary.
 
 Official references:
 

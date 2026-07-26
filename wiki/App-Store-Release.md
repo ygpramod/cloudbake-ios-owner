@@ -45,7 +45,9 @@ time this page was authored, its status was **Waiting for Review** and final App
 not yet occurred.
 
 A later release-candidate archive proved that Developer Program team access and App Store Connect
-upload access must be checked separately. Xcode can display a valid team and Admin role while export
-still fails at the account step because the same Apple Account is absent from, or lacks app access
-in, App Store Connect. The runbook records the exact diagnostic and recovery sequence; do not
-rebuild, revoke certificates, or increment the build number until the account mapping is corrected.
+upload access must be checked separately. Xcode displayed a valid team and Admin role while export
+initially failed at the account step. After App Store Connect access was confirmed and the account
+session was refreshed, the unchanged `1.0 (3)` archive uploaded and processed successfully on
+26 July 2026. Build 3 is assigned to `CloudBake Internal Testers` with a 90-day TestFlight window.
+The runbook records the exact diagnostic and recovery sequence; do not rebuild, revoke
+certificates, or increment the build number merely because this pre-upload account step fails.
