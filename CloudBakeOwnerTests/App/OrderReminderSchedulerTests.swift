@@ -203,6 +203,53 @@ final class OrderReminderSchedulerTests: XCTestCase {
         XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
     }
 
+    func testPaymentReminderKeepsExistingHorizonWhenAddingReplacementFails() async throws {
+        let repository = FakePaymentReminderRepository()
+        let calendar = utcCalendar()
+        let now = calendar.date(
+            from: DateComponents(year: 2027, month: 2, day: 10, hour: 8)
+        )!
+        repository.configuration = try PaymentReminderConfiguration(hour: 9, minute: 0)
+        repository.orders = [
+            makePaymentOrder(
+                id: "unpaid",
+                status: .completed,
+                dueAt: calendar.date(byAdding: .day, value: -1, to: now)!,
+                quotedPrice: 100,
+                depositPaid: nil,
+                now: now
+            )
+        ]
+        let notificationCenter = FakeOrderReminderNotificationCenter()
+        notificationCenter.pendingRequests = [
+            UNNotificationRequest(
+                identifier: "payment-pending-2027-02-10",
+                content: UNNotificationContent(),
+                trigger: nil
+            ),
+            UNNotificationRequest(
+                identifier: "payment-pending-2027-02-11",
+                content: UNNotificationContent(),
+                trigger: nil
+            )
+        ]
+        notificationCenter.addFailureIndex = 1
+        let scheduler = PaymentPendingReminderScheduler(
+            repository: repository,
+            notificationCenter: notificationCenter,
+            dateProvider: { now },
+            calendar: calendar
+        )
+
+        await scheduler.refreshReminder()
+
+        XCTAssertEqual(
+            notificationCenter.addedRequests.map(\.identifier),
+            ["payment-pending-2027-02-10"]
+        )
+        XCTAssertTrue(notificationCenter.removedIdentifiers.isEmpty)
+    }
+
     func testMakeReminderRequestsSchedulesFutureActiveOrderReminders() throws {
         let repository = FakeOrderReminderRepository()
         let calendar = Calendar(identifier: .gregorian)
@@ -496,6 +543,8 @@ private final class FakeOrderReminderNotificationCenter: LocalNotificationCenter
     var removedIdentifiers: [String] = []
     var addedRequests: [UNNotificationRequest] = []
     var allowsAuthorization = true
+    var addFailureIndex: Int?
+    private var addAttemptCount = 0
 
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
         requestedAuthorizationOptions = options
@@ -511,6 +560,10 @@ private final class FakeOrderReminderNotificationCenter: LocalNotificationCenter
     }
 
     func add(_ request: UNNotificationRequest) async throws {
+        defer { addAttemptCount += 1 }
+        if addAttemptCount == addFailureIndex {
+            throw TestFailure()
+        }
         addedRequests.append(request)
     }
 }

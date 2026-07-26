@@ -142,12 +142,16 @@ struct PaymentPendingReminderScheduler {
                     $0 == Self.legacyNotificationIdentifier
                         || $0.hasPrefix(Self.notificationIdentifierPrefix)
                 }
-            notificationCenter.removePendingNotificationRequests(
-                withIdentifiers: pendingIdentifiers
-            )
             for request in requests {
                 try await notificationCenter.add(request)
             }
+            let desiredIdentifiers = Set(requests.map(\.identifier))
+            let staleIdentifiers = pendingIdentifiers.filter {
+                !desiredIdentifiers.contains($0)
+            }
+            notificationCenter.removePendingNotificationRequests(
+                withIdentifiers: staleIdentifiers
+            )
         } catch {
             // Payment follow-up must never block order or payment workflows.
         }
