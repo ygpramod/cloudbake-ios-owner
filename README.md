@@ -119,6 +119,11 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0111: Native Order Actions And Upcoming Window
 - Slice RFC-0112: Inventory Card Swipe Actions And Guarded Delete
 - Slice RFC-0113: Manual Cloud Backup Freshness And Cellular Consent
+- Slice RFC-0114: Explicit Design References
+- Slice RFC-0115: Help Guide And First-Launch Introduction
+- Slice RFC-0116: App Store Privacy Readiness
+- Slice RFC-0117: Order Inventory Shortage Override
+- Slice RFC-0118: Backup Asset Recovery And Release Readiness
 
 ## Base RFCs
 
