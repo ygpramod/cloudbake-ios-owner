@@ -578,11 +578,18 @@ final class RecipeListViewModelTests: XCTestCase {
 
         XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
         XCTAssertEqual(viewModel.draftIngredientQuantity, "300")
+        XCTAssertFalse(viewModel.confirmPendingIngredientInventoryShortage())
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "Review an inventory shortage before continuing."
+        )
         XCTAssertFalse(viewModel.saveIngredient())
-        XCTAssertTrue(viewModel.saveIngredient(allowingInventoryShortage: true))
+        viewModel.draftIngredientQuantity = "999"
+        XCTAssertTrue(viewModel.confirmPendingIngredientInventoryShortage())
 
         XCTAssertEqual(repository.components.map(\.id), ["ingredient-1"])
         XCTAssertEqual(repository.ingredients.map(\.id), ["ingredient-2"])
+        XCTAssertEqual(repository.ingredients.first?.quantity, 300)
         XCTAssertEqual(repository.allowInventoryShortageRequests, [false, false, true])
     }
 
@@ -638,7 +645,7 @@ final class RecipeListViewModelTests: XCTestCase {
 
         repository.recipeIngredientMutationError =
             OrderRecipeUsageError.missingInventoryItem(flour.id)
-        XCTAssertFalse(viewModel.saveIngredient(allowingInventoryShortage: true))
+        XCTAssertFalse(viewModel.confirmPendingIngredientInventoryShortage())
 
         XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
         XCTAssertEqual(

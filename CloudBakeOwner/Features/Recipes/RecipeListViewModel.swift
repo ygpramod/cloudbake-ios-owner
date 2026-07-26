@@ -36,6 +36,12 @@ final class RecipeListViewModel: ObservableObject {
     private let dateProvider: () -> Date
     private var pendingNewIngredientId: String?
     private var pendingNewIngredientComponent: RecipeComponent?
+    private var pendingIngredientShortageMutation: IngredientMutation?
+
+    private struct IngredientMutation {
+        let ingredient: RecipeIngredient
+        let component: RecipeComponent
+    }
 
     init(
         repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeIngredientReservationMutationRepository & InventoryItemRepository,
@@ -276,6 +282,7 @@ final class RecipeListViewModel: ObservableObject {
         editingIngredient = nil
         pendingNewIngredientId = nil
         pendingNewIngredientComponent = nil
+        pendingIngredientShortageMutation = nil
         resetIngredientDraft()
         loadAvailableInventoryItems()
         defaultIngredientSelectionIfNeeded()
@@ -287,6 +294,7 @@ final class RecipeListViewModel: ObservableObject {
         editingIngredient = ingredient
         pendingNewIngredientId = nil
         pendingNewIngredientComponent = nil
+        pendingIngredientShortageMutation = nil
         loadAvailableInventoryItems()
         draftIngredientInventoryItemId = ingredient.inventoryItemId
         draftIngredientQuantity = ingredient.quantity.formatted()
@@ -304,10 +312,9 @@ final class RecipeListViewModel: ObservableObject {
         draftIngredientUnit = item.unit
     }
 
-    func saveIngredient(allowingInventoryShortage: Bool = false) -> Bool {
-        if !allowingInventoryShortage {
-            pendingInventoryShortages = []
-        }
+    func saveIngredient() -> Bool {
+        pendingInventoryShortages = []
+        pendingIngredientShortageMutation = nil
         guard let selectedRecipe else {
             errorMessage = "Recipe could not be found."
             return false
@@ -324,6 +331,8 @@ final class RecipeListViewModel: ObservableObject {
             errorMessage = "Ingredient quantity must be greater than zero."
             return false
         }
+
+        var attemptedMutation: IngredientMutation?
 
         do {
             let component = try componentForIngredientMutation(for: selectedRecipe)
@@ -344,20 +353,16 @@ final class RecipeListViewModel: ObservableObject {
                 updatedAt: now
             )
 
-            try repository.saveRecipeIngredient(
-                ingredient,
-                component: component,
-                allowInventoryShortage: allowingInventoryShortage
+            let mutation = IngredientMutation(
+                ingredient: ingredient,
+                component: component
             )
-            pendingNewIngredientId = nil
-            pendingNewIngredientComponent = nil
-            resetIngredientDraft()
-            load()
-            loadRecipeDetail()
-            pendingInventoryShortages = []
+            attemptedMutation = mutation
+            try persistIngredientMutation(mutation, allowInventoryShortage: false)
             return true
-        } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
+        } catch OrderRecipeUsageError.insufficientStock(let shortages) {
             pendingInventoryShortages = shortages
+            pendingIngredientShortageMutation = attemptedMutation
             errorMessage = nil
             return false
         } catch let error as OrderRecipeUsageError {
@@ -366,6 +371,28 @@ final class RecipeListViewModel: ObservableObject {
             return false
         } catch {
             pendingInventoryShortages = []
+            errorMessage = "Recipe ingredient could not be saved."
+            return false
+        }
+    }
+
+    func confirmPendingIngredientInventoryShortage() -> Bool {
+        guard !pendingInventoryShortages.isEmpty,
+              let mutation = pendingIngredientShortageMutation else {
+            errorMessage = "Review an inventory shortage before continuing."
+            return false
+        }
+
+        pendingInventoryShortages = []
+        pendingIngredientShortageMutation = nil
+
+        do {
+            try persistIngredientMutation(mutation, allowInventoryShortage: true)
+            return true
+        } catch let error as OrderRecipeUsageError {
+            errorMessage = recipeIngredientReservationErrorMessage(for: error)
+            return false
+        } catch {
             errorMessage = "Recipe ingredient could not be saved."
             return false
         }
@@ -395,6 +422,7 @@ final class RecipeListViewModel: ObservableObject {
     func cancelIngredientEdit() {
         pendingNewIngredientId = nil
         pendingNewIngredientComponent = nil
+        pendingIngredientShortageMutation = nil
         resetIngredientDraft()
         pendingInventoryShortages = []
         errorMessage = nil
@@ -402,12 +430,31 @@ final class RecipeListViewModel: ObservableObject {
 
     func cancelInventoryShortageOverride() {
         pendingInventoryShortages = []
+        pendingIngredientShortageMutation = nil
     }
 
     var inventoryShortageWarningMessage: String {
         pendingInventoryShortages.map { shortage in
             "\(shortage.inventoryItemName): short by \(shortage.shortfallQuantity.formatted()) \(shortage.unit.displayName)"
         }.joined(separator: "\n")
+    }
+
+    private func persistIngredientMutation(
+        _ mutation: IngredientMutation,
+        allowInventoryShortage: Bool
+    ) throws {
+        try repository.saveRecipeIngredient(
+            mutation.ingredient,
+            component: mutation.component,
+            allowInventoryShortage: allowInventoryShortage
+        )
+        pendingNewIngredientId = nil
+        pendingNewIngredientComponent = nil
+        pendingIngredientShortageMutation = nil
+        resetIngredientDraft()
+        load()
+        loadRecipeDetail()
+        pendingInventoryShortages = []
     }
 
     private func resetDraft() {
