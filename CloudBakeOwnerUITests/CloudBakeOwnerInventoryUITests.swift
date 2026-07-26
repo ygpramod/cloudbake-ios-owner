@@ -19,11 +19,17 @@ extension CloudBakeOwnerUITests {
         let dispose = app.buttons["inventory.detail.disposeExpired"]
         scrollToHittable(dispose, in: app, scrollContainer: detailScroll, timeout: 10)
         tapWhenReady(dispose)
-        let confirmDisposal = app.buttons["inventory.disposeExpired.confirm"]
+        let confirmDisposal = nativeDialogAction(
+            identifiedBy: "inventory.disposeExpired.confirm",
+            in: app
+        )
         XCTAssertTrue(confirmDisposal.waitForExistence(timeout: 5))
         tapWhenReady(confirmDisposal)
 
-        XCTAssertFalse(app.buttons["inventory.detail.disposeExpired"].exists)
+        XCTAssertTrue(
+            app.buttons["inventory.detail.disposeExpired"]
+                .waitForNonExistence(timeout: 5)
+        )
         app.buttons["inventory.detail.done"].tap()
         let updatedQuantity = app.staticTexts.element(
             matching: NSPredicate(format: "label == %@", "Current Quantity: 125 ml")
@@ -242,11 +248,17 @@ extension CloudBakeOwnerUITests {
         scrollToHittable(archiveButton, in: app, timeout: transitionTimeout)
         tapWhenReady(
             archiveButton,
-            waitingFor: app.buttons["inventory.archive.confirm"],
+            waitingFor: app.staticTexts["Archive Inventory?"],
             in: app,
             timeout: transitionTimeout
         )
-        tapWhenReady(app.buttons["inventory.archive.confirm"], timeout: transitionTimeout)
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "inventory.archive.confirm",
+                in: app
+            ),
+            timeout: transitionTimeout
+        )
         XCTAssertTrue(app.staticTexts["No inventory yet"].waitForExistence(timeout: transitionTimeout))
 
         tapInventoryHeaderAction(
@@ -288,11 +300,17 @@ extension CloudBakeOwnerUITests {
         ).firstMatch
         tapWhenReady(
             archiveButton,
-            waitingFor: app.buttons["inventory.archive.confirm"],
+            waitingFor: app.staticTexts["Archive Inventory?"],
             in: app,
             timeout: transitionTimeout
         )
-        tapWhenReady(app.buttons["inventory.archive.confirm"], timeout: transitionTimeout)
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "inventory.archive.confirm",
+                in: app
+            ),
+            timeout: transitionTimeout
+        )
 
         tapInventoryHeaderAction(
             "inventory.archived",
@@ -438,7 +456,12 @@ extension CloudBakeOwnerUITests {
         tapWhenReady(app.buttons["inventory.voice.createDrafts"])
 
         XCTAssertTrue(app.staticTexts["Inventory Item Not Found"].waitForExistence(timeout: 5))
-        tapWhenReady(app.buttons["inventory.voice.unknown.create"])
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "inventory.voice.unknown.create",
+                in: app
+            )
+        )
         tapWhenReady(app.buttons["inventory.voice.save"])
 
         XCTAssertTrue(app.staticTexts["Current Quantity: 1,050 g"].waitForExistence(timeout: 5))

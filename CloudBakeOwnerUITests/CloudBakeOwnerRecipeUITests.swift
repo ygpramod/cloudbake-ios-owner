@@ -111,8 +111,12 @@ extension CloudBakeOwnerUITests {
         let deleteButton = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.ingredient.delete.")).firstMatch
         XCTAssertTrue(deleteButton.waitForExistence(timeout: 5))
         deleteButton.tap()
-        XCTAssertTrue(app.buttons["recipes.ingredient.delete.confirm"].waitForExistence(timeout: 5))
-        app.buttons["recipes.ingredient.delete.confirm"].tap()
+        let confirmDelete = nativeDialogAction(
+            identifiedBy: "recipes.ingredient.delete.confirm",
+            in: app
+        )
+        XCTAssertTrue(confirmDelete.waitForExistence(timeout: 5))
+        confirmDelete.tap()
         XCTAssertTrue(app.staticTexts["No ingredients yet"].waitForExistence(timeout: 5))
     }
 

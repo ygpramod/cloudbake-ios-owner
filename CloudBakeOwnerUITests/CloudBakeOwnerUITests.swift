@@ -173,18 +173,21 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let remove = app.buttons["Remove Design"]
         XCTAssertTrue(remove.waitForExistence(timeout: 5))
         tapWhenReady(remove)
-        let cancel = app.buttons["designs.delete.cancel"]
-        XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Remove Design?"].waitForExistence(timeout: 5))
         XCTAssertTrue(
             app.staticTexts.matching(
                 NSPredicate(format: "label CONTAINS %@", "image remains in Photos")
             ).firstMatch.exists
         )
-        tapWhenReady(cancel)
+        dismissNativeDialog(titled: "Remove Design?", in: app)
         XCTAssertTrue(app.buttons["designs.preview.done"].exists)
 
         tapWhenReady(remove)
-        let confirm = app.buttons["designs.delete.confirm"]
+        XCTAssertTrue(app.staticTexts["Remove Design?"].waitForExistence(timeout: 5))
+        let confirm = nativeDialogAction(
+            identifiedBy: "designs.delete.confirm",
+            in: app
+        )
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
         tapWhenReady(confirm)
 
@@ -456,7 +459,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
             scrollContainer: settingsScroll
         )
         tapWhenReady(app.buttons["settings.backup.create"])
-        tapWhenReady(app.buttons["settings.backup.create.continue"])
+        XCTAssertTrue(app.staticTexts["Create Full Backup?"].waitForExistence(timeout: 5))
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.backup.create.continue",
+                in: app
+            )
+        )
 
         let exporter = app.descendants(matching: .any)["settings.fileExporter"]
         if !exporter.waitForExistence(timeout: 15) {
@@ -479,15 +488,14 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["settings.cloudBackup.status"].exists)
 
         let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
-        let confirmButton = app.buttons["settings.cloudBackup.cellular.confirm"]
         tapScrollableAction(
             backUpNowButton,
             in: settingsScroll,
-            waitingFor: confirmButton,
+            waitingFor: app.staticTexts["Use Cellular Data?"],
             in: app
         )
         XCTAssertTrue(app.staticTexts["Use Cellular Data?"].exists)
-        tapWhenReady(app.buttons["settings.cloudBackup.cellular.cancel"])
+        dismissNativeDialog(titled: "Use Cellular Data?", in: app)
     }
 
     func testCloudBackupNotificationsCanBeDisabled() throws {
@@ -538,30 +546,45 @@ final class CloudBakeOwnerUITests: XCTestCase {
         ]
         XCTAssertTrue(lastSuccess.waitForExistence(timeout: 5))
         let lastSuccessBeforeCancellation = lastSuccess.label
-        let omitButton = app.buttons["settings.cloudBackup.photos.omit"]
         tapScrollableAction(
             backUpNowButton,
             in: settingsScroll,
-            waitingFor: omitButton,
+            waitingFor: app.staticTexts["Unavailable Photos"],
             in: app
         )
         XCTAssertTrue(app.staticTexts["Unavailable Photos"].exists)
 
-        tapWhenReady(app.buttons["settings.cloudBackup.photos.remove"])
-        let removalConfirmation =
-            app.buttons["settings.cloudBackup.photos.remove.confirm"]
-        XCTAssertTrue(removalConfirmation.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Remove Broken References?"].exists)
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudBackup.photos.remove",
+                in: app
+            )
+        )
+        XCTAssertTrue(
+            app.staticTexts["Remove Broken References?"].waitForExistence(timeout: 5)
+        )
 
-        tapWhenReady(app.buttons["settings.cloudBackup.photos.remove.cancel"])
-        XCTAssertTrue(omitButton.waitForExistence(timeout: 5))
-        tapWhenReady(app.buttons["settings.cloudBackup.photos.cancel"])
-        XCTAssertFalse(omitButton.exists)
+        dismissNativeDialog(titled: "Remove Broken References?", in: app)
+        XCTAssertTrue(app.staticTexts["Unavailable Photos"].waitForExistence(timeout: 5))
+        dismissNativeDialog(titled: "Unavailable Photos", in: app)
+        XCTAssertFalse(app.staticTexts["Unavailable Photos"].exists)
         XCTAssertEqual(lastSuccess.label, lastSuccessBeforeCancellation)
 
         tapWhenReady(backUpNowButton)
-        tapWhenReady(app.buttons["settings.cloudBackup.photos.remove"])
-        tapWhenReady(app.buttons["settings.cloudBackup.photos.remove.confirm"])
+        XCTAssertTrue(app.staticTexts["Unavailable Photos"].waitForExistence(timeout: 5))
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudBackup.photos.remove",
+                in: app
+            )
+        )
+        XCTAssertTrue(app.staticTexts["Remove Broken References?"].waitForExistence(timeout: 5))
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudBackup.photos.remove.confirm",
+                in: app
+            )
+        )
         let actionMessage = app.staticTexts[
             "settings.cloudBackup.actionMessage"
         ]
@@ -572,7 +595,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
 
         tapWhenReady(backUpNowButton)
-        tapWhenReady(app.buttons["settings.cloudBackup.photos.omit"])
+        XCTAssertTrue(app.staticTexts["Unavailable Photos"].waitForExistence(timeout: 5))
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudBackup.photos.omit",
+                in: app
+            )
+        )
 
         let omittedStatus =
             app.descendants(matching: .any)["settings.cloudBackup.omittedPhotos"]
@@ -644,17 +673,21 @@ final class CloudBakeOwnerUITests: XCTestCase {
             revealing: backUpNowButton,
             in: app
         )
-        let confirmButton = app.buttons["settings.cloudBackup.account.confirm"]
         tapScrollableAction(
             backUpNowButton,
             in: settingsScroll,
-            waitingFor: confirmButton,
+            waitingFor: app.staticTexts["Use This iCloud Account?"],
             in: app
         )
-        tapWhenReady(app.buttons["settings.cloudBackup.account.cancel"])
+        dismissNativeDialog(titled: "Use This iCloud Account?", in: app)
         tapWhenReady(backUpNowButton)
-        XCTAssertTrue(confirmButton.waitForExistence(timeout: 5))
-        tapWhenReady(confirmButton)
+        XCTAssertTrue(app.staticTexts["Use This iCloud Account?"].waitForExistence(timeout: 5))
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudBackup.account.confirm",
+                in: app
+            )
+        )
         XCTAssertTrue(app.staticTexts["settings.cloudBackup.status"].waitForExistence(timeout: 5))
     }
 
@@ -664,7 +697,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         let deleteButton = app.buttons["settings.cloudBackup.delete"]
-        let confirmButton = app.buttons["settings.cloudBackup.delete.confirm"]
         let settingsScroll = expandSettingsSection(
             "settings.dataManagement.disclosure",
             revealing: deleteButton,
@@ -673,21 +705,26 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapScrollableAction(
             deleteButton,
             in: settingsScroll,
-            waitingFor: confirmButton,
+            waitingFor: app.staticTexts["Delete Cloud Backup?"],
             in: app
         )
 
         XCTAssertTrue(app.staticTexts["Delete Cloud Backup?"].waitForExistence(timeout: 5))
-        tapWhenReady(app.buttons["settings.cloudBackup.delete.cancel"])
+        dismissNativeDialog(titled: "Delete Cloud Backup?", in: app)
         XCTAssertTrue(deleteButton.waitForExistence(timeout: 5))
 
         tapScrollableAction(
             deleteButton,
             in: settingsScroll,
-            waitingFor: confirmButton,
+            waitingFor: app.staticTexts["Delete Cloud Backup?"],
             in: app
         )
-        tapWhenReady(confirmButton)
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudBackup.delete.confirm",
+                in: app
+            )
+        )
         XCTAssertTrue(
             app.staticTexts["settings.cloudBackup.delete.message"].waitForExistence(timeout: 5)
         )
@@ -708,14 +745,18 @@ final class CloudBakeOwnerUITests: XCTestCase {
             waitingFor: deleteButton,
             in: app
         )
-        let confirmButton = app.buttons["settings.cloudBackup.delete.confirm"]
         tapScrollableAction(
             deleteButton,
             in: settingsScroll,
-            waitingFor: confirmButton,
+            waitingFor: app.staticTexts["Delete Cloud Backup?"],
             in: app
         )
-        tapWhenReady(confirmButton)
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudBackup.delete.confirm",
+                in: app
+            )
+        )
 
         let message = app.staticTexts["settings.cloudBackup.delete.message"]
         XCTAssertTrue(message.waitForExistence(timeout: 5))
@@ -729,8 +770,16 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.staticTexts["Restore Cloud Backup?"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["settings.cloudRestore.confirm"].exists)
-        let startFreshButton = app.buttons["settings.cloudRestore.startFresh"]
+        XCTAssertTrue(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudRestore.confirm",
+                in: app
+            ).exists
+        )
+        let startFreshButton = nativeDialogAction(
+            identifiedBy: "settings.cloudRestore.startFresh",
+            in: app
+        )
         tapWhenReady(startFreshButton)
 
         XCTAssertTrue(startFreshButton.waitForNonExistence(timeout: 5))
@@ -742,7 +791,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_TEST_EMPTY_RESTORE"] = "1"
         app.launch()
 
-        let restoreButton = app.buttons["settings.cloudRestore.confirm"]
+        XCTAssertTrue(app.staticTexts["Restore Cloud Backup?"].waitForExistence(timeout: 5))
+        let restoreButton = nativeDialogAction(
+            identifiedBy: "settings.cloudRestore.confirm",
+            in: app
+        )
         tapWhenReady(restoreButton)
 
         XCTAssertTrue(restoreButton.waitForNonExistence(timeout: 5))
@@ -772,13 +825,28 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
 
         XCTAssertTrue(app.staticTexts["Replace Local Data?"].waitForExistence(timeout: 5))
-        tapWhenReady(app.buttons["settings.cloudRestore.replace.confirm"])
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudRestore.replace.confirm",
+                in: app
+            )
+        )
 
         XCTAssertTrue(app.staticTexts["Use Cellular Data?"].waitForExistence(timeout: 5))
-        tapWhenReady(app.buttons["settings.cloudRestore.cellular.confirm"])
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudRestore.cellular.confirm",
+                in: app
+            )
+        )
 
         XCTAssertTrue(app.staticTexts["Some Photos Are Unavailable"].waitForExistence(timeout: 5))
-        tapWhenReady(app.buttons["settings.cloudRestore.assets.remove"])
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudRestore.assets.remove",
+                in: app
+            )
+        )
 
         XCTAssertTrue(
             app.staticTexts["settings.cloudRestore.message"].waitForExistence(timeout: 5)
@@ -827,7 +895,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertScreenVisible("screen.settings", in: app)
         let settingsScroll = app.scrollViews["screen.settings"]
         let restoreButton = app.buttons["settings.cloudBackup.restore"]
-        let replaceButton = app.buttons["settings.cloudRestore.replace.confirm"]
         tapScrollableAction(
             app.buttons["settings.dataManagement.disclosure"],
             in: settingsScroll,
@@ -837,10 +904,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapScrollableAction(
             restoreButton,
             in: settingsScroll,
-            waitingFor: replaceButton,
+            waitingFor: app.staticTexts["Replace Local Data?"],
             in: app
         )
-        tapWhenReady(replaceButton)
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudRestore.replace.confirm",
+                in: app
+            )
+        )
 
         let message = app.staticTexts["settings.cloudRestore.message"]
         XCTAssertTrue(message.waitForExistence(timeout: 5))
@@ -859,7 +931,6 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertScreenVisible("screen.settings", in: app)
         let settingsScroll = app.scrollViews["screen.settings"]
         let restoreButton = app.buttons["settings.cloudBackup.restore"]
-        let replaceButton = app.buttons["settings.cloudRestore.replace.confirm"]
         tapScrollableAction(
             app.buttons["settings.dataManagement.disclosure"],
             in: settingsScroll,
@@ -869,10 +940,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapScrollableAction(
             restoreButton,
             in: settingsScroll,
-            waitingFor: replaceButton,
+            waitingFor: app.staticTexts["Replace Local Data?"],
             in: app
         )
-        tapWhenReady(replaceButton)
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudRestore.replace.confirm",
+                in: app
+            )
+        )
 
         XCTAssertTrue(
             app.staticTexts["Reopen CloudBake to Finish Recovery"].waitForExistence(timeout: 5)
@@ -1009,15 +1085,15 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(paymentActions, timeout: transitionTimeout)
         tapExisting(app.buttons["Void Payment"], timeout: transitionTimeout)
         XCTAssertTrue(
-            app.textFields["orders.detail.payment.void.reason"]
+            app.textFields["Reason (optional)"]
                 .waitForExistence(timeout: transitionTimeout)
         )
         XCTAssertTrue(
-            app.buttons["orders.detail.payment.void.confirm"]
+            app.buttons["Void Payment"]
                 .waitForExistence(timeout: transitionTimeout)
         )
         tapExisting(
-            app.buttons["orders.detail.payment.void.cancel"],
+            app.buttons["Cancel"],
             timeout: transitionTimeout
         )
     }
@@ -1417,7 +1493,10 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         tapWhenReady(app.buttons["orders.customerSelection.newCustomer"], timeout: transitionTimeout)
         tapWhenReady(
-            app.buttons["orders.customerSelection.add.manual"],
+            nativeDialogAction(
+                identifiedBy: "orders.customerSelection.add.manual",
+                in: app
+            ),
             waitingFor: app.navigationBars["Add Customer"],
             in: app,
             timeout: transitionTimeout
@@ -1703,7 +1782,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(confirmedStatus.label.contains("Confirmed"))
         tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
         tapExisting(app.buttons["Ready"], timeout: transitionTimeout)
-        tapExisting(app.buttons["orders.detail.confirmInventoryDeduction"], timeout: transitionTimeout)
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "orders.detail.confirmInventoryDeduction",
+                in: app
+            ),
+            timeout: transitionTimeout
+        )
         let readyStatus = app.staticTexts["orders.detail.status"]
         XCTAssertTrue(readyStatus.waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(readyStatus.label.contains("Ready"))
@@ -1732,12 +1817,22 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(app.buttons["orders.detail.statusMenu"], in: app)
         tapWhenReady(app.buttons["orders.detail.statusMenu"])
         tapExisting(app.buttons["Ready"])
-        tapExisting(app.buttons["orders.detail.confirmInventoryDeduction"])
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "orders.detail.confirmInventoryDeduction",
+                in: app
+            )
+        )
 
-        let error = app.staticTexts["orders.detail.statusChangeError"]
+        let error = app.staticTexts["Recipe has no ingredients to deduct."]
         XCTAssertTrue(error.waitForExistence(timeout: 5))
         XCTAssertEqual(error.label, "Recipe has no ingredients to deduct.")
-        tapWhenReady(app.buttons["orders.detail.statusChangeError.dismiss"])
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "orders.detail.statusChangeError.dismiss",
+                in: app
+            )
+        )
         XCTAssertTrue(app.staticTexts["orders.detail.status"].label.contains("Confirmed"))
     }
 
@@ -1767,7 +1862,10 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapExisting(app.buttons["Ready"])
 
         XCTAssertTrue(
-            app.buttons["orders.detail.confirmInventoryDeduction"].waitForExistence(timeout: 5)
+            nativeDialogAction(
+                identifiedBy: "orders.detail.confirmInventoryDeduction",
+                in: app
+            ).waitForExistence(timeout: 5)
         )
         XCTAssertTrue(app.staticTexts["orders.detail.status"].label.contains("Draft"))
     }
@@ -1790,12 +1888,24 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(app.buttons["orders.detail.statusMenu"], in: app)
         tapWhenReady(app.buttons["orders.detail.statusMenu"])
         tapExisting(app.buttons["Ready"])
-        tapExisting(app.buttons["orders.detail.confirmInventoryDeduction"])
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "orders.detail.confirmInventoryDeduction",
+                in: app
+            )
+        )
 
-        let warning = app.staticTexts["orders.detail.inventoryShortage.message"]
+        let warning = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "Shortage sugar: short by 50 g")
+        ).firstMatch
         XCTAssertTrue(warning.waitForExistence(timeout: 5))
         XCTAssertTrue(warning.label.contains("Shortage sugar: short by 50 g"))
-        tapWhenReady(app.buttons["orders.detail.inventoryShortage.continue"])
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "orders.detail.inventoryShortage.continue",
+                in: app
+            )
+        )
 
         let status = app.staticTexts["orders.detail.status"]
         XCTAssertTrue(status.waitForExistence(timeout: 5))

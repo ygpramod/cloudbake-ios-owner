@@ -360,10 +360,9 @@ extension CloudBakeOwnerUITests {
         in app: XCUIApplication,
         timeout: TimeInterval = 10
     ) {
-        let manualEntry = app.buttons["customers.add.manual"]
         tapWhenReady(
             app.buttons["customers.add"],
-            waitingFor: manualEntry,
+            waitingFor: app.staticTexts["Add Customer"],
             in: app,
             timeout: timeout
         )
@@ -374,7 +373,10 @@ extension CloudBakeOwnerUITests {
         timeout: TimeInterval = 10
     ) {
         tapWhenReady(
-            app.buttons["customers.add.manual"],
+            nativeDialogAction(
+                identifiedBy: "customers.add.manual",
+                in: app
+            ),
             waitingFor: app.navigationBars["Add Customer"],
             in: app,
             timeout: timeout
@@ -637,6 +639,52 @@ extension CloudBakeOwnerUITests {
         if app.keyboards.firstMatch.waitForExistence(timeout: 0.5) {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
         }
+    }
+
+    func dismissNativeDialog(
+        titled title: String,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 5,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let dialogTitle = app.staticTexts[title]
+        XCTAssertTrue(
+            dialogTitle.waitForExistence(timeout: timeout),
+            "Native dialog did not appear before dismissal.",
+            file: file,
+            line: line
+        )
+
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.1)).tap()
+
+        let dismissed = NSPredicate(format: "exists == false")
+        let expectation = XCTNSPredicateExpectation(predicate: dismissed, object: dialogTitle)
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [expectation], timeout: timeout),
+            .completed,
+            "Native dialog did not dismiss after tapping outside it.",
+            file: file,
+            line: line
+        )
+    }
+
+    func nativeDialogAction(
+        identifiedBy identifier: String,
+        in app: XCUIApplication,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> XCUIElement {
+        let matches = app.sheets.buttons.matching(identifier: identifier)
+        let matchCount = matches.count
+        XCTAssertGreaterThan(
+            matchCount,
+            0,
+            "Native dialog action \(identifier) was not available.",
+            file: file,
+            line: line
+        )
+        return matches.element(boundBy: max(0, matchCount - 1))
     }
 
     func assertExistsAfterScrolling(
