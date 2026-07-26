@@ -51,7 +51,8 @@ session was refreshed, the unchanged `1.0 (3)` archive uploaded and processed su
 26 July 2026. Build 3 is assigned to `CloudBake Internal Testers` with a 90-day TestFlight window.
 The same release exercise promoted and verified the three CloudBake backup record types in the
 production CloudKit schema. TestFlight Build 3 then published and inspected a verified private
-backup containing eight photos. The full replacement-and-restore phase remains pending explicit
-owner approval because the test installation retained existing data.
+backup containing eight photos. The owner-authorized replacement-and-restore drill passed on the
+real iPhone, including restored domain counts and links, photo and custom-logo rendering, process
+relaunch, reminder reconciliation, and a fresh verified post-restore generation.
 The runbook records the exact diagnostic and recovery sequence; do not rebuild, revoke
 certificates, or increment the build number merely because this pre-upload account step fails.

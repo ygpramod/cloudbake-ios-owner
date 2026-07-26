@@ -5,7 +5,7 @@ CloudKit user identifiers, or other private bakery data.
 
 ## Release identity
 
-- Result: restore phase pending explicit approval to replace the populated installation
+- Result: PASS
 - Time zone: Asia/Singapore
 - Git SHA represented by the binary: `1d7f4ab`
 - Marketing version/build: `1.0 (3)`
@@ -53,10 +53,11 @@ On 26 July 2026, the exact Point 1 head passed:
 
 ## Restore phase
 
-The installed TestFlight build retained an existing populated CloudBake database. The drill stopped
-at the app's **Replace Local Data?** confirmation and selected **Cancel**. A full restore must not
-continue until the owner explicitly authorizes replacing this installation or provides a clean
-disposable device/account.
+The installed TestFlight build retained an existing populated CloudBake database. The first restore
+inspection stopped at the app's **Replace Local Data?** confirmation and selected **Cancel**.
+After the owner explicitly authorized replacement, the drill repeated inspection and selected
+**Replace and Restore**. CloudBake created its rollback copy, activated the downloaded snapshot,
+and returned to the Home screen without an error.
 
 Privacy-safe pre-restore expectations:
 
@@ -69,12 +70,30 @@ Privacy-safe pre-restore expectations:
 - recoverable photos reported by the manifest: 8
 - custom logo: present
 
-Still required:
+Restore evidence:
 
-1. explicitly confirm **Replace and Restore**;
-2. verify restored counts, representative values and links, eight recoverable photos, and the
-   custom logo;
-3. force-quit and relaunch;
-4. verify reminder reconciliation;
-5. publish a fresh post-restore backup;
-6. record the final result and reviewer.
+- full restore completed: 26 July 2026, approximately 9:25 PM SGT
+- explicit replacement confirmation: completed
+- restored customers: 2
+- restored inventory items: 3
+- restored recipes: 1
+- restored active orders: 1
+- restored completed orders: 4
+- restored designs: 3
+- restored custom logo: present and rendered
+- representative inventory quantities and units: matched the pre-restore installation
+- recipe linkage: restored recipe retained its inventory ingredient
+- order linkage: active order retained its customer, recipe, extra ingredients, design source,
+  design reference, and rendered design thumbnail
+- image checks: restored design grid and linked order photo rendered; the manifest reported all
+  8 photos with verified integrity
+- force-quit and relaunch: passed at approximately 9:30 PM SGT
+- reminder reconciliation: passed; payment-due, no-orders-today, and healthy-inventory categories
+  matched the restored state
+- fresh post-restore Back Up Now: completed at 9:31 PM SGT
+- post-restore inspection: 9:31 PM creation time, 10.5 MB, 8 photos, integrity Verified
+- current pointer freshness: resolved to the 9:31 PM post-restore generation
+- unavailable-photo recovery: not exercised; all 8 manifest photos were available
+- known issues: none observed during the production drill
+
+Evidence reviewer and date are recorded in the Point 1 pull-request review.

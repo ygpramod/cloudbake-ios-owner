@@ -230,8 +230,8 @@ Release candidate `1.0 (3)` repeated the same successful result on 26 July 2026 
 App Store Connect account-access recovery described below. Apple processed the unchanged archive,
 and Build 3 became available to the `CloudBake Internal Testers` group with a 90-day TestFlight
 window. Its production CloudKit publication and restore-inspection evidence is recorded in
-`docs/release-evidence/2026-07-26-cloudkit-disaster-recovery.md`; the destructive restore phase
-remains incomplete until the owner authorizes replacement of the populated test installation.
+`docs/release-evidence/2026-07-26-cloudkit-disaster-recovery.md`. The full replacement, restore,
+relaunch, reminder-reconciliation, and post-restore publication drill passed on the real iPhone.
 
 ### 3. Wait for Apple processing
 
