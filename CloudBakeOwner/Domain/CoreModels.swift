@@ -594,7 +594,7 @@ enum OrderInventoryReservationEventReason: String, Equatable {
 }
 
 struct OrderInventoryReservationEvent: Equatable {
-    let id: Int64
+    let id: String
     let orderId: String
     let inventoryItemId: String
     let kind: OrderInventoryReservationEventKind

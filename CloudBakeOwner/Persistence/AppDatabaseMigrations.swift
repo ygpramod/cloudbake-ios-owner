@@ -469,15 +469,31 @@ enum AppDatabaseMigrations {
             )
 
             try db.create(table: "order_inventory_reservation_events") { table in
-                table.autoIncrementedPrimaryKey("id")
+                table.column("id", .text).primaryKey()
                 table.column("order_id", .text)
                     .notNull()
-                    .references("orders", onDelete: .cascade)
+                    .references("orders", onDelete: .restrict)
                 table.column("inventory_item_id", .text)
                     .notNull()
                     .references("inventory_items", onDelete: .restrict)
-                table.column("event_kind", .text).notNull()
-                table.column("reason", .text).notNull()
+                table.column("event_kind", .text)
+                    .notNull()
+                    .check(sql: "event_kind IN ('created', 'quantityChanged', 'released', 'repairFailed')")
+                table.column("reason", .text)
+                    .notNull()
+                    .check(
+                        sql: """
+                            reason IN (
+                                'orderConfirmed',
+                                'orderEdited',
+                                'orderReopened',
+                                'orderCancelled',
+                                'inventoryConsumed',
+                                'recipeEdited',
+                                'migrationRepair'
+                            )
+                            """
+                    )
                 table.column("previous_quantity", .double)
                     .notNull()
                     .check { $0 >= 0 }
@@ -497,14 +513,31 @@ enum AppDatabaseMigrations {
                 table.column("order_id", .text)
                     .primaryKey()
                     .references("orders", onDelete: .cascade)
-                table.column("state", .text).notNull()
+                table.column("state", .text)
+                    .notNull()
+                    .check(sql: "state IN ('pending', 'complete', 'failed')")
                 table.column("attempt_count", .integer)
                     .notNull()
                     .defaults(to: 0)
                     .check { $0 >= 0 }
                 table.column("last_attempted_at_unix_time", .double)
                 table.column("failure_code", .text)
+                    .check(
+                        sql: """
+                            failure_code IS NULL OR failure_code IN (
+                                'missingInventoryItem',
+                                'incompatibleUnit',
+                                'invalidRequirements'
+                            )
+                            """
+                    )
                 table.column("updated_at_unix_time", .double).notNull()
+                table.check(
+                    sql: """
+                        (state = 'failed' AND failure_code IS NOT NULL)
+                        OR (state != 'failed' AND failure_code IS NULL)
+                        """
+                )
             }
             try db.create(
                 index: "order_inventory_reservation_repairs_on_state",

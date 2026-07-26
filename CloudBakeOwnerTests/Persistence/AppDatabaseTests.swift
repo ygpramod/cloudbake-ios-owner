@@ -451,5 +451,165 @@ final class AppDatabaseTests: XCTestCase {
                 3
             )
         }
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO inventory_items
+                    (id, name, unit, minimum_quantity, current_quantity,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "inventory-reservation-constraint",
+                    "Reservation constraint",
+                    InventoryUnit.gram.rawValue,
+                    10,
+                    100,
+                    timestamp,
+                    timestamp
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservations
+                    (id, order_id, inventory_item_id, required_quantity, unit,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "reservation-constraint",
+                    "order-confirmed",
+                    "inventory-reservation-constraint",
+                    25,
+                    InventoryUnit.gram.rawValue,
+                    timestamp,
+                    timestamp
+                ]
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservations
+                        (id, order_id, inventory_item_id, required_quantity, unit,
+                         created_at_unix_time, updated_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "reservation-duplicate",
+                        "order-confirmed",
+                        "inventory-reservation-constraint",
+                        10,
+                        InventoryUnit.gram.rawValue,
+                        timestamp,
+                        timestamp
+                    ]
+                )
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservations
+                        (id, order_id, inventory_item_id, required_quantity, unit,
+                         created_at_unix_time, updated_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "reservation-zero",
+                        "order-in-progress",
+                        "inventory-reservation-constraint",
+                        0,
+                        InventoryUnit.gram.rawValue,
+                        timestamp,
+                        timestamp
+                    ]
+                )
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "stable-reservation-event-id",
+                    "order-confirmed",
+                    "inventory-reservation-constraint",
+                    OrderInventoryReservationEventKind.created.rawValue,
+                    OrderInventoryReservationEventReason.orderConfirmed.rawValue,
+                    0,
+                    25,
+                    InventoryUnit.gram.rawValue,
+                    timestamp
+                ]
+            )
+            XCTAssertEqual(
+                try String.fetchOne(
+                    db,
+                    sql: """
+                        SELECT typeof(id)
+                        FROM order_inventory_reservation_events
+                        WHERE id = ?
+                        """,
+                    arguments: ["stable-reservation-event-id"]
+                ),
+                "text"
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: "DELETE FROM orders WHERE id = ?",
+                    arguments: ["order-confirmed"]
+                )
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservation_repairs
+                        (order_id, state, updated_at_unix_time)
+                        VALUES (?, ?, ?)
+                        """,
+                    arguments: ["order-draft", "unknown", timestamp]
+                )
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_repairs
+                    (order_id, state, updated_at_unix_time)
+                    VALUES (?, ?, ?)
+                    """,
+                arguments: [
+                    "order-draft",
+                    OrderInventoryReservationRepairState.pending.rawValue,
+                    timestamp
+                ]
+            )
+            XCTAssertEqual(
+                try Int.fetchOne(
+                    db,
+                    sql: """
+                        SELECT attempt_count
+                        FROM order_inventory_reservation_repairs
+                        WHERE order_id = ?
+                        """,
+                    arguments: ["order-draft"]
+                ),
+                0
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservation_repairs
+                        (order_id, state, updated_at_unix_time)
+                        VALUES (?, ?, ?)
+                        """,
+                    arguments: [
+                        "order-consumed",
+                        OrderInventoryReservationRepairState.failed.rawValue,
+                        timestamp
+                    ]
+                )
+            )
+        }
     }
 }

@@ -566,11 +566,12 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             try db.execute(
                 sql: """
                     INSERT INTO order_inventory_reservation_events
-                    (order_id, inventory_item_id, event_kind, reason, previous_quantity,
+                    (id, order_id, inventory_item_id, event_kind, reason, previous_quantity,
                      new_quantity, unit, occurred_at_unix_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                 arguments: [
+                    "reservation-event-created",
                     order.id,
                     item.id,
                     OrderInventoryReservationEventKind.created.rawValue,
@@ -619,6 +620,7 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         let event = try XCTUnwrap(
             repository.fetchOrderInventoryReservationEvents(orderId: order.id).first
         )
+        XCTAssertEqual(event.id, "reservation-event-created")
         XCTAssertEqual(event.orderId, order.id)
         XCTAssertEqual(event.inventoryItemId, item.id)
         XCTAssertEqual(event.kind, .created)
