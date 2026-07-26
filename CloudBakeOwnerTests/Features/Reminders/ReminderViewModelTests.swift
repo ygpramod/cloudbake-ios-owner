@@ -59,18 +59,26 @@ final class ReminderViewModelTests: XCTestCase {
         viewModel.load()
 
         XCTAssertEqual(viewModel.paymentDueItems.count, 2)
-        XCTAssertEqual(viewModel.paymentDueItems[0].id, "order-ready")
-        XCTAssertEqual(viewModel.paymentDueItems[0].orderName, "Chocolate Truffle Cake")
-        XCTAssertEqual(viewModel.paymentDueItems[0].customerName, "Amy Rao")
-        XCTAssertEqual(viewModel.paymentDueItems[0].firstName, "Amy")
-        XCTAssertEqual(viewModel.paymentDueItems[0].balanceDueText, MoneyDisplay.formatted(decimal("100")))
         XCTAssertEqual(
-            viewModel.paymentDueItems[0].paymentMessage,
+            viewModel.paymentDueItems.map(\.id),
+            ["order-completed", "order-ready"]
+        )
+        let linkedPayment = try XCTUnwrap(
+            viewModel.paymentDueItems.first { $0.id == "order-ready" }
+        )
+        let unlinkedPayment = try XCTUnwrap(
+            viewModel.paymentDueItems.first { $0.id == "order-completed" }
+        )
+        XCTAssertEqual(linkedPayment.orderName, "Chocolate Truffle Cake")
+        XCTAssertEqual(linkedPayment.customerName, "Amy Rao")
+        XCTAssertEqual(linkedPayment.firstName, "Amy")
+        XCTAssertEqual(linkedPayment.balanceDueText, MoneyDisplay.formatted(decimal("100")))
+        XCTAssertEqual(
+            linkedPayment.paymentMessage,
             "Amy has \(MoneyDisplay.formatted(decimal("100"))) balance due for Chocolate Truffle Cake."
         )
-        XCTAssertEqual(viewModel.paymentDueItems[1].id, "order-completed")
-        XCTAssertEqual(viewModel.paymentDueItems[1].whatsappURL, nil)
-        let whatsappURL = try XCTUnwrap(viewModel.paymentDueItems.first?.whatsappURL)
+        XCTAssertNil(unlinkedPayment.whatsappURL)
+        let whatsappURL = try XCTUnwrap(linkedPayment.whatsappURL)
         let components = try XCTUnwrap(URLComponents(url: whatsappURL, resolvingAgainstBaseURL: false))
         XCTAssertEqual(components.scheme, "whatsapp")
         XCTAssertEqual(components.host, "send")
@@ -117,6 +125,51 @@ final class ReminderViewModelTests: XCTestCase {
                 TodayOrderReminderItem(id: "order-evening", orderName: "Evening Cake", customerName: "Amy")
             ]
         )
+    }
+
+    func testReminderListsLoadIndependentBoundedPages() {
+        let repository = FakeReminderRepository()
+        let calendar = utcCalendar()
+        let now = calendar.date(
+            from: DateComponents(year: 2027, month: 2, day: 10, hour: 12)
+        )!
+        let paymentOrders = (0..<26).map { index in
+            makeOrder(
+                id: String(format: "payment-%02d", index),
+                status: .completed,
+                dueAt: now.addingTimeInterval(TimeInterval(-3_600 - index)),
+                quotedPrice: decimal("100"),
+                depositPaid: decimal("25")
+            )
+        }
+        let todayOrders = (0..<26).map { index in
+            makeOrder(
+                id: String(format: "today-%02d", index),
+                status: .confirmed,
+                dueAt: now.addingTimeInterval(TimeInterval(index))
+            )
+        }
+        repository.orders = paymentOrders + todayOrders
+        let viewModel = ReminderViewModel(
+            repository: repository,
+            dateProvider: { now },
+            calendar: calendar
+        )
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.paymentDueItems.count, 25)
+        XCTAssertEqual(viewModel.todayOrderItems.count, 25)
+        XCTAssertTrue(viewModel.canLoadMorePaymentDueItems)
+        XCTAssertTrue(viewModel.canLoadMoreTodayOrderItems)
+
+        viewModel.loadMorePaymentDueItems()
+        viewModel.loadMoreTodayOrderItems()
+
+        XCTAssertEqual(viewModel.paymentDueItems.count, 26)
+        XCTAssertEqual(viewModel.todayOrderItems.count, 26)
+        XCTAssertFalse(viewModel.canLoadMorePaymentDueItems)
+        XCTAssertFalse(viewModel.canLoadMoreTodayOrderItems)
     }
 
     func testLoadShowsLowInventoryWithCurrentAndMinimumQuantity() {

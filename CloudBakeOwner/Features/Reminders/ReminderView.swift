@@ -93,6 +93,13 @@ struct ReminderView: View {
                 )
                 .accessibilityIdentifier("reminders.paymentDue.\(item.id)")
             }
+            if viewModel.canLoadMorePaymentDueItems {
+                loadMoreButton(
+                    title: "Load More Payments",
+                    accessibilityIdentifier: "reminders.paymentDue.loadMore",
+                    action: viewModel.loadMorePaymentDueItems
+                )
+            }
 
             reminderSection(
                 title: "Orders For Today",
@@ -111,6 +118,13 @@ struct ReminderView: View {
                         tint: .cloudBakePurple
                     )
                 }
+            }
+            if viewModel.canLoadMoreTodayOrderItems {
+                loadMoreButton(
+                    title: "Load More Orders",
+                    accessibilityIdentifier: "reminders.todayOrder.loadMore",
+                    action: viewModel.loadMoreTodayOrderItems
+                )
             }
 
             reminderSection(
@@ -139,6 +153,22 @@ struct ReminderView: View {
                 )
             }
         }
+    }
+
+    private func loadMoreButton(
+        title: String,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.cloudBakePink)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 
     private func reminderSection<Item: Identifiable, Row: View>(

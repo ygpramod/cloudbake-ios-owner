@@ -27,12 +27,20 @@ final class ReminderViewModel: ObservableObject {
     @Published private(set) var paymentDueItems: [PaymentDueReminderItem] = []
     @Published private(set) var todayOrderItems: [TodayOrderReminderItem] = []
     @Published private(set) var lowInventoryItems: [LowInventoryReminderItem] = []
+    @Published private(set) var canLoadMorePaymentDueItems = false
+    @Published private(set) var canLoadMoreTodayOrderItems = false
     @Published var errorMessage: String?
 
     private let repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository
     private let dateProvider: () -> Date
     private let calendar: Calendar
     private let onPaymentChanged: () -> Void
+    private var paymentDueCursor: OrderPageCursor?
+    private var todayOrderCursor: OrderPageCursor?
+    private var paymentDueAsOf: Date?
+    private var loadedTodayOrderRange: ClosedRange<Date>?
+    private var customers: [Customer] = []
+    private static let orderPageSize = 25
 
     init(
         repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository,
@@ -48,10 +56,20 @@ final class ReminderViewModel: ObservableObject {
 
     func load() {
         do {
-            let orders = try repository.fetchOrders()
             let customers = try repository.fetchCustomers()
             let inventoryItems = try repository.fetchInventoryItems()
             let now = dateProvider()
+            let todayRange = todayOrderRange(at: now)
+            let paymentPage = try repository.fetchOrderPage(
+                query: .paymentPending(asOf: now),
+                after: nil,
+                limit: Self.orderPageSize
+            )
+            let todayPage = try repository.fetchOrderPage(
+                query: .active(dueAtRange: todayRange),
+                after: nil,
+                limit: Self.orderPageSize
+            )
             let demandSummary = try repository.fetchProjectedIngredientDemandSummary(at: now)
             let shortages = demandSummary.shortages
             let shortagesByItemId = Dictionary(uniqueKeysWithValues: shortages.map { ($0.id, $0) })
@@ -60,8 +78,18 @@ final class ReminderViewModel: ObservableObject {
                 neededInventoryItemIds: demandSummary.neededInventoryItemIds,
                 projectedShortageIds: Set(shortages.map(\.inventoryItemId))
             )
-            paymentDueItems = paymentDueItems(from: orders, customers: customers)
-            todayOrderItems = todayOrderItems(from: orders)
+            self.customers = customers
+            paymentDueItems = paymentDueItems(
+                from: paymentPage.orders,
+                customers: customers
+            )
+            todayOrderItems = todayOrderItems(from: todayPage.orders)
+            paymentDueCursor = paymentPage.nextCursor
+            todayOrderCursor = todayPage.nextCursor
+            paymentDueAsOf = now
+            loadedTodayOrderRange = todayRange
+            canLoadMorePaymentDueItems = paymentPage.nextCursor != nil
+            canLoadMoreTodayOrderItems = todayPage.nextCursor != nil
             lowInventoryItems = lowInventory.map {
                 Self.lowInventoryItem(from: $0, shortage: shortagesByItemId[$0.id])
             }
@@ -70,7 +98,55 @@ final class ReminderViewModel: ObservableObject {
             paymentDueItems = []
             todayOrderItems = []
             lowInventoryItems = []
+            paymentDueCursor = nil
+            todayOrderCursor = nil
+            paymentDueAsOf = nil
+            loadedTodayOrderRange = nil
+            canLoadMorePaymentDueItems = false
+            canLoadMoreTodayOrderItems = false
             errorMessage = "Reminders could not be loaded."
+        }
+    }
+
+    func loadMorePaymentDueItems() {
+        guard let paymentDueCursor, let paymentDueAsOf else {
+            return
+        }
+
+        do {
+            let page = try repository.fetchOrderPage(
+                query: .paymentPending(asOf: paymentDueAsOf),
+                after: paymentDueCursor,
+                limit: Self.orderPageSize
+            )
+            paymentDueItems.append(
+                contentsOf: paymentDueItems(from: page.orders, customers: customers)
+            )
+            self.paymentDueCursor = page.nextCursor
+            canLoadMorePaymentDueItems = page.nextCursor != nil
+            errorMessage = nil
+        } catch {
+            errorMessage = "More payment reminders could not be loaded."
+        }
+    }
+
+    func loadMoreTodayOrderItems() {
+        guard let todayOrderCursor, let loadedTodayOrderRange else {
+            return
+        }
+
+        do {
+            let page = try repository.fetchOrderPage(
+                query: .active(dueAtRange: loadedTodayOrderRange),
+                after: todayOrderCursor,
+                limit: Self.orderPageSize
+            )
+            todayOrderItems.append(contentsOf: todayOrderItems(from: page.orders))
+            self.todayOrderCursor = page.nextCursor
+            canLoadMoreTodayOrderItems = page.nextCursor != nil
+            errorMessage = nil
+        } catch {
+            errorMessage = "More order reminders could not be loaded."
         }
     }
 
@@ -99,7 +175,6 @@ final class ReminderViewModel: ObservableObject {
 
     private func paymentDueItems(from orders: [Order], customers: [Customer]) -> [PaymentDueReminderItem] {
         orders
-            .filter { $0.hasPaymentPending(at: dateProvider()) }
             .compactMap { order in
                 guard let balanceDue = order.balanceDue else {
                     return nil
@@ -131,23 +206,11 @@ final class ReminderViewModel: ObservableObject {
                     )
                 )
             }
-            .sorted { lhs, rhs in
-                lhs.orderName.localizedCaseInsensitiveCompare(rhs.orderName) == .orderedAscending
-            }
     }
 
     private func todayOrderItems(from orders: [Order]) -> [TodayOrderReminderItem] {
-        let today = dateProvider()
         return orders
             .filter(\.hasActiveReminderState)
-            .filter { calendar.isDate($0.dueAt, inSameDayAs: today) }
-            .sorted { lhs, rhs in
-                if lhs.dueAt == rhs.dueAt {
-                    return lhs.title < rhs.title
-                }
-
-                return lhs.dueAt < rhs.dueAt
-            }
             .map {
                 TodayOrderReminderItem(
                     id: $0.id,
@@ -155,6 +218,13 @@ final class ReminderViewModel: ObservableObject {
                     customerName: $0.customerName
                 )
             }
+    }
+
+    private func todayOrderRange(at date: Date) -> ClosedRange<Date> {
+        let start = calendar.startOfDay(for: date)
+        let exclusiveEnd = calendar.date(byAdding: .day, value: 1, to: start)
+            ?? start.addingTimeInterval(86_400)
+        return start...exclusiveEnd.addingTimeInterval(-0.001)
     }
 
     private static func lowInventoryItem(
