@@ -55,14 +55,25 @@ struct OrderListPresentation {
     }
 
     func upcomingOrders(from orders: [Order], throughDays: Int = 30) -> [Order] {
-        let today = calendar.startOfDay(for: dateProvider())
-        guard let end = calendar.date(byAdding: .day, value: throughDays + 1, to: today) else {
+        guard let range = upcomingDateRange(throughDays: throughDays) else {
             return []
         }
 
         return activeOrders(from: orders).filter { order in
-            order.dueAt >= today && order.dueAt < end
+            range.contains(order.dueAt)
         }
+    }
+
+    func upcomingDateRange(throughDays: Int = 30) -> ClosedRange<Date>? {
+        let today = calendar.startOfDay(for: dateProvider())
+        guard let exclusiveEnd = calendar.date(
+            byAdding: .day,
+            value: throughDays + 1,
+            to: today
+        ) else {
+            return nil
+        }
+        return today...exclusiveEnd.addingTimeInterval(-0.001)
     }
 
     func completedOrders(from orders: [Order]) -> [Order] {
