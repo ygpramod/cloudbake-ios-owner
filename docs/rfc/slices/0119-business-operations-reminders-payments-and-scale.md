@@ -266,8 +266,9 @@ with summary totals and order drill-down. It opens on the Outstanding filter bec
 actionable owner view.
 
 Payment Ledger and Sales & Orders let the owner switch between Day, Week, and Month grouping and
-default to Month. Order Profitability remains an order-by-order list with date filters rather than
-grouped totals.
+default to a rolling 12-month period ending today, grouped by Month. The owner can switch the
+grouping or choose a custom date range. Order Profitability remains an order-by-order list with
+date filters rather than grouped totals and uses the same rolling 12-month default.
 
 Inventory usage and waste, upcoming workload, customer summary, and recipe/design popularity
 reports are outside this improvement point.
