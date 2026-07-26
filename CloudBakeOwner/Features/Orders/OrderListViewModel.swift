@@ -1,31 +1,5 @@
 import Foundation
 
-private actor DesignPromotionCoordinator {
-    static let shared = DesignPromotionCoordinator()
-    private var lockedPhotoIds: Set<String> = []
-    private var waiters: [String: [CheckedContinuation<Void, Never>]] = [:]
-
-    func acquire(photoId: String) async {
-        guard lockedPhotoIds.contains(photoId) else {
-            lockedPhotoIds.insert(photoId)
-            return
-        }
-        await withCheckedContinuation { continuation in
-            waiters[photoId, default: []].append(continuation)
-        }
-    }
-
-    func release(photoId: String) {
-        if var queued = waiters[photoId], !queued.isEmpty {
-            let next = queued.removeFirst()
-            waiters[photoId] = queued.isEmpty ? nil : queued
-            next.resume()
-        } else {
-            lockedPhotoIds.remove(photoId)
-        }
-    }
-}
-
 @MainActor
 final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
@@ -87,14 +61,13 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var canLoadMoreCompletedOrders = false
 
     private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository & PaymentReceiptRepository
-    private let photoFileStore: OrderPhotoFileStore
-    private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let onReminderDataChanged: () -> Void
     private let presentation: OrderListPresentation
     private let paymentWorkflow: OrderPaymentWorkflow
     private let checklistWorkflow: OrderChecklistWorkflow
+    private let photoWorkflow: OrderPhotoWorkflow
     private var pendingSelectedOrderExtraIngredientId: String?
     private var activeOrderCursor: OrderPageCursor?
     private var completedOrderCursor: OrderPageCursor?
@@ -110,8 +83,6 @@ final class OrderListViewModel: ObservableObject {
         calendar: Calendar = .current
     ) {
         self.repository = repository
-        self.photoFileStore = photoFileStore
-        self.designPhotoLibrary = designPhotoLibrary
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
         self.onReminderDataChanged = onReminderDataChanged
@@ -125,6 +96,13 @@ final class OrderListViewModel: ObservableObject {
         )
         self.checklistWorkflow = OrderChecklistWorkflow(
             repository: repository,
+            idGenerator: idGenerator,
+            dateProvider: dateProvider
+        )
+        self.photoWorkflow = OrderPhotoWorkflow(
+            repository: repository,
+            fileStore: photoFileStore,
+            photoLibrary: designPhotoLibrary,
             idGenerator: idGenerator,
             dateProvider: dateProvider
         )
@@ -546,13 +524,7 @@ final class OrderListViewModel: ObservableObject {
 
     func designPhotoSource(for design: CakeDesign) -> CakeDesignPhotoSource? {
         guard let reference = design.photoReference else { return nil }
-        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: reference) {
-            return designPhotoLibrary.containsAsset(identifier: identifier)
-                ? .photosAsset(identifier)
-                : nil
-        }
-        let url = photoFileStore.fileURL(for: reference)
-        return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
+        return photoWorkflow.source(forReference: reference)
     }
 
     func addOrder(allowingInventoryShortage: Bool = false) -> Bool {
@@ -1292,184 +1264,82 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = "Order could not be found."
             return false
         }
-        guard !imageData.isEmpty else {
-            errorMessage = "Order photo is required."
-            return false
-        }
 
-        let photoId = idGenerator()
-        let now = dateProvider()
-        do {
-            let photoReference = try await designPhotoLibrary.savePhoto(data: imageData)
-            let photo = OrderPhoto(
-                id: photoId,
-                orderId: selectedOrder.id,
-                kind: kind,
-                localPhotoPath: photoReference,
-                caption: TextInputFormatting.optionalText(caption ?? ""),
-                createdAt: now,
-                updatedAt: now
-            )
-            try repository.save(photo)
+        switch await photoWorkflow.add(
+            to: selectedOrder,
+            kind: kind,
+            imageData: imageData,
+            caption: caption
+        ) {
+        case .success:
             loadSelectedOrderPhotos(for: selectedOrder)
             errorMessage = nil
             return true
-        } catch {
-            errorMessage = "Order photo could not be saved."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
 
     func deleteOrderPhoto(_ photo: OrderPhoto) -> Bool {
-        do {
-            try repository.deleteOrderPhoto(id: photo.id)
-            if PhotoKitDesignPhotoLibrary.assetIdentifier(from: photo.localPhotoPath) == nil {
-                try photoFileStore.deleteOrderPhoto(relativePath: photo.localPhotoPath)
-            }
+        switch photoWorkflow.delete(photo) {
+        case .success:
             if let selectedOrder {
                 loadSelectedOrderPhotos(for: selectedOrder)
             }
             errorMessage = nil
             return true
-        } catch {
-            errorMessage = "Order photo could not be deleted."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
 
     func updateOrderPhotoCaption(_ photo: OrderPhoto, caption: String) -> Bool {
-        do {
-            guard let currentPhoto = try repository.fetchOrderPhoto(id: photo.id) else {
-                errorMessage = "Order photo could not be found."
-                return false
-            }
-            let updatedPhoto = OrderPhoto(
-                id: currentPhoto.id,
-                orderId: currentPhoto.orderId,
-                kind: currentPhoto.kind,
-                localPhotoPath: currentPhoto.localPhotoPath,
-                caption: TextInputFormatting.optionalText(caption),
-                tags: currentPhoto.tags,
-                isFavorite: currentPhoto.isFavorite,
-                createdAt: currentPhoto.createdAt,
-                updatedAt: dateProvider()
-            )
-            try repository.save(updatedPhoto)
+        switch photoWorkflow.updateCaption(of: photo, to: caption) {
+        case .success:
             if let selectedOrder {
                 loadSelectedOrderPhotos(for: selectedOrder)
             }
             errorMessage = nil
             return true
-        } catch {
-            errorMessage = "Order photo caption could not be saved."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
 
-    func promoteFinalCakePhotoToDesign(_ photo: OrderPhoto, name: String, notes: String) async -> Bool {
-        guard let selectedOrder, selectedOrder.id == photo.orderId else {
+    func promoteFinalCakePhotoToDesign(
+        _ photo: OrderPhoto,
+        name: String,
+        notes: String
+    ) async -> Bool {
+        guard let selectedOrder else {
             errorMessage = "Order could not be found."
-            return false
-        }
-        guard photo.kind == .finalCake else {
-            errorMessage = "Only final cake photos can be saved as designs."
-            return false
-        }
-        guard let designName = TextInputFormatting.optionalText(name) else {
-            errorMessage = "Design name is required."
-            return false
-        }
-        guard !cakeDesigns.contains(where: { $0.originatingOrderPhotoId == photo.id }) else {
-            errorMessage = "This final cake photo is already saved as a design."
             return false
         }
         guard !isPromotingDesign else {
             errorMessage = "Design is already being saved."
             return false
         }
+
         isPromotingDesign = true
         defer { isPromotingDesign = false }
-        await DesignPromotionCoordinator.shared.acquire(photoId: photo.id)
-        defer {
-            Task { await DesignPromotionCoordinator.shared.release(photoId: photo.id) }
-        }
-        do {
-            if try repository.fetchCakeDesign(originatingOrderPhotoId: photo.id) != nil {
-                errorMessage = "This final cake photo is already saved as a design."
-                return false
+        switch await photoWorkflow.promoteFinalCakePhoto(
+            photo,
+            from: selectedOrder,
+            name: name,
+            notes: notes,
+            knownDesigns: cakeDesigns
+        ) {
+        case .success(let outcome):
+            if let linkedOrder = outcome.linkedOrder {
+                refreshAfterSavingOrder(linkedOrder)
             }
-        } catch {
-            errorMessage = "Design history could not be checked."
-            return false
-        }
-
-        let photoReference: String
-        let cleanupRelativePath: String?
-        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: photo.localPhotoPath) {
-            guard designPhotoLibrary.containsAsset(identifier: identifier) else {
-                errorMessage = "Design photo is no longer available in Photos."
-                return false
-            }
-            photoReference = photo.localPhotoPath
-            cleanupRelativePath = nil
-        } else {
-            do {
-                photoReference = try await designPhotoLibrary.savePhoto(at: orderPhotoURL(photo))
-                cleanupRelativePath = photo.localPhotoPath
-            } catch {
-                errorMessage = "Design photo could not be saved to Photos."
-                return false
-            }
-        }
-
-        let now = dateProvider()
-        let designId = idGenerator()
-        let design = CakeDesign(
-            id: designId,
-            name: designName,
-            notes: TextInputFormatting.optionalText(notes),
-            photoReference: photoReference,
-            sourceKind: .ownerMade,
-            originatingOrderPhotoId: photo.id,
-            originatingOrderId: selectedOrder.id,
-            createdAt: now,
-            updatedAt: now
-        )
-        let updatedOrder = copy(
-            selectedOrder,
-            cakeDesignId: designId,
-            updatedAt: now
-        )
-        let migratedPhoto = OrderPhoto(
-            id: photo.id,
-            orderId: photo.orderId,
-            kind: photo.kind,
-            localPhotoPath: photoReference,
-            caption: photo.caption,
-            tags: photo.tags,
-            isFavorite: photo.isFavorite,
-            createdAt: photo.createdAt,
-            updatedAt: now
-        )
-
-        do {
-            try repository.savePromotedDesign(
-                design,
-                linking: updatedOrder,
-                photo: migratedPhoto,
-                cleanupRelativePath: cleanupRelativePath
-            )
-            let didCleanup = cleanupRelativePath.map(cleanupDesignPhoto(at:)) ?? true
-            refreshAfterSavingOrder(updatedOrder)
-            errorMessage = didCleanup
-                ? nil
-                : "Design saved. The old local photo copy will be removed automatically."
+            errorMessage = outcome.ownerMessage
             return true
-        } catch CakeDesignPromotionError.originatingPhotoAlreadyPromoted {
-            errorMessage = "This final cake photo is already saved as a design."
-            return false
-        } catch {
-            errorMessage = "Design could not be saved."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
@@ -1478,129 +1348,43 @@ final class OrderListViewModel: ObservableObject {
         _ photo: OrderPhoto,
         tags: String
     ) async -> Bool {
-        guard let selectedOrder, selectedOrder.id == photo.orderId else {
+        guard let selectedOrder else {
             errorMessage = "Order could not be found."
-            return false
-        }
-        guard photo.kind == .customerReference else {
-            errorMessage = "Only customer reference photos can be added to References."
             return false
         }
         guard !isPromotingDesign else {
             errorMessage = "Reference is already being saved."
             return false
         }
+
         isPromotingDesign = true
         defer { isPromotingDesign = false }
-        await DesignPromotionCoordinator.shared.acquire(photoId: photo.id)
-        defer { Task { await DesignPromotionCoordinator.shared.release(photoId: photo.id) } }
-
-        do {
-            if try repository.fetchCakeDesign(originatingOrderPhotoId: photo.id) != nil {
-                errorMessage = "This photo is already in Design References."
-                return false
-            }
-        } catch {
-            errorMessage = "Reference history could not be checked."
-            return false
-        }
-
-        let photoReference: String
-        let cleanupRelativePath: String?
-        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: photo.localPhotoPath) {
-            guard designPhotoLibrary.containsAsset(identifier: identifier) else {
-                errorMessage = "Reference photo is no longer available in Photos."
-                return false
-            }
-            photoReference = photo.localPhotoPath
-            cleanupRelativePath = nil
-        } else {
-            do {
-                photoReference = try await designPhotoLibrary.savePhoto(at: orderPhotoURL(photo))
-                cleanupRelativePath = photo.localPhotoPath
-            } catch {
-                errorMessage = "Reference photo could not be saved to Photos."
-                return false
-            }
-        }
-
-        let now = dateProvider()
-        let design = CakeDesign(
-            id: idGenerator(),
-            name: photo.caption ?? "Reference",
-            notes: nil,
-            photoReference: photoReference,
-            sourceKind: .customerReference,
-            originatingOrderPhotoId: photo.id,
-            originatingOrderId: selectedOrder.id,
-            tags: DesignTags.parsed(tags),
-            createdAt: now,
-            updatedAt: now
-        )
-        let migratedPhoto = OrderPhoto(
-            id: photo.id,
-            orderId: photo.orderId,
-            kind: photo.kind,
-            localPhotoPath: photoReference,
-            caption: photo.caption,
-            tags: photo.tags,
-            isFavorite: photo.isFavorite,
-            createdAt: photo.createdAt,
-            updatedAt: now
-        )
-
-        do {
-            try repository.savePromotedDesign(
-                design,
-                linking: selectedOrder,
-                photo: migratedPhoto,
-                cleanupRelativePath: cleanupRelativePath
-            )
-            let didCleanup = cleanupRelativePath.map(cleanupDesignPhoto(at:)) ?? true
+        switch await photoWorkflow.addCustomerReference(
+            photo,
+            from: selectedOrder,
+            tags: tags
+        ) {
+        case .success(let outcome):
             loadFormReferences()
             loadSelectedOrderPhotos(for: selectedOrder)
-            errorMessage = didCleanup
-                ? nil
-                : "Reference saved. The old local photo copy will be removed automatically."
+            errorMessage = outcome.ownerMessage
             return true
-        } catch CakeDesignPromotionError.originatingPhotoAlreadyPromoted {
-            errorMessage = "This photo is already in Design References."
-            return false
-        } catch {
-            errorMessage = "Reference could not be saved."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
 
     func orderPhotoURL(_ photo: OrderPhoto) -> URL {
-        photoFileStore.fileURL(for: photo.localPhotoPath)
+        photoWorkflow.fileURL(for: photo)
     }
 
     func orderPhotoSource(_ photo: OrderPhoto) -> CakeDesignPhotoSource? {
-        if let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: photo.localPhotoPath) {
-            return designPhotoLibrary.containsAsset(identifier: identifier) ? .photosAsset(identifier) : nil
-        }
-        let url = orderPhotoURL(photo)
-        return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
+        photoWorkflow.source(for: photo)
     }
 
     private func retryPendingDesignPhotoCleanups() -> Bool {
-        guard let paths = try? repository.fetchPendingDesignPhotoCleanupPaths() else {
-            return false
-        }
-        return paths.reduce(true) { result, path in
-            cleanupDesignPhoto(at: path) && result
-        }
-    }
-
-    private func cleanupDesignPhoto(at relativePath: String) -> Bool {
-        do {
-            try photoFileStore.deleteOrderPhoto(relativePath: relativePath)
-            try repository.deletePendingDesignPhotoCleanupPath(relativePath)
-            return true
-        } catch {
-            return false
-        }
+        photoWorkflow.retryPendingCleanups()
     }
 
     func cancelEditingOrder() {
