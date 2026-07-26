@@ -189,7 +189,11 @@
 		410000000000000000000072 /* CustomerDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007A /* CustomerDraftValidation.swift */; };
 		410000000000000000000073 /* CustomerDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007B /* CustomerDraftValidationTests.swift */; };
 		410000000000000000000074 /* OrderListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007C /* OrderListViewModelTestSupport.swift */; };
-		410000000000000000000075 /* CloudBakeScreenStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000007D /* CloudBakeScreenStyle.swift */; };
+		C11000000000000000000001 /* CloudBakeTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12000000000000000000001 /* CloudBakeTheme.swift */; };
+		C11000000000000000000002 /* CloudBakeScaffolds.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12000000000000000000002 /* CloudBakeScaffolds.swift */; };
+		C11000000000000000000003 /* CloudBakeCardsAndFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12000000000000000000003 /* CloudBakeCardsAndFields.swift */; };
+		C11000000000000000000004 /* CloudBakeActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12000000000000000000004 /* CloudBakeActions.swift */; };
+		C11000000000000000000005 /* CloudBakeAppChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12000000000000000000005 /* CloudBakeAppChrome.swift */; };
 		410000000000000000000084 /* CakeDesignListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000084 /* CakeDesignListView.swift */; };
 		410000000000000000000085 /* CakeDesignListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000085 /* CakeDesignListViewModel.swift */; };
 		410000000000000000000086 /* CakeDesignListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000086 /* CakeDesignListViewModelTests.swift */; };
@@ -402,7 +406,11 @@
 		42000000000000000000007A /* CustomerDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDraftValidation.swift; sourceTree = "<group>"; };
 		42000000000000000000007B /* CustomerDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDraftValidationTests.swift; sourceTree = "<group>"; };
 		42000000000000000000007C /* OrderListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListViewModelTestSupport.swift; sourceTree = "<group>"; };
-		42000000000000000000007D /* CloudBakeScreenStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeScreenStyle.swift; sourceTree = "<group>"; };
+		C12000000000000000000001 /* CloudBakeTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeTheme.swift; sourceTree = "<group>"; };
+		C12000000000000000000002 /* CloudBakeScaffolds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeScaffolds.swift; sourceTree = "<group>"; };
+		C12000000000000000000003 /* CloudBakeCardsAndFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeCardsAndFields.swift; sourceTree = "<group>"; };
+		C12000000000000000000004 /* CloudBakeActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeActions.swift; sourceTree = "<group>"; };
+		C12000000000000000000005 /* CloudBakeAppChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeAppChrome.swift; sourceTree = "<group>"; };
 		4200000000000000000000B5 /* InventoryAliasesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryAliasesTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -600,7 +608,11 @@
 			isa = PBXGroup;
 			children = (
 				42000000000000000000003D /* CloudBakeNativeDialogs.swift */,
-				42000000000000000000007D /* CloudBakeScreenStyle.swift */,
+				C12000000000000000000001 /* CloudBakeTheme.swift */,
+				C12000000000000000000002 /* CloudBakeScaffolds.swift */,
+				C12000000000000000000003 /* CloudBakeCardsAndFields.swift */,
+				C12000000000000000000004 /* CloudBakeActions.swift */,
+				C12000000000000000000005 /* CloudBakeAppChrome.swift */,
 			);
 			path = SharedUI;
 			sourceTree = "<group>";
@@ -1082,7 +1094,11 @@
 				4100000000000000000000AD /* OrderNotificationRouter.swift in Sources */,
 				410000000000000000000030 /* OrderReminderScheduler.swift in Sources */,
 				410000000000000000000005 /* PlaceholderScreen.swift in Sources */,
-				410000000000000000000075 /* CloudBakeScreenStyle.swift in Sources */,
+				C11000000000000000000001 /* CloudBakeTheme.swift in Sources */,
+				C11000000000000000000002 /* CloudBakeScaffolds.swift in Sources */,
+				C11000000000000000000003 /* CloudBakeCardsAndFields.swift in Sources */,
+				C11000000000000000000004 /* CloudBakeActions.swift in Sources */,
+				C11000000000000000000005 /* CloudBakeAppChrome.swift in Sources */,
 				410000000000000000000008 /* AppDatabase.swift in Sources */,
 				B10000000000000000000001 /* AcceptanceTestDatabaseFixtures.swift in Sources */,
 				B10000000000000000000002 /* AcceptanceTestRuntime.swift in Sources */,
