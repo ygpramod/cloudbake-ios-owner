@@ -275,17 +275,20 @@ Outstanding view filters and groups unpaid orders by order due date because thos
 have a payment received date. Order Profitability and Sales & Orders filter and group by order due
 date.
 
+Payment method is not collected or reported in this slice. A receipt contains its amount,
+received-at timestamp, and optional owner note without requiring a cash, card, or transfer
+classification.
+
 Inventory usage and waste, upcoming workload, customer summary, and recipe/design popularity
 reports are outside this improvement point.
 
 The following also require owner confirmation before implementation:
 
-1. whether payment method is required;
-2. whether correcting a mistaken receipt means a reversible void/correction entry or editable
+1. whether correcting a mistaken receipt means a reversible void/correction entry or editable
    history;
-3. whether pre-migration aggregate paid amounts should become one clearly labelled opening receipt
+2. whether pre-migration aggregate paid amounts should become one clearly labelled opening receipt
    or remain outside the receipt ledger with a migration note;
-4. whether CSV export is required in this slice.
+3. whether CSV export is required in this slice.
 
 Do not implement the report UI or destructive payment correction behavior until these decisions are
 recorded here.
