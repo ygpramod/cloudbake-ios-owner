@@ -50,9 +50,10 @@ extension CloudBakeOwnerUITests {
         openCustomerAddMode(in: app, timeout: transitionTimeout)
 
         XCTAssertTrue(
-            app.buttons["customers.add.importContacts"].waitForExistence(
-                timeout: transitionTimeout
-            )
+            nativeDialogAction(
+                identifiedBy: "customers.add.importContacts",
+                in: app
+            ).waitForExistence(timeout: transitionTimeout)
         )
         selectManualCustomerEntry(in: app, timeout: transitionTimeout)
     }
@@ -109,7 +110,13 @@ extension CloudBakeOwnerUITests {
 
         tapWhenReady(app.buttons["customers.detail.delete"], timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["Delete Customer?"].waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(app.buttons["customers.delete.confirm"], timeout: transitionTimeout)
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "customers.delete.confirm",
+                in: app
+            ),
+            timeout: transitionTimeout
+        )
 
         assertScreenVisible("screen.customers", in: app, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["No customers yet"].waitForExistence(timeout: transitionTimeout))
