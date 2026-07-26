@@ -445,6 +445,92 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0030_create_order_inventory_reservations") { db in
+            try db.create(table: "order_inventory_reservations") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .cascade)
+                table.column("inventory_item_id", .text)
+                    .notNull()
+                    .references("inventory_items", onDelete: .restrict)
+                table.column("required_quantity", .double)
+                    .notNull()
+                    .check { $0 > 0 }
+                table.column("unit", .text).notNull()
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+                table.uniqueKey(["order_id", "inventory_item_id"])
+            }
+            try db.create(
+                index: "order_inventory_reservations_on_inventory_item_id",
+                on: "order_inventory_reservations",
+                columns: ["inventory_item_id"]
+            )
+
+            try db.create(table: "order_inventory_reservation_events") { table in
+                table.autoIncrementedPrimaryKey("id")
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .cascade)
+                table.column("inventory_item_id", .text)
+                    .notNull()
+                    .references("inventory_items", onDelete: .restrict)
+                table.column("event_kind", .text).notNull()
+                table.column("reason", .text).notNull()
+                table.column("previous_quantity", .double)
+                    .notNull()
+                    .check { $0 >= 0 }
+                table.column("new_quantity", .double)
+                    .notNull()
+                    .check { $0 >= 0 }
+                table.column("unit", .text).notNull()
+                table.column("occurred_at_unix_time", .double).notNull()
+            }
+            try db.create(
+                index: "order_inventory_reservation_events_on_order_occurred_at",
+                on: "order_inventory_reservation_events",
+                columns: ["order_id", "occurred_at_unix_time"]
+            )
+
+            try db.create(table: "order_inventory_reservation_repairs") { table in
+                table.column("order_id", .text)
+                    .primaryKey()
+                    .references("orders", onDelete: .cascade)
+                table.column("state", .text).notNull()
+                table.column("attempt_count", .integer)
+                    .notNull()
+                    .defaults(to: 0)
+                    .check { $0 >= 0 }
+                table.column("last_attempted_at_unix_time", .double)
+                table.column("failure_code", .text)
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+            try db.create(
+                index: "order_inventory_reservation_repairs_on_state",
+                on: "order_inventory_reservation_repairs",
+                columns: ["state"]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_repairs
+                    (order_id, state, attempt_count, updated_at_unix_time)
+                    SELECT orders.id, 'pending', 0, orders.updated_at_unix_time
+                    FROM orders
+                    WHERE orders.status IN (?, ?)
+                      AND NOT EXISTS (
+                        SELECT 1
+                        FROM order_recipe_usages
+                        WHERE order_recipe_usages.order_id = orders.id
+                      )
+                    """,
+                arguments: [
+                    OrderStatus.confirmed.rawValue,
+                    OrderStatus.inProgress.rawValue
+                ]
+            )
+        }
+
         return migrator
     }
 }

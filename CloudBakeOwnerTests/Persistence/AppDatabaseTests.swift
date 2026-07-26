@@ -349,4 +349,107 @@ final class AppDatabaseTests: XCTestCase {
             )
         }
     }
+
+    func testReservationMigrationQueuesOnlyEligibleUnconsumedOrders() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0029_add_order_ingredient_shortfall")
+        let timestamp = 1_800_060_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO recipes
+                    (id, name, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                arguments: ["recipe-consumed", "Consumed recipe", timestamp, timestamp]
+            )
+            for (id, status) in [
+                ("order-confirmed", OrderStatus.confirmed),
+                ("order-in-progress", OrderStatus.inProgress),
+                ("order-draft", OrderStatus.draft),
+                ("order-consumed", OrderStatus.confirmed)
+            ] {
+                try db.execute(
+                    sql: """
+                        INSERT INTO orders
+                        (id, recipe_id, title, status, due_at_unix_time,
+                         created_at_unix_time, updated_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        id,
+                        id == "order-consumed" ? "recipe-consumed" : nil,
+                        id,
+                        status.rawValue,
+                        timestamp,
+                        timestamp,
+                        timestamp
+                    ]
+                )
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO order_recipe_usages
+                    (id, order_id, recipe_id, used_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "usage-consumed",
+                    "order-consumed",
+                    "recipe-consumed",
+                    timestamp,
+                    timestamp,
+                    timestamp
+                ]
+            )
+        }
+
+        try migrator.migrate(queue)
+
+        try queue.read { db in
+            XCTAssertTrue(try db.tableExists("order_inventory_reservations"))
+            XCTAssertTrue(try db.tableExists("order_inventory_reservation_events"))
+            XCTAssertTrue(try db.tableExists("order_inventory_reservation_repairs"))
+            XCTAssertEqual(
+                try String.fetchAll(
+                    db,
+                    sql: """
+                        SELECT order_id
+                        FROM order_inventory_reservation_repairs
+                        ORDER BY order_id
+                        """
+                ),
+                ["order-confirmed", "order-in-progress"]
+            )
+            XCTAssertEqual(
+                try String.fetchAll(
+                    db,
+                    sql: """
+                        SELECT DISTINCT state
+                        FROM order_inventory_reservation_repairs
+                        """
+                ),
+                ["pending"]
+            )
+            XCTAssertEqual(
+                try Int.fetchOne(
+                    db,
+                    sql: """
+                        SELECT COUNT(*)
+                        FROM sqlite_master
+                        WHERE type = 'index'
+                          AND name IN (
+                            'order_inventory_reservations_on_inventory_item_id',
+                            'order_inventory_reservation_events_on_order_occurred_at',
+                            'order_inventory_reservation_repairs_on_state'
+                          )
+                        """
+                ),
+                3
+            )
+        }
+    }
 }
