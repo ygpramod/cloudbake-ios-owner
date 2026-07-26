@@ -98,10 +98,6 @@ final class SettingsViewModel: ObservableObject {
         isConfirmingManualBackupPhotoRemoval = true
     }
 
-    func cancelManualBackupPhotoRemoval() {
-        isConfirmingManualBackupPhotoRemoval = false
-    }
-
     func confirmManualBackupPhotoRemoval() async -> ManualBackupExport? {
         guard let manualBackupService,
               let proposal = pendingManualBackupPhotoProposal else { return nil }
@@ -745,7 +741,9 @@ struct SettingsView: View {
             title: "Remove Broken References?",
             message: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
             cancelAccessibilityIdentifier: "settings.manualBackup.photos.remove.cancel",
-            onCancel: { viewModel.cancelManualBackupPhotoRemoval() }
+            onCancel: {
+                Task { await viewModel.cancelManualBackupPhotoDecision() }
+            }
         ) {
             nativeDialogButton("Remove And Back Up", role: .destructive) {
                 continueManualBackup {

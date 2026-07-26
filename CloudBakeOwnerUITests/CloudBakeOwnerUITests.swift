@@ -565,9 +565,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
 
         dismissNativeDialog(titled: "Remove Broken References?", in: app)
-        XCTAssertTrue(app.staticTexts["Unavailable Photos"].waitForExistence(timeout: 5))
-        dismissNativeDialog(titled: "Unavailable Photos", in: app)
-        XCTAssertFalse(app.staticTexts["Unavailable Photos"].exists)
+        XCTAssertTrue(
+            app.staticTexts["Unavailable Photos"].waitForNonExistence(timeout: 5)
+        )
         XCTAssertEqual(lastSuccess.label, lastSuccessBeforeCancellation)
 
         tapWhenReady(backUpNowButton)
@@ -1940,6 +1940,18 @@ final class CloudBakeOwnerUITests: XCTestCase {
         ).firstMatch
         XCTAssertTrue(warning.waitForExistence(timeout: 5))
         XCTAssertTrue(warning.label.contains("Shortage sugar: short by 50 g"))
+        dismissNativeDialog(titled: "Inventory Shortage", in: app)
+        XCTAssertTrue(app.staticTexts["orders.detail.status"].label.contains("Confirmed"))
+
+        tapWhenReady(app.buttons["orders.detail.statusMenu"])
+        tapExisting(app.buttons["Ready"])
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "orders.detail.confirmInventoryDeduction",
+                in: app
+            )
+        )
+        XCTAssertTrue(warning.waitForExistence(timeout: 5))
         tapWhenReady(
             nativeDialogAction(
                 identifiedBy: "orders.detail.inventoryShortage.continue",
