@@ -47,9 +47,11 @@ acceptance fixtures, and repository guidance matches implemented owner behavior.
 
 ## Validation
 
-1. The acceptance-registration command reports no missing, duplicate, or unknown selectors.
-2. The Release-composition command builds the owner app with the Release configuration and scans
-   the resulting app bundle for every prohibited acceptance key.
+1. The acceptance-registration command reports no missing target membership, missing, duplicate,
+   or unknown selectors.
+2. The Release-composition command builds the generic iOS device owner app with the Release
+   configuration and scans the resulting `Release-iphoneos` app bundle for every prohibited
+   acceptance key.
 3. Unit and integration tests remain green.
 4. Targeted acceptance tests moved or newly registered by this slice pass locally.
 5. GitHub Actions passes the unit/integration lane and every acceptance shard.

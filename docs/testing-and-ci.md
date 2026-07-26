@@ -16,8 +16,10 @@ SWIFT_FORMAT_BASE_SHA="$(git merge-base origin/main HEAD)" \
 ```
 
 The acceptance-registration check discovers every `func test…` declaration in
-`CloudBakeOwnerUITests/*.swift` and requires the matching selector to appear exactly once in
-`.github/workflows/ci.yml`. It fails for missing, duplicate, malformed, or stale selectors.
+`CloudBakeOwnerUITests/*.swift`, verifies every Swift source belongs to the
+`CloudBakeOwnerUITests` Xcode target, and requires each matching selector to appear exactly once in
+`.github/workflows/ci.yml`. It fails for missing target membership, missing files, duplicate,
+malformed, or stale selectors.
 
 The formatting check uses the `swift-format` executable bundled with Xcode and checks only Swift
 files changed from the supplied base SHA. CI pins Xcode 16.4 so formatter behavior does not drift
@@ -56,10 +58,10 @@ cross-feature changes.
 ./scripts/verify_release_composition.sh
 ```
 
-The command builds `CloudBakeOwner.app` with the Release configuration, signing disabled, into
-temporary DerivedData. It then scans the built app bundle and fails if any Debug-only acceptance
-environment key is present. Set `RELEASE_VERIFICATION_DERIVED_DATA` only when the build artifacts
-need to be retained for diagnosis.
+The command builds the generic iOS device `CloudBakeOwner.app` with the Release configuration,
+signing disabled, into temporary DerivedData. It then scans the `Release-iphoneos` app bundle and
+fails if any Debug-only acceptance environment key is present. Set
+`RELEASE_VERIFICATION_DERIVED_DATA` only when the build artifacts need to be retained for diagnosis.
 
 This check proves build composition; a source-code search is not an equivalent replacement.
 
