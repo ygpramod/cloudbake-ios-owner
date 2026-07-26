@@ -29,12 +29,12 @@ final class ReminderViewModel: ObservableObject {
     @Published private(set) var lowInventoryItems: [LowInventoryReminderItem] = []
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & OrderRecipeUsageRepository & InventoryItemRepository & InventoryStockBatchRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
+    private let repository: any OrderRepository & OrderRecipeUsageRepository & OrderInventoryReservationRepository & InventoryItemRepository & InventoryStockBatchRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
     private let dateProvider: () -> Date
     private let calendar: Calendar
 
     init(
-        repository: any OrderRepository & OrderRecipeUsageRepository & InventoryItemRepository & InventoryStockBatchRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
+        repository: any OrderRepository & OrderRecipeUsageRepository & OrderInventoryReservationRepository & InventoryItemRepository & InventoryStockBatchRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
     ) {
@@ -55,6 +55,8 @@ final class ReminderViewModel: ObservableObject {
                 at: now,
                 stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
                 recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
+                orderReservations: repository.fetchOrderInventoryReservations(orderId:),
+                reservationRepair: repository.fetchOrderInventoryReservationRepair(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
                 recipeIngredients: repository.fetchRecipeIngredients(componentId:),
                 orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)

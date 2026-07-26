@@ -22,6 +22,8 @@ enum ProjectedIngredientDemand {
         at date: Date,
         stockBatches: (String) throws -> [InventoryStockBatch],
         recipeUsage: (String) throws -> OrderRecipeUsage?,
+        orderReservations: (String) throws -> [OrderInventoryReservation],
+        reservationRepair: (String) throws -> OrderInventoryReservationRepair?,
         recipeComponents: (String) throws -> [RecipeComponent],
         recipeIngredients: (String) throws -> [RecipeIngredient],
         orderExtraIngredients: (String) throws -> [OrderExtraIngredient]
@@ -31,6 +33,27 @@ enum ProjectedIngredientDemand {
 
         for order in orders where order.hasActiveReminderState {
             guard try recipeUsage(order.id) == nil else { continue }
+            if order.status == .confirmed || order.status == .inProgress {
+                let reservations = try orderReservations(order.id)
+                let repair = try reservationRepair(order.id)
+                if !reservations.isEmpty || repair?.state == .complete {
+                    for reservation in reservations {
+                        guard let item = itemsById[reservation.inventoryItemId],
+                              let quantity = reservation.unit.convertedQuantity(
+                                  reservation.requiredQuantity,
+                                  to: item.unit
+                              ),
+                              quantity > 0 else {
+                            continue
+                        }
+                        var demand = demandByItemId[item.id] ?? Demand()
+                        demand.quantity += quantity
+                        demand.orderIds.insert(order.id)
+                        demandByItemId[item.id] = demand
+                    }
+                    continue
+                }
+            }
             let requirements = try OrderIngredientRequirements.requirements(
                 for: order,
                 inventoryItems: inventoryItems,

@@ -34,11 +34,11 @@ final class DashboardViewModel: ObservableObject {
         return "\(item.currentQuantity.formatted()) / \(item.minimumQuantity.formatted()) \(item.unit.displayName)"
     }
 
-    private let repository: any InventoryItemRepository & InventoryStockBatchRepository & OrderRepository & OrderRecipeUsageRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
+    private let repository: any InventoryItemRepository & InventoryStockBatchRepository & OrderRepository & OrderRecipeUsageRepository & OrderInventoryReservationRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
     private let orderPresentation: OrderListPresentation
 
     init(
-        repository: any InventoryItemRepository & InventoryStockBatchRepository & OrderRepository & OrderRecipeUsageRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
+        repository: any InventoryItemRepository & InventoryStockBatchRepository & OrderRepository & OrderRecipeUsageRepository & OrderInventoryReservationRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
         orderPresentation: OrderListPresentation = OrderListPresentation(
             dateProvider: Date.init,
             calendar: .current
@@ -59,6 +59,8 @@ final class DashboardViewModel: ObservableObject {
                 at: now,
                 stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
                 recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
+                orderReservations: repository.fetchOrderInventoryReservations(orderId:),
+                reservationRepair: repository.fetchOrderInventoryReservationRepair(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
                 recipeIngredients: repository.fetchRecipeIngredients(componentId:),
                 orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)

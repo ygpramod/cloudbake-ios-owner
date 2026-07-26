@@ -413,6 +413,7 @@ private final class PreviewDashboardInventoryItemRepository: InventoryItemReposi
     InventoryStockBatchRepository,
     OrderRepository,
     OrderRecipeUsageRepository,
+    OrderInventoryReservationRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
     OrderExtraIngredientRepository {
@@ -458,6 +459,32 @@ private final class PreviewDashboardInventoryItemRepository: InventoryItemReposi
         usedAt: Date,
         transactionIdProvider: () -> String
     ) throws {}
+
+    func fetchOrderInventoryReservations(
+        orderId _: String
+    ) throws -> [OrderInventoryReservation] {
+        []
+    }
+
+    func fetchInventoryReservationTotal(
+        inventoryItemId _: String,
+        excludingOrderId _: String?
+    ) throws -> Double {
+        0
+    }
+
+    func fetchOrderInventoryReservationEvents(
+        orderId _: String,
+        limit _: Int
+    ) throws -> [OrderInventoryReservationEvent] {
+        []
+    }
+
+    func fetchOrderInventoryReservationRepair(
+        orderId _: String
+    ) throws -> OrderInventoryReservationRepair? {
+        nil
+    }
 
     func save(_ batch: InventoryStockBatch) throws {}
 

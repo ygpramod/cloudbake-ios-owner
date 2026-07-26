@@ -260,6 +260,7 @@ final class ReminderViewModelTests: XCTestCase {
 
 private final class FakeReminderRepository: OrderRepository,
     OrderRecipeUsageRepository,
+    OrderInventoryReservationRepository,
     InventoryItemRepository,
     InventoryStockBatchRepository,
     CustomerRepository,
@@ -274,6 +275,8 @@ private final class FakeReminderRepository: OrderRepository,
     var extraIngredients: [OrderExtraIngredient] = []
     var batches: [InventoryStockBatch] = []
     var usages: [OrderRecipeUsage] = []
+    var reservations: [OrderInventoryReservation] = []
+    var reservationRepairs: [OrderInventoryReservationRepair] = []
 
     func save(_ order: Order) throws {
         if let existingIndex = orders.firstIndex(where: { $0.id == order.id }) {
@@ -301,6 +304,37 @@ private final class FakeReminderRepository: OrderRepository,
         usedAt: Date,
         transactionIdProvider: () -> String
     ) throws {}
+
+    func fetchOrderInventoryReservations(
+        orderId: String
+    ) throws -> [OrderInventoryReservation] {
+        reservations.filter { $0.orderId == orderId }
+    }
+
+    func fetchInventoryReservationTotal(
+        inventoryItemId: String,
+        excludingOrderId: String?
+    ) throws -> Double {
+        reservations
+            .filter {
+                $0.inventoryItemId == inventoryItemId
+                    && $0.orderId != excludingOrderId
+            }
+            .reduce(0) { $0 + $1.requiredQuantity }
+    }
+
+    func fetchOrderInventoryReservationEvents(
+        orderId _: String,
+        limit _: Int
+    ) throws -> [OrderInventoryReservationEvent] {
+        []
+    }
+
+    func fetchOrderInventoryReservationRepair(
+        orderId: String
+    ) throws -> OrderInventoryReservationRepair? {
+        reservationRepairs.first { $0.orderId == orderId }
+    }
 
     func save(_ batch: InventoryStockBatch) throws {}
     func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}

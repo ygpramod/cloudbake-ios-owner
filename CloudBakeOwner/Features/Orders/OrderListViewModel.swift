@@ -1689,6 +1689,8 @@ final class OrderListViewModel: ObservableObject {
                 at: dateProvider(),
                 stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
                 recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
+                orderReservations: repository.fetchOrderInventoryReservations(orderId:),
+                reservationRepair: repository.fetchOrderInventoryReservationRepair(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
                 recipeIngredients: repository.fetchRecipeIngredients(componentId:),
                 orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
