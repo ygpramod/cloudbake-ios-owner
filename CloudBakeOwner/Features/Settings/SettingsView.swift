@@ -307,6 +307,7 @@ final class SettingsViewModel: ObservableObject {
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @StateObject private var orderReminderSettingsViewModel: OrderReminderSettingsViewModel
+    @StateObject private var paymentReminderSettingsViewModel: PaymentReminderSettingsViewModel
     @StateObject private var cloudBackupViewModel: CloudBackupSettingsViewModel
     @StateObject private var cloudRestoreViewModel: CloudRestoreSettingsViewModel
     @AppStorage(AppSettings.currencySymbolKey) private var selectedCurrencySymbol = AppCurrency.defaultCurrency.symbol
@@ -324,6 +325,7 @@ struct SettingsView: View {
     init(
         viewModel: SettingsViewModel,
         orderReminderSettingsViewModel: OrderReminderSettingsViewModel,
+        paymentReminderSettingsViewModel: PaymentReminderSettingsViewModel,
         cloudBackupService: (any CloudBackupSettingsServing)? = nil,
         cloudRestoreService: (any CloudRestoreSettingsServing)? = nil,
         onShowIntroduction: @escaping () -> Void = {}
@@ -332,6 +334,9 @@ struct SettingsView: View {
         _viewModel = StateObject(wrappedValue: viewModel)
         _orderReminderSettingsViewModel = StateObject(
             wrappedValue: orderReminderSettingsViewModel
+        )
+        _paymentReminderSettingsViewModel = StateObject(
+            wrappedValue: paymentReminderSettingsViewModel
         )
         _cloudBackupViewModel = StateObject(
             wrappedValue: CloudBackupSettingsViewModel(
@@ -413,7 +418,8 @@ struct SettingsView: View {
                 CloudBakeDetailCard {
                     NavigationLink {
                         OrderReminderSettingsView(
-                            viewModel: orderReminderSettingsViewModel
+                            viewModel: orderReminderSettingsViewModel,
+                            paymentViewModel: paymentReminderSettingsViewModel
                         )
                     } label: {
                         HStack(spacing: 16) {

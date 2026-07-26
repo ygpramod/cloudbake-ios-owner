@@ -78,6 +78,18 @@ final class CloudBakeOwnerUITests: XCTestCase {
             app.staticTexts["settings.orderReminders.status"]
                 .waitForExistence(timeout: 5)
         )
+
+        let paymentTime = app.datePickers["settings.paymentReminders.time"]
+        scrollToVisible(paymentTime, in: app)
+        XCTAssertTrue(paymentTime.exists)
+        let paymentSave = app.buttons["settings.paymentReminders.save"]
+        let paymentStatus = app.staticTexts["settings.paymentReminders.status"]
+        tapScrollableAction(
+            paymentSave,
+            in: app.scrollViews["screen.settings.orderReminders"],
+            waitingFor: paymentStatus,
+            in: app
+        )
     }
 
     override func setUpWithError() throws {

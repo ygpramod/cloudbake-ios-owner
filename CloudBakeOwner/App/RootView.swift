@@ -309,6 +309,14 @@ struct RootView: View {
                 orderReminderSettingsViewModel: OrderReminderSettingsViewModel(
                     repository: repository
                 ),
+                paymentReminderSettingsViewModel: PaymentReminderSettingsViewModel(
+                    repository: repository,
+                    onSaved: {
+                        Task {
+                            await refreshLocalReminders()
+                        }
+                    }
+                ),
                 cloudBackupService: cloudBackupSettingsService,
                 cloudRestoreService: cloudRestoreSettingsService,
                 onShowIntroduction: {

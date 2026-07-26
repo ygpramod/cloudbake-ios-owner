@@ -160,7 +160,7 @@ struct CloudBakeDetailScaffold<Content: View>: View {
                 }
                 .padding(.horizontal, CloudBakeTheme.Spacing.detailHorizontal)
                 .padding(.top, CloudBakeTheme.Spacing.screenTop)
-                .padding(.bottom, 36)
+                .padding(.bottom, CloudBakeTheme.Spacing.bottomNavigationHeight)
             }
         }
         .navigationTitle(title)
