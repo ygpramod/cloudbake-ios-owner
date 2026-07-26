@@ -276,6 +276,67 @@ final class AppSnapshotServiceTests: XCTestCase {
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: fixture.stagingRoot.path), [])
     }
 
+    func testRemovingUnavailableReferencesChangesOnlyExactLiveRecords() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = fixture.database.makeCoreDataRepository()
+        let missingReference = "photos://missing"
+        let retainedReference = "photos://retained"
+        try repository.save(fixture.design(id: "missing", photoReference: missingReference))
+        try repository.save(fixture.design(id: "retained", photoReference: retainedReference))
+        let sourceOrder = fixture.order(id: "source-order")
+        let missingPhoto = fixture.orderPhoto(
+            id: "missing-photo",
+            orderId: sourceOrder.id,
+            reference: missingReference
+        )
+        let retainedPhoto = fixture.orderPhoto(
+            id: "retained-photo",
+            orderId: sourceOrder.id,
+            reference: retainedReference
+        )
+        let linkedOrder = fixture.order(
+            id: "linked-order",
+            customerReferencePhotoId: missingPhoto.id
+        )
+        try repository.save(sourceOrder)
+        try repository.save(missingPhoto)
+        try repository.save(retainedPhoto)
+        try repository.save(linkedOrder)
+
+        try fixture.database.removeUnavailablePhotoReferences([missingReference])
+
+        XCTAssertNil(try repository.fetchCakeDesign(id: "missing")?.photoReference)
+        XCTAssertEqual(
+            try repository.fetchCakeDesign(id: "retained")?.photoReference,
+            retainedReference
+        )
+        XCTAssertNil(try repository.fetchOrderPhoto(id: missingPhoto.id))
+        XCTAssertEqual(try repository.fetchOrderPhoto(id: retainedPhoto.id), retainedPhoto)
+        XCTAssertNil(
+            try repository.fetchOrder(id: linkedOrder.id)?.customerReferencePhotoId
+        )
+    }
+
+    func testRemovingInvalidPhotoReferenceRollsBackAllChanges() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = fixture.database.makeCoreDataRepository()
+        let reference = "photos://missing"
+        try repository.save(fixture.design(id: "missing", photoReference: reference))
+
+        XCTAssertThrowsError(
+            try fixture.database.removeUnavailablePhotoReferences(
+                [reference, "OrderPhotos/not-external.jpg"]
+            )
+        )
+
+        XCTAssertEqual(
+            try repository.fetchCakeDesign(id: "missing")?.photoReference,
+            reference
+        )
+    }
+
     func testExternalPhotoChangedAfterDatabaseCaptureFailsSnapshot() async throws {
         let fixture = try Fixture()
         defer { fixture.remove() }

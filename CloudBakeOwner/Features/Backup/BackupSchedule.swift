@@ -32,6 +32,36 @@ protocol BackupScheduleStoring: Sendable {
     func save(_ metadata: BackupScheduleMetadata)
 }
 
+protocol BackupAssetOmissionStoring: Sendable {
+    func loadApprovedDigests() -> Set<String>
+    func approve(digests: Set<String>)
+}
+
+final class UserDefaultsBackupAssetOmissionStore: BackupAssetOmissionStoring, @unchecked Sendable {
+    static let approvedDigestsKey = "cloudbake.cloudBackupApprovedPhotoOmissions"
+
+    private let defaults: UserDefaults
+    private let lock = NSLock()
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    func loadApprovedDigests() -> Set<String> {
+        lock.withLock {
+            Set(defaults.stringArray(forKey: Self.approvedDigestsKey) ?? [])
+        }
+    }
+
+    func approve(digests: Set<String>) {
+        guard !digests.isEmpty else { return }
+        lock.withLock {
+            let existing = Set(defaults.stringArray(forKey: Self.approvedDigestsKey) ?? [])
+            defaults.set(Array(existing.union(digests)).sorted(), forKey: Self.approvedDigestsKey)
+        }
+    }
+}
+
 final class UserDefaultsBackupScheduleStore: BackupScheduleStoring, @unchecked Sendable {
     static let metadataKey = "cloudbake.cloudBackupSchedule"
 
