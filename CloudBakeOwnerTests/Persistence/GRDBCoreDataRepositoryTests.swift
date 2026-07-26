@@ -541,13 +541,15 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                     status: status,
                     dueAt: now.addingTimeInterval(
                         TimeInterval(index * 3_600)
-                    )
+                    ),
+                    quotedPrice: status == .completed ? 100 : nil,
+                    depositPaid: status == .completed ? 25 : nil
                 )
             )
         }
 
         let recorder = SQLStatementRecorder()
-        try repository.writer.writeWithoutTransaction { db in
+        repository.writer.writeWithoutTransaction { db in
             db.trace(options: .statement) { event in
                 recorder.record(event.expandedDescription)
             }
@@ -590,6 +592,24 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(customer.orders.count, 25)
         XCTAssertEqual(upcoming.orders.count, 25)
 
+        recorder.reset()
+        let paymentSummary = try repository.fetchPaymentPendingSummary(
+            at: now.addingTimeInterval(1_000 * 3_600)
+        )
+        XCTAssertLessThanOrEqual(
+            recorder.statementCount,
+            5,
+            recorder.recordedStatements.joined(separator: "\n")
+        )
+        XCTAssertEqual(
+            recorder.recordedStatements.filter {
+                $0.contains("COUNT(*)") && $0.contains("FROM orders")
+            }.count,
+            1
+        )
+        XCTAssertEqual(paymentSummary.orderCount, 166)
+        XCTAssertEqual(paymentSummary.totalBalance, 12_450)
+
         let activePlan = try orderQueryPlan(
             repository: repository,
             indexName: "orders_on_status_due_id",
@@ -619,6 +639,28 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 $0.contains("orders_on_customer_due_id")
             },
             customerPlan.joined(separator: "\n")
+        )
+
+        let paymentPlan = try orderQueryPlan(
+            repository: repository,
+            indexName: "orders_on_status_due_id",
+            predicate: """
+                status = ?
+                AND due_at_unix_time <= ?
+                AND quoted_price_decimal IS NOT NULL
+                AND CAST(quoted_price_decimal AS NUMERIC)
+                    > COALESCE(CAST(deposit_paid_decimal AS NUMERIC), 0)
+                """,
+            arguments: [
+                OrderStatus.completed.rawValue,
+                now.addingTimeInterval(1_000 * 3_600).timeIntervalSince1970
+            ]
+        )
+        XCTAssertTrue(
+            paymentPlan.contains {
+                $0.contains("orders_on_status_due_id")
+            },
+            paymentPlan.joined(separator: "\n")
         )
     }
 

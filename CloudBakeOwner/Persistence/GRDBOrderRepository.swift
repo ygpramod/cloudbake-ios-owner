@@ -436,7 +436,7 @@ extension GRDBCoreDataRepository {
                             ),
                             0
                         ) AS total_balance
-                    FROM orders
+                    FROM orders INDEXED BY orders_on_status_due_id
                     WHERE status = ?
                       AND due_at_unix_time <= ?
                       AND quoted_price_decimal IS NOT NULL
