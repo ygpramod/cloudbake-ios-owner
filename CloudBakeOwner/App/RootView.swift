@@ -267,7 +267,12 @@ struct RootView: View {
         case .inventory:
             InventoryListView(
                 viewModel: InventoryListViewModel(
-                    repository: database.makeCoreDataRepository()
+                    repository: database.makeCoreDataRepository(),
+                    onReminderDataChanged: {
+                        Task {
+                            await refreshLocalReminders()
+                        }
+                    }
                 )
             )
         case .more:
@@ -305,7 +310,14 @@ struct RootView: View {
                     makeOrderListViewModel(repository: repository)
                 },
                 makeInventoryViewModel: {
-                    InventoryListViewModel(repository: repository)
+                    InventoryListViewModel(
+                        repository: repository,
+                        onReminderDataChanged: {
+                            Task {
+                                await refreshLocalReminders()
+                            }
+                        }
+                    )
                 }
             )
         case .settings:
