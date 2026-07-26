@@ -2,6 +2,24 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class BackupScheduleTests: XCTestCase {
+    func testApprovedPhotoOmissionsPersistAsOpaqueUniqueDigests() {
+        let suiteName = "BackupAssetOmissionStoreTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let store = UserDefaultsBackupAssetOmissionStore(defaults: defaults)
+
+        store.approve(digests: ["digest-b", "digest-a"])
+        store.approve(digests: ["digest-a", "digest-c"])
+
+        XCTAssertEqual(
+            UserDefaultsBackupAssetOmissionStore(defaults: defaults).loadApprovedDigests(),
+            ["digest-a", "digest-b", "digest-c"]
+        )
+        XCTAssertNil(
+            defaults.string(forKey: UserDefaultsBackupAssetOmissionStore.approvedDigestsKey)
+        )
+    }
+
     private var suiteName: String!
     private var defaults: UserDefaults!
 

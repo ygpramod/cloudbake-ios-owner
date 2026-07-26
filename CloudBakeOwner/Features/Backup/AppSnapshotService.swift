@@ -17,7 +17,12 @@ protocol AppSnapshotValidating {
     func validatePackage(at packageURL: URL) async throws
 }
 
+protocol BackupUnavailableAssetRemoving: Sendable {
+    func removeUnavailablePhotoReferences(_ references: Set<String>) throws
+}
+
 extension AppDatabase: BackupDatabaseSnapshotSource {}
+extension AppDatabase: BackupUnavailableAssetRemoving {}
 
 struct AppSnapshotPackage: Equatable, Sendable {
     let generationID: String

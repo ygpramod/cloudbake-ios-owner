@@ -109,6 +109,25 @@ final class AppDatabase {
         }
     }
 
+    func removeUnavailablePhotoReferences(_ references: Set<String>) throws {
+        guard !references.isEmpty else { return }
+        try writer.write { db in
+            for reference in references {
+                guard PhotoKitDesignPhotoLibrary.assetIdentifier(from: reference) != nil else {
+                    throw BackupExternalAssetResolverError.invalidReference
+                }
+                try db.execute(
+                    sql: "UPDATE cake_designs SET photo_reference = NULL WHERE photo_reference = ?",
+                    arguments: [reference]
+                )
+                try db.execute(
+                    sql: "DELETE FROM order_photos WHERE local_photo_path = ?",
+                    arguments: [reference]
+                )
+            }
+        }
+    }
+
     func verifyIntegrity() throws {
         try LocalRestoreService.verifyIntegrity(of: writer)
     }
