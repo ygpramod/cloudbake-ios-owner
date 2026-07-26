@@ -22,22 +22,43 @@ enum BackupExternalAssetResolverError: Error, Equatable {
 }
 
 struct PhotoKitBackupAssetResolver: BackupExternalAssetResolving {
+    typealias AuthorizationRequester = @Sendable () async -> PHAuthorizationStatus
+    typealias AuthorizationReader = @Sendable () -> PHAuthorizationStatus
+    typealias AssetFetcher = @Sendable (String) -> PHAsset?
+
     private static let maximumDimension: CGFloat = 2_048
+    private let requestAuthorization: AuthorizationRequester
+    private let authorizationStatus: AuthorizationReader
+    private let fetchAsset: AssetFetcher
+
+    init(
+        requestAuthorization: @escaping AuthorizationRequester = {
+            await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        },
+        authorizationStatus: @escaping AuthorizationReader = {
+            PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        },
+        fetchAsset: @escaping AssetFetcher = { identifier in
+            PHAsset.fetchAssets(
+                withLocalIdentifiers: [identifier],
+                options: nil
+            ).firstObject
+        }
+    ) {
+        self.requestAuthorization = requestAuthorization
+        self.authorizationStatus = authorizationStatus
+        self.fetchAsset = fetchAsset
+    }
 
     func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
         guard let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: reference) else {
             throw BackupExternalAssetResolverError.invalidReference
         }
-        let authorization = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        let authorization = await requestAuthorization()
         try Self.requireFullAuthorization(authorization)
-        let fetchedAsset = PHAsset.fetchAssets(
-            withLocalIdentifiers: [identifier],
-            options: nil
-        ).firstObject
+        let fetchedAsset = fetchAsset(identifier)
         guard let asset = fetchedAsset else {
-            try Self.requireFullAuthorization(
-                PHPhotoLibrary.authorizationStatus(for: .readWrite)
-            )
+            try Self.requireFullAuthorization(authorizationStatus())
             throw BackupExternalAssetResolverError.assetUnavailable
         }
 
@@ -47,10 +68,7 @@ struct PhotoKitBackupAssetResolver: BackupExternalAssetResolving {
         )
         let image = try await requestLightweightImage(for: asset)
         try Task.checkCancellation()
-        guard let refreshedAsset = PHAsset.fetchAssets(
-            withLocalIdentifiers: [identifier],
-            options: nil
-        ).firstObject else {
+        guard let refreshedAsset = fetchAsset(identifier) else {
             throw BackupExternalAssetResolverError.assetChangedDuringRead
         }
         let finalVersionDate = try Self.versionDate(

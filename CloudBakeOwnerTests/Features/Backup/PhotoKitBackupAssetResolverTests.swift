@@ -63,6 +63,40 @@ final class PhotoKitBackupAssetResolverTests: XCTestCase {
         )
     }
 
+    func testMissingFetchWithRevokedAccessIsNotTreatedAsDeleted() async {
+        let resolver = PhotoKitBackupAssetResolver(
+            requestAuthorization: { .authorized },
+            authorizationStatus: { .limited },
+            fetchAsset: { _ in nil }
+        )
+
+        do {
+            _ = try await resolver.resolve(reference: "photos://missing")
+            XCTFail("Expected revoked access to fail")
+        } catch let error as BackupExternalAssetResolverError {
+            XCTAssertEqual(error, .accessDenied)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testMissingFetchWithFullAccessIsUnavailable() async {
+        let resolver = PhotoKitBackupAssetResolver(
+            requestAuthorization: { .authorized },
+            authorizationStatus: { .authorized },
+            fetchAsset: { _ in nil }
+        )
+
+        do {
+            _ = try await resolver.resolve(reference: "photos://missing")
+            XCTFail("Expected missing asset to fail")
+        } catch let error as BackupExternalAssetResolverError {
+            XCTAssertEqual(error, .assetUnavailable)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func testVersionDatePrefersModificationDate() throws {
         let creationDate = Date(timeIntervalSince1970: 100)
         let modificationDate = Date(timeIntervalSince1970: 200)
