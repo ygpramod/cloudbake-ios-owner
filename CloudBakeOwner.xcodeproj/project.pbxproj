@@ -79,6 +79,7 @@
 		410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000019 /* CoreDataRepositoryTests.swift */; };
 		410000000000000000000012 /* InventoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001A /* InventoryListView.swift */; };
 		410000000000000000000013 /* InventoryListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001B /* InventoryListViewModel.swift */; };
+		C1B000000000000000000001 /* InventoryImportWorkflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C000000000000000000001 /* InventoryImportWorkflow.swift */; };
 		410000000000000000000014 /* InventoryListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001C /* InventoryListViewModelTests.swift */; };
 		410000000000000000000015 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001D /* DashboardViewModel.swift */; };
 		410000000000000000000016 /* DashboardViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000001E /* DashboardViewModelTests.swift */; };
@@ -301,6 +302,7 @@
 		420000000000000000000019 /* CoreDataRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataRepositoryTests.swift; sourceTree = "<group>"; };
 		42000000000000000000001A /* InventoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListView.swift; sourceTree = "<group>"; };
 		42000000000000000000001B /* InventoryListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModel.swift; sourceTree = "<group>"; };
+		C1C000000000000000000001 /* InventoryImportWorkflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryImportWorkflow.swift; sourceTree = "<group>"; };
 		42000000000000000000001C /* InventoryListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModelTests.swift; sourceTree = "<group>"; };
 		42000000000000000000001D /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		42000000000000000000001E /* DashboardViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModelTests.swift; sourceTree = "<group>"; };
@@ -639,6 +641,7 @@
 				420000000000000000000046 /* InventoryItemForm.swift */,
 				42000000000000000000001A /* InventoryListView.swift */,
 				42000000000000000000001B /* InventoryListViewModel.swift */,
+				C1C000000000000000000001 /* InventoryImportWorkflow.swift */,
 				420000000000000000000043 /* InventoryItemRow.swift */,
 				420000000000000000000059 /* InventoryPurchaseBillDraft.swift */,
 				420000000000000000000058 /* InventoryStockOperation.swift */,
@@ -1156,6 +1159,7 @@
 					41000000000000000000004F /* InventoryDraftValidation.swift in Sources */,
 				410000000000000000000012 /* InventoryListView.swift in Sources */,
 				410000000000000000000013 /* InventoryListViewModel.swift in Sources */,
+				C1B000000000000000000001 /* InventoryImportWorkflow.swift in Sources */,
 				41000000000000000000003B /* InventoryItemRow.swift in Sources */,
 				410000000000000000000051 /* InventoryPurchaseBillDraft.swift in Sources */,
 				410000000000000000000050 /* InventoryStockOperation.swift in Sources */,

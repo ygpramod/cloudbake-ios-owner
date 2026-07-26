@@ -75,6 +75,7 @@ final class InventoryListViewModel: ObservableObject {
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let onReminderDataChanged: () -> Void
+    private let importWorkflow: InventoryImportWorkflow
     private var acknowledgedDuplicateNameKey: String?
 
     init(
@@ -87,6 +88,11 @@ final class InventoryListViewModel: ObservableObject {
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
         self.onReminderDataChanged = onReminderDataChanged
+        self.importWorkflow = InventoryImportWorkflow(
+            repository: repository,
+            idGenerator: idGenerator,
+            dateProvider: dateProvider
+        )
         self.draftExpiryDate = defaultExpiryDate(for: .standard)
         self.draftBatchExpiryDate = Date()
         self.draftAdjustmentExpiryDate = defaultExpiryDate(for: .standard)
@@ -812,120 +818,17 @@ final class InventoryListViewModel: ObservableObject {
     }
 
     func savePurchaseBillDrafts() -> Bool {
-        let selectedDrafts = purchaseBillDrafts.filter(\.isSelected)
-        guard !selectedDrafts.isEmpty else {
-            errorMessage = "Select at least one draft item to save."
-            return false
-        }
-
-        let now = dateProvider()
-        var itemsToSave: [InventoryItem] = []
-        var batchesToSave: [InventoryStockBatch] = []
-        var plannedExistingItems: [String: InventoryItem] = [:]
-
-        for draft in selectedDrafts {
-            let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else {
-                errorMessage = "Draft item name is required."
-                return false
-            }
-
-            guard let currentQuantity = parsedQuantity(from: draft.quantityText), currentQuantity >= 0 else {
-                errorMessage = "Draft quantity must be zero or greater."
-                return false
-            }
-
-            guard let minimumQuantity = parsedQuantity(from: draft.minimumQuantityText), minimumQuantity >= 0 else {
-                errorMessage = "Draft minimum quantity must be zero or greater."
-                return false
-            }
-
-            if let existingItem = InventoryDuplicateMatcher.matchingItem(
-                named: name,
-                in: items,
-                excludingItemId: nil
-            ) {
-                let itemToUpdate = plannedExistingItems[existingItem.id] ?? existingItem
-                guard let itemQuantity = draft.unit.convertedQuantity(currentQuantity, to: existingItem.unit) else {
-                    errorMessage = "Draft unit must be compatible with \(existingItem.name)."
-                    return false
-                }
-
-                plannedExistingItems[existingItem.id] = InventoryItem(
-                    id: itemToUpdate.id,
-                    name: itemToUpdate.name,
-                    aliases: itemToUpdate.aliases,
-                    type: itemToUpdate.type,
-                    defaultExpiryDays: itemToUpdate.defaultExpiryDays,
-                    unit: itemToUpdate.unit,
-                    currentQuantity: itemToUpdate.currentQuantity + itemQuantity,
-                    minimumQuantity: itemToUpdate.minimumQuantity,
-                    earliestExpiryAt: itemToUpdate.earliestExpiryAt,
-                    hasExpiredStock: itemToUpdate.hasExpiredStock,
-                    hasExpiringSoonStock: itemToUpdate.hasExpiringSoonStock,
-                    createdAt: itemToUpdate.createdAt,
-                    updatedAt: now
-                )
-
-                if itemQuantity > 0 {
-                    batchesToSave.append(
-                        InventoryStockBatch(
-                            id: idGenerator(),
-                            inventoryItemId: existingItem.id,
-                            remainingQuantity: itemQuantity,
-                            expiresAt: draft.hasExpiryDate ? draft.expiryDate : nil,
-                            amount: nil,
-                            createdAt: now,
-                            updatedAt: now
-                        )
-                    )
-                }
-                continue
-            }
-
-            let itemId = idGenerator()
-            itemsToSave.append(
-                InventoryItem(
-                    id: itemId,
-                    name: name,
-                    type: .standard,
-                    unit: draft.unit,
-                    currentQuantity: currentQuantity,
-                    minimumQuantity: minimumQuantity,
-                    createdAt: now,
-                    updatedAt: now
-                )
-            )
-
-            if currentQuantity > 0 {
-                batchesToSave.append(
-                    InventoryStockBatch(
-                        id: idGenerator(),
-                        inventoryItemId: itemId,
-                        remainingQuantity: currentQuantity,
-                        expiresAt: draft.hasExpiryDate ? draft.expiryDate : nil,
-                        amount: nil,
-                        createdAt: now,
-                        updatedAt: now
-                    )
-                )
-            }
-        }
-
-        do {
-            itemsToSave.append(contentsOf: plannedExistingItems.values)
-            for item in itemsToSave {
-                try repository.save(item)
-            }
-            for batch in batchesToSave {
-                try saveOrCombineStockBatch(batch, updatedAt: now)
-            }
+        switch importWorkflow.savePurchaseBillDrafts(
+            purchaseBillDrafts,
+            inventoryItems: items
+        ) {
+        case .success:
             errorMessage = nil
             load()
             onReminderDataChanged()
             return true
-        } catch {
-            errorMessage = "Purchase bill drafts could not be saved."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
@@ -997,106 +900,17 @@ final class InventoryListViewModel: ObservableObject {
     }
 
     func saveVoiceInventoryDrafts() -> Bool {
-        guard !voiceInventoryDrafts.isEmpty else {
-            errorMessage = "Create at least one voice inventory draft."
-            return false
-        }
-        guard !voiceInventoryDrafts.contains(where: { $0.destination == .unresolved }) else {
-            errorMessage = "Choose whether each new item should be mapped or created."
-            return false
-        }
-
-        let now = dateProvider()
-        var itemsToSave: [InventoryItem] = []
-        var batchesToSave: [InventoryStockBatch] = []
-        var plannedExistingItems: [String: InventoryItem] = [:]
-
-        for draft in voiceInventoryDrafts {
-            let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty,
-                  let quantity = parsedQuantity(from: draft.quantityText), quantity > 0 else {
-                errorMessage = "Each voice draft needs a name and positive quantity."
-                return false
-            }
-
-            switch draft.destination {
-            case .unresolved:
-                errorMessage = "Choose whether each new item should be mapped or created."
-                return false
-            case .existingItem(let itemId):
-                guard let existingItem = items.first(where: { $0.id == itemId }),
-                      let itemQuantity = draft.unit.convertedQuantity(quantity, to: existingItem.unit) else {
-                    errorMessage = "Draft unit must be compatible with the mapped inventory item."
-                    return false
-                }
-                let currentItem = plannedExistingItems[itemId] ?? existingItem
-                plannedExistingItems[itemId] = InventoryItem(
-                    id: currentItem.id,
-                    name: currentItem.name,
-                    aliases: aliasesAddingVoiceName(name, to: currentItem),
-                    type: currentItem.type,
-                    defaultExpiryDays: currentItem.defaultExpiryDays,
-                    unit: currentItem.unit,
-                    currentQuantity: currentItem.currentQuantity + itemQuantity,
-                    minimumQuantity: currentItem.minimumQuantity,
-                    earliestExpiryAt: currentItem.earliestExpiryAt,
-                    hasExpiredStock: currentItem.hasExpiredStock,
-                    hasExpiringSoonStock: currentItem.hasExpiringSoonStock,
-                    createdAt: currentItem.createdAt,
-                    updatedAt: now
-                )
-                batchesToSave.append(
-                    InventoryStockBatch(
-                        id: idGenerator(),
-                        inventoryItemId: itemId,
-                        remainingQuantity: itemQuantity,
-                        expiresAt: draft.hasExpiryDate ? draft.expiryDate : nil,
-                        amount: nil,
-                        createdAt: now,
-                        updatedAt: now
-                    )
-                )
-            case .newItem:
-                guard let minimumQuantity = parsedQuantity(from: draft.minimumQuantityText),
-                      minimumQuantity >= 0 else {
-                    errorMessage = "Each new inventory draft needs a valid minimum quantity."
-                    return false
-                }
-                let itemId = idGenerator()
-                itemsToSave.append(
-                    InventoryItem(
-                        id: itemId,
-                        name: name,
-                        unit: draft.unit,
-                        currentQuantity: quantity,
-                        minimumQuantity: minimumQuantity,
-                        createdAt: now,
-                        updatedAt: now
-                    )
-                )
-                batchesToSave.append(
-                    InventoryStockBatch(
-                        id: idGenerator(),
-                        inventoryItemId: itemId,
-                        remainingQuantity: quantity,
-                        expiresAt: draft.hasExpiryDate ? draft.expiryDate : nil,
-                        amount: nil,
-                        createdAt: now,
-                        updatedAt: now
-                    )
-                )
-            }
-        }
-
-        do {
-            itemsToSave.append(contentsOf: plannedExistingItems.values)
-            try repository.saveVoiceInventoryImport(items: itemsToSave, batches: batchesToSave)
+        switch importWorkflow.saveVoiceDrafts(
+            voiceInventoryDrafts,
+            inventoryItems: items
+        ) {
+        case .success:
             errorMessage = nil
             load()
             onReminderDataChanged()
             return true
-        } catch {
-            errorMessage = "Voice inventory drafts could not be saved."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
@@ -1280,15 +1094,6 @@ final class InventoryListViewModel: ObservableObject {
         purchaseBillRecognizedText = ""
         purchaseBillDrafts = []
         errorMessage = nil
-    }
-
-    private func aliasesAddingVoiceName(_ voiceName: String, to item: InventoryItem) -> [String] {
-        let voiceKey = TextInputFormatting.normalizedSearchKey(voiceName)
-        let existingKeys = Set(([item.name] + item.aliases).map(TextInputFormatting.normalizedSearchKey))
-        guard !voiceKey.isEmpty, !existingKeys.contains(voiceKey) else {
-            return item.aliases
-        }
-        return InventoryAliases.aliases(from: (item.aliases + [voiceName]).joined(separator: "\n"))
     }
 
     private func uniqueExactVoiceInventoryMatch(named name: String) -> InventoryItem? {
