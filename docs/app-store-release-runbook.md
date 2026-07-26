@@ -433,9 +433,10 @@ In the external group's **Builds** tab:
 “What to Test” text used:
 
 > Please test the main bakery workflows: creating and updating orders, customers, inventory,
-> recipes and designs; recording payments; importing and exporting data; reminders; manual backup
-> and restore; and optional private iCloud backup. Please report any confusing behavior, failed
-> actions, missing data, or visual issues.
+> recipes and designs; recording payments; importing and exporting data; reminders; manual full
+> backup export; and optional private iCloud backup and restore. Direct import of an exported
+> `.cloudbakebackup` file is not available yet. Please report any confusing behavior, failed actions,
+> missing data, or visual issues.
 
 The verified result was:
 
@@ -479,8 +480,9 @@ Perform at least this release smoke test on a real iPhone:
 7. add a design/reference photo and reopen it;
 8. export and import inventory and recipe CSV files through the Files picker;
 9. create a manual full backup, choose a destination, and verify the file exists;
-10. exercise manual restore only with disposable test data;
-11. enable private Cloud Backup on a test iCloud account, run **Back Up Now**, and confirm status;
+10. enable private Cloud Backup on a test iCloud account, run **Back Up Now**, and confirm status;
+11. exercise CloudKit full restore only with disposable test data and verify the restored records and
+    photos;
 12. verify Wi-Fi/cellular confirmation behavior;
 13. force-quit and relaunch to verify persistence;
 14. submit a TestFlight feedback report for any failure or confusing behavior.
