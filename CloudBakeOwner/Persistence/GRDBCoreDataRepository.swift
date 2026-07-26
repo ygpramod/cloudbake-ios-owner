@@ -31,6 +31,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     OrderIngredientCostRepository,
     OrderExtraIngredientRepository,
     OrderInventoryReservationRepository,
+    OrderInventoryReservationMutationRepository,
     OrderChecklistRepository,
     OrderPhotoRepository,
     InventoryTransactionRepository,
@@ -39,9 +40,14 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     ExpiredStockDisposalRepository,
     PricingRuleRepository {
     let writer: any DatabaseWriter
+    let idProvider: () -> String
 
-    init(writer: any DatabaseWriter) {
+    init(
+        writer: any DatabaseWriter,
+        idProvider: @escaping () -> String = { UUID().uuidString }
+    ) {
         self.writer = writer
+        self.idProvider = idProvider
     }
 
     func arguments(_ values: [(any DatabaseValueConvertible)?]) -> StatementArguments {

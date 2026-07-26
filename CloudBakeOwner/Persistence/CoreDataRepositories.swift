@@ -146,6 +146,13 @@ protocol OrderExtraIngredientRepository {
     func save(_ ingredient: OrderExtraIngredient) throws
     func fetchOrderExtraIngredients(orderId: String) throws -> [OrderExtraIngredient]
     func deleteOrderExtraIngredient(id: String) throws
+    func deleteOrderExtraIngredient(id: String, updatedAt: Date) throws
+}
+
+extension OrderExtraIngredientRepository {
+    func deleteOrderExtraIngredient(id: String, updatedAt _: Date) throws {
+        try deleteOrderExtraIngredient(id: id)
+    }
 }
 
 protocol OrderInventoryReservationRepository {
@@ -159,6 +166,14 @@ protocol OrderInventoryReservationRepository {
         limit: Int
     ) throws -> [OrderInventoryReservationEvent]
     func fetchOrderInventoryReservationRepair(orderId: String) throws -> OrderInventoryReservationRepair?
+}
+
+protocol OrderInventoryReservationMutationRepository {
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
+        allowInventoryShortage: Bool
+    ) throws
 }
 
 protocol OrderChecklistRepository {

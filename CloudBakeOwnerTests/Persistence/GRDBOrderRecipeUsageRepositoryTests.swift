@@ -852,4 +852,314 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         }
     }
 
+    func testOrderStatusLifecycleCreatesConsumesAndDoesNotRecreateReservation() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_040_000)
+        let confirmedAt = timestamp.addingTimeInterval(100)
+        let readyAt = timestamp.addingTimeInterval(200)
+        let reopenedAt = timestamp.addingTimeInterval(300)
+        let flour = InventoryItem(
+            id: "inventory-reservation-flour",
+            name: "Reservation flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let recipe = Recipe(
+            id: "recipe-reservation-cake",
+            name: "Reservation cake",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-reservation-cake",
+            recipeId: recipe.id,
+            name: "Cake",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-reservation-flour",
+            componentId: component.id,
+            inventoryItemId: flour.id,
+            quantity: 100,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let draftOrder = Order(
+            id: "order-reservation-cake",
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: recipe.id,
+            recipeScaleMultiplier: 2,
+            title: "Reservation cake",
+            customerName: "Amy",
+            status: .draft,
+            dueAt: timestamp.addingTimeInterval(10_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let extraIngredient = OrderExtraIngredient(
+            id: "extra-reservation-flour",
+            orderId: draftOrder.id,
+            inventoryItemId: flour.id,
+            quantity: 50,
+            unit: .gram,
+            note: "Extra flour",
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(flour)
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try repository.save(draftOrder)
+        try repository.save(extraIngredient)
+
+        let confirmedOrder = try repository.changeOrderStatus(
+            order: draftOrder,
+            status: .confirmed,
+            updatedAt: confirmedAt,
+            usageId: "unused-confirmation-usage",
+            extraIngredients: nil,
+            transactionIdProvider: { "unused-confirmation-transaction" }
+        )
+
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservations(orderId: draftOrder.id),
+            [
+                OrderInventoryReservation(
+                    id: "\(draftOrder.id):\(flour.id)",
+                    orderId: draftOrder.id,
+                    inventoryItemId: flour.id,
+                    requiredQuantity: 250,
+                    unit: .gram,
+                    createdAt: confirmedAt,
+                    updatedAt: confirmedAt
+                )
+            ]
+        )
+        let createdEvent = try XCTUnwrap(
+            repository.fetchOrderInventoryReservationEvents(
+                orderId: draftOrder.id,
+                limit: 50
+            ).first
+        )
+        XCTAssertEqual(createdEvent.kind, .created)
+        XCTAssertEqual(createdEvent.reason, .orderConfirmed)
+        XCTAssertEqual(createdEvent.previousQuantity, 0)
+        XCTAssertEqual(createdEvent.newQuantity, 250)
+        XCTAssertEqual(try repository.fetchInventoryItem(id: flour.id)?.currentQuantity, 500)
+
+        try repository.save(
+            OrderExtraIngredient(
+                id: extraIngredient.id,
+                orderId: extraIngredient.orderId,
+                inventoryItemId: extraIngredient.inventoryItemId,
+                quantity: 100,
+                unit: extraIngredient.unit,
+                note: extraIngredient.note,
+                createdAt: extraIngredient.createdAt,
+                updatedAt: confirmedAt.addingTimeInterval(10)
+            )
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservations(orderId: draftOrder.id)
+                .first?
+                .requiredQuantity,
+            300
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationEvents(
+                orderId: draftOrder.id,
+                limit: 50
+            ).first?.kind,
+            .quantityChanged
+        )
+
+        let readyOrder = try repository.changeOrderStatus(
+            order: confirmedOrder,
+            status: .ready,
+            updatedAt: readyAt,
+            usageId: "usage-reservation-cake",
+            extraIngredients: nil,
+            transactionIdProvider: { "transaction-reservation-cake" }
+        )
+
+        XCTAssertEqual(try repository.fetchOrderInventoryReservations(orderId: draftOrder.id), [])
+        XCTAssertEqual(try repository.fetchInventoryItem(id: flour.id)?.currentQuantity, 200)
+        let readyEvents = try repository.fetchOrderInventoryReservationEvents(
+            orderId: draftOrder.id,
+            limit: 50
+        )
+        XCTAssertEqual(readyEvents.map(\.kind), [.released, .quantityChanged, .created])
+        XCTAssertEqual(readyEvents.first?.reason, .inventoryConsumed)
+        XCTAssertEqual(readyEvents.first?.previousQuantity, 300)
+        XCTAssertEqual(readyEvents.first?.newQuantity, 0)
+
+        _ = try repository.changeOrderStatus(
+            order: readyOrder,
+            status: .confirmed,
+            updatedAt: reopenedAt,
+            usageId: "unused-reopened-usage",
+            extraIngredients: nil,
+            transactionIdProvider: { "unused-reopened-transaction" }
+        )
+
+        XCTAssertEqual(try repository.fetchOrderInventoryReservations(orderId: draftOrder.id), [])
+        XCTAssertNotNil(try repository.fetchOrderRecipeUsage(orderId: draftOrder.id))
+        XCTAssertEqual(try repository.fetchInventoryItem(id: flour.id)?.currentQuantity, 200)
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationEvents(
+                orderId: draftOrder.id,
+                limit: 50
+            ).count,
+            3
+        )
+    }
+
+    func testOrderConfirmationUsesOtherReservationsAndSupportsShortageOverride() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_050_000)
+        let flour = InventoryItem(
+            id: "inventory-shared-reservation-flour",
+            name: "Shared reservation flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let recipe = Recipe(
+            id: "recipe-shared-reservation",
+            name: "Shared reservation cake",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-shared-reservation",
+            recipeId: recipe.id,
+            name: "Cake",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-shared-reservation-flour",
+            componentId: component.id,
+            inventoryItemId: flour.id,
+            quantity: 300,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        func makeOrder(id: String) -> Order {
+            Order(
+                id: id,
+                customerId: nil,
+                cakeDesignId: nil,
+                recipeId: recipe.id,
+                title: id,
+                customerName: "Amy",
+                status: .draft,
+                dueAt: timestamp.addingTimeInterval(10_000),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        }
+        let firstOrder = makeOrder(id: "order-first-reservation")
+        let secondOrder = makeOrder(id: "order-second-reservation")
+        try repository.save(flour)
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try repository.save(firstOrder)
+        try repository.save(secondOrder)
+
+        _ = try repository.changeOrderStatus(
+            order: firstOrder,
+            status: .confirmed,
+            updatedAt: timestamp.addingTimeInterval(10),
+            usageId: "unused-first-usage",
+            extraIngredients: nil,
+            transactionIdProvider: { "unused-first-transaction" }
+        )
+        let secondConfirmedOrder = Order(
+            id: secondOrder.id,
+            customerId: secondOrder.customerId,
+            cakeDesignId: secondOrder.cakeDesignId,
+            customerReferencePhotoId: secondOrder.customerReferencePhotoId,
+            recipeId: secondOrder.recipeId,
+            recipeScaleMultiplier: secondOrder.recipeScaleMultiplier,
+            title: secondOrder.title,
+            customerName: secondOrder.customerName,
+            status: .confirmed,
+            dueAt: secondOrder.dueAt,
+            fulfillmentType: secondOrder.fulfillmentType,
+            deliveryAddress: secondOrder.deliveryAddress,
+            cakeNotes: secondOrder.cakeNotes,
+            cakeMessage: secondOrder.cakeMessage,
+            quotedPrice: secondOrder.quotedPrice,
+            depositPaid: secondOrder.depositPaid,
+            paymentNotes: secondOrder.paymentNotes,
+            createdAt: secondOrder.createdAt,
+            updatedAt: timestamp.addingTimeInterval(20)
+        )
+
+        XCTAssertThrowsError(
+            try repository.saveOrder(
+                secondConfirmedOrder,
+                replacingExtraIngredients: [],
+                allowInventoryShortage: false
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderRecipeUsageError,
+                .insufficientStock([
+                    OrderInventoryShortage(
+                        inventoryItemId: flour.id,
+                        inventoryItemName: flour.name,
+                        requiredQuantity: 300,
+                        availableQuantity: 200,
+                        unit: .gram
+                    )
+                ])
+            )
+        }
+        XCTAssertEqual(try repository.fetchOrder(id: secondOrder.id)?.status, .draft)
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservations(orderId: secondOrder.id),
+            []
+        )
+
+        try repository.saveOrder(
+            secondConfirmedOrder,
+            replacingExtraIngredients: [],
+            allowInventoryShortage: true
+        )
+
+        XCTAssertEqual(
+            try repository.fetchInventoryReservationTotal(
+                inventoryItemId: flour.id,
+                excludingOrderId: nil
+            ),
+            600
+        )
+        XCTAssertEqual(try repository.fetchInventoryItem(id: flour.id)?.currentQuantity, 500)
+    }
+
 }

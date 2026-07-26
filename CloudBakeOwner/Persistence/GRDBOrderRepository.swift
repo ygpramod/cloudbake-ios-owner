@@ -8,6 +8,43 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
+        allowInventoryShortage: Bool
+    ) throws {
+        try writer.write { db in
+            let previousStatusValue = try String.fetchOne(
+                db,
+                sql: "SELECT status FROM orders WHERE id = ?",
+                arguments: [order.id]
+            )
+            let previousStatus = previousStatusValue.flatMap(OrderStatus.init)
+            try save(order, in: db)
+            try replaceOrderExtraIngredients(
+                orderId: order.id,
+                with: extraIngredients,
+                in: db
+            )
+            let reason = previousStatus.map {
+                $0 == order.status
+                    ? OrderInventoryReservationEventReason.orderEdited
+                    : reservationEventReason(from: $0, to: order.status)
+            } ?? (
+                order.status == .confirmed || order.status == .inProgress
+                    ? .orderConfirmed
+                    : .orderEdited
+            )
+            try synchronizeOrderInventoryReservation(
+                for: order,
+                at: order.updatedAt,
+                reason: reason,
+                allowInventoryShortage: allowInventoryShortage,
+                in: db
+            )
+        }
+    }
+
     func fetchOrder(id: String) throws -> Order? {
         try writer.read { db in
             guard let row = try Row.fetchOne(db, sql: "SELECT * FROM orders WHERE id = ?", arguments: [id]) else {
@@ -79,6 +116,13 @@ extension GRDBCoreDataRepository {
             }
 
             try save(updatedOrder, in: db)
+            try synchronizeOrderInventoryReservation(
+                for: updatedOrder,
+                at: updatedAt,
+                reason: reservationEventReason(from: order.status, to: status),
+                allowInventoryShortage: allowInventoryShortage,
+                in: db
+            )
         }
 
         return updatedOrder
@@ -131,6 +175,15 @@ extension GRDBCoreDataRepository {
     func save(_ ingredient: OrderExtraIngredient) throws {
         try writer.write { db in
             try save(ingredient, in: db)
+            if let order = try order(id: ingredient.orderId, in: db) {
+                try synchronizeOrderInventoryReservation(
+                    for: order,
+                    at: ingredient.updatedAt,
+                    reason: .orderEdited,
+                    allowInventoryShortage: true,
+                    in: db
+                )
+            }
         }
     }
 
@@ -281,11 +334,29 @@ extension GRDBCoreDataRepository {
     }
 
     func deleteOrderExtraIngredient(id: String) throws {
+        try deleteOrderExtraIngredient(id: id, updatedAt: Date())
+    }
+
+    func deleteOrderExtraIngredient(id: String, updatedAt: Date) throws {
         try writer.write { db in
+            let orderId = try String.fetchOne(
+                db,
+                sql: "SELECT order_id FROM order_extra_ingredients WHERE id = ?",
+                arguments: [id]
+            )
             try db.execute(
                 sql: "DELETE FROM order_extra_ingredients WHERE id = ?",
                 arguments: [id]
             )
+            if let orderId, let order = try order(id: orderId, in: db) {
+                try synchronizeOrderInventoryReservation(
+                    for: order,
+                    at: updatedAt,
+                    reason: .orderEdited,
+                    allowInventoryShortage: true,
+                    in: db
+                )
+            }
         }
     }
 
@@ -524,6 +595,17 @@ private extension GRDBCoreDataRepository {
         }
     }
 
+    func order(id: String, in db: Database) throws -> Order? {
+        guard let row = try Row.fetchOne(
+            db,
+            sql: "SELECT * FROM orders WHERE id = ?",
+            arguments: [id]
+        ) else {
+            return nil
+        }
+        return order(from: row)
+    }
+
     func hasOrderRecipeUsage(orderId: String, in db: Database) throws -> Bool {
         let existingUsageCount = try Int.fetchOne(
             db,
@@ -559,6 +641,209 @@ private extension GRDBCoreDataRepository {
 
     func shouldRecordRecipeUsage(from currentStatus: OrderStatus, to newStatus: OrderStatus) -> Bool {
         currentStatus.recordsRecipeUsage(whenChangingTo: newStatus)
+    }
+
+    func reservationEventReason(
+        from currentStatus: OrderStatus,
+        to newStatus: OrderStatus
+    ) -> OrderInventoryReservationEventReason {
+        if newStatus == .confirmed || newStatus == .inProgress {
+            return currentStatus == .ready || currentStatus == .completed
+                ? .orderReopened
+                : .orderConfirmed
+        }
+        if newStatus == .cancelled {
+            return .orderCancelled
+        }
+        if newStatus == .ready || newStatus == .completed {
+            return .inventoryConsumed
+        }
+        return .orderEdited
+    }
+
+    func synchronizeOrderInventoryReservation(
+        for order: Order,
+        at timestamp: Date,
+        reason: OrderInventoryReservationEventReason,
+        allowInventoryShortage: Bool,
+        in db: Database
+    ) throws {
+        let hasUsage = try hasOrderRecipeUsage(orderId: order.id, in: db)
+        let isEligibleStatus = order.status == .confirmed || order.status == .inProgress
+        let pendingUsages: [PendingInventoryUsage]
+        if isEligibleStatus, !hasUsage, let recipeId = order.recipeId {
+            do {
+                pendingUsages = try pendingInventoryUsages(
+                    recipeId: recipeId,
+                    orderId: order.id,
+                    scaleMultiplier: order.recipeScaleMultiplier,
+                    in: db
+                )
+            } catch OrderRecipeUsageError.recipeHasNoIngredients {
+                pendingUsages = []
+            }
+            try validateReservationAvailability(
+                pendingUsages,
+                excludingOrderId: order.id,
+                at: timestamp,
+                allowInventoryShortage: allowInventoryShortage,
+                in: db
+            )
+        } else {
+            pendingUsages = []
+        }
+
+        try replaceOrderInventoryReservations(
+            orderId: order.id,
+            with: pendingUsages,
+            at: timestamp,
+            reason: reason,
+            in: db
+        )
+    }
+
+    func validateReservationAvailability(
+        _ pendingUsages: [PendingInventoryUsage],
+        excludingOrderId: String,
+        at timestamp: Date,
+        allowInventoryShortage: Bool,
+        in db: Database
+    ) throws {
+        guard !allowInventoryShortage else { return }
+        let shortages = try pendingUsages.compactMap { pendingUsage -> OrderInventoryShortage? in
+            let batches = try inventoryStockBatches(
+                inventoryItemId: pendingUsage.item.id,
+                in: db
+            )
+            let usableQuantity = availableInventoryQuantity(
+                item: pendingUsage.item,
+                batches: batches,
+                at: timestamp
+            )
+            let otherReservedQuantity = try Double.fetchOne(
+                db,
+                sql: """
+                    SELECT COALESCE(SUM(required_quantity), 0)
+                    FROM order_inventory_reservations
+                    WHERE inventory_item_id = ?
+                      AND order_id != ?
+                    """,
+                arguments: [pendingUsage.item.id, excludingOrderId]
+            ) ?? 0
+            let availableToPromise = max(usableQuantity - otherReservedQuantity, 0)
+            guard pendingUsage.quantity > availableToPromise else {
+                return nil
+            }
+            return OrderInventoryShortage(
+                inventoryItemId: pendingUsage.item.id,
+                inventoryItemName: pendingUsage.item.name,
+                requiredQuantity: pendingUsage.quantity,
+                availableQuantity: availableToPromise,
+                unit: pendingUsage.item.unit
+            )
+        }
+        guard shortages.isEmpty else {
+            throw OrderRecipeUsageError.insufficientStock(shortages)
+        }
+    }
+
+    func replaceOrderInventoryReservations(
+        orderId: String,
+        with pendingUsages: [PendingInventoryUsage],
+        at timestamp: Date,
+        reason: OrderInventoryReservationEventReason,
+        in db: Database
+    ) throws {
+        let existingReservations = try reservationRows(
+            sql: """
+                SELECT *
+                FROM order_inventory_reservations
+                WHERE order_id = ?
+                ORDER BY inventory_item_id
+                """,
+            arguments: [orderId],
+            in: db
+        )
+        let existingByItemId = Dictionary(
+            uniqueKeysWithValues: existingReservations.map { ($0.inventoryItemId, $0) }
+        )
+        let pendingByItemId = Dictionary(
+            uniqueKeysWithValues: pendingUsages.map { ($0.item.id, $0) }
+        )
+        let changedItemIds = Set(existingByItemId.keys)
+            .union(pendingByItemId.keys)
+            .filter { itemId in
+                let existing = existingByItemId[itemId]
+                let pending = pendingByItemId[itemId]
+                guard let existing, let pending else {
+                    return true
+                }
+                return existing.unit != pending.item.unit
+                    || abs(existing.requiredQuantity - pending.quantity) > 0.000_000_1
+            }
+            .sorted()
+        guard !changedItemIds.isEmpty else { return }
+
+        try db.execute(
+            sql: "DELETE FROM order_inventory_reservations WHERE order_id = ?",
+            arguments: [orderId]
+        )
+        for pendingUsage in pendingUsages {
+            let existing = existingByItemId[pendingUsage.item.id]
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservations
+                    (id, order_id, inventory_item_id, required_quantity, unit,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: arguments([
+                    "\(orderId):\(pendingUsage.item.id)",
+                    orderId,
+                    pendingUsage.item.id,
+                    pendingUsage.quantity,
+                    pendingUsage.item.unit.rawValue,
+                    (existing?.createdAt ?? timestamp).timeIntervalSince1970,
+                    timestamp.timeIntervalSince1970
+                ])
+            )
+        }
+        for itemId in changedItemIds {
+            let existing = existingByItemId[itemId]
+            let pending = pendingByItemId[itemId]
+            let previousQuantity = existing?.requiredQuantity ?? 0
+            let newQuantity = pending?.quantity ?? 0
+            let kind: OrderInventoryReservationEventKind
+            if previousQuantity == 0 {
+                kind = .created
+            } else if newQuantity == 0 {
+                kind = .released
+            } else {
+                kind = .quantityChanged
+            }
+            guard let unit = pending?.item.unit ?? existing?.unit else {
+                continue
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: arguments([
+                    idProvider(),
+                    orderId,
+                    itemId,
+                    kind.rawValue,
+                    reason.rawValue,
+                    previousQuantity,
+                    newQuantity,
+                    unit.rawValue,
+                    timestamp.timeIntervalSince1970
+                ])
+            )
+        }
     }
 
     func recordRecipeUsage(
