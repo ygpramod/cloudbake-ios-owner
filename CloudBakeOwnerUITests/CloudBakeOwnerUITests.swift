@@ -501,10 +501,16 @@ final class CloudBakeOwnerUITests: XCTestCase {
             revealing: notificationsSwitch,
             in: app
         )
-        scrollToHittable(
+        XCTAssertTrue(app.staticTexts["Enabled"].waitForExistence(timeout: 10))
+        expectation(
+            for: NSPredicate(format: "value == %@", "1"),
+            evaluatedWith: notificationsSwitch
+        )
+        waitForExpectations(timeout: 5)
+        positionScrollableElementForInteraction(
             notificationsSwitch,
-            in: app,
-            scrollContainer: settingsScroll
+            in: settingsScroll,
+            app: app
         )
         tapWhenReady(notificationsSwitch)
 

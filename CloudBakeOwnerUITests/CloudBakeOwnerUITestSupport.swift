@@ -480,6 +480,32 @@ extension CloudBakeOwnerUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
+        positionScrollableElementForInteraction(
+            element,
+            in: scrollContainer,
+            app: app,
+            timeout: timeout,
+            file: file,
+            line: line
+        )
+        tapWhenReady(
+            element,
+            waitingFor: destination,
+            in: app,
+            timeout: timeout,
+            file: file,
+            line: line
+        )
+    }
+
+    func positionScrollableElementForInteraction(
+        _ element: XCUIElement,
+        in scrollContainer: XCUIElement,
+        app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
         scrollToHittable(
             element,
             in: app,
@@ -520,14 +546,6 @@ extension CloudBakeOwnerUITests {
                 && element.frame.midY >= reliableTop
                 && element.frame.midY <= reliableBottom,
             "Element was not positioned safely between navigation overlays.",
-            file: file,
-            line: line
-        )
-        tapWhenReady(
-            element,
-            waitingFor: destination,
-            in: app,
-            timeout: timeout,
             file: file,
             line: line
         )
