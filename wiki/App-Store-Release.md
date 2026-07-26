@@ -43,3 +43,9 @@ Version `1.0 (1)` was uploaded on 22 July 2026. The first external TestFlight gr
 and the build was submitted for Beta App Review with automatic tester notification enabled. At the
 time this page was authored, its status was **Waiting for Review** and final App Store submission had
 not yet occurred.
+
+A later release-candidate archive proved that Developer Program team access and App Store Connect
+upload access must be checked separately. Xcode can display a valid team and Admin role while export
+still fails at the account step because the same Apple Account is absent from, or lacks app access
+in, App Store Connect. The runbook records the exact diagnostic and recovery sequence; do not
+rebuild, revoke certificates, or increment the build number until the account mapping is corrected.
