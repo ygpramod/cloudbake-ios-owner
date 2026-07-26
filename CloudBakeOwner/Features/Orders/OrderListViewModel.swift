@@ -1691,6 +1691,8 @@ final class OrderListViewModel: ObservableObject {
             return "Link a recipe before using it."
         case .alreadyRecorded:
             return "Recipe has already been used for this order."
+        case .inventoryConsumptionRequired:
+            return "Confirm inventory deduction before saving."
         case .recipeHasNoIngredients:
             return "Recipe has no ingredients to deduct."
         case .missingInventoryItem:

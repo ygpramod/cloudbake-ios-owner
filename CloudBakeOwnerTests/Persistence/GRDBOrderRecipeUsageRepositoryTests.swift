@@ -495,6 +495,20 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             createdAt: timestamp,
             updatedAt: timestamp
         )
+        let otherOrder = Order(
+            id: "order-other-sprinkles",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Other sprinkle cake",
+            customerName: "Bea",
+            status: .draft,
+            dueAt: order.dueAt,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
         let extraIngredient = OrderExtraIngredient(
             id: "extra-sprinkles",
             orderId: order.id,
@@ -508,10 +522,95 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
 
         try repository.save(item)
         try repository.save(order)
+        try repository.save(otherOrder)
         try repository.save(extraIngredient)
+        XCTAssertThrowsError(
+            try repository.save(
+                OrderExtraIngredient(
+                    id: extraIngredient.id,
+                    orderId: otherOrder.id,
+                    inventoryItemId: extraIngredient.inventoryItemId,
+                    quantity: extraIngredient.quantity,
+                    unit: extraIngredient.unit,
+                    note: extraIngredient.note,
+                    createdAt: extraIngredient.createdAt,
+                    updatedAt: timestamp.addingTimeInterval(10)
+                )
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderExtraIngredientError,
+                .orderReassignmentNotAllowed
+            )
+        }
+        XCTAssertEqual(
+            try repository.fetchOrderExtraIngredients(orderId: order.id),
+            [extraIngredient]
+        )
         try repository.deleteOrderExtraIngredient(id: extraIngredient.id)
 
         XCTAssertEqual(try repository.fetchOrderExtraIngredients(orderId: order.id), [])
+    }
+
+    func testConfirmedOrderRejectsLinkedRecipeWithoutRequirements() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let recipe = Recipe(
+            id: "recipe-empty-reservation",
+            name: "Empty recipe",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let draftOrder = Order(
+            id: "order-empty-reservation",
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: recipe.id,
+            title: "Empty recipe cake",
+            customerName: "Amy",
+            status: .draft,
+            dueAt: timestamp.addingTimeInterval(10_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let confirmedOrder = Order(
+            id: draftOrder.id,
+            customerId: draftOrder.customerId,
+            cakeDesignId: draftOrder.cakeDesignId,
+            customerReferencePhotoId: draftOrder.customerReferencePhotoId,
+            recipeId: draftOrder.recipeId,
+            recipeScaleMultiplier: draftOrder.recipeScaleMultiplier,
+            title: draftOrder.title,
+            customerName: draftOrder.customerName,
+            status: .confirmed,
+            dueAt: draftOrder.dueAt,
+            fulfillmentType: draftOrder.fulfillmentType,
+            deliveryAddress: draftOrder.deliveryAddress,
+            cakeNotes: draftOrder.cakeNotes,
+            cakeMessage: draftOrder.cakeMessage,
+            quotedPrice: draftOrder.quotedPrice,
+            depositPaid: draftOrder.depositPaid,
+            paymentNotes: draftOrder.paymentNotes,
+            createdAt: draftOrder.createdAt,
+            updatedAt: timestamp.addingTimeInterval(10)
+        )
+        try repository.save(recipe)
+        try repository.save(draftOrder)
+
+        XCTAssertThrowsError(
+            try repository.saveOrder(
+                confirmedOrder,
+                replacingExtraIngredients: [],
+                allowInventoryShortage: false
+            )
+        ) { error in
+            XCTAssertEqual(error as? OrderRecipeUsageError, .recipeHasNoIngredients)
+        }
+        XCTAssertEqual(try repository.fetchOrder(id: draftOrder.id), draftOrder)
     }
 
     func testOrderInventoryReservationStateCanBeRead() throws {
@@ -986,6 +1085,45 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             .quantityChanged
         )
 
+        let directReadyOrder = Order(
+            id: confirmedOrder.id,
+            customerId: confirmedOrder.customerId,
+            cakeDesignId: confirmedOrder.cakeDesignId,
+            customerReferencePhotoId: confirmedOrder.customerReferencePhotoId,
+            recipeId: confirmedOrder.recipeId,
+            recipeScaleMultiplier: confirmedOrder.recipeScaleMultiplier,
+            title: confirmedOrder.title,
+            customerName: confirmedOrder.customerName,
+            status: .ready,
+            dueAt: confirmedOrder.dueAt,
+            fulfillmentType: confirmedOrder.fulfillmentType,
+            deliveryAddress: confirmedOrder.deliveryAddress,
+            cakeNotes: confirmedOrder.cakeNotes,
+            cakeMessage: confirmedOrder.cakeMessage,
+            quotedPrice: confirmedOrder.quotedPrice,
+            depositPaid: confirmedOrder.depositPaid,
+            paymentNotes: confirmedOrder.paymentNotes,
+            createdAt: confirmedOrder.createdAt,
+            updatedAt: readyAt
+        )
+        XCTAssertThrowsError(
+            try repository.saveOrder(
+                directReadyOrder,
+                replacingExtraIngredients: try repository.fetchOrderExtraIngredients(
+                    orderId: confirmedOrder.id
+                ),
+                allowInventoryShortage: false
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderRecipeUsageError,
+                .inventoryConsumptionRequired
+            )
+        }
+        XCTAssertNil(try repository.fetchOrderRecipeUsage(orderId: confirmedOrder.id))
+        XCTAssertEqual(try repository.fetchOrder(id: confirmedOrder.id)?.status, .confirmed)
+        XCTAssertEqual(try repository.fetchInventoryItem(id: flour.id)?.currentQuantity, 500)
+
         let readyOrder = try repository.changeOrderStatus(
             order: confirmedOrder,
             status: .ready,
@@ -1160,6 +1298,35 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             600
         )
         XCTAssertEqual(try repository.fetchInventoryItem(id: flour.id)?.currentQuantity, 500)
+
+        let extraIngredient = OrderExtraIngredient(
+            id: "extra-first-reservation",
+            orderId: firstOrder.id,
+            inventoryItemId: flour.id,
+            quantity: 1,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp.addingTimeInterval(30)
+        )
+        XCTAssertThrowsError(try repository.save(extraIngredient)) { error in
+            XCTAssertEqual(
+                error as? OrderRecipeUsageError,
+                .insufficientStock([
+                    OrderInventoryShortage(
+                        inventoryItemId: flour.id,
+                        inventoryItemName: flour.name,
+                        requiredQuantity: 301,
+                        availableQuantity: 200,
+                        unit: .gram
+                    )
+                ])
+            )
+        }
+        XCTAssertEqual(
+            try repository.fetchOrderExtraIngredients(orderId: firstOrder.id),
+            []
+        )
     }
 
     func testReservationRepairCompletesValidOrdersAndRetriesFailures() throws {

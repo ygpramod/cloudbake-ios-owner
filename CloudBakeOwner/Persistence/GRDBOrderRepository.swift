@@ -20,6 +20,13 @@ extension GRDBCoreDataRepository {
                 arguments: [order.id]
             )
             let previousStatus = previousStatusValue.flatMap(OrderStatus.init)
+            let isEnteringConsumedStatus = previousStatus != order.status &&
+                (order.status == .ready || order.status == .completed)
+            if isEnteringConsumedStatus,
+               order.recipeId != nil,
+               try !hasOrderRecipeUsage(orderId: order.id, in: db) {
+                throw OrderRecipeUsageError.inventoryConsumptionRequired
+            }
             try save(order, in: db)
             try replaceOrderExtraIngredients(
                 orderId: order.id,
@@ -257,13 +264,21 @@ extension GRDBCoreDataRepository {
 
     func save(_ ingredient: OrderExtraIngredient) throws {
         try writer.write { db in
+            let existingOrderId = try String.fetchOne(
+                db,
+                sql: "SELECT order_id FROM order_extra_ingredients WHERE id = ?",
+                arguments: [ingredient.id]
+            )
+            guard existingOrderId == nil || existingOrderId == ingredient.orderId else {
+                throw OrderExtraIngredientError.orderReassignmentNotAllowed
+            }
             try save(ingredient, in: db)
             if let order = try order(id: ingredient.orderId, in: db) {
                 try synchronizeOrderInventoryReservation(
                     for: order,
                     at: ingredient.updatedAt,
                     reason: .orderEdited,
-                    allowInventoryShortage: true,
+                    allowInventoryShortage: false,
                     in: db
                 )
             }
@@ -761,16 +776,12 @@ private extension GRDBCoreDataRepository {
         let isEligibleStatus = order.status == .confirmed || order.status == .inProgress
         let pendingUsages: [PendingInventoryUsage]
         if isEligibleStatus, !hasUsage, let recipeId = order.recipeId {
-            do {
-                pendingUsages = try pendingInventoryUsages(
-                    recipeId: recipeId,
-                    orderId: order.id,
-                    scaleMultiplier: order.recipeScaleMultiplier,
-                    in: db
-                )
-            } catch OrderRecipeUsageError.recipeHasNoIngredients {
-                pendingUsages = []
-            }
+            pendingUsages = try pendingInventoryUsages(
+                recipeId: recipeId,
+                orderId: order.id,
+                scaleMultiplier: order.recipeScaleMultiplier,
+                in: db
+            )
             try validateReservationAvailability(
                 pendingUsages,
                 excludingOrderId: order.id,

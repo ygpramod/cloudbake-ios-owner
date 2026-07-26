@@ -683,10 +683,15 @@ struct OrderPhoto: Equatable {
 enum OrderRecipeUsageError: Error, Equatable {
     case orderHasNoLinkedRecipe
     case alreadyRecorded
+    case inventoryConsumptionRequired
     case recipeHasNoIngredients
     case missingInventoryItem(String)
     case incompatibleIngredientUnit(itemName: String)
     case insufficientStock([OrderInventoryShortage])
+}
+
+enum OrderExtraIngredientError: Error, Equatable {
+    case orderReassignmentNotAllowed
 }
 
 struct OrderInventoryShortage: Equatable, Identifiable {
