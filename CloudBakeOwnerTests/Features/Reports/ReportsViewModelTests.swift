@@ -22,6 +22,27 @@ final class ReportsViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testRollingYearDefaultRemainsValidAcrossDaylightSavingFallback() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(
+            TimeZone(identifier: "America/Los_Angeles")
+        )
+        let now = try XCTUnwrap(
+            calendar.date(
+                from: DateComponents(year: 2025, month: 11, day: 2, hour: 12)
+            )
+        )
+        let viewModel = ReportsViewModel(
+            repository: try makeRepository(),
+            dateProvider: { now },
+            calendar: calendar
+        )
+
+        viewModel.load()
+
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testPaymentLedgerDefaultsToOutstandingForRollingYear() throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let repository = try makeRepository()

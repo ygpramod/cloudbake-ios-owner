@@ -9,7 +9,10 @@ struct ReportDateRange: Equatable {
         guard start < end else {
             throw PaymentReportQueryError.invalidDateRange
         }
-        guard end.timeIntervalSince(start) <= 366 * 86_400 else {
+        // The UI supplies at most 366 complete calendar dates. A half-open
+        // range spanning a daylight-saving fall-back can be one hour longer
+        // than 366 fixed 24-hour periods, so reject only at 367 full days.
+        guard end.timeIntervalSince(start) < 367 * 86_400 else {
             throw PaymentReportQueryError.dateRangeTooLarge
         }
     }
