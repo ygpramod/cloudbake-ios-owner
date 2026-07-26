@@ -265,20 +265,23 @@ The Payment Ledger is a full ledger containing both money received and money sti
 with summary totals and order drill-down. It opens on the Outstanding filter because that is the
 actionable owner view.
 
+Payment Ledger and Sales & Orders let the owner switch between Day, Week, and Month grouping and
+default to Month. Order Profitability remains an order-by-order list with date filters rather than
+grouped totals.
+
 Inventory usage and waste, upcoming workload, customer summary, and recipe/design popularity
 reports are outside this improvement point.
 
 The following also require owner confirmation before implementation:
 
-1. whether the report groups by day, week, month, or lets the owner switch;
-2. whether a date filter applies to payment received date, order due date, or both through separate
+1. whether a date filter applies to payment received date, order due date, or both through separate
    filters;
-3. whether payment method is required;
-4. whether correcting a mistaken receipt means a reversible void/correction entry or editable
+2. whether payment method is required;
+3. whether correcting a mistaken receipt means a reversible void/correction entry or editable
    history;
-5. whether pre-migration aggregate paid amounts should become one clearly labelled opening receipt
+4. whether pre-migration aggregate paid amounts should become one clearly labelled opening receipt
    or remain outside the receipt ledger with a migration note;
-6. whether CSV export is required in this slice.
+5. whether CSV export is required in this slice.
 
 Do not implement the report UI or destructive payment correction behavior until these decisions are
 recorded here.
