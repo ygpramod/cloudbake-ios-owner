@@ -120,7 +120,7 @@
 		410000000000000000000032 /* OrderReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003A /* OrderReminderSchedulerTests.swift */; };
 		410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003B /* OrderPhotoFileStore.swift */; };
 		410000000000000000000034 /* CustomerConsumerProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003C /* CustomerConsumerProfile.swift */; };
-		410000000000000000000035 /* OrderCenteredPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003D /* OrderCenteredPopup.swift */; };
+		410000000000000000000035 /* CloudBakeNativeDialogs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003D /* CloudBakeNativeDialogs.swift */; };
 		410000000000000000000036 /* OrderRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003E /* OrderRow.swift */; };
 		410000000000000000000037 /* OrderDetailPhotosSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000003F /* OrderDetailPhotosSection.swift */; };
 		41000000000000000000003B /* InventoryItemRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000043 /* InventoryItemRow.swift */; };
@@ -328,7 +328,7 @@
 		42000000000000000000003A /* OrderReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/OrderReminderSchedulerTests.swift; sourceTree = "<group>"; };
 		42000000000000000000003B /* OrderPhotoFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoFileStore.swift; sourceTree = "<group>"; };
 		42000000000000000000003C /* CustomerConsumerProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerConsumerProfile.swift; sourceTree = "<group>"; };
-		42000000000000000000003D /* OrderCenteredPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCenteredPopup.swift; sourceTree = "<group>"; };
+		42000000000000000000003D /* CloudBakeNativeDialogs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeNativeDialogs.swift; sourceTree = "<group>"; };
 		42000000000000000000003E /* OrderRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderRow.swift; sourceTree = "<group>"; };
 		42000000000000000000003F /* OrderDetailPhotosSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailPhotosSection.swift; sourceTree = "<group>"; };
 		420000000000000000000043 /* InventoryItemRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryItemRow.swift; sourceTree = "<group>"; };
@@ -599,6 +599,7 @@
 		450000000000000000000020 /* SharedUI */ = {
 			isa = PBXGroup;
 			children = (
+				42000000000000000000003D /* CloudBakeNativeDialogs.swift */,
 				42000000000000000000007D /* CloudBakeScreenStyle.swift */,
 			);
 			path = SharedUI;
@@ -655,7 +656,6 @@
 		45000000000000000000001E /* Orders */ = {
 			isa = PBXGroup;
 			children = (
-				42000000000000000000003D /* OrderCenteredPopup.swift */,
 				420000000000000000000053 /* OrderDetailChecklistSection.swift */,
 				42000000000000000000003F /* OrderDetailPhotosSection.swift */,
 				420000000000000000000052 /* OrderDetailView.swift */,
@@ -1130,7 +1130,7 @@
 				41000000000000000000002B /* OrderListView.swift in Sources */,
 				41000000000000000000002C /* OrderListViewModel.swift in Sources */,
 				410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */,
-				410000000000000000000035 /* OrderCenteredPopup.swift in Sources */,
+				410000000000000000000035 /* CloudBakeNativeDialogs.swift in Sources */,
 				41000000000000000000004B /* OrderDetailChecklistSection.swift in Sources */,
 				410000000000000000000037 /* OrderDetailPhotosSection.swift in Sources */,
 				41000000000000000000004A /* OrderDetailView.swift in Sources */,

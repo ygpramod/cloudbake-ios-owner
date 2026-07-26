@@ -53,7 +53,6 @@ struct ReminderView: View {
             isPresented: optionalPresentationBinding($pendingPaidItem),
             title: "Mark As Paid?",
             message: "Confirm payment received for this order.",
-            systemImage: "checkmark.circle",
             cancelAccessibilityIdentifier: "reminders.paymentDue.markPaid.cancel",
             onCancel: { pendingPaidItem = nil }
         ) {

@@ -118,7 +118,6 @@ struct RecipeDetailView: View {
             isPresented: optionalPresentationBinding($pendingDeleteIngredientRow),
             title: "Delete Ingredient?",
             message: pendingDeleteIngredientSubtitle,
-            systemImage: "trash",
             cancelAccessibilityIdentifier: "recipes.ingredient.delete.cancel",
             onCancel: { pendingDeleteIngredientRow = nil }
         ) {

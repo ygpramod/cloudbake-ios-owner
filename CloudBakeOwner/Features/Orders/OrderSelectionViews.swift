@@ -368,7 +368,6 @@ struct CustomerSelectionView: View {
             isPresented: $isChoosingAddMode,
             title: "Add Customer",
             message: "Choose how to start this customer record",
-            systemImage: "person.badge.plus",
             cancelAccessibilityIdentifier: "orders.customerSelection.add.cancel",
             onCancel: { isChoosingAddMode = false }
         ) {

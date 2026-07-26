@@ -192,7 +192,6 @@ struct CustomerDetailView: View {
             isPresented: $isConfirmingDelete,
             title: "Delete Customer?",
             message: "Delete this customer record. Existing orders keep their customer name snapshot.",
-            systemImage: "trash",
             cancelAccessibilityIdentifier: "customers.delete.cancel",
             onCancel: { isConfirmingDelete = false }
         ) {
