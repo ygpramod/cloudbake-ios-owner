@@ -12,16 +12,29 @@ final class AppSnapshotServiceTests: XCTestCase {
         try fixture.write(Data("logo".utf8), to: "Branding/custom-logo.jpg")
         try repository.save(fixture.design(id: "captured", photoReference: "OrderPhotos/design.jpg"))
         try repository.save(fixture.design(id: "external", photoReference: "photos://asset-id"))
-        let reminderOrder = fixture.order(id: "captured-reminder-order")
+        let completedAt = Date(timeIntervalSince1970: 1_800_000_100)
+        let reminderOrder = fixture.order(
+            id: "captured-reminder-order",
+            status: .completed,
+            completedAt: completedAt
+        )
         let reminderConfiguration = try OrderReminderConfiguration(
             mode: .custom,
             dayOffsets: [9, 2],
             includesDueTime: false
         )
+        let paymentReminderConfiguration = try PaymentReminderConfiguration(
+            hour: 16,
+            minute: 45
+        )
         try repository.save(reminderOrder)
         try repository.saveOrderReminderConfiguration(
             reminderConfiguration,
             orderId: reminderOrder.id,
+            updatedAt: reminderOrder.updatedAt
+        )
+        try repository.savePaymentReminderConfiguration(
+            paymentReminderConfiguration,
             updatedAt: reminderOrder.updatedAt
         )
 
@@ -49,6 +62,14 @@ final class AppSnapshotServiceTests: XCTestCase {
                 orderId: reminderOrder.id
             ),
             reminderConfiguration
+        )
+        XCTAssertEqual(
+            try snapshotRepository.fetchPaymentReminderConfiguration(),
+            paymentReminderConfiguration
+        )
+        XCTAssertEqual(
+            try snapshotRepository.fetchOrder(id: reminderOrder.id)?.completedAt,
+            completedAt
         )
 
         let manifest = try fixture.decodeManifest(at: package.manifestURL)
@@ -578,7 +599,9 @@ private final class Fixture: @unchecked Sendable {
 
     func order(
         id: String,
-        customerReferencePhotoId: String? = nil
+        customerReferencePhotoId: String? = nil,
+        status: OrderStatus = .draft,
+        completedAt: Date? = nil
     ) -> Order {
         let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
         return Order(
@@ -588,11 +611,12 @@ private final class Fixture: @unchecked Sendable {
             customerReferencePhotoId: customerReferencePhotoId,
             title: id,
             customerName: "Amy",
-            status: .draft,
+            status: status,
             dueAt: timestamp,
             fulfillmentType: .pickup,
             deliveryAddress: nil,
             cakeNotes: nil,
+            completedAt: completedAt,
             createdAt: timestamp,
             updatedAt: timestamp
         )
