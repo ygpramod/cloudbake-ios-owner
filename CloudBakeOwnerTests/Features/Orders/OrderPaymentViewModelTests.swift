@@ -113,4 +113,39 @@ final class OrderPaymentViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedOrderPaymentReceipts, [receipt])
         XCTAssertEqual(viewModel.selectedOrderLegacyPaidAmount, 50)
     }
+
+    func testVoidPaymentAppendsCorrectionAndRefreshesBalance() {
+        let repository = FakeOrderRepository()
+        let receivedAt = Date(timeIntervalSince1970: 1_800_080_000)
+        let voidedAt = receivedAt.addingTimeInterval(60)
+        let order = makeOrder(
+            id: "payment-correction-order",
+            dueAt: receivedAt,
+            quotedPrice: 200,
+            depositPaid: 75
+        )
+        let receipt = PaymentReceipt(
+            id: "receipt-one",
+            orderId: order.id,
+            amount: 25,
+            receivedAt: receivedAt,
+            note: nil,
+            createdAt: receivedAt,
+            void: nil
+        )
+        repository.orders = [order]
+        repository.paymentReceipts = [receipt]
+        repository.legacyPaidAmounts[order.id] = 50
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { voidedAt }
+        )
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertTrue(viewModel.voidPaymentReceipt(receipt, reason: " Wrong amount "))
+
+        XCTAssertEqual(viewModel.selectedOrder?.depositPaid, 50)
+        XCTAssertEqual(viewModel.selectedOrderPaymentReceipts.first?.void?.reason, "Wrong amount")
+        XCTAssertEqual(repository.paymentReceiptVoids.first?.voidedAt, voidedAt)
+    }
 }

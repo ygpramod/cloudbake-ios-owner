@@ -977,6 +977,28 @@ final class OrderListViewModel: ObservableObject {
         return addPayment(to: selectedOrder, amountText: amountText)
     }
 
+    func voidPaymentReceipt(_ receipt: PaymentReceipt, reason: String) -> Bool {
+        let now = dateProvider()
+        do {
+            _ = try repository.voidPaymentReceipt(
+                receiptId: receipt.id,
+                reason: reason,
+                voidedAt: now,
+                createdAt: now
+            )
+            return refreshAfterRecordingPayment(orderId: receipt.orderId)
+        } catch PaymentReceiptPersistenceError.alreadyVoided {
+            errorMessage = "This payment has already been voided."
+            return false
+        } catch PaymentReceiptPersistenceError.receiptNotFound {
+            errorMessage = "Payment could not be found."
+            return false
+        } catch {
+            errorMessage = "Payment correction could not be saved."
+            return false
+        }
+    }
+
     func beginAddingExtraIngredient() {
         loadAvailableInventoryItems()
         resetExtraIngredientDraft(keepingInventoryItems: true)

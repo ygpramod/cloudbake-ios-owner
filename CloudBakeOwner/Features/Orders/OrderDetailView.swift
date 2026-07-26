@@ -23,6 +23,8 @@ struct OrderDetailView: View {
     @State private var editingChecklistItem: OrderChecklistItem?
     @State private var editedChecklistItemTitle = ""
     @State private var partialPaymentAmount = ""
+    @State private var receiptPendingVoid: PaymentReceipt?
+    @State private var paymentVoidReason = ""
     @FocusState private var isChecklistTitleFocused: Bool
 
     init(
@@ -425,6 +427,36 @@ struct OrderDetailView: View {
                 }
                 .accessibilityIdentifier("orders.detail.confirmInventoryDeduction")
             }
+        }
+        .alert(
+            "Void Payment",
+            isPresented: Binding(
+                get: { receiptPendingVoid != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        receiptPendingVoid = nil
+                        paymentVoidReason = ""
+                    }
+                }
+            )
+        ) {
+            TextField("Reason (optional)", text: $paymentVoidReason)
+            Button("Cancel", role: .cancel) {
+                receiptPendingVoid = nil
+                paymentVoidReason = ""
+            }
+            Button("Void Payment", role: .destructive) {
+                if let receiptPendingVoid {
+                    _ = viewModel.voidPaymentReceipt(
+                        receiptPendingVoid,
+                        reason: paymentVoidReason
+                    )
+                }
+                self.receiptPendingVoid = nil
+                paymentVoidReason = ""
+            }
+        } message: {
+            Text("The original payment stays in history and is excluded from totals.")
         }
         .centeredOrderPopup(
             isPresented: statusPendingInventoryShortage != nil,
@@ -911,8 +943,90 @@ struct OrderDetailView: View {
                             .accessibilityIdentifier("orders.detail.balanceDue")
                     }
                 }
+
+                if viewModel.selectedOrderLegacyPaidAmount > 0 {
+                    CloudBakeDetailDivider()
+                    paymentHistoryRow(
+                        title: "Legacy payment — date unknown",
+                        amount: viewModel.selectedOrderLegacyPaidAmount,
+                        detail: nil,
+                        isVoided: false,
+                        receipt: nil
+                    )
+                    .accessibilityIdentifier("orders.detail.payment.legacy")
+                }
+
+                ForEach(viewModel.selectedOrderPaymentReceipts, id: \.id) { receipt in
+                    CloudBakeDetailDivider()
+                    paymentHistoryRow(
+                        title: receipt.receivedAt.formatted(
+                            date: .abbreviated,
+                            time: .shortened
+                        ),
+                        amount: receipt.amount,
+                        detail: paymentReceiptDetail(receipt),
+                        isVoided: receipt.isVoided,
+                        receipt: receipt
+                    )
+                    .accessibilityIdentifier("orders.detail.payment.receipt.\(receipt.id)")
+                }
             }
         }
+    }
+
+    private func paymentHistoryRow(
+        title: String,
+        amount: Decimal,
+        detail: String?,
+        isVoided: Bool,
+        receipt: PaymentReceipt?
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(isVoided ? .secondary : .primary)
+                if let detail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(isVoided ? .red : .secondary)
+                }
+            }
+            Spacer()
+            Text(formattedMoney(amount))
+                .font(.subheadline.weight(.semibold))
+                .strikethrough(isVoided)
+                .foregroundStyle(isVoided ? .secondary : .primary)
+            if let receipt, !receipt.isVoided {
+                Menu {
+                    Button("Void Payment", role: .destructive) {
+                        paymentVoidReason = ""
+                        receiptPendingVoid = receipt
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Payment Actions")
+            }
+        }
+        .padding(.vertical, 12)
+    }
+
+    private func paymentReceiptDetail(_ receipt: PaymentReceipt) -> String? {
+        var details = [String]()
+        if let note = receipt.note {
+            details.append(note)
+        }
+        if let correction = receipt.void {
+            var correctionText = "Voided \(correction.voidedAt.formatted(date: .abbreviated, time: .shortened))"
+            if let reason = correction.reason {
+                correctionText += " — \(reason)"
+            }
+            details.append(correctionText)
+        }
+        return details.isEmpty ? nil : details.joined(separator: "\n")
     }
 
     private var checklistSection: some View {
