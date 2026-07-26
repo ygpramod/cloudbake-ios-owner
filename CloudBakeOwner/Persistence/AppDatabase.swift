@@ -9,24 +9,11 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     static func openConfigured() throws -> AppDatabase {
-        if ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1" {
-            let database = try makeInMemory()
-            try database.seedCustomerFixtureIfRequested()
-            try database.seedOrderCustomerLinkFixtureIfRequested()
-            try database.seedCompletedOrderFixtureIfRequested()
-            try database.seedCompletedOrderPaginationFixtureIfRequested()
-            try database.seedOrderReminderFixtureIfRequested()
-            try database.seedOrderStatusFailureFixtureIfRequested()
-            try database.seedInventoryFixtureIfRequested()
-            try database.seedLongInventoryFixtureIfRequested()
-            try database.seedExpiredInventoryFixtureIfRequested()
-            try database.seedProjectedDemandFixtureIfRequested()
-            try database.seedCakeDesignFixtureIfRequested()
-            try database.seedDesignGalleryFixtureIfRequested()
-            try database.seedDesignScrollFixtureIfRequested()
-            try database.seedOrderPhotoFixtureIfRequested()
-            return database
+        #if DEBUG
+        if let acceptanceDatabase = try AcceptanceTestDatabaseFixtures.openIfRequested() {
+            return acceptanceDatabase
         }
+        #endif
 
         return try openDefault()
     }
@@ -135,6 +122,24 @@ final class AppDatabase: @unchecked Sendable {
 
     func close() throws {
         try writer.close()
+    }
+
+    #if DEBUG
+    func seedAcceptanceFixturesIfRequested() throws {
+        try seedCustomerFixtureIfRequested()
+        try seedOrderCustomerLinkFixtureIfRequested()
+        try seedCompletedOrderFixtureIfRequested()
+        try seedCompletedOrderPaginationFixtureIfRequested()
+        try seedOrderReminderFixtureIfRequested()
+        try seedOrderStatusFailureFixtureIfRequested()
+        try seedInventoryFixtureIfRequested()
+        try seedLongInventoryFixtureIfRequested()
+        try seedExpiredInventoryFixtureIfRequested()
+        try seedProjectedDemandFixtureIfRequested()
+        try seedCakeDesignFixtureIfRequested()
+        try seedDesignGalleryFixtureIfRequested()
+        try seedDesignScrollFixtureIfRequested()
+        try seedOrderPhotoFixtureIfRequested()
     }
 
     private func seedCustomerFixtureIfRequested() throws {
@@ -750,6 +755,7 @@ final class AppDatabase: @unchecked Sendable {
         }
         try onePixelPNG.write(to: fileURL, options: .atomic)
     }
+    #endif
 
     private static func configuration() -> Configuration {
         var configuration = Configuration()

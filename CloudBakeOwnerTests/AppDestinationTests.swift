@@ -23,6 +23,25 @@ final class AppDestinationTests: XCTestCase {
         )
     }
 
+    func testAcceptanceRuntimeRequiresExplicitInMemoryDatabaseFlag() throws {
+        XCTAssertFalse(AcceptanceTestRuntime.isRunning(environment: [:]))
+        XCTAssertFalse(
+            AcceptanceTestRuntime.isRunning(
+                environment: ["CLOUDBAKE_SEED_CUSTOMER_FIXTURE": "1"]
+            )
+        )
+        XCTAssertTrue(
+            AcceptanceTestRuntime.isRunning(
+                environment: ["CLOUDBAKE_USE_IN_MEMORY_DATABASE": "1"]
+            )
+        )
+        XCTAssertNil(
+            try AcceptanceTestDatabaseFixtures.openIfRequested(
+                environment: ["CLOUDBAKE_SEED_CUSTOMER_FIXTURE": "1"]
+            )
+        )
+    }
+
     func testReservationRepairRunnerDrainsFullBatchesAndStopsAfterPartialBatch() async throws {
         let repository = FakeReservationRepairRepository(
             summaries: [

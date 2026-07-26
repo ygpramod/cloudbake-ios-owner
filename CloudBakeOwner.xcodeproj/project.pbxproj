@@ -65,6 +65,8 @@
 		410000000000000000000006 /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000006 /* AppDestinationTests.swift */; };
 		410000000000000000000007 /* CloudBakeOwnerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000007 /* CloudBakeOwnerUITests.swift */; };
 		410000000000000000000008 /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000011 /* AppDatabase.swift */; };
+		B10000000000000000000001 /* AcceptanceTestDatabaseFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* AcceptanceTestDatabaseFixtures.swift */; };
+		B10000000000000000000002 /* AcceptanceTestRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* AcceptanceTestRuntime.swift */; };
 		410000000000000000000009 /* AppDatabaseMigrations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000012 /* AppDatabaseMigrations.swift */; };
 		41000000000000000000000A /* HealthCheckRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000013 /* HealthCheckRepository.swift */; };
 		41000000000000000000000B /* AppDatabaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000014 /* AppDatabaseTests.swift */; };
@@ -277,6 +279,8 @@
 		4200000000000000000000EA /* CloudBackupRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupRuntime.swift; sourceTree = "<group>"; };
 		4200000000000000000000DB /* CloudBakeOwner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CloudBakeOwner.entitlements; sourceTree = "<group>"; };
 		420000000000000000000011 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
+		B20000000000000000000001 /* AcceptanceTestDatabaseFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcceptanceTestDatabaseFixtures.swift; sourceTree = "<group>"; };
+		B20000000000000000000002 /* AcceptanceTestRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcceptanceTestRuntime.swift; sourceTree = "<group>"; };
 		420000000000000000000012 /* AppDatabaseMigrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseMigrations.swift; sourceTree = "<group>"; };
 		420000000000000000000013 /* HealthCheckRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCheckRepository.swift; sourceTree = "<group>"; };
 		420000000000000000000014 /* AppDatabaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseTests.swift; sourceTree = "<group>"; };
@@ -443,6 +447,7 @@
 			isa = PBXGroup;
 			children = (
 				4200000000000000000000DB /* CloudBakeOwner.entitlements */,
+				B30000000000000000000001 /* AcceptanceTestSupport */,
 				450000000000000000000003 /* App */,
 				450000000000000000000013 /* Domain */,
 				450000000000000000000004 /* Features */,
@@ -452,6 +457,15 @@
 				450000000000000000000020 /* SharedUI */,
 			);
 			path = CloudBakeOwner;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000001 /* AcceptanceTestSupport */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000001 /* AcceptanceTestDatabaseFixtures.swift */,
+				B20000000000000000000002 /* AcceptanceTestRuntime.swift */,
+			);
+			path = AcceptanceTestSupport;
 			sourceTree = "<group>";
 		};
 		450000000000000000000003 /* App */ = {
@@ -1070,6 +1084,8 @@
 				410000000000000000000005 /* PlaceholderScreen.swift in Sources */,
 				410000000000000000000075 /* CloudBakeScreenStyle.swift in Sources */,
 				410000000000000000000008 /* AppDatabase.swift in Sources */,
+				B10000000000000000000001 /* AcceptanceTestDatabaseFixtures.swift in Sources */,
+				B10000000000000000000002 /* AcceptanceTestRuntime.swift in Sources */,
 				410000000000000000000009 /* AppDatabaseMigrations.swift in Sources */,
 				410000000000000000000017 /* BakingCatalog.swift in Sources */,
 				41000000000000000000000D /* CoreModels.swift in Sources */,

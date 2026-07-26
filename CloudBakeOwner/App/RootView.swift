@@ -29,15 +29,13 @@ struct RootView: View {
         self.database = database
         self.cloudBackupRuntime = cloudBackupRuntime
         #if DEBUG
-        if ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] == "1" {
+        if AcceptanceTestRuntime.usesCloudBackupSettingsFixture {
             cloudBackupSettingsService = CloudBackupSettingsUITestService()
         } else {
             cloudBackupSettingsService = cloudBackupRuntime
         }
         let restoreService: (any CloudRestoreSettingsServing)?
-        if ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_EMPTY_RESTORE"] == "1"
-            || ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CLOUD_RESTORE_SETTINGS"] == "1"
-            || ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] != nil {
+        if AcceptanceTestRuntime.usesCloudRestoreFixture {
             restoreService = CloudRestoreSettingsUITestService()
         } else {
             restoreService = cloudBackupRuntime
@@ -97,7 +95,6 @@ struct RootView: View {
                 .accessibilityIdentifier("restore.recoveryRequired.message")
         }
         .onAppear {
-            let environment = ProcessInfo.processInfo.environment
             let hasExistingOwnerData = (try? OwnerInstallationState(database: database).hasRestorableData()) ?? false
             if hasExistingOwnerData && !hasCompletedIntroduction {
                 hasCompletedIntroduction = true
@@ -105,8 +102,8 @@ struct RootView: View {
             isPresentingIntroduction = AppIntroductionPolicy.shouldPresent(
                 hasCompleted: hasCompletedIntroduction,
                 hasExistingOwnerData: hasExistingOwnerData,
-                isAutomatedTest: environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1",
-                forcesPresentation: environment["CLOUDBAKE_TEST_INTRODUCTION"] == "1"
+                isAutomatedTest: AcceptanceTestRuntime.isRunning,
+                forcesPresentation: acceptanceTestForcesIntroduction
             )
             navigateToOrdersWhenNotificationIsPending()
             navigateToPaymentReportWhenNotificationIsPending()
@@ -245,10 +242,7 @@ struct RootView: View {
     }
 
     private func navigateToInitialUITestDestination() {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1",
-              let rawDestination = ProcessInfo.processInfo.environment["CLOUDBAKE_INITIAL_DESTINATION"],
-              let destination = AppDestination(rawValue: rawDestination),
-              destination != .dashboard else {
+        guard let destination = acceptanceTestInitialDestination else {
             return
         }
 
@@ -381,7 +375,7 @@ struct RootView: View {
     }
 
     private func refreshLocalReminders() async {
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] != "1" else {
+        guard !AcceptanceTestRuntime.isRunning else {
             return
         }
 
@@ -391,6 +385,22 @@ struct RootView: View {
                 repository: repository
             ).refreshReminders()
         }
+    }
+
+    private var acceptanceTestForcesIntroduction: Bool {
+        #if DEBUG
+        AcceptanceTestRuntime.forcesIntroduction
+        #else
+        false
+        #endif
+    }
+
+    private var acceptanceTestInitialDestination: AppDestination? {
+        #if DEBUG
+        AcceptanceTestRuntime.initialDestination
+        #else
+        nil
+        #endif
     }
 
     private func repairInventoryReservations() async -> Bool {
