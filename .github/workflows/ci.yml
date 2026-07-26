@@ -113,6 +113,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeEditedFromDetail
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrderAppearsInCompletedTab
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrdersLoadNextPageWithoutDuplicatesOrMissingRows
           - feature: order-links
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsLinkedCustomerContext
