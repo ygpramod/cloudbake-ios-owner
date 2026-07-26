@@ -8,7 +8,10 @@ final class SettingsViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var customLogoImage: UIImage?
     @Published private(set) var isPreparingBackup = false
+    @Published private(set) var pendingManualBackupPhotoProposal: ManualBackupUnavailablePhotoProposal?
+    @Published var isConfirmingManualBackupPhotoRemoval = false
     @Published private(set) var lastManualBackupDate: Date?
+    @Published private(set) var lastManualBackupOmittedAssetCount: Int
     @Published private(set) var isWeeklyBackupReminderEnabled: Bool
     @Published private(set) var manualBackupReminderStatus: ManualBackupReminderStatus
     @Published private(set) var nextManualBackupReminderDate: Date?
@@ -42,6 +45,8 @@ final class SettingsViewModel: ObservableObject {
         self.manualBackupReminderScheduler = manualBackupReminderScheduler
             ?? ManualBackupReminderScheduler(preferences: manualBackupPreferences)
         lastManualBackupDate = manualBackupPreferences.lastSuccessfulExport
+        lastManualBackupOmittedAssetCount =
+            manualBackupPreferences.lastSuccessfulOmittedAssetCount
         isWeeklyBackupReminderEnabled = manualBackupPreferences.isReminderEnabled
         manualBackupReminderStatus = manualBackupPreferences.reminderDeliveryStatus
         nextManualBackupReminderDate = manualBackupPreferences.nextReminderDate
@@ -57,21 +62,86 @@ final class SettingsViewModel: ObservableObject {
         isPreparingBackup = true
         defer { isPreparingBackup = false }
         do {
-            let export = try await manualBackupService.prepareBackup()
-            statusMessage = "Backup is ready. Choose a safe location to save it."
-            errorMessage = nil
-            return export
+            return handleManualBackupPreparation(
+                try await manualBackupService.prepareBackup()
+            )
         } catch {
-            statusMessage = nil
-            errorMessage = "CloudBake could not create a complete backup. No backup was saved."
+            handleManualBackupPreparationFailure(error)
             return nil
         }
     }
 
-    func markManualBackupExported(at date: Date = Date()) async {
-        manualBackupPreferences.recordSuccessfulExport(at: date)
+    func approveManualBackupPhotoOmissions() async -> ManualBackupExport? {
+        guard let manualBackupService,
+              let proposal = pendingManualBackupPhotoProposal else { return nil }
+        pendingManualBackupPhotoProposal = nil
+        isPreparingBackup = true
+        defer { isPreparingBackup = false }
+        do {
+            return handleManualBackupPreparation(
+                try await manualBackupService.approveUnavailablePhotoOmissions(
+                    proposalID: proposal.id
+                )
+            )
+        } catch {
+            handleManualBackupPreparationFailure(error)
+            return nil
+        }
+    }
+
+    func requestManualBackupPhotoRemoval() {
+        guard pendingManualBackupPhotoProposal != nil else { return }
+        isConfirmingManualBackupPhotoRemoval = true
+    }
+
+    func cancelManualBackupPhotoRemoval() {
+        isConfirmingManualBackupPhotoRemoval = false
+    }
+
+    func confirmManualBackupPhotoRemoval() async -> ManualBackupExport? {
+        guard let manualBackupService,
+              let proposal = pendingManualBackupPhotoProposal else { return nil }
+        isConfirmingManualBackupPhotoRemoval = false
+        pendingManualBackupPhotoProposal = nil
+        isPreparingBackup = true
+        defer { isPreparingBackup = false }
+        do {
+            return handleManualBackupPreparation(
+                try await manualBackupService.removeUnavailablePhotos(
+                    proposalID: proposal.id
+                )
+            )
+        } catch {
+            handleManualBackupPreparationFailure(error)
+            return nil
+        }
+    }
+
+    func cancelManualBackupPhotoDecision() async {
+        guard let manualBackupService,
+              let proposal = pendingManualBackupPhotoProposal else { return }
+        pendingManualBackupPhotoProposal = nil
+        isConfirmingManualBackupPhotoRemoval = false
+        await manualBackupService.cancelUnavailablePhotoDecision(
+            proposalID: proposal.id
+        )
+    }
+
+    func markManualBackupExported(
+        omittedAssetCount: Int = 0,
+        at date: Date = Date()
+    ) async {
+        manualBackupPreferences.recordSuccessfulExport(
+            at: date,
+            omittedAssetCount: omittedAssetCount
+        )
         lastManualBackupDate = date
-        statusMessage = "CloudBake backup saved successfully."
+        lastManualBackupOmittedAssetCount = omittedAssetCount
+        if omittedAssetCount > 0 {
+            statusMessage = "CloudBake backup saved without \(omittedAssetCount) unavailable photo\(omittedAssetCount == 1 ? "" : "s")."
+        } else {
+            statusMessage = "CloudBake backup saved successfully."
+        }
         errorMessage = nil
         manualBackupReminderStatus = await manualBackupReminderScheduler.refreshReminder()
         nextManualBackupReminderDate = manualBackupPreferences.nextReminderDate
@@ -193,6 +263,36 @@ final class SettingsViewModel: ObservableObject {
     func markRecipeExportFailed() {
         statusMessage = nil
         errorMessage = "Recipe CSV could not be exported."
+    }
+
+    private func handleManualBackupPreparation(
+        _ result: ManualBackupPreparationResult
+    ) -> ManualBackupExport? {
+        switch result {
+        case .ready(let export):
+            pendingManualBackupPhotoProposal = nil
+            if export.omittedAssetCount > 0 {
+                statusMessage = "Backup is ready without \(export.omittedAssetCount) unavailable photo\(export.omittedAssetCount == 1 ? "" : "s"). Choose a safe location to save it."
+            } else {
+                statusMessage = "Backup is ready. Choose a safe location to save it."
+            }
+            errorMessage = nil
+            return export
+        case .requiresUnavailablePhotoDecision(let proposal):
+            pendingManualBackupPhotoProposal = proposal
+            statusMessage = nil
+            errorMessage = nil
+            return nil
+        }
+    }
+
+    private func handleManualBackupPreparationFailure(_ error: Error) {
+        statusMessage = nil
+        if error as? ManualBackupServiceError == .backupFailedAfterPhotoRemoval {
+            errorMessage = "The unavailable photo references were removed, but CloudBake could not create the backup. Try again."
+        } else {
+            errorMessage = "CloudBake could not create a complete backup. No backup was saved."
+        }
     }
 }
 
@@ -554,6 +654,44 @@ struct SettingsView: View {
             .accessibilityIdentifier("settings.backup.create.continue")
         }
         .cloudBakeCenteredPopup(
+            isPresented: viewModel.pendingManualBackupPhotoProposal != nil
+                && !viewModel.isConfirmingManualBackupPhotoRemoval,
+            title: "Unavailable Photos",
+            subtitle: manualBackupUnavailablePhotoDescription,
+            systemImage: "photo.badge.exclamationmark",
+            cancelAccessibilityIdentifier: "settings.manualBackup.photos.cancel",
+            onCancel: {
+                Task { await viewModel.cancelManualBackupPhotoDecision() }
+            }
+        ) {
+            centeredPopupButton("Back Up Without Photos") {
+                continueManualBackup {
+                    await viewModel.approveManualBackupPhotoOmissions()
+                }
+            }
+            .accessibilityIdentifier("settings.manualBackup.photos.omit")
+
+            centeredPopupButton("Remove From CloudBake And Back Up", role: .destructive) {
+                viewModel.requestManualBackupPhotoRemoval()
+            }
+            .accessibilityIdentifier("settings.manualBackup.photos.remove")
+        }
+        .cloudBakeCenteredPopup(
+            isPresented: viewModel.isConfirmingManualBackupPhotoRemoval,
+            title: "Remove Broken References?",
+            subtitle: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
+            systemImage: "trash",
+            cancelAccessibilityIdentifier: "settings.manualBackup.photos.remove.cancel",
+            onCancel: { viewModel.cancelManualBackupPhotoRemoval() }
+        ) {
+            centeredPopupButton("Remove And Back Up", role: .destructive) {
+                continueManualBackup {
+                    await viewModel.confirmManualBackupPhotoRemoval()
+                }
+            }
+            .accessibilityIdentifier("settings.manualBackup.photos.remove.confirm")
+        }
+        .cloudBakeCenteredPopup(
             isPresented: pendingDataOperation != nil,
             title: pendingDataOperation?.title ?? "Inventory CSV",
             subtitle: pendingDataOperation?.explanation ?? "",
@@ -593,7 +731,11 @@ struct SettingsView: View {
                     try? FileManager.default.removeItem(at: export.fileURL)
                 case .manualBackup(let backup):
                     if result == .exported {
-                        Task { await viewModel.markManualBackupExported() }
+                        Task {
+                            await viewModel.markManualBackupExported(
+                                omittedAssetCount: backup.omittedAssetCount
+                            )
+                        }
                     }
                     backup.removeStagedFiles()
                 }
@@ -700,7 +842,12 @@ struct SettingsView: View {
 
     private var lastBackupDescription: String {
         guard let date = viewModel.lastManualBackupDate else { return "Never" }
-        return date.formatted(date: .abbreviated, time: .shortened)
+        let dateDescription = date.formatted(date: .abbreviated, time: .shortened)
+        guard viewModel.lastManualBackupOmittedAssetCount > 0 else {
+            return dateDescription
+        }
+        let count = viewModel.lastManualBackupOmittedAssetCount
+        return "\(dateDescription) · \(count) photo\(count == 1 ? "" : "s") omitted"
     }
 
     private var backupReminderDescription: String {
@@ -723,13 +870,26 @@ struct SettingsView: View {
 
     private func dismissManualBackupPopupAndPrepare() {
         isConfirmingManualBackup = false
+        continueManualBackup {
+            await viewModel.prepareManualBackup()
+        }
+    }
+
+    private func continueManualBackup(
+        _ operation: @escaping @MainActor () async -> ManualBackupExport?
+    ) {
         Task {
-            guard let export = await viewModel.prepareManualBackup() else { return }
+            guard let export = await operation() else { return }
             activeFileExport = SettingsFileExport(
                 fileURL: export.packageURL,
                 kind: .manualBackup(export)
             )
         }
+    }
+
+    private var manualBackupUnavailablePhotoDescription: String {
+        let count = viewModel.pendingManualBackupPhotoProposal?.unavailablePhotoCount ?? 0
+        return "CloudBake found \(count) linked photo\(count == 1 ? "" : "s") that no longer exist\(count == 1 ? "s" : "") in Photos. Continue without \(count == 1 ? "it" : "them"), remove the broken CloudBake references, or cancel. No backup has been saved."
     }
 
     private func continueDataOperation(_ operation: SettingsDataOperation) {

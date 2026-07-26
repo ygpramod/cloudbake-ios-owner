@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 
-final class AppDatabase {
+final class AppDatabase: @unchecked Sendable {
     private let writer: DatabaseQueue
 
     init(writer: DatabaseQueue) {

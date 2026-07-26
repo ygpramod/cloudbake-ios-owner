@@ -11,7 +11,40 @@ protocol BackupExternalAssetResolving: Sendable {
     func resolve(reference: String) async throws -> BackupResolvedExternalAsset
 }
 
-enum BackupExternalAssetResolverError: Error, Equatable {
+protocol BackupUnavailablePhotoRevalidating: Sendable {
+    func confirmedUnavailableReferences(
+        among sourceReferences: Set<String>
+    ) async throws -> Set<String>
+}
+
+struct PhotoKitBackupUnavailablePhotoRevalidator: BackupUnavailablePhotoRevalidating {
+    private let resolver: any BackupExternalAssetResolving
+
+    init(
+        resolver: any BackupExternalAssetResolving = PhotoKitBackupAssetResolver()
+    ) {
+        self.resolver = resolver
+    }
+
+    func confirmedUnavailableReferences(
+        among sourceReferences: Set<String>
+    ) async throws -> Set<String> {
+        var confirmedUnavailable: Set<String> = []
+        for reference in sourceReferences.sorted() {
+            do {
+                _ = try await resolver.resolve(reference: reference)
+            } catch let error as BackupExternalAssetResolverError
+                where error == .assetUnavailable {
+                confirmedUnavailable.insert(reference)
+            } catch {
+                throw error
+            }
+        }
+        return confirmedUnavailable
+    }
+}
+
+enum BackupExternalAssetResolverError: Error, Equatable, Sendable {
     case invalidReference
     case accessDenied
     case assetUnavailable

@@ -65,6 +65,7 @@ final class ManualBackupReminderSchedulerTests: XCTestCase {
         let preferences = ManualBackupPreferences(defaults: defaults)
         preferences.recordSuccessfulExport(
             at: exportedAt,
+            omittedAssetCount: 2,
             calendar: Calendar(identifier: .gregorian)
         )
         let scheduler = ManualBackupReminderScheduler(
@@ -77,6 +78,7 @@ final class ManualBackupReminderSchedulerTests: XCTestCase {
         await scheduler.refreshReminder()
 
         XCTAssertEqual(preferences.lastSuccessfulExport, exportedAt)
+        XCTAssertEqual(preferences.lastSuccessfulOmittedAssetCount, 2)
         let trigger = try XCTUnwrap(
             center.requests.first?.trigger as? UNTimeIntervalNotificationTrigger
         )

@@ -4,6 +4,8 @@ import UserNotifications
 struct ManualBackupPreferences {
     static let reminderEnabledKey = "cloudbake.manualBackupReminderEnabled"
     static let lastSuccessfulExportKey = "cloudbake.manualBackupLastSuccessfulExport"
+    static let lastSuccessfulOmittedAssetCountKey =
+        "cloudbake.manualBackupLastSuccessfulOmittedAssetCount"
     static let nextReminderDateKey = "cloudbake.manualBackupNextReminderDate"
     static let reminderDeliveryStatusKey = "cloudbake.manualBackupReminderDeliveryStatus"
 
@@ -26,6 +28,10 @@ struct ManualBackupPreferences {
         defaults.object(forKey: Self.lastSuccessfulExportKey) as? Date
     }
 
+    var lastSuccessfulOmittedAssetCount: Int {
+        max(0, defaults.integer(forKey: Self.lastSuccessfulOmittedAssetCountKey))
+    }
+
     var nextReminderDate: Date? {
         defaults.object(forKey: Self.nextReminderDateKey) as? Date
     }
@@ -42,8 +48,16 @@ struct ManualBackupPreferences {
         }
     }
 
-    func recordSuccessfulExport(at date: Date, calendar: Calendar = .current) {
+    func recordSuccessfulExport(
+        at date: Date,
+        omittedAssetCount: Int = 0,
+        calendar: Calendar = .current
+    ) {
         defaults.set(date, forKey: Self.lastSuccessfulExportKey)
+        defaults.set(
+            max(0, omittedAssetCount),
+            forKey: Self.lastSuccessfulOmittedAssetCountKey
+        )
         defaults.set(
             calendar.date(byAdding: .day, value: 7, to: date)
                 ?? date.addingTimeInterval(7 * 24 * 60 * 60),
