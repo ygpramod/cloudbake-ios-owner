@@ -148,6 +148,13 @@ protocol OrderExtraIngredientRepository {
     func deleteOrderExtraIngredient(id: String) throws
 }
 
+protocol OrderInventoryReservationRepository {
+    func fetchOrderInventoryReservations(orderId: String) throws -> [OrderInventoryReservation]
+    func fetchInventoryReservations(inventoryItemId: String) throws -> [OrderInventoryReservation]
+    func fetchOrderInventoryReservationEvents(orderId: String) throws -> [OrderInventoryReservationEvent]
+    func fetchOrderInventoryReservationRepair(orderId: String) throws -> OrderInventoryReservationRepair?
+}
+
 protocol OrderChecklistRepository {
     func save(_ item: OrderChecklistItem) throws
     func fetchOrderChecklistItems(orderId: String) throws -> [OrderChecklistItem]

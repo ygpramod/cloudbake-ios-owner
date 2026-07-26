@@ -566,6 +566,66 @@ struct OrderExtraIngredient: Equatable {
     let updatedAt: Date
 }
 
+struct OrderInventoryReservation: Equatable {
+    let id: String
+    let orderId: String
+    let inventoryItemId: String
+    let requiredQuantity: Double
+    let unit: InventoryUnit
+    let createdAt: Date
+    let updatedAt: Date
+}
+
+enum OrderInventoryReservationEventKind: String, Equatable {
+    case created
+    case quantityChanged
+    case released
+    case repairFailed
+}
+
+enum OrderInventoryReservationEventReason: String, Equatable {
+    case orderConfirmed
+    case orderEdited
+    case orderReopened
+    case orderCancelled
+    case inventoryConsumed
+    case recipeEdited
+    case migrationRepair
+}
+
+struct OrderInventoryReservationEvent: Equatable {
+    let id: Int64
+    let orderId: String
+    let inventoryItemId: String
+    let kind: OrderInventoryReservationEventKind
+    let reason: OrderInventoryReservationEventReason
+    let previousQuantity: Double
+    let newQuantity: Double
+    let unit: InventoryUnit
+    let occurredAt: Date
+}
+
+enum OrderInventoryReservationRepairState: String, Equatable {
+    case pending
+    case complete
+    case failed
+}
+
+enum OrderInventoryReservationRepairFailureCode: String, Equatable {
+    case missingInventoryItem
+    case incompatibleUnit
+    case invalidRequirements
+}
+
+struct OrderInventoryReservationRepair: Equatable {
+    let orderId: String
+    let state: OrderInventoryReservationRepairState
+    let attemptCount: Int
+    let lastAttemptedAt: Date?
+    let failureCode: OrderInventoryReservationRepairFailureCode?
+    let updatedAt: Date
+}
+
 struct OrderChecklistItem: Equatable {
     let id: String
     let orderId: String

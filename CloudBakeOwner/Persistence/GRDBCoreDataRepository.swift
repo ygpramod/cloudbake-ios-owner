@@ -18,6 +18,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     OrderRecipeUsageRepository,
     OrderIngredientCostRepository,
     OrderExtraIngredientRepository,
+    OrderInventoryReservationRepository,
     OrderChecklistRepository,
     OrderPhotoRepository,
     InventoryTransactionRepository,
@@ -221,6 +222,52 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             unit: unit,
             note: row["note"],
             createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    func orderInventoryReservation(from row: Row, unit: InventoryUnit) -> OrderInventoryReservation {
+        OrderInventoryReservation(
+            id: row["id"],
+            orderId: row["order_id"],
+            inventoryItemId: row["inventory_item_id"],
+            requiredQuantity: row["required_quantity"],
+            unit: unit,
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    func orderInventoryReservationEvent(
+        from row: Row,
+        kind: OrderInventoryReservationEventKind,
+        reason: OrderInventoryReservationEventReason,
+        unit: InventoryUnit
+    ) -> OrderInventoryReservationEvent {
+        OrderInventoryReservationEvent(
+            id: row["id"],
+            orderId: row["order_id"],
+            inventoryItemId: row["inventory_item_id"],
+            kind: kind,
+            reason: reason,
+            previousQuantity: row["previous_quantity"],
+            newQuantity: row["new_quantity"],
+            unit: unit,
+            occurredAt: date(row["occurred_at_unix_time"])
+        )
+    }
+
+    func orderInventoryReservationRepair(
+        from row: Row,
+        state: OrderInventoryReservationRepairState
+    ) -> OrderInventoryReservationRepair {
+        let failureCodeValue: String? = row["failure_code"]
+        return OrderInventoryReservationRepair(
+            orderId: row["order_id"],
+            state: state,
+            attemptCount: row["attempt_count"],
+            lastAttemptedAt: optionalDate(row["last_attempted_at_unix_time"]),
+            failureCode: failureCodeValue.flatMap(OrderInventoryReservationRepairFailureCode.init),
             updatedAt: date(row["updated_at_unix_time"])
         )
     }

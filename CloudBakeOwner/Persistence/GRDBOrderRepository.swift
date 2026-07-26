@@ -154,6 +154,84 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchOrderInventoryReservations(orderId: String) throws -> [OrderInventoryReservation] {
+        try writer.read { db in
+            try reservationRows(
+                sql: """
+                    SELECT *
+                    FROM order_inventory_reservations
+                    WHERE order_id = ?
+                    ORDER BY inventory_item_id
+                    """,
+                arguments: [orderId],
+                in: db
+            )
+        }
+    }
+
+    func fetchInventoryReservations(inventoryItemId: String) throws -> [OrderInventoryReservation] {
+        try writer.read { db in
+            try reservationRows(
+                sql: """
+                    SELECT *
+                    FROM order_inventory_reservations
+                    WHERE inventory_item_id = ?
+                    ORDER BY order_id
+                    """,
+                arguments: [inventoryItemId],
+                in: db
+            )
+        }
+    }
+
+    func fetchOrderInventoryReservationEvents(
+        orderId: String
+    ) throws -> [OrderInventoryReservationEvent] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT *
+                    FROM order_inventory_reservation_events
+                    WHERE order_id = ?
+                    ORDER BY occurred_at_unix_time, id
+                    """,
+                arguments: [orderId]
+            ).compactMap { row in
+                guard let kind = OrderInventoryReservationEventKind(rawValue: row["event_kind"]),
+                      let reason = OrderInventoryReservationEventReason(rawValue: row["reason"]),
+                      let unit = InventoryUnit(rawValue: row["unit"]) else {
+                    return nil
+                }
+                return orderInventoryReservationEvent(
+                    from: row,
+                    kind: kind,
+                    reason: reason,
+                    unit: unit
+                )
+            }
+        }
+    }
+
+    func fetchOrderInventoryReservationRepair(
+        orderId: String
+    ) throws -> OrderInventoryReservationRepair? {
+        try writer.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: """
+                    SELECT *
+                    FROM order_inventory_reservation_repairs
+                    WHERE order_id = ?
+                    """,
+                arguments: [orderId]
+            ), let state = OrderInventoryReservationRepairState(rawValue: row["state"]) else {
+                return nil
+            }
+            return orderInventoryReservationRepair(from: row, state: state)
+        }
+    }
+
     func deleteOrderExtraIngredient(id: String) throws {
         try writer.write { db in
             try db.execute(
@@ -371,6 +449,19 @@ private extension GRDBCoreDataRepository {
     struct PendingInventoryUsage {
         let item: InventoryItem
         var quantity: Double
+    }
+
+    func reservationRows(
+        sql: String,
+        arguments: StatementArguments,
+        in db: Database
+    ) throws -> [OrderInventoryReservation] {
+        try Row.fetchAll(db, sql: sql, arguments: arguments).compactMap { row in
+            guard let unit = InventoryUnit(rawValue: row["unit"]) else {
+                return nil
+            }
+            return orderInventoryReservation(from: row, unit: unit)
+        }
     }
 
     func ensureOrderRecipeUsageIsNotRecorded(orderId: String, in db: Database) throws {

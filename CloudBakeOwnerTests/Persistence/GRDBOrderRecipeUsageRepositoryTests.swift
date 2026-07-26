@@ -514,4 +514,130 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchOrderExtraIngredients(orderId: order.id), [])
     }
 
+    func testOrderInventoryReservationStateCanBeRead() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let item = InventoryItem(
+            id: "inventory-reserved-flour",
+            name: "Reserved flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let order = Order(
+            id: "order-reserved-flour",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Reserved flour cake",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(item)
+        try repository.save(order)
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservations
+                    (id, order_id, inventory_item_id, required_quantity, unit,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "\(order.id):\(item.id)",
+                    order.id,
+                    item.id,
+                    125,
+                    item.unit.rawValue,
+                    timestamp.timeIntervalSince1970,
+                    timestamp.timeIntervalSince1970
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (order_id, inventory_item_id, event_kind, reason, previous_quantity,
+                     new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    order.id,
+                    item.id,
+                    OrderInventoryReservationEventKind.created.rawValue,
+                    OrderInventoryReservationEventReason.orderConfirmed.rawValue,
+                    0,
+                    125,
+                    item.unit.rawValue,
+                    timestamp.timeIntervalSince1970
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_repairs
+                    (order_id, state, attempt_count, last_attempted_at_unix_time,
+                     failure_code, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, NULL, ?)
+                    """,
+                arguments: [
+                    order.id,
+                    OrderInventoryReservationRepairState.complete.rawValue,
+                    1,
+                    timestamp.timeIntervalSince1970,
+                    timestamp.timeIntervalSince1970
+                ]
+            )
+        }
+
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservations(orderId: order.id),
+            [
+                OrderInventoryReservation(
+                    id: "\(order.id):\(item.id)",
+                    orderId: order.id,
+                    inventoryItemId: item.id,
+                    requiredQuantity: 125,
+                    unit: .gram,
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            ]
+        )
+        XCTAssertEqual(
+            try repository.fetchInventoryReservations(inventoryItemId: item.id),
+            try repository.fetchOrderInventoryReservations(orderId: order.id)
+        )
+        let event = try XCTUnwrap(
+            repository.fetchOrderInventoryReservationEvents(orderId: order.id).first
+        )
+        XCTAssertEqual(event.orderId, order.id)
+        XCTAssertEqual(event.inventoryItemId, item.id)
+        XCTAssertEqual(event.kind, .created)
+        XCTAssertEqual(event.reason, .orderConfirmed)
+        XCTAssertEqual(event.previousQuantity, 0)
+        XCTAssertEqual(event.newQuantity, 125)
+        XCTAssertEqual(event.unit, .gram)
+        XCTAssertEqual(event.occurredAt, timestamp)
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: order.id),
+            OrderInventoryReservationRepair(
+                orderId: order.id,
+                state: .complete,
+                attemptCount: 1,
+                lastAttemptedAt: timestamp,
+                failureCode: nil,
+                updatedAt: timestamp
+            )
+        )
+    }
+
 }
