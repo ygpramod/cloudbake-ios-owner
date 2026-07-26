@@ -26,11 +26,11 @@ xcodebuild build \
   -project CloudBakeOwner.xcodeproj \
   -scheme CloudBakeOwner \
   -configuration Release \
-  -destination "generic/platform=iOS Simulator" \
+  -destination "generic/platform=iOS" \
   -derivedDataPath "$derived_data_path" \
   CODE_SIGNING_ALLOWED=NO
 
-app_bundle="$derived_data_path/Build/Products/Release-iphonesimulator/CloudBakeOwner.app"
+app_bundle="$derived_data_path/Build/Products/Release-iphoneos/CloudBakeOwner.app"
 if [[ ! -d "$app_bundle" ]]; then
   echo "Release verification failed: expected app bundle not found at $app_bundle." >&2
   exit 1
