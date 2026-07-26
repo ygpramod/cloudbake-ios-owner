@@ -1,6 +1,6 @@
 # RFC Slice 0123: Native iOS Dialogs
 
-Status: Implementing
+Status: Implemented
 
 ## Problem
 
@@ -31,8 +31,8 @@ their existing native presentations.
 ## Validation
 
 1. The owner-app Debug build succeeds for a generic iPhone Simulator.
-2. Existing acceptance journeys continue to locate dialog actions through stable accessibility
-   identifiers.
+2. Acceptance journeys locate native dialog actions through stable accessibility identifiers and
+   verify system-owned titles, messages, and dismissal through their user-visible presentation.
 3. Targeted order, inventory, customer, recipe, design, Settings, backup, and restore acceptance
    journeys pass.
 4. Search confirms the retired custom popup APIs and custom overlay implementation are absent.
