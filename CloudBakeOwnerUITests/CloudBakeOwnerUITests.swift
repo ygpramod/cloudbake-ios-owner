@@ -1122,6 +1122,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapWhenReady(app.buttons["orders.item.order-ui-projected-1"], timeout: transitionTimeout)
 
         let ingredientCost = app.buttons["orders.detail.ingredientCost"]
+        app.swipeUp()
         scrollToHittable(ingredientCost, in: app, timeout: transitionTimeout)
         tapWhenReady(ingredientCost, timeout: transitionTimeout)
 
