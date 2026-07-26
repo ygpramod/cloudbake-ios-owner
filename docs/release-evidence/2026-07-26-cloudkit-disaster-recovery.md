@@ -48,13 +48,23 @@ at the app's **Replace Local Data?** confirmation and selected **Cancel**. A ful
 continue until the owner explicitly authorizes replacing this installation or provides a clean
 disposable device/account.
 
+Privacy-safe pre-restore expectations:
+
+- customers: 2
+- inventory items: 3
+- recipes: 1
+- active orders: 1
+- completed orders: 4
+- designs: 3
+- recoverable photos reported by the manifest: 8
+- custom logo: present
+
 Still required:
 
-1. capture privacy-safe expected counts and representative link/value categories;
-2. explicitly confirm **Replace and Restore**;
-3. verify restored counts, representative values and links, eight recoverable photos, and the
+1. explicitly confirm **Replace and Restore**;
+2. verify restored counts, representative values and links, eight recoverable photos, and the
    custom logo;
-4. force-quit and relaunch;
-5. verify reminder reconciliation;
-6. publish a fresh post-restore backup;
-7. record the final result and reviewer.
+3. force-quit and relaunch;
+4. verify reminder reconciliation;
+5. publish a fresh post-restore backup;
+6. record the final result and reviewer.
