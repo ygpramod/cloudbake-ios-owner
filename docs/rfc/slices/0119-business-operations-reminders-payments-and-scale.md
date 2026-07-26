@@ -46,13 +46,16 @@ Out of scope:
 
 ### Business Rules
 
-1. Draft and Cancelled orders have no active reservation.
-2. Confirmed and In Progress orders reserve their complete scaled recipe and extra-ingredient
-   requirements.
+1. Draft and Cancelled orders have no active reservation. Draft demand remains a forecast under
+   RFC-0098; it is not committed stock.
+2. Confirmed and In Progress orders with no recorded recipe usage reserve their complete scaled
+   recipe and extra-ingredient requirements.
 3. Moving an order into Confirmed creates or replaces its reservation atomically with the status
    change.
-4. Editing the recipe, multiplier, or extra ingredients of a reserved order atomically replaces its
-   reservation.
+4. Editing an order's recipe link, multiplier, or extra ingredients, or editing ingredients in a
+   recipe used by an unconsumed reserved order, atomically replaces every affected reservation.
+   If any affected requirement is invalid or cannot be converted, the entire edit fails with a
+   specific owner-facing message; neither recipe data nor reservations are partially saved.
 5. Moving a reserved order back to Draft or to Cancelled releases its reservation.
 6. Moving a reserved order to Ready or Completed consumes usable inventory through the existing
    one-time order-usage workflow and releases its reservation in the same transaction.
@@ -64,13 +67,41 @@ Out of scope:
    and asks the owner whether to continue, matching the existing shortage-override posture.
 10. Continuing with a shortage preserves the full reservation requirement so every contributing
     order remains visible in shortage planning.
-11. Reservation rows are current operational state. They are replaced or deleted rather than kept
-    as historical events; inventory consumption transactions and order status remain the audit
-    history.
-12. Existing Confirmed and In Progress orders are backfilled deterministically from their saved
-    recipes, multipliers, and extras during migration or a one-time repair step. Orders whose
-    requirements cannot be converted remain usable and surface a repair warning instead of silently
-    reserving zero.
+11. Moving an order that already has recorded usage from Ready or Completed back to Confirmed or In
+    Progress never creates another reservation or reverses consumption. The UI identifies that
+    inventory was already deducted. Subsequent ingredient edits do not alter consumed inventory;
+    any additional consumption is a separate future workflow and is out of scope here.
+12. Current reservation rows are replaced or deleted, while every create, quantity replacement,
+    release, consumption release, and repair failure appends an immutable reservation event. The
+    event records old and new quantities, the reason, and occurrence time so reservation changes are
+    auditable without pretending they changed physical stock.
+13. Existing eligible Confirmed and In Progress orders are repaired deterministically from their
+    saved recipes, multipliers, and extras after migration. Orders whose requirements cannot be
+    converted remain usable and surface a persisted repair warning instead of silently reserving
+    zero.
+
+### Availability And Projection Equations
+
+For an inventory item:
+
+- `usable` is the total non-expired available stock;
+- `reservedAll` is the total of current Confirmed/In Progress reservations without recorded usage;
+- `reservedOther(order)` is `reservedAll` minus that order's existing reservation;
+- `proposed(order)` is the order's newly calculated complete requirement;
+- `forecastOnly` is the live requirement of Draft orders and unconsumed Ready orders.
+
+The owner-facing calculations are:
+
+1. General available-to-promise: `usable - reservedAll`.
+2. Initial confirmation or reservation replacement shortfall:
+   `max(proposed(order) - max(usable - reservedOther(order), 0), 0)`.
+3. Aggregate projected shortage:
+   `max(reservedAll + forecastOnly - usable, 0)`.
+
+Confirmed/In Progress demand is read from its reservation and never also recalculated as forecast
+demand. A repair-pending order contributes its live requirement exactly once until its reservation
+is repaired. These equations preserve RFC-0098's Draft warning while preventing a reservation from
+being subtracted or counted twice.
 
 ### Persistence
 
@@ -84,9 +115,24 @@ Add one `order_inventory_reservations` row per order and inventory item:
 - created and updated timestamps;
 - a unique key on order id plus inventory item id.
 
-Index inventory item id for aggregate availability queries. Reservation replacement, order status,
-order usage, ingredient costs, inventory transactions, and stock-batch updates must share the
-existing database transaction boundary where they occur together.
+Add append-only `order_inventory_reservation_events` rows containing:
+
+- stable event id;
+- order and inventory item ids;
+- event kind and reason;
+- previous and new quantities in the inventory item's unit;
+- occurrence timestamp.
+
+Add one `order_inventory_reservation_repairs` row per eligible pre-migration order. Its state is
+Pending, Complete, or Failed, with attempt count, last attempted time, and a typed failure code.
+Migration inserts Pending rows only for Confirmed/In Progress orders without recorded usage. An
+activation repair processes a fixed batch, replaces reservations idempotently, appends events, and
+marks each row Complete in the same transaction. Interrupted work stays Pending; Failed work is
+retryable and owner-visible. Restored Pending or Failed rows follow the same safe repair path.
+
+Index inventory item id for aggregate availability queries. Reservation replacement, audit event,
+repair status, order status, order usage, ingredient costs, inventory transactions, and stock-batch
+updates must share the existing database transaction boundary where they occur together.
 
 ## Reminder Customization
 
@@ -126,7 +172,9 @@ overrides. The recommended contract above assumes both.
 3. The reminder fires once per calendar day at the owner-selected reminder time. The initial
    recommendation is 9:00 AM.
 4. If the order becomes eligible after today's reminder time, the first reminder is tomorrow.
-5. The request repeats daily while eligible and deep-links to the order.
+5. CloudBake uses one aggregate daily payment-pending request while any order is eligible. It shows
+   the outstanding-order count and deep-links to the Outstanding payment report. This prevents one
+   notification request per unpaid order from exhausting the shared local-notification budget.
 6. Marking the order Paid removes its pending payment reminder immediately.
 7. Reducing the balance without paying it in full keeps the reminder active with the updated
    balance.
@@ -134,9 +182,11 @@ overrides. The recommended contract above assumes both.
 9. Notification authorization denial must not block payment recording or order completion.
 10. The in-app Reminders payment section uses the same eligibility rule as notification scheduling.
 
-Persist `completedAt` when an order first enters Completed. Existing completed orders use their
-saved `updatedAt` as a conservative migration value. Later payment changes must not alter
-`completedAt`.
+Persist `completedAt` when an order first enters Completed. Leaving and later re-entering Completed
+does not overwrite it. Existing completed orders keep `completedAt` null and display the completion
+time as Legacy/Unknown because their mutable `updatedAt` is not trustworthy completion history.
+Payment eligibility still uses status and due time, so the nullable legacy value never suppresses a
+valid reminder. Later payment changes must not alter `completedAt`.
 
 The owner must confirm whether the payment reminder time is globally customizable. The recommended
 contract makes it part of Reminder Settings and defaults to 9:00 AM.
@@ -162,6 +212,15 @@ contract makes it part of Reminder Settings and defaults to 9:00 AM.
 7. Payments remain private owner data.
 8. The report uses bounded date-range queries and never loads the complete order/payment history
    merely to calculate one screen.
+9. After migration, the paid total is derived from receipt operations and is read-only in Edit
+   Order. Add Order may accept an initial payment only by saving the order and its opening receipt
+   atomically. Existing Add/Edit aggregate mutations and direct repository saves may not change the
+   paid total. This rule supersedes RFC-0053's directly editable paid/deposit total.
+10. Migration copies an existing paid aggregate into a separate immutable `legacyPaidAmount`.
+    Derived paid total is `legacyPaidAmount + non-void receipt amounts`, so new receipt operations
+    reconcile without fabricating historical events. After the owner approves the legacy rule
+    below, an atomic migration may convert that amount to a labelled opening receipt and zero the
+    legacy field, or keep it outside the receipt ledger.
 
 ### Owner Interview Decision
 
@@ -195,29 +254,51 @@ recorded here.
 Replace feature-level `fetchOrders()` plus in-memory filtering with repository queries shaped for
 their consumers:
 
+All list queries use keyset pagination ordered by their business sort plus order or receipt id as a
+stable tiebreaker. The default page size is 25 and callers cannot request more than 50 rows. SQL
+aggregate queries may return counts and totals without loading their contributing rows.
+
 1. Active Orders:
    - statuses limited to Draft, Confirmed, In Progress, and Ready;
    - due-date ordering in SQL;
-   - an optional bounded due-date range.
+   - required page limit and cursor; an optional due-date range may narrow the page but cannot remove
+     the page bound.
 2. Completed history:
    - Completed and Cancelled only;
    - reverse due-date ordering;
    - keyset or limit/offset paging with a fixed page size.
 3. Home upcoming orders:
-   - active orders from the start of today through the existing 30-day window.
+   - active orders from the start of today through the existing 30-day window;
+   - paged with the same hard limit.
 4. Reminder scheduling:
-   - only reminder-eligible operational orders with future due dates.
+   - candidates ordered by their next trigger time;
+   - due no later than the largest configured lead-time window;
+   - hard-limited to the remaining shared notification capacity.
 5. Payment reminders/report:
-   - only completed, due, outstanding orders or receipts in the selected period.
+   - one SQL count/total for aggregate notification content;
+   - Outstanding rows are paged;
+   - receipt-history queries require a date range no longer than 366 days and are paged.
 6. Customer history:
-   - only orders for the selected customer, ordered and paged.
+   - only orders for the selected customer, ordered and paged with the hard limit.
 7. Design/reference workflows:
-   - only orders needed by the selected reference relationship.
+   - exact relationship-id lookup where one result is expected;
+   - otherwise ordered and paged with the hard limit.
 8. Reservation planning:
-   - only orders with active reservation state and no recorded usage.
+   - availability and shortage screens use SQL aggregates by inventory item;
+   - repair reads Pending/Failed orders in batches of at most 50.
 
 Keep `fetchOrder(id:)` for direct navigation. Retain `fetchOrders()` only as a test/support or
 explicit export boundary; production screens must move to bounded queries in this slice.
+
+### Shared Notification Budget
+
+CloudBake owns one notification-budget allocator with a maximum of 60 app-scheduled pending
+requests, retaining four system slots below iOS's documented 64-request limit. The single payment
+summary request and backup reminder are allocated first. Remaining slots go to operational order
+reminders by nearest trigger time, then order due time and id. The scheduler reconciles on launch,
+foreground, reminder-setting changes, order changes, payment changes, restore activation, and
+significant date changes. In-app Reminders remains complete even when a later local notification is
+outside the current scheduling window.
 
 ### Indexes And Performance
 
@@ -230,17 +311,18 @@ Add or verify indexes for:
 - payment received-at;
 - payment order id plus received-at.
 
-Persistence tests must verify query ordering, bounds, paging stability, and query-plan index use for
-the high-volume paths. A deterministic performance test must seed at least 1,000 orders and 2,000
-payment receipts and prove the main list and report queries complete within an agreed local budget.
-The test should fail on unbounded feature queries, not depend on wall-clock network or UI timing,
-and allow a documented CI multiplier.
+Persistence tests must verify query ordering, hard bounds, paging stability, aggregate correctness,
+and query-plan index use for the high-volume paths. A deterministic scale fixture must seed at least
+1,000 orders and 2,000 payment receipts and prove the main list and report paths return no more than
+their requested page, use the intended indexes, and execute a bounded number of SQL statements.
+Wall-clock measurements may be recorded as non-gating diagnostics; they are not CI assertions.
 
 ## Migration And Backup Safety
 
 1. All new state uses explicit forward-only GRDB migrations.
 2. Fresh-database migration coverage must include every new table, column, constraint, and index.
-3. Existing orders remain readable before reservation repair completes.
+3. Existing orders remain readable before reservation repair completes, and their persisted repair
+   state survives backup, restore, interruption, and retry.
 4. No migration deletes or overwrites existing quoted price, paid total, recipe usage, inventory
    transaction, or ingredient-cost history.
 5. New database state participates automatically in existing full-app snapshot and CloudKit restore.
@@ -261,7 +343,8 @@ and allow a documented CI multiplier.
 
 ### Unit
 
-1. Reservation eligibility, replacement, release, full-demand shortage, and unit conversion.
+1. Reservation eligibility, replacement excluding the order's current claim, release, post-usage
+   reopening, projected-demand equations, full-demand shortage, and unit conversion.
 2. Reminder configuration validation and effective-plan selection.
 3. Payment-reminder eligibility and next 9:00 AM scheduling with injected clock/calendar.
 4. Payment receipt arithmetic, remaining-balance receipt, and correction rules after owner approval.
@@ -270,9 +353,9 @@ and allow a documented CI multiplier.
 ### Integration
 
 1. Migration from the current schema and fresh database.
-2. Atomic reservation creation/replacement/release and consumption.
+2. Atomic reservation creation/replacement/release, audit events, idempotent repair, and consumption.
 3. Atomic payment receipt plus paid-total update.
-4. Bounded, ordered, indexed order and payment queries.
+4. Bounded, ordered, indexed order and payment queries plus notification-budget prioritization.
 5. Backup snapshot and restore validation with new tables/configuration.
 
 ### Acceptance
