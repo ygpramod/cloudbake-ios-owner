@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress in the owner app.
+Implemented in the owner app.
 
 ## Goal
 
