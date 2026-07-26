@@ -354,16 +354,9 @@ struct RootView: View {
 
         await LocalReminderRefreshCoordinator.shared.refresh {
             let repository = database.makeCoreDataRepository()
-            await ExpiryReminderScheduler(
+            await LocalNotificationScheduleCoordinator(
                 repository: repository
             ).refreshReminders()
-            await OrderReminderScheduler(
-                repository: repository
-            ).refreshReminders()
-            await PaymentPendingReminderScheduler(
-                repository: repository
-            ).refreshReminder()
-            await ManualBackupReminderScheduler().refreshReminder()
         }
     }
 

@@ -119,21 +119,7 @@ struct ManualBackupReminderScheduler {
                 preferences.reminderDeliveryStatus = .authorizationDenied
                 return .authorizationDenied
             }
-            let now = dateProvider()
-            let dueAt = preferences.ensureNextReminderDate(from: now, calendar: calendar)
-            let interval = max(60, dueAt.timeIntervalSince(now))
-            let content = UNMutableNotificationContent()
-            content.title = "Back up CloudBake"
-            content.body = "Save a current CloudBake backup from Settings."
-            content.sound = .default
-            let request = UNNotificationRequest(
-                identifier: Self.notificationIdentifier,
-                content: content,
-                trigger: UNTimeIntervalNotificationTrigger(
-                    timeInterval: interval,
-                    repeats: false
-                )
-            )
+            let request = makeReminderRequest()
             try await notificationCenter.add(request)
             preferences.reminderDeliveryStatus = .scheduled
             return .scheduled
@@ -141,5 +127,23 @@ struct ManualBackupReminderScheduler {
             preferences.reminderDeliveryStatus = .failed
             return .failed
         }
+    }
+
+    func makeReminderRequest() -> UNNotificationRequest {
+        let now = dateProvider()
+        let dueAt = preferences.ensureNextReminderDate(from: now, calendar: calendar)
+        let interval = max(60, dueAt.timeIntervalSince(now))
+        let content = UNMutableNotificationContent()
+        content.title = "Back up CloudBake"
+        content.body = "Save a current CloudBake backup from Settings."
+        content.sound = .default
+        return UNNotificationRequest(
+            identifier: Self.notificationIdentifier,
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(
+                timeInterval: interval,
+                repeats: false
+            )
+        )
     }
 }

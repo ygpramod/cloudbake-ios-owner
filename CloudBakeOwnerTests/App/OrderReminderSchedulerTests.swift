@@ -3,6 +3,138 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class OrderReminderSchedulerTests: XCTestCase {
+    func testNotificationCapacityKeepsCriticalRemindersThenNearestOperationalReminders() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let operationalCandidates = (0..<70).map { index in
+            CloudBakeNotificationCandidate(
+                request: UNNotificationRequest(
+                    identifier: "operational-\(String(format: "%02d", index))",
+                    content: UNNotificationContent(),
+                    trigger: nil
+                ),
+                category: index.isMultiple(of: 2) ? .order : .inventoryExpiry,
+                triggerAt: now.addingTimeInterval(TimeInterval(index + 1))
+            )
+        }
+        let criticalCandidates = [
+            CloudBakeNotificationCandidate(
+                request: UNNotificationRequest(
+                    identifier: "manual-backup-reminder",
+                    content: UNNotificationContent(),
+                    trigger: nil
+                ),
+                category: .backup,
+                triggerAt: now.addingTimeInterval(100_000)
+            ),
+            CloudBakeNotificationCandidate(
+                request: UNNotificationRequest(
+                    identifier: "payment-pending-tomorrow",
+                    content: UNNotificationContent(),
+                    trigger: nil
+                ),
+                category: .payment,
+                triggerAt: now.addingTimeInterval(200_000)
+            )
+        ]
+
+        let selected = CloudBakeNotificationCapacityPolicy().select(
+            operationalCandidates + criticalCandidates
+        )
+        let identifiers = selected.map(\.identifier)
+
+        XCTAssertEqual(selected.count, 60)
+        XCTAssertTrue(identifiers.contains("manual-backup-reminder"))
+        XCTAssertTrue(identifiers.contains("payment-pending-tomorrow"))
+        XCTAssertEqual(
+            Set(identifiers.filter { $0.hasPrefix("operational-") }),
+            Set((0..<58).map {
+                "operational-\(String(format: "%02d", $0))"
+            })
+        )
+    }
+
+    func testNotificationCapacityUsesCategoryAndIdentifierAsStableTies() {
+        let triggerAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let candidates = [
+            CloudBakeNotificationCandidate(
+                request: UNNotificationRequest(
+                    identifier: "inventory-b",
+                    content: UNNotificationContent(),
+                    trigger: nil
+                ),
+                category: .inventoryExpiry,
+                triggerAt: triggerAt
+            ),
+            CloudBakeNotificationCandidate(
+                request: UNNotificationRequest(
+                    identifier: "order-b",
+                    content: UNNotificationContent(),
+                    trigger: nil
+                ),
+                category: .order,
+                triggerAt: triggerAt
+            ),
+            CloudBakeNotificationCandidate(
+                request: UNNotificationRequest(
+                    identifier: "order-a",
+                    content: UNNotificationContent(),
+                    trigger: nil
+                ),
+                category: .order,
+                triggerAt: triggerAt
+            )
+        ]
+
+        XCTAssertEqual(
+            CloudBakeNotificationCapacityPolicy()
+                .select(candidates, limit: 3)
+                .map(\.identifier),
+            ["order-a", "order-b", "inventory-b"]
+        )
+    }
+
+    func testUnifiedReminderRefreshReplacesManagedRequestsAndKeepsUnrelatedOnes() async throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let notificationCenter = FakeOrderReminderNotificationCenter()
+        notificationCenter.pendingRequests = [
+            UNNotificationRequest(
+                identifier: "order-reminder-stale",
+                content: UNNotificationContent(),
+                trigger: nil
+            ),
+            UNNotificationRequest(
+                identifier: "unrelated-reminder",
+                content: UNNotificationContent(),
+                trigger: nil
+            )
+        ]
+        let suiteName = "UnifiedReminderRefresh-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let preferences = ManualBackupPreferences(defaults: defaults)
+
+        await LocalNotificationScheduleCoordinator(
+            repository: repository,
+            notificationCenter: notificationCenter,
+            manualBackupPreferences: preferences,
+            dateProvider: { Date(timeIntervalSince1970: 1_800_000_000) },
+            calendar: Calendar(identifier: .gregorian)
+        ).refreshReminders()
+
+        XCTAssertEqual(
+            notificationCenter.requestedAuthorizationOptions,
+            [.alert, .sound, .badge]
+        )
+        XCTAssertEqual(notificationCenter.removedIdentifiers, [
+            "order-reminder-stale"
+        ])
+        XCTAssertEqual(
+            notificationCenter.addedRequests.map(\.identifier),
+            [ManualBackupReminderScheduler.notificationIdentifier]
+        )
+        XCTAssertEqual(preferences.reminderDeliveryStatus, .scheduled)
+    }
+
     func testNewestRefreshRunsAfterOverlappingStaleRefresh() async {
         let coordinator = LocalReminderRefreshCoordinator()
         let gate = AsyncTestGate()
@@ -22,6 +154,9 @@ final class OrderReminderSchedulerTests: XCTestCase {
             await coordinator.refresh {
                 await events.record("intermediate-paid")
             }
+        }
+        await waitUntil {
+            await coordinator.pendingRequestCount == 1
         }
         let newestRefresh = Task {
             await coordinator.refresh {
