@@ -161,6 +161,8 @@
 		41000000000000000000005A /* GRDBPricingRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000062 /* GRDBPricingRepository.swift */; };
 		41000000000000000000005B /* GRDBOrderRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000063 /* GRDBOrderRepository.swift */; };
 		A20000000000000000000001 /* PaymentReportRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* PaymentReportRepository.swift */; };
+		A20000000000000000000002 /* ReportsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ReportsViewModel.swift */; };
+		A20000000000000000000003 /* ReportsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* ReportsViewModelTests.swift */; };
 		41000000000000000000005C /* CloudBakeOwnerUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */; };
 		41000000000000000000005D /* CloudBakeOwnerInventoryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */; };
 		41000000000000000000005E /* InventoryListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000066 /* InventoryListViewModelTestSupport.swift */; };
@@ -371,6 +373,8 @@
 		420000000000000000000062 /* GRDBPricingRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBPricingRepository.swift; sourceTree = "<group>"; };
 		420000000000000000000063 /* GRDBOrderRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBOrderRepository.swift; sourceTree = "<group>"; };
 		A10000000000000000000001 /* PaymentReportRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentReportRepository.swift; sourceTree = "<group>"; };
+		A10000000000000000000002 /* ReportsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsViewModel.swift; sourceTree = "<group>"; };
+		A10000000000000000000003 /* ReportsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsViewModelTests.swift; sourceTree = "<group>"; };
 		420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerUITestSupport.swift; sourceTree = "<group>"; };
 		420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerInventoryUITests.swift; sourceTree = "<group>"; };
 		420000000000000000000066 /* InventoryListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModelTestSupport.swift; sourceTree = "<group>"; };
@@ -484,6 +488,7 @@
 				45000000000000000000001E /* Orders */,
 				450000000000000000000006 /* Placeholder */,
 				45000000000000000000001A /* Recipes */,
+				A30000000000000000000001 /* Reports */,
 				4500000000000000000000AE /* Reminders */,
 				450000000000000000000021 /* Settings */,
 			);
@@ -528,6 +533,22 @@
 				4200000000000000000000AF /* ReminderViewModel.swift */,
 			);
 			path = Reminders;
+			sourceTree = "<group>";
+		};
+		A30000000000000000000001 /* Reports */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000002 /* ReportsViewModel.swift */,
+			);
+			path = Reports;
+			sourceTree = "<group>";
+		};
+		A30000000000000000000002 /* Reports */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000003 /* ReportsViewModelTests.swift */,
+			);
+			path = Reports;
 			sourceTree = "<group>";
 		};
 		450000000000000000000005 /* Dashboard */ = {
@@ -744,6 +765,7 @@
 				450000000000000000000017 /* Inventory */,
 				45000000000000000000001F /* Orders */,
 				45000000000000000000001B /* Recipes */,
+				A30000000000000000000002 /* Reports */,
 				4500000000000000000000AF /* Reminders */,
 				450000000000000000000022 /* Settings */,
 			);
@@ -1060,6 +1082,7 @@
 				410000000000000000000057 /* GRDBInventoryRepository.swift in Sources */,
 				41000000000000000000005B /* GRDBOrderRepository.swift in Sources */,
 				A20000000000000000000001 /* PaymentReportRepository.swift in Sources */,
+				A20000000000000000000002 /* ReportsViewModel.swift in Sources */,
 				41000000000000000000005A /* GRDBPricingRepository.swift in Sources */,
 				410000000000000000000058 /* GRDBRecipeRepository.swift in Sources */,
 				410000000000000000000055 /* TextInputFormatting.swift in Sources */,
@@ -1186,6 +1209,7 @@
 				41000000000000000000002D /* OrderListViewModelTests.swift in Sources */,
 				410000000000000000000074 /* OrderListViewModelTestSupport.swift in Sources */,
 				410000000000000000000065 /* OrderPaymentViewModelTests.swift in Sources */,
+				A20000000000000000000003 /* ReportsViewModelTests.swift in Sources */,
 				410000000000000000000071 /* OrderPaymentUpdateTests.swift in Sources */,
 				410000000000000000000064 /* OrderPhotoViewModelTests.swift in Sources */,
 				410000000000000000000066 /* OrderStatusEditingViewModelTests.swift in Sources */,
