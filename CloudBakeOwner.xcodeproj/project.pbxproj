@@ -112,6 +112,7 @@
 		41000000000000000000002B /* OrderListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000033 /* OrderListView.swift */; };
 		41000000000000000000002C /* OrderListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000034 /* OrderListViewModel.swift */; };
 		C15000000000000000000001 /* OrderPaymentWorkflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C16000000000000000000001 /* OrderPaymentWorkflow.swift */; };
+		C17000000000000000000001 /* OrderChecklistWorkflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18000000000000000000001 /* OrderChecklistWorkflow.swift */; };
 		41000000000000000000002D /* OrderListViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000035 /* OrderListViewModelTests.swift */; };
 		41000000000000000000002E /* OrderDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000036 /* OrderDisplay.swift */; };
 		41000000000000000000002F /* OrderConsumerPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000037 /* OrderConsumerPreview.swift */; };
@@ -325,6 +326,7 @@
 		420000000000000000000033 /* OrderListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListView.swift; sourceTree = "<group>"; };
 		420000000000000000000034 /* OrderListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListViewModel.swift; sourceTree = "<group>"; };
 		C16000000000000000000001 /* OrderPaymentWorkflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPaymentWorkflow.swift; sourceTree = "<group>"; };
+		C18000000000000000000001 /* OrderChecklistWorkflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderChecklistWorkflow.swift; sourceTree = "<group>"; };
 		420000000000000000000035 /* OrderListViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderListViewModelTests.swift; sourceTree = "<group>"; };
 		420000000000000000000036 /* OrderDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDisplay.swift; sourceTree = "<group>"; };
 		420000000000000000000037 /* OrderConsumerPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderConsumerPreview.swift; sourceTree = "<group>"; };
@@ -682,6 +684,7 @@
 				420000000000000000000050 /* OrderForm.swift */,
 				420000000000000000000033 /* OrderListView.swift */,
 				420000000000000000000034 /* OrderListViewModel.swift */,
+				C18000000000000000000001 /* OrderChecklistWorkflow.swift */,
 				C16000000000000000000001 /* OrderPaymentWorkflow.swift */,
 				420000000000000000000054 /* OrderListPresentation.swift */,
 				42000000000000000000006A /* OrderDraftValidation.swift */,
@@ -1157,6 +1160,7 @@
 				410000000000000000000040 /* PurchaseBillImportView.swift in Sources */,
 				41000000000000000000002B /* OrderListView.swift in Sources */,
 				41000000000000000000002C /* OrderListViewModel.swift in Sources */,
+				C17000000000000000000001 /* OrderChecklistWorkflow.swift in Sources */,
 				C15000000000000000000001 /* OrderPaymentWorkflow.swift in Sources */,
 				410000000000000000000033 /* OrderPhotoFileStore.swift in Sources */,
 				410000000000000000000035 /* CloudBakeNativeDialogs.swift in Sources */,

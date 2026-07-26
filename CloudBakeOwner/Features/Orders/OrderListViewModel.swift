@@ -94,6 +94,7 @@ final class OrderListViewModel: ObservableObject {
     private let onReminderDataChanged: () -> Void
     private let presentation: OrderListPresentation
     private let paymentWorkflow: OrderPaymentWorkflow
+    private let checklistWorkflow: OrderChecklistWorkflow
     private var pendingSelectedOrderExtraIngredientId: String?
     private var activeOrderCursor: OrderPageCursor?
     private var completedOrderCursor: OrderPageCursor?
@@ -120,6 +121,11 @@ final class OrderListViewModel: ObservableObject {
         )
         self.paymentWorkflow = OrderPaymentWorkflow(
             repository: repository,
+            dateProvider: dateProvider
+        )
+        self.checklistWorkflow = OrderChecklistWorkflow(
+            repository: repository,
+            idGenerator: idGenerator,
             dateProvider: dateProvider
         )
     }
@@ -1223,100 +1229,60 @@ final class OrderListViewModel: ObservableObject {
             return false
         }
 
-        let title = TextInputFormatting.trimmed(draftChecklistItemTitle)
-        guard !title.isEmpty else {
-            errorMessage = "Checklist item is required."
-            return false
-        }
-
-        let now = dateProvider()
-        let nextSortOrder = (selectedOrderChecklistItems.map(\.sortOrder).max() ?? -1) + 1
-        let item = OrderChecklistItem(
-            id: idGenerator(),
-            orderId: selectedOrder.id,
-            title: title,
-            isCompleted: false,
-            sortOrder: nextSortOrder,
-            createdAt: now,
-            updatedAt: now
-        )
-
-        do {
-            try repository.save(item)
+        switch checklistWorkflow.add(
+            to: selectedOrder,
+            title: draftChecklistItemTitle,
+            existingItems: selectedOrderChecklistItems
+        ) {
+        case .success:
             draftChecklistItemTitle = ""
             loadSelectedOrderChecklistItems(for: selectedOrder)
             errorMessage = nil
             return true
-        } catch {
-            errorMessage = "Checklist item could not be saved."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
 
     func toggleChecklistItem(_ item: OrderChecklistItem) -> Bool {
-        let updatedItem = OrderChecklistItem(
-            id: item.id,
-            orderId: item.orderId,
-            title: item.title,
-            isCompleted: !item.isCompleted,
-            sortOrder: item.sortOrder,
-            createdAt: item.createdAt,
-            updatedAt: dateProvider()
-        )
-
-        do {
-            try repository.save(updatedItem)
+        switch checklistWorkflow.toggle(item) {
+        case .success:
             if let selectedOrder {
                 loadSelectedOrderChecklistItems(for: selectedOrder)
             }
             errorMessage = nil
             return true
-        } catch {
-            errorMessage = "Checklist item could not be updated."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
 
     func updateChecklistItemTitle(_ item: OrderChecklistItem, title: String) -> Bool {
-        let trimmedTitle = TextInputFormatting.trimmed(title)
-        guard !trimmedTitle.isEmpty else {
-            errorMessage = "Checklist item is required."
-            return false
-        }
-
-        let updatedItem = OrderChecklistItem(
-            id: item.id,
-            orderId: item.orderId,
-            title: trimmedTitle,
-            isCompleted: item.isCompleted,
-            sortOrder: item.sortOrder,
-            createdAt: item.createdAt,
-            updatedAt: dateProvider()
-        )
-
-        do {
-            try repository.save(updatedItem)
+        switch checklistWorkflow.updateTitle(of: item, to: title) {
+        case .success:
             if let selectedOrder {
                 loadSelectedOrderChecklistItems(for: selectedOrder)
             }
             errorMessage = nil
             return true
-        } catch {
-            errorMessage = "Checklist item could not be updated."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
 
     func deleteChecklistItem(_ item: OrderChecklistItem) -> Bool {
-        do {
-            try repository.deleteOrderChecklistItem(id: item.id)
+        switch checklistWorkflow.delete(item) {
+        case .success:
             if let selectedOrder {
                 loadSelectedOrderChecklistItems(for: selectedOrder)
             }
             errorMessage = nil
             return true
-        } catch {
-            errorMessage = "Checklist item could not be deleted."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
         }
     }
@@ -1923,12 +1889,12 @@ final class OrderListViewModel: ObservableObject {
     }
 
     private func loadSelectedOrderChecklistItems(for order: Order) {
-        do {
-            selectedOrderChecklistItems = try repository.fetchOrderChecklistItems(orderId: order.id)
-                .sorted(by: OrderListPresentation.checklistItemWasEnteredBefore)
-        } catch {
+        switch checklistWorkflow.load(orderId: order.id) {
+        case .success(let items):
+            selectedOrderChecklistItems = items
+        case .failure(let error):
             selectedOrderChecklistItems = []
-            errorMessage = "Checklist could not be loaded."
+            errorMessage = error.ownerMessage
         }
     }
 
