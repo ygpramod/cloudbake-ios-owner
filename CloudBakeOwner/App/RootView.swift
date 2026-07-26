@@ -108,6 +108,7 @@ struct RootView: View {
                 forcesPresentation: environment["CLOUDBAKE_TEST_INTRODUCTION"] == "1"
             )
             navigateToOrdersWhenNotificationIsPending()
+            navigateToPaymentReportWhenNotificationIsPending()
             navigateToOrdersWhenNewOrderIsPending()
             navigateToInventoryWhenItemIsPending()
         }
@@ -124,6 +125,13 @@ struct RootView: View {
             }
 
             navigateToOrdersWhenNotificationIsPending()
+        }
+        .onChange(of: orderNotificationRouter.isPaymentReportPending) { _, isPending in
+            guard isPending else {
+                return
+            }
+
+            navigateToPaymentReportWhenNotificationIsPending()
         }
         .onChange(of: orderNavigationRouter.pendingNewOrderRequest) { _, request in
             guard request != nil else {
@@ -201,6 +209,15 @@ struct RootView: View {
         navigate(.orders)
     }
 
+    private func navigateToPaymentReportWhenNotificationIsPending() {
+        guard orderNotificationRouter.isPaymentReportPending else {
+            return
+        }
+
+        navigate(.reminders)
+        orderNotificationRouter.clearPendingPaymentReport()
+    }
+
     private func navigateToOrdersWhenNewOrderIsPending() {
         guard orderNavigationRouter.pendingNewOrderRequest != nil else {
             return
@@ -267,7 +284,12 @@ struct RootView: View {
             let repository = database.makeCoreDataRepository()
             ReminderView(
                 viewModel: ReminderViewModel(
-                    repository: repository
+                    repository: repository,
+                    onPaymentChanged: {
+                        Task {
+                            await refreshLocalReminders()
+                        }
+                    }
                 ),
                 makeOrderViewModel: {
                     makeOrderListViewModel(repository: repository)
@@ -329,6 +351,9 @@ struct RootView: View {
         await OrderReminderScheduler(
             repository: repository
         ).refreshReminders()
+        await PaymentPendingReminderScheduler(
+            repository: repository
+        ).refreshReminder()
         await ManualBackupReminderScheduler().refreshReminder()
     }
 

@@ -3,6 +3,128 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class OrderReminderSchedulerTests: XCTestCase {
+    @MainActor
+    func testPaymentNotificationRoutesToPaymentReport() {
+        let router = OrderNotificationRouter()
+
+        router.routeNotification(
+            userInfo: [
+                PaymentPendingReminderScheduler.notificationDestinationKey:
+                    PaymentPendingReminderScheduler.notificationDestination
+            ]
+        )
+
+        XCTAssertTrue(router.isPaymentReportPending)
+        XCTAssertNil(router.pendingOrderId)
+        router.clearPendingPaymentReport()
+        XCTAssertFalse(router.isPaymentReportPending)
+    }
+
+    func testPaymentReminderAggregatesOnlyOverdueCompletedBalances() throws {
+        let repository = FakePaymentReminderRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(
+            from: DateComponents(year: 2027, month: 2, day: 10, hour: 10)
+        )!
+        repository.configuration = try PaymentReminderConfiguration(hour: 14, minute: 30)
+        repository.orders = [
+            makePaymentOrder(
+                id: "eligible-part-paid",
+                status: .completed,
+                dueAt: calendar.date(byAdding: .hour, value: -1, to: now)!,
+                quotedPrice: 100,
+                depositPaid: 20,
+                now: now
+            ),
+            makePaymentOrder(
+                id: "eligible-unpaid",
+                status: .completed,
+                dueAt: calendar.date(byAdding: .day, value: -1, to: now)!,
+                quotedPrice: 50,
+                depositPaid: nil,
+                now: now
+            ),
+            makePaymentOrder(
+                id: "ready",
+                status: .ready,
+                dueAt: calendar.date(byAdding: .day, value: -1, to: now)!,
+                quotedPrice: 500,
+                depositPaid: nil,
+                now: now
+            ),
+            makePaymentOrder(
+                id: "future",
+                status: .completed,
+                dueAt: calendar.date(byAdding: .hour, value: 1, to: now)!,
+                quotedPrice: 500,
+                depositPaid: nil,
+                now: now
+            ),
+            makePaymentOrder(
+                id: "paid",
+                status: .completed,
+                dueAt: calendar.date(byAdding: .day, value: -1, to: now)!,
+                quotedPrice: 100,
+                depositPaid: 100,
+                now: now
+            )
+        ]
+        let scheduler = PaymentPendingReminderScheduler(
+            repository: repository,
+            notificationCenter: FakeOrderReminderNotificationCenter(),
+            dateProvider: { now }
+        )
+
+        let request = try XCTUnwrap(scheduler.makeReminderRequest())
+
+        XCTAssertEqual(request.identifier, "payment-pending-summary")
+        XCTAssertEqual(request.content.title, "Payments pending")
+        XCTAssertEqual(
+            request.content.body,
+            "2 completed orders have \(MoneyDisplay.formatted(130)) outstanding."
+        )
+        XCTAssertEqual(
+            request.content.userInfo[
+                PaymentPendingReminderScheduler.notificationDestinationKey
+            ] as? String,
+            PaymentPendingReminderScheduler.notificationDestination
+        )
+        let trigger = try XCTUnwrap(request.trigger as? UNCalendarNotificationTrigger)
+        XCTAssertEqual(trigger.dateComponents.hour, 14)
+        XCTAssertEqual(trigger.dateComponents.minute, 30)
+        XCTAssertTrue(trigger.repeats)
+    }
+
+    func testPaymentReminderRefreshRemovesRequestWhenNoOrderIsEligible() async {
+        let repository = FakePaymentReminderRepository()
+        let notificationCenter = FakeOrderReminderNotificationCenter()
+        notificationCenter.pendingRequests = [
+            UNNotificationRequest(
+                identifier: PaymentPendingReminderScheduler.notificationIdentifier,
+                content: UNNotificationContent(),
+                trigger: nil
+            ),
+            UNNotificationRequest(
+                identifier: "order-reminder-other",
+                content: UNNotificationContent(),
+                trigger: nil
+            )
+        ]
+        let scheduler = PaymentPendingReminderScheduler(
+            repository: repository,
+            notificationCenter: notificationCenter,
+            dateProvider: { Date(timeIntervalSince1970: 1_800_000_000) }
+        )
+
+        await scheduler.refreshReminder()
+
+        XCTAssertEqual(
+            notificationCenter.removedIdentifiers,
+            [PaymentPendingReminderScheduler.notificationIdentifier]
+        )
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
+    }
+
     func testMakeReminderRequestsSchedulesFutureActiveOrderReminders() throws {
         let repository = FakeOrderReminderRepository()
         let calendar = Calendar(identifier: .gregorian)
@@ -176,6 +298,61 @@ final class OrderReminderSchedulerTests: XCTestCase {
             createdAt: now,
             updatedAt: now
         )
+    }
+
+    private func makePaymentOrder(
+        id: String,
+        status: OrderStatus,
+        dueAt: Date,
+        quotedPrice: Decimal,
+        depositPaid: Decimal?,
+        now: Date
+    ) -> Order {
+        Order(
+            id: id,
+            customerId: nil,
+            cakeDesignId: nil,
+            title: id,
+            customerName: "Customer",
+            status: status,
+            dueAt: dueAt,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            quotedPrice: quotedPrice,
+            depositPaid: depositPaid,
+            completedAt: status == .completed ? now : nil,
+            createdAt: now,
+            updatedAt: now
+        )
+    }
+}
+
+private final class FakePaymentReminderRepository:
+    OrderRepository,
+    PaymentReminderConfigurationRepository {
+    var orders: [Order] = []
+    var configuration = PaymentReminderConfiguration.initialDefault
+
+    func save(_ order: Order) throws {}
+
+    func fetchOrder(id: String) throws -> Order? {
+        orders.first { $0.id == id }
+    }
+
+    func fetchOrders() throws -> [Order] {
+        orders
+    }
+
+    func fetchPaymentReminderConfiguration() throws -> PaymentReminderConfiguration {
+        configuration
+    }
+
+    func savePaymentReminderConfiguration(
+        _ configuration: PaymentReminderConfiguration,
+        updatedAt _: Date
+    ) throws {
+        self.configuration = configuration
     }
 }
 

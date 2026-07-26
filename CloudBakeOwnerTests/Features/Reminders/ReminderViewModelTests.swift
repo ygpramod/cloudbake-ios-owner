@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class ReminderViewModelTests: XCTestCase {
-    func testLoadShowsPaymentDueForReadyAndCompletedOrdersWithBalanceDue() throws {
+    func testLoadShowsPaymentDueOnlyForOverdueCompletedOrdersWithBalanceDue() throws {
         let repository = FakeReminderRepository()
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Singapore") ?? .current
@@ -24,7 +24,7 @@ final class ReminderViewModelTests: XCTestCase {
                 id: "order-ready",
                 title: "Chocolate Truffle Cake",
                 customerId: "customer-amy",
-                status: .ready,
+                status: .completed,
                 dueAt: dueAt,
                 quotedPrice: decimal("150"),
                 depositPaid: decimal("50")
@@ -40,10 +40,18 @@ final class ReminderViewModelTests: XCTestCase {
             makeOrder(
                 id: "order-paid",
                 title: "Paid Cake",
-                status: .ready,
+                status: .completed,
                 dueAt: dueAt,
                 quotedPrice: decimal("75"),
                 depositPaid: decimal("75")
+            ),
+            makeOrder(
+                id: "order-ready-unpaid",
+                title: "Ready Cake",
+                status: .ready,
+                dueAt: dueAt,
+                quotedPrice: decimal("75"),
+                depositPaid: nil
             )
         ]
         let viewModel = ReminderViewModel(repository: repository, calendar: calendar)
@@ -240,23 +248,29 @@ final class ReminderViewModelTests: XCTestCase {
     func testMarkPaidUpdatesOrderAndRemovesPaymentDueReminder() {
         let repository = FakeReminderRepository()
         let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        var paymentChangeCount = 0
         repository.orders = [
             makeOrder(
                 id: "order-ready",
                 title: "Chocolate Cake",
-                status: .ready,
+                status: .completed,
                 dueAt: dueAt,
                 quotedPrice: decimal("150"),
                 depositPaid: decimal("50")
             )
         ]
-        let viewModel = ReminderViewModel(repository: repository)
+        let viewModel = ReminderViewModel(
+            repository: repository,
+            dateProvider: { dueAt.addingTimeInterval(1) },
+            onPaymentChanged: { paymentChangeCount += 1 }
+        )
         viewModel.load()
 
         XCTAssertTrue(viewModel.markPaid(orderId: "order-ready"))
 
         XCTAssertEqual(repository.orders.first?.depositPaid, decimal("150"))
         XCTAssertEqual(viewModel.paymentDueItems, [])
+        XCTAssertEqual(paymentChangeCount, 1)
     }
 }
 

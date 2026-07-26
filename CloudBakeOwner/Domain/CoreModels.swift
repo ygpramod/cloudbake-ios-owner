@@ -451,6 +451,12 @@ struct Order: Equatable {
         return "Part Paid"
     }
 
+    func hasPaymentPending(at date: Date) -> Bool {
+        status == .completed
+            && dueAt <= date
+            && (balanceDue ?? 0) > 0
+    }
+
     init(
         id: String,
         customerId: String?,

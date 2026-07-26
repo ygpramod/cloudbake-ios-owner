@@ -32,15 +32,18 @@ final class ReminderViewModel: ObservableObject {
     private let repository: any OrderRepository & OrderRecipeUsageRepository & OrderInventoryReservationRepository & InventoryItemRepository & InventoryStockBatchRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
     private let dateProvider: () -> Date
     private let calendar: Calendar
+    private let onPaymentChanged: () -> Void
 
     init(
         repository: any OrderRepository & OrderRecipeUsageRepository & OrderInventoryReservationRepository & InventoryItemRepository & InventoryStockBatchRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
         dateProvider: @escaping () -> Date = Date.init,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        onPaymentChanged: @escaping () -> Void = {}
     ) {
         self.repository = repository
         self.dateProvider = dateProvider
         self.calendar = calendar
+        self.onPaymentChanged = onPaymentChanged
     }
 
     func load() {
@@ -91,6 +94,7 @@ final class ReminderViewModel: ObservableObject {
             case .success(let updatedOrder):
                 try repository.save(updatedOrder)
                 load()
+                onPaymentChanged()
                 return true
             case .failure(let error):
                 errorMessage = error.message
@@ -104,10 +108,9 @@ final class ReminderViewModel: ObservableObject {
 
     private func paymentDueItems(from orders: [Order], customers: [Customer]) -> [PaymentDueReminderItem] {
         orders
-            .filter { $0.status == .ready || $0.status == .completed }
+            .filter { $0.hasPaymentPending(at: dateProvider()) }
             .compactMap { order in
-                guard let balanceDue = order.balanceDue,
-                      balanceDue > 0 else {
+                guard let balanceDue = order.balanceDue else {
                     return nil
                 }
 

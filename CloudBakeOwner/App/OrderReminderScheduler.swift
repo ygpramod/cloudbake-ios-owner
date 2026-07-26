@@ -102,3 +102,90 @@ struct OrderReminderScheduler {
         return "\(order.title) for \(order.customerName) is due \(order.dueAt.formatted(date: .abbreviated, time: .shortened))."
     }
 }
+
+struct PaymentPendingReminderScheduler {
+    static let notificationIdentifier = "payment-pending-summary"
+    static let notificationDestinationKey = "cloudbake.destination"
+    static let notificationDestination = "payment-report"
+
+    private let repository: any OrderRepository & PaymentReminderConfigurationRepository
+    private let notificationCenter: LocalNotificationCenter
+    private let dateProvider: () -> Date
+
+    init(
+        repository: any OrderRepository & PaymentReminderConfigurationRepository,
+        notificationCenter: LocalNotificationCenter = UNUserNotificationCenter.current(),
+        dateProvider: @escaping () -> Date = Date.init
+    ) {
+        self.repository = repository
+        self.notificationCenter = notificationCenter
+        self.dateProvider = dateProvider
+    }
+
+    func refreshReminder() async {
+        do {
+            guard try await notificationCenter.requestAuthorization(
+                options: [.alert, .sound, .badge]
+            ) else {
+                return
+            }
+
+            let pendingIdentifiers = await notificationCenter.pendingNotificationRequests()
+                .map(\.identifier)
+                .filter { $0 == Self.notificationIdentifier }
+            notificationCenter.removePendingNotificationRequests(
+                withIdentifiers: pendingIdentifiers
+            )
+            if let request = try makeReminderRequest() {
+                try await notificationCenter.add(request)
+            }
+        } catch {
+            // Payment follow-up must never block order or payment workflows.
+        }
+    }
+
+    func makeReminderRequest() throws -> UNNotificationRequest? {
+        let now = dateProvider()
+        let eligibleOrders = try repository.fetchOrders().filter {
+            $0.hasPaymentPending(at: now)
+        }
+        guard !eligibleOrders.isEmpty else {
+            return nil
+        }
+
+        let totalBalance = eligibleOrders.reduce(Decimal.zero) {
+            $0 + max($1.balanceDue ?? 0, 0)
+        }
+        let configuration = try repository.fetchPaymentReminderConfiguration()
+        let content = UNMutableNotificationContent()
+        content.title = "Payments pending"
+        content.body = paymentSummaryBody(
+            orderCount: eligibleOrders.count,
+            totalBalance: totalBalance
+        )
+        content.sound = .default
+        content.userInfo = [
+            Self.notificationDestinationKey: Self.notificationDestination
+        ]
+        let trigger = UNCalendarNotificationTrigger(
+            dateMatching: DateComponents(
+                hour: configuration.hour,
+                minute: configuration.minute
+            ),
+            repeats: true
+        )
+        return UNNotificationRequest(
+            identifier: Self.notificationIdentifier,
+            content: content,
+            trigger: trigger
+        )
+    }
+
+    private func paymentSummaryBody(
+        orderCount: Int,
+        totalBalance: Decimal
+    ) -> String {
+        let orderText = orderCount == 1 ? "order has" : "orders have"
+        return "\(orderCount) completed \(orderText) \(MoneyDisplay.formatted(totalBalance)) outstanding."
+    }
+}
