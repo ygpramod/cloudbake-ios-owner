@@ -49,5 +49,7 @@ upload access must be checked separately. Xcode displayed a valid team and Admin
 initially failed at the account step. After App Store Connect access was confirmed and the account
 session was refreshed, the unchanged `1.0 (3)` archive uploaded and processed successfully on
 26 July 2026. Build 3 is assigned to `CloudBake Internal Testers` with a 90-day TestFlight window.
+The same release exercise promoted and verified the three CloudBake backup record types in the
+production CloudKit schema before the real-device disaster-recovery drill.
 The runbook records the exact diagnostic and recovery sequence; do not rebuild, revoke
 certificates, or increment the build number merely because this pre-upload account step fails.
