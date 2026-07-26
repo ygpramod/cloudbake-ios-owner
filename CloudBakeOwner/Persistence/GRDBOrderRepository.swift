@@ -279,6 +279,65 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    private func orderFilter(
+        for query: OrderPageQuery
+    ) throws -> (
+        predicates: [String],
+        values: [(any DatabaseValueConvertible)?]
+    ) {
+        try query.validate()
+        var predicates: [String] = []
+        var values: [(any DatabaseValueConvertible)?] = []
+
+        switch query {
+        case .active(let dueAtRange):
+            predicates.append("status IN (?, ?, ?, ?)")
+            values.append(contentsOf: [
+                OrderStatus.draft.rawValue,
+                OrderStatus.confirmed.rawValue,
+                OrderStatus.inProgress.rawValue,
+                OrderStatus.ready.rawValue
+            ])
+            if let dueAtRange {
+                predicates.append("due_at_unix_time BETWEEN ? AND ?")
+                values.append(dueAtRange.lowerBound.timeIntervalSince1970)
+                values.append(dueAtRange.upperBound.timeIntervalSince1970)
+            }
+        case .completed:
+            predicates.append("status IN (?, ?)")
+            values.append(OrderStatus.completed.rawValue)
+            values.append(OrderStatus.cancelled.rawValue)
+        case .upcoming(let from, let through):
+            predicates.append("status IN (?, ?, ?, ?)")
+            values.append(contentsOf: [
+                OrderStatus.draft.rawValue,
+                OrderStatus.confirmed.rawValue,
+                OrderStatus.inProgress.rawValue,
+                OrderStatus.ready.rawValue
+            ])
+            predicates.append("due_at_unix_time BETWEEN ? AND ?")
+            values.append(from.timeIntervalSince1970)
+            values.append(through.timeIntervalSince1970)
+        case .customer(let customerId):
+            predicates.append("customer_id = ?")
+            values.append(customerId)
+        case .paymentPending(let date):
+            predicates.append("status = ?")
+            values.append(OrderStatus.completed.rawValue)
+            predicates.append("due_at_unix_time <= ?")
+            values.append(date.timeIntervalSince1970)
+            predicates.append("quoted_price_decimal IS NOT NULL")
+            predicates.append(
+                """
+                CAST(quoted_price_decimal AS NUMERIC)
+                    > COALESCE(CAST(deposit_paid_decimal AS NUMERIC), 0)
+                """
+            )
+        }
+
+        return (predicates, values)
+    }
+
     func fetchOrderPage(
         query: OrderPageQuery,
         after cursor: OrderPageCursor?,
@@ -287,60 +346,11 @@ extension GRDBCoreDataRepository {
         guard (1...50).contains(limit) else {
             throw OrderPageQueryError.invalidLimit
         }
+        let filter = try orderFilter(for: query)
 
         return try writer.read { db in
-            var predicates: [String] = []
-            var values: [(any DatabaseValueConvertible)?] = []
-
-            switch query {
-            case .active(let dueAtRange):
-                predicates.append("status IN (?, ?, ?, ?)")
-                values.append(contentsOf: [
-                    OrderStatus.draft.rawValue,
-                    OrderStatus.confirmed.rawValue,
-                    OrderStatus.inProgress.rawValue,
-                    OrderStatus.ready.rawValue
-                ])
-                if let dueAtRange {
-                    predicates.append("due_at_unix_time BETWEEN ? AND ?")
-                    values.append(dueAtRange.lowerBound.timeIntervalSince1970)
-                    values.append(dueAtRange.upperBound.timeIntervalSince1970)
-                }
-            case .completed:
-                predicates.append("status IN (?, ?)")
-                values.append(OrderStatus.completed.rawValue)
-                values.append(OrderStatus.cancelled.rawValue)
-            case .upcoming(let from, let through):
-                guard from <= through else {
-                    throw OrderPageQueryError.invalidDateRange
-                }
-                predicates.append("status IN (?, ?, ?, ?)")
-                values.append(contentsOf: [
-                    OrderStatus.draft.rawValue,
-                    OrderStatus.confirmed.rawValue,
-                    OrderStatus.inProgress.rawValue,
-                    OrderStatus.ready.rawValue
-                ])
-                predicates.append("due_at_unix_time BETWEEN ? AND ?")
-                values.append(from.timeIntervalSince1970)
-                values.append(through.timeIntervalSince1970)
-            case .customer(let customerId):
-                predicates.append("customer_id = ?")
-                values.append(customerId)
-            case .paymentPending(let date):
-                predicates.append("status = ?")
-                values.append(OrderStatus.completed.rawValue)
-                predicates.append("due_at_unix_time <= ?")
-                values.append(date.timeIntervalSince1970)
-                predicates.append("quoted_price_decimal IS NOT NULL")
-                predicates.append(
-                    """
-                    CAST(quoted_price_decimal AS NUMERIC)
-                        > COALESCE(CAST(deposit_paid_decimal AS NUMERIC), 0)
-                    """
-                )
-            }
-
+            var predicates = filter.predicates
+            var values = filter.values
             let direction = query.isDescending ? "DESC" : "ASC"
             if let cursor {
                 let comparison = query.isDescending ? "<" : ">"
@@ -377,6 +387,21 @@ extension GRDBCoreDataRepository {
                 }
                 : nil
             return OrderPage(orders: pageOrders, nextCursor: nextCursor)
+        }
+    }
+
+    func fetchOrderCount(query: OrderPageQuery) throws -> Int {
+        let filter = try orderFilter(for: query)
+        return try writer.read { db in
+            try Int.fetchOne(
+                db,
+                sql: """
+                    SELECT COUNT(*)
+                    FROM orders
+                    WHERE \(filter.predicates.joined(separator: " AND "))
+                    """,
+                arguments: arguments(filter.values)
+            ) ?? 0
         }
     }
 

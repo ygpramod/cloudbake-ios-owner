@@ -116,6 +116,7 @@ protocol OrderRepository {
         after cursor: OrderPageCursor?,
         limit: Int
     ) throws -> OrderPage
+    func fetchOrderCount(query: OrderPageQuery) throws -> Int
 }
 
 enum OrderPageQuery: Equatable {
@@ -130,6 +131,30 @@ enum OrderPageQuery: Equatable {
             return true
         }
         return false
+    }
+
+    func validate() throws {
+        if case .upcoming(let from, let through) = self, from > through {
+            throw OrderPageQueryError.invalidDateRange
+        }
+    }
+
+    func includes(_ order: Order) -> Bool {
+        switch self {
+        case .active(let range):
+            return order.hasActiveReminderState
+                && (range?.contains(order.dueAt) ?? true)
+        case .completed:
+            return order.status == .completed || order.status == .cancelled
+        case .upcoming(let from, let through):
+            return order.hasActiveReminderState
+                && order.dueAt >= from
+                && order.dueAt <= through
+        case .customer(let customerId):
+            return order.customerId == customerId
+        case .paymentPending(let date):
+            return order.hasPaymentPending(at: date)
+        }
     }
 }
 
@@ -157,28 +182,10 @@ extension OrderRepository {
         guard (1...50).contains(limit) else {
             throw OrderPageQueryError.invalidLimit
         }
-        if case .upcoming(let from, let through) = query, from > through {
-            throw OrderPageQueryError.invalidDateRange
-        }
+        try query.validate()
 
         let filtered = try fetchOrders()
-            .filter { order in
-                switch query {
-                case .active(let range):
-                    return order.hasActiveReminderState
-                        && (range?.contains(order.dueAt) ?? true)
-                case .completed:
-                    return order.status == .completed || order.status == .cancelled
-                case .upcoming(let from, let through):
-                    return order.hasActiveReminderState
-                        && order.dueAt >= from
-                        && order.dueAt <= through
-                case .customer(let customerId):
-                    return order.customerId == customerId
-                case .paymentPending(let date):
-                    return order.hasPaymentPending(at: date)
-                }
-            }
+            .filter(query.includes)
             .sorted { lhs, rhs in
                 if lhs.dueAt == rhs.dueAt {
                     return query.isDescending ? lhs.id > rhs.id : lhs.id < rhs.id
@@ -207,6 +214,11 @@ extension OrderRepository {
             }
             : nil
         return OrderPage(orders: pageOrders, nextCursor: nextCursor)
+    }
+
+    func fetchOrderCount(query: OrderPageQuery) throws -> Int {
+        try query.validate()
+        return try fetchOrders().filter(query.includes).count
     }
 }
 

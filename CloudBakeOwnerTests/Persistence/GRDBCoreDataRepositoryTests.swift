@@ -439,6 +439,18 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             after: nil,
             limit: 25
         )
+        let upcomingCount = try repository.fetchOrderCount(
+            query: .upcoming(
+                from: now,
+                through: now.addingTimeInterval(300)
+            )
+        )
+        let customerCount = try repository.fetchOrderCount(
+            query: .customer(id: customerId)
+        )
+        let paymentPendingCount = try repository.fetchOrderCount(
+            query: .paymentPending(asOf: now)
+        )
 
         XCTAssertEqual(upcoming.orders.map(\.id), ["upcoming"])
         XCTAssertEqual(
@@ -446,6 +458,9 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             ["payment-paid", "payment-pending", "upcoming"]
         )
         XCTAssertEqual(paymentPending.orders.map(\.id), ["payment-pending"])
+        XCTAssertEqual(upcomingCount, 1)
+        XCTAssertEqual(customerCount, 3)
+        XCTAssertEqual(paymentPendingCount, 1)
     }
 
     func testOrderPagesRejectInvalidBounds() throws {
@@ -467,6 +482,16 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 ),
                 after: nil,
                 limit: 25
+            )
+        ) { error in
+            XCTAssertEqual(error as? OrderPageQueryError, .invalidDateRange)
+        }
+        XCTAssertThrowsError(
+            try repository.fetchOrderCount(
+                query: .upcoming(
+                    from: Date(timeIntervalSince1970: 2),
+                    through: Date(timeIntervalSince1970: 1)
+                )
             )
         ) { error in
             XCTAssertEqual(error as? OrderPageQueryError, .invalidDateRange)
