@@ -270,10 +270,10 @@ default to a rolling 12-month period ending today, grouped by Month. The owner c
 grouping or choose a custom date range. Order Profitability remains an order-by-order list with
 date filters rather than grouped totals and uses the same rolling 12-month default.
 
-All three reports filter and group by order due date. Payment Ledger does not expose a separate
-payment-received-date filter; received-payment rows participate in the period of their order's due
-date. This deliberately favors one simple, consistent business date over cash-flow-period
-reporting.
+Payment Ledger's Received view filters and groups receipts by payment received date. Its
+Outstanding view filters and groups unpaid orders by order due date because those rows do not yet
+have a payment received date. Order Profitability and Sales & Orders filter and group by order due
+date.
 
 Inventory usage and waste, upcoming workload, customer summary, and recipe/design popularity
 reports are outside this improvement point.
