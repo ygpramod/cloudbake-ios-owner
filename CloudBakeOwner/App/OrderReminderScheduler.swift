@@ -94,11 +94,11 @@ struct OrderReminderScheduler {
         }
     }
 
-    func makeReminderRequests() throws -> [UNNotificationRequest] {
+    func makeReminderRequests(limit: Int = 60) throws -> [UNNotificationRequest] {
         let now = dateProvider()
         return try repository.fetchScheduledOrderReminderOccurrences(
             after: now,
-            limit: 60
+            limit: limit
         )
             .map { occurrence in
                 makeReminderRequest(
@@ -120,7 +120,9 @@ struct OrderReminderScheduler {
         content.sound = .default
         content.userInfo = [
             Self.orderNotificationDestinationKey: Self.orderNotificationDestinationOrder,
-            Self.orderNotificationOrderIdKey: order.id
+            Self.orderNotificationOrderIdKey: order.id,
+            CloudBakeNotificationCapacityPolicy.businessDateUserInfoKey:
+                order.dueAt.timeIntervalSince1970
         ]
 
         let components = Self.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: remindAt)

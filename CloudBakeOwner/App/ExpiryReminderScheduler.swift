@@ -82,6 +82,10 @@ struct ExpiryReminderScheduler {
         content.title = "Inventory expiring soon"
         content.body = "\(candidate.itemName) has \(candidate.batch.remainingQuantity.formatted()) \(candidate.unit.displayName) expiring on \(expiresAt.formatted(date: .abbreviated, time: .omitted))."
         content.sound = .default
+        content.userInfo = [
+            CloudBakeNotificationCapacityPolicy.businessDateUserInfoKey:
+                expiresAt.timeIntervalSince1970
+        ]
 
         guard let triggerDate = scheduledReminderDate(for: expiresAt, now: now) else {
             return nil

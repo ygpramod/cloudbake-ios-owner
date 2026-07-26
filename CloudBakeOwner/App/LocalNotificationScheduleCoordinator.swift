@@ -21,10 +21,24 @@ struct CloudBakeNotificationCandidate {
     let request: UNNotificationRequest
     let category: CloudBakeNotificationCategory
     let triggerAt: Date
+    let businessAt: Date
+
+    init(
+        request: UNNotificationRequest,
+        category: CloudBakeNotificationCategory,
+        triggerAt: Date,
+        businessAt: Date? = nil
+    ) {
+        self.request = request
+        self.category = category
+        self.triggerAt = triggerAt
+        self.businessAt = businessAt ?? triggerAt
+    }
 }
 
 struct CloudBakeNotificationCapacityPolicy {
     static let scheduledRequestLimit = 60
+    static let businessDateUserInfoKey = "cloudbake.businessDate"
 
     func select(
         _ candidates: [CloudBakeNotificationCandidate],
@@ -56,6 +70,9 @@ struct CloudBakeNotificationCapacityPolicy {
         }
         if lhs.triggerAt != rhs.triggerAt {
             return lhs.triggerAt < rhs.triggerAt
+        }
+        if lhs.businessAt != rhs.businessAt {
+            return lhs.businessAt < rhs.businessAt
         }
         if lhs.category.rawValue != rhs.category.rawValue {
             return lhs.category.rawValue < rhs.category.rawValue
@@ -171,11 +188,20 @@ struct LocalNotificationScheduleCoordinator {
             }
         }
 
+        let remainingCapacity = max(
+            0,
+            CloudBakeNotificationCapacityPolicy.scheduledRequestLimit
+                - capacityPolicy.select(candidates).count
+        )
+        guard remainingCapacity > 0 else {
+            return candidates
+        }
+
         let orderRequests = try OrderReminderScheduler(
             repository: repository,
             notificationCenter: notificationCenter,
             dateProvider: { date }
-        ).makeReminderRequests()
+        ).makeReminderRequests(limit: remainingCapacity)
         candidates.append(
             contentsOf: orderRequests.compactMap {
                 candidate(for: $0, category: .order, relativeTo: date)
@@ -186,7 +212,7 @@ struct LocalNotificationScheduleCoordinator {
             repository: repository,
             notificationCenter: notificationCenter,
             dateProvider: { date }
-        ).makeReminderRequests()
+        ).makeReminderRequests(limit: remainingCapacity)
         candidates.append(
             contentsOf: expiryRequests.compactMap {
                 candidate(for: $0, category: .inventoryExpiry, relativeTo: date)
@@ -215,8 +241,18 @@ struct LocalNotificationScheduleCoordinator {
         return CloudBakeNotificationCandidate(
             request: request,
             category: category,
-            triggerAt: triggerAt
+            triggerAt: triggerAt,
+            businessAt: businessDate(from: request) ?? triggerAt
         )
+    }
+
+    private func businessDate(from request: UNNotificationRequest) -> Date? {
+        guard let timestamp = request.content.userInfo[
+            CloudBakeNotificationCapacityPolicy.businessDateUserInfoKey
+        ] as? TimeInterval else {
+            return nil
+        }
+        return Date(timeIntervalSince1970: timestamp)
     }
 
     private static func isManaged(identifier: String) -> Bool {

@@ -93,6 +93,39 @@ final class OrderReminderSchedulerTests: XCTestCase {
         )
     }
 
+    func testNotificationCapacityUsesBusinessDateBeforeCategoryAndIdentifier() {
+        let triggerAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let candidates = [
+            CloudBakeNotificationCandidate(
+                request: UNNotificationRequest(
+                    identifier: "order-later",
+                    content: UNNotificationContent(),
+                    trigger: nil
+                ),
+                category: .order,
+                triggerAt: triggerAt,
+                businessAt: triggerAt.addingTimeInterval(200)
+            ),
+            CloudBakeNotificationCandidate(
+                request: UNNotificationRequest(
+                    identifier: "inventory-sooner",
+                    content: UNNotificationContent(),
+                    trigger: nil
+                ),
+                category: .inventoryExpiry,
+                triggerAt: triggerAt,
+                businessAt: triggerAt.addingTimeInterval(100)
+            )
+        ]
+
+        XCTAssertEqual(
+            CloudBakeNotificationCapacityPolicy()
+                .select(candidates, limit: 2)
+                .map(\.identifier),
+            ["inventory-sooner", "order-later"]
+        )
+    }
+
     func testUnifiedReminderRefreshReplacesManagedRequestsAndKeepsUnrelatedOnes() async throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let notificationCenter = FakeOrderReminderNotificationCenter()
