@@ -184,17 +184,19 @@ confirmation, then sets the order paid and removes the payment reminder.
 Reminder order and inventory rows open their detail screens in place so the owner stays in the
 Reminders workflow.
 
-Order detail shows the next relevant reminder from the three-day, two-day, and one-day reminder
-plan.
+Order detail shows the next relevant reminder from the order's saved reminder plan.
 
 When notification permission is granted, CloudBake schedules local owner notifications for
-Confirmed, In Progress, and Ready orders at future three-day, two-day, one-day, and due-time
-reminder times. The due-time notification says the order was due and asks the owner to update
-status. Tapping an order notification opens the matching order.
+Confirmed, In Progress, and Ready orders at future times in each order's saved plan. The default
+plan is three days, two days, one day, and due time. Settings can change the defaults copied to new
+orders. Add/Edit Order can retain that order's saved default plan, use custom day offsets and an
+optional due-time reminder, or turn reminders off. Existing orders keep their saved plan when the
+global defaults change. The due-time notification says the order was due and asks the owner to
+update status. Tapping an order notification opens the matching order.
 
 Draft, Completed, Cancelled, past-due, and already-missed reminders are not scheduled.
 
-Reminder snooze, configurable offsets, and calendar integration remain future work.
+Reminder snooze and calendar integration remain future work.
 
 ## Switch Order Tabs
 
@@ -468,10 +470,10 @@ focused sheet on supported iPhones.
 
 The Orders screen no longer has a standalone Reminders Due section. Order detail shows the next
 reminder for that cake. Completed and cancelled orders do not appear in due reminder calculations.
-Confirmed, In Progress, and Ready orders also schedule local owner notifications for future
-three-day, two-day, one-day, and due-time reminder times. If an active order has passed its due
-time, CloudBake shows an Overdue pill on the order row and an update-status banner for the earliest
-overdue order. Snooze, configurable reminder offsets, and calendar integration are future work.
+Confirmed, In Progress, and Ready orders also schedule local owner notifications using the order's
+saved default or custom reminder plan. If an active order has passed its due time, CloudBake shows
+an Overdue pill on the order row and an update-status banner for the earliest overdue order. Snooze
+and calendar integration are future work.
 
 Customer record selection opens from the order form. The owner can search customers by name, phone,
 email, or address, select a saved customer, or clear the link and keep manually entered order text.
@@ -574,7 +576,7 @@ status transitions that deduct recipe inventory retain explicit centered confirm
 suggestions,
 discounts, refunds, and online payment processing remain future work.
 
-Future order slices should add reminder snooze, configurable reminders, partial recipe usage,
+Future order slices should add reminder snooze, partial recipe usage,
 multi-recipe orders, checklist reordering/templates, pricing calculation, and richer order
 photo/design library workflows.
 

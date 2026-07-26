@@ -153,6 +153,11 @@ updates must share the existing database transaction boundary where they occur t
 
 ## Reminder Customization
 
+Implementation status: complete in this improvement point. Reminder defaults and per-order plans
+are persisted, validated, included in database backup/restore, and used by both in-app presentation
+and local notification scheduling. Saving an order reminder change replaces pending order reminder
+requests immediately.
+
 ### Recommended Product Contract
 
 1. The existing default remains three days, two days, one day, and due time.
@@ -174,8 +179,7 @@ Add:
 - one optional per-order reminder configuration;
 - a typed domain value that validates offsets and due-time inclusion.
 
-The owner must confirm whether customization should include both global defaults and per-order
-overrides. The recommended contract above assumes both.
+The owner confirmed that customization includes both global defaults and per-order overrides.
 
 ## Daily Payment-Pending Reminder
 
