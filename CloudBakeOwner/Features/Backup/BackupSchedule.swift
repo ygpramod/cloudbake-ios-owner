@@ -12,6 +12,7 @@ struct BackupScheduleMetadata: Codable, Equatable, Sendable {
     var estimatedUploadByteCount: Int64?
     var lastFailureCategory: String? = nil
     var deletionNeedsRetryCategory: String? = nil
+    var lastSuccessfulOmittedAssetCount: Int? = nil
 
     static let initial = BackupScheduleMetadata(
         isEnabled: true,
@@ -23,7 +24,8 @@ struct BackupScheduleMetadata: Codable, Equatable, Sendable {
         retryCount: 0,
         estimatedUploadByteCount: nil,
         lastFailureCategory: nil,
-        deletionNeedsRetryCategory: nil
+        deletionNeedsRetryCategory: nil,
+        lastSuccessfulOmittedAssetCount: nil
     )
 }
 
@@ -34,28 +36,31 @@ protocol BackupScheduleStoring: Sendable {
 
 protocol BackupAssetOmissionStoring: Sendable {
     func loadApprovedDigests() -> Set<String>
-    func approve(digests: Set<String>)
+    func approve(sourceReferences: Set<String>)
 }
 
 final class UserDefaultsBackupAssetOmissionStore: BackupAssetOmissionStoring, @unchecked Sendable {
     static let approvedDigestsKey = "cloudbake.cloudBackupApprovedPhotoOmissions"
+    private static let sharedLock = NSLock()
 
     private let defaults: UserDefaults
-    private let lock = NSLock()
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }
 
     func loadApprovedDigests() -> Set<String> {
-        lock.withLock {
+        Self.sharedLock.withLock {
             Set(defaults.stringArray(forKey: Self.approvedDigestsKey) ?? [])
         }
     }
 
-    func approve(digests: Set<String>) {
-        guard !digests.isEmpty else { return }
-        lock.withLock {
+    func approve(sourceReferences: Set<String>) {
+        guard !sourceReferences.isEmpty else { return }
+        let digests = Set(sourceReferences.map {
+            BackupChecksum.sha256(of: Data($0.utf8))
+        })
+        Self.sharedLock.withLock {
             let existing = Set(defaults.stringArray(forKey: Self.approvedDigestsKey) ?? [])
             defaults.set(Array(existing.union(digests)).sorted(), forKey: Self.approvedDigestsKey)
         }
