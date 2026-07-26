@@ -402,14 +402,13 @@ final class ReportsViewModel: ObservableObject {
         receivedPayments = []
         outstandingOrders = []
         profitabilityRows = []
-        salesBuckets = try bucketRanges(in: dateRange).map {
-            SalesOrderBucket(
-                dateRange: $0,
-                summary: try repository.fetchSalesOrderSummary(
-                    dateRange: $0,
-                    statuses: selectedStatuses
-                )
-            )
+        let ranges = bucketRanges(in: dateRange)
+        let summaries = try repository.fetchSalesOrderSummaries(
+            dateRanges: ranges,
+            statuses: selectedStatuses
+        )
+        salesBuckets = zip(ranges, summaries).map {
+            SalesOrderBucket(dateRange: $0.0, summary: $0.1)
         }
         canLoadMore = false
     }

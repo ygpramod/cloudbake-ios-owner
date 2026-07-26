@@ -1303,6 +1303,50 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(sales.statusCounts[.completed], 1)
     }
 
+    func testSalesReportAggregatesAllDailyBucketsInOneBoundedQuery() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let ranges = (0..<366).map { day in
+            let bucketStart = start.addingTimeInterval(
+                TimeInterval(day * 86_400)
+            )
+            return ReportDateRange(
+                start: bucketStart,
+                end: bucketStart.addingTimeInterval(86_400)
+            )
+        }
+        try repository.save(
+            pagedOrder(
+                id: "first-sales-bucket",
+                status: .confirmed,
+                dueAt: start.addingTimeInterval(60),
+                quotedPrice: decimal("0.10")
+            )
+        )
+        try repository.save(
+            pagedOrder(
+                id: "last-sales-bucket",
+                status: .completed,
+                dueAt: ranges[365].start.addingTimeInterval(60),
+                quotedPrice: decimal("0.20")
+            )
+        )
+
+        let summaries = try repository.fetchSalesOrderSummaries(
+            dateRanges: ranges,
+            statuses: [.confirmed, .completed]
+        )
+
+        XCTAssertEqual(summaries.count, 366)
+        XCTAssertEqual(summaries[0].orderCount, 1)
+        XCTAssertEqual(summaries[0].quotedTotal, decimal("0.10"))
+        XCTAssertEqual(summaries[180].orderCount, 0)
+        XCTAssertEqual(summaries[365].orderCount, 1)
+        XCTAssertEqual(summaries[365].quotedTotal, decimal("0.20"))
+    }
+
     func testVoidingReceiptAppendsCorrectionAndReconcilesPaidTotal() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         try AppDatabaseMigrations.makeMigrator().migrate(queue)

@@ -92,6 +92,10 @@ protocol PaymentReportRepository {
         dateRange: ReportDateRange,
         statuses: Set<OrderStatus>
     ) throws -> SalesOrderSummary
+    func fetchSalesOrderSummaries(
+        dateRanges: [ReportDateRange],
+        statuses: Set<OrderStatus>
+    ) throws -> [SalesOrderSummary]
 }
 
 extension GRDBCoreDataRepository: PaymentReportRepository {
@@ -214,77 +218,7 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
             throw PaymentReportQueryError.noStatuses
         }
         return try writer.read { db in
-            let statusValues = statuses.map(\.rawValue).sorted()
-            let placeholders = Array(repeating: "?", count: statusValues.count)
-                .joined(separator: ", ")
-            var receivedArguments: [(any DatabaseValueConvertible)?] = [
-                dateRange.start.timeIntervalSince1970,
-                dateRange.end.timeIntervalSince1970
-            ]
-            receivedArguments.append(contentsOf: statusValues)
-            let receivedRows = try Row.fetchAll(
-                db,
-                sql: """
-                    SELECT payment_receipts.amount_decimal
-                    FROM payment_receipts
-                    JOIN orders ON orders.id = payment_receipts.order_id
-                    LEFT JOIN payment_receipt_voids
-                      ON payment_receipt_voids.receipt_id = payment_receipts.id
-                    WHERE payment_receipt_voids.id IS NULL
-                      AND payment_receipts.received_at_unix_time >= ?
-                      AND payment_receipts.received_at_unix_time < ?
-                      AND orders.status IN (\(placeholders))
-                    """,
-                arguments: arguments(receivedArguments)
-            )
-            var outstandingArguments: [(any DatabaseValueConvertible)?] = [
-                dateRange.start.timeIntervalSince1970,
-                dateRange.end.timeIntervalSince1970
-            ]
-            outstandingArguments.append(contentsOf: statusValues)
-            let outstandingRows = try Row.fetchAll(
-                db,
-                sql: """
-                    SELECT
-                        orders.quoted_price_decimal,
-                        orders.deposit_paid_decimal
-                    FROM orders
-                    WHERE orders.due_at_unix_time >= ?
-                      AND orders.due_at_unix_time < ?
-                      AND orders.status IN (\(placeholders))
-                      AND orders.quoted_price_decimal IS NOT NULL
-                    """,
-                arguments: arguments(outstandingArguments)
-            )
-            let receivedAmounts = try receivedRows.map {
-                try reportDecimal($0["amount_decimal"])
-            }
-            let outstandingBalances = try outstandingRows.compactMap { row -> Decimal? in
-                let quotedPrice = try reportDecimal(row["quoted_price_decimal"])
-                let paid = try optionalReportDecimal(
-                    row["deposit_paid_decimal"]
-                ) ?? 0
-                let balance = quotedPrice - paid
-                return balance > 0 ? balance : nil
-            }
-            return PaymentLedgerSummary(
-                receivedTotal: receivedAmounts.reduce(0, +),
-                receivedCount: receivedAmounts.count,
-                outstandingTotal: outstandingBalances.reduce(0, +),
-                outstandingOrderCount: outstandingBalances.count
-            )
-        }
-    }
-
-    func fetchSalesOrderSummary(
-        dateRange: ReportDateRange,
-        statuses: Set<OrderStatus>
-    ) throws -> SalesOrderSummary {
-        try dateRange.validate()
-        guard !statuses.isEmpty else {
-            throw PaymentReportQueryError.noStatuses
-        }
-        return try writer.read { db in
+            registerReportDecimalFunctions(in: db)
             let statusValues = statuses.map(\.rawValue).sorted()
             let placeholders = Array(repeating: "?", count: statusValues.count)
                 .joined(separator: ", ")
@@ -293,44 +227,192 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
                 dateRange.end.timeIntervalSince1970
             ]
             values.append(contentsOf: statusValues)
-            let rows = try Row.fetchAll(
+            values.append(dateRange.start.timeIntervalSince1970)
+            values.append(dateRange.end.timeIntervalSince1970)
+            values.append(contentsOf: statusValues)
+            values.append(dateRange.start.timeIntervalSince1970)
+            values.append(dateRange.end.timeIntervalSince1970)
+            values.append(contentsOf: statusValues)
+            guard let row = try Row.fetchOne(
                 db,
                 sql: """
                     SELECT
-                        orders.status,
-                        orders.quoted_price_decimal,
-                        orders.deposit_paid_decimal
+                        (
+                            SELECT cloudbake_decimal_sum(
+                                payment_receipts.amount_decimal
+                            )
+                            FROM payment_receipts
+                            JOIN orders
+                              ON orders.id = payment_receipts.order_id
+                            LEFT JOIN payment_receipt_voids
+                              ON payment_receipt_voids.receipt_id =
+                                    payment_receipts.id
+                            WHERE payment_receipt_voids.id IS NULL
+                              AND payment_receipts.received_at_unix_time >= ?
+                              AND payment_receipts.received_at_unix_time < ?
+                              AND orders.status IN (\(placeholders))
+                        ) AS received_total,
+                        (
+                            SELECT COUNT(*)
+                            FROM payment_receipts
+                            JOIN orders
+                              ON orders.id = payment_receipts.order_id
+                            LEFT JOIN payment_receipt_voids
+                              ON payment_receipt_voids.receipt_id =
+                                    payment_receipts.id
+                            WHERE payment_receipt_voids.id IS NULL
+                              AND payment_receipts.received_at_unix_time >= ?
+                              AND payment_receipts.received_at_unix_time < ?
+                              AND orders.status IN (\(placeholders))
+                        ) AS received_count,
+                        cloudbake_outstanding_sum(
+                            orders.quoted_price_decimal,
+                            orders.deposit_paid_decimal
+                        ) AS outstanding_total,
+                        COUNT(*) FILTER (
+                            WHERE cloudbake_has_outstanding(
+                                orders.quoted_price_decimal,
+                                orders.deposit_paid_decimal
+                            ) = 1
+                        ) AS outstanding_order_count
                     FROM orders
                     WHERE orders.due_at_unix_time >= ?
                       AND orders.due_at_unix_time < ?
                       AND orders.status IN (\(placeholders))
+                      AND orders.quoted_price_decimal IS NOT NULL
+                    """,
+                arguments: arguments(values)
+            ) else {
+                return PaymentLedgerSummary(
+                    receivedTotal: 0,
+                    receivedCount: 0,
+                    outstandingTotal: 0,
+                    outstandingOrderCount: 0
+                )
+            }
+            return PaymentLedgerSummary(
+                receivedTotal: try reportDecimal(row["received_total"]),
+                receivedCount: row["received_count"],
+                outstandingTotal: try reportDecimal(row["outstanding_total"]),
+                outstandingOrderCount: row["outstanding_order_count"]
+            )
+        }
+    }
+
+    func fetchSalesOrderSummary(
+        dateRange: ReportDateRange,
+        statuses: Set<OrderStatus>
+    ) throws -> SalesOrderSummary {
+        try fetchSalesOrderSummaries(
+            dateRanges: [dateRange],
+            statuses: statuses
+        )[0]
+    }
+
+    func fetchSalesOrderSummaries(
+        dateRanges: [ReportDateRange],
+        statuses: Set<OrderStatus>
+    ) throws -> [SalesOrderSummary] {
+        guard (1...366).contains(dateRanges.count) else {
+            throw PaymentReportQueryError.invalidDateRange
+        }
+        try dateRanges.forEach { try $0.validate() }
+        guard !statuses.isEmpty else {
+            throw PaymentReportQueryError.noStatuses
+        }
+        return try writer.read { db in
+            registerReportDecimalFunctions(in: db)
+            let statusValues = statuses.map(\.rawValue).sorted()
+            let placeholders = Array(repeating: "?", count: statusValues.count)
+                .joined(separator: ", ")
+            let bucketPayload = dateRanges.enumerated().map { index, range in
+                [
+                    "index": index,
+                    "start": range.start.timeIntervalSince1970,
+                    "end": range.end.timeIntervalSince1970
+                ] as [String: Any]
+            }
+            let bucketData = try JSONSerialization.data(
+                withJSONObject: bucketPayload
+            )
+            guard let bucketJSON = String(data: bucketData, encoding: .utf8) else {
+                throw PaymentReportQueryError.invalidDateRange
+            }
+            var values: [(any DatabaseValueConvertible)?] = [bucketJSON]
+            values.append(contentsOf: statusValues)
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    WITH buckets AS (
+                        SELECT
+                            CAST(
+                                json_extract(value, '$.index') AS INTEGER
+                            ) AS bucket_index,
+                            CAST(
+                                json_extract(value, '$.start') AS REAL
+                            ) AS bucket_start,
+                            CAST(
+                                json_extract(value, '$.end') AS REAL
+                            ) AS bucket_end
+                        FROM json_each(?)
+                    )
+                    SELECT
+                        buckets.bucket_index,
+                        orders.status,
+                        COUNT(orders.id) AS order_count,
+                        cloudbake_decimal_sum(
+                            orders.quoted_price_decimal
+                        ) AS quoted_total,
+                        cloudbake_decimal_sum(
+                            orders.deposit_paid_decimal
+                        ) AS received_total,
+                        cloudbake_outstanding_sum(
+                            orders.quoted_price_decimal,
+                            orders.deposit_paid_decimal
+                        ) AS outstanding_total
+                    FROM buckets
+                    LEFT JOIN orders
+                      ON orders.due_at_unix_time >= buckets.bucket_start
+                     AND orders.due_at_unix_time < buckets.bucket_end
+                     AND orders.status IN (\(placeholders))
+                    GROUP BY buckets.bucket_index, orders.status
+                    ORDER BY buckets.bucket_index
                     """,
                 arguments: arguments(values)
             )
-            var quotedTotal = Decimal.zero
-            var receivedTotal = Decimal.zero
-            var outstandingTotal = Decimal.zero
-            var statusCounts: [OrderStatus: Int] = [:]
-            for row in rows {
-                let status = OrderStatus(rawValue: row["status"]) ?? .draft
-                statusCounts[status, default: 0] += 1
-                let quotedPrice = try optionalReportDecimal(
-                    row["quoted_price_decimal"]
-                ) ?? 0
-                let paid = try optionalReportDecimal(
-                    row["deposit_paid_decimal"]
-                ) ?? 0
-                quotedTotal += quotedPrice
-                receivedTotal += paid
-                outstandingTotal += max(quotedPrice - paid, 0)
-            }
-            return SalesOrderSummary(
-                orderCount: rows.count,
-                quotedTotal: quotedTotal,
-                receivedTotal: receivedTotal,
-                outstandingTotal: outstandingTotal,
-                statusCounts: statusCounts
+            var summaries = Array(
+                repeating: SalesOrderSummary(
+                    orderCount: 0,
+                    quotedTotal: 0,
+                    receivedTotal: 0,
+                    outstandingTotal: 0,
+                    statusCounts: [:]
+                ),
+                count: dateRanges.count
             )
+            for row in rows {
+                let bucketIndex: Int = row["bucket_index"]
+                let count: Int = row["order_count"]
+                guard count > 0,
+                      let statusValue: String = row["status"],
+                      let status = OrderStatus(rawValue: statusValue) else {
+                    continue
+                }
+                let current = summaries[bucketIndex]
+                var statusCounts = current.statusCounts
+                statusCounts[status] = count
+                summaries[bucketIndex] = SalesOrderSummary(
+                    orderCount: current.orderCount + count,
+                    quotedTotal: current.quotedTotal
+                        + (try reportDecimal(row["quoted_total"])),
+                    receivedTotal: current.receivedTotal
+                        + (try reportDecimal(row["received_total"])),
+                    outstandingTotal: current.outstandingTotal
+                        + (try reportDecimal(row["outstanding_total"])),
+                    statusCounts: statusCounts
+                )
+            }
+            return summaries
         }
     }
 
@@ -440,6 +522,38 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
         )
     }
 
+    private func registerReportDecimalFunctions(in db: Database) {
+        db.add(
+            function: DatabaseFunction(
+                "cloudbake_decimal_sum",
+                argumentCount: 1,
+                pure: true,
+                aggregate: ReportDecimalSum.self
+            )
+        )
+        db.add(
+            function: DatabaseFunction(
+                "cloudbake_outstanding_sum",
+                argumentCount: 2,
+                pure: true,
+                aggregate: ReportOutstandingSum.self
+            )
+        )
+        db.add(
+            function: DatabaseFunction(
+                "cloudbake_has_outstanding",
+                argumentCount: 2,
+                pure: true
+            ) { values in
+                guard let quoted = try reportDecimalValue(values[0]) else {
+                    return 0
+                }
+                let paid = try reportDecimalValue(values[1]) ?? 0
+                return quoted > paid ? 1 : 0
+            }
+        )
+    }
+
     private func reportDecimal(_ value: String?) throws -> Decimal {
         guard let value,
               let decimal = Decimal(string: value) else {
@@ -457,4 +571,49 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
         }
         return decimal
     }
+}
+
+private struct ReportDecimalSum: DatabaseAggregate {
+    private var total = Decimal.zero
+
+    init() {}
+
+    mutating func step(_ values: [DatabaseValue]) throws {
+        if let value = try reportDecimalValue(values[0]) {
+            total += value
+        }
+    }
+
+    func finalize() -> (any DatabaseValueConvertible)? {
+        NSDecimalNumber(decimal: total).stringValue
+    }
+}
+
+private struct ReportOutstandingSum: DatabaseAggregate {
+    private var total = Decimal.zero
+
+    init() {}
+
+    mutating func step(_ values: [DatabaseValue]) throws {
+        guard let quoted = try reportDecimalValue(values[0]) else {
+            return
+        }
+        let paid = try reportDecimalValue(values[1]) ?? 0
+        total += max(quoted - paid, 0)
+    }
+
+    func finalize() -> (any DatabaseValueConvertible)? {
+        NSDecimalNumber(decimal: total).stringValue
+    }
+}
+
+private func reportDecimalValue(_ value: DatabaseValue) throws -> Decimal? {
+    guard !value.isNull else {
+        return nil
+    }
+    guard let string = String.fromDatabaseValue(value),
+          let decimal = Decimal(string: string) else {
+        throw PaymentReportQueryError.invalidStoredAmount
+    }
+    return decimal
 }
