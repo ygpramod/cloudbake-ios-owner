@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress in the owner app.
+Implemented in the owner app.
 
 ## Goal
 
@@ -51,6 +51,14 @@ acceptance fixtures, and repository guidance matches implemented owner behavior.
 4. Targeted acceptance tests moved or newly registered by this slice pass locally.
 5. GitHub Actions passes the unit/integration lane and every acceptance shard.
 6. `git diff --check` and changed-file Swift formatting remain clean.
+
+Local closeout evidence:
+
+1. all 77 acceptance selectors registered exactly once;
+2. Release build and app-bundle scan passed;
+3. 707 unit/integration tests passed with one intentional skip;
+4. all 10 journeys that had previously been absent from CI passed, including focused reruns after
+   correcting two stale test assumptions.
 
 ## Risks And Controls
 
