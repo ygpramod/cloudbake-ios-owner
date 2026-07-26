@@ -485,6 +485,9 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
     private let requiresUnavailablePhotoDecision = ProcessInfo.processInfo.environment[
         "CLOUDBAKE_TEST_CLOUD_BACKUP_PHOTO_DECISION"
     ] == "1"
+    private let deniesPhotosAccess = ProcessInfo.processInfo.environment[
+        "CLOUDBAKE_TEST_CLOUD_BACKUP_PHOTOS_PERMISSION_DENIED"
+    ] == "1"
     private let deletionFails = ProcessInfo.processInfo.environment[
         "CLOUDBAKE_TEST_CLOUD_BACKUP_DELETE_FAILURE"
     ] == "1"
@@ -520,6 +523,10 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
                     unavailablePhotoCount: 2
                 )
             )
+        }
+        if deniesPhotosAccess {
+            snapshot.state = .failed(.photosPermissionDenied)
+            return .failed(.photosPermissionDenied)
         }
         let proposal = ManualCellularBackupProposal(
             id: "ui-test-proposal",

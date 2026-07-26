@@ -501,6 +501,33 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
     }
 
+    func testCloudBackupDeniedPhotosAccessDoesNotOfferDestructiveChoices() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
+        app.launchEnvironment[
+            "CLOUDBAKE_TEST_CLOUD_BACKUP_PHOTOS_PERMISSION_DENIED"
+        ] = "1"
+        app.launch()
+
+        tapWhenReady(app.buttons["settings.backup.disclosure"])
+        let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
+        scrollToHittable(backUpNowButton, in: app)
+        app.swipeUp()
+        tapWhenReady(backUpNowButton)
+
+        let actionMessage = app.staticTexts[
+            "settings.cloudBackup.actionMessage"
+        ]
+        XCTAssertTrue(actionMessage.waitForExistence(timeout: 5))
+        XCTAssertEqual(
+            actionMessage.label,
+            "Allow CloudBake full access to Photos in iPhone Settings, then try again."
+        )
+        XCTAssertFalse(app.buttons["settings.cloudBackup.photos.omit"].exists)
+        XCTAssertFalse(app.buttons["settings.cloudBackup.photos.remove"].exists)
+        XCTAssertFalse(app.buttons["settings.cloudBackup.photos.remove.confirm"].exists)
+    }
+
     func testCloudBackupRequiresConfirmationBeforeUsingCurrentICloudAccount() throws {
         let app = makeApp(initialDestination: "settings")
         app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
