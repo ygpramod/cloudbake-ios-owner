@@ -682,14 +682,14 @@ enum OrderReminderConfigurationError: Error, Equatable {
 }
 
 struct OrderReminderConfiguration: Equatable {
-    static let initialDefault = try! OrderReminderConfiguration(
-        mode: .defaultSnapshot,
+    static let initialDefault = OrderReminderConfiguration(
+        validatedMode: .defaultSnapshot,
         dayOffsets: [3, 2, 1],
         includesDueTime: true
     )
 
-    static let disabled = try! OrderReminderConfiguration(
-        mode: .disabled,
+    static let disabled = OrderReminderConfiguration(
+        validatedMode: .disabled,
         dayOffsets: [],
         includesDueTime: false
     )
@@ -728,6 +728,16 @@ struct OrderReminderConfiguration: Equatable {
 
         self.mode = mode
         self.dayOffsets = dayOffsets.sorted(by: >)
+        self.includesDueTime = includesDueTime
+    }
+
+    private init(
+        validatedMode mode: OrderReminderConfigurationMode,
+        dayOffsets: [Int],
+        includesDueTime: Bool
+    ) {
+        self.mode = mode
+        self.dayOffsets = dayOffsets
         self.includesDueTime = includesDueTime
     }
 
