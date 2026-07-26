@@ -51,19 +51,33 @@ xcodebuild test \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
+Run the repository contracts before handoff:
+
+```sh
+./scripts/check_acceptance_test_registration.py
+
+SWIFT_FORMAT_BASE_SHA="$(git merge-base origin/main HEAD)" \
+  ./scripts/lint_swift.sh
+
+./scripts/verify_release_composition.sh
+```
+
 Keep the acceptance lane focused on critical owner journeys. When a slice adds detailed business
 behavior, prefer unit or integration tests for the detailed cases and update an existing journey only
 when the owner-facing workflow changes.
 
 GitHub Actions time-boxes the unit/integration job and feature-sharded acceptance UI jobs so stuck
 simulator automation fails clearly instead of blocking a pull request indefinitely. Acceptance UI
-tests run in seven parallel shards: `core-recipes`, `settings`, `orders-core`, `order-links`,
-`customers`, `inventory`, and `designs`.
+tests run in eight feature shards: `core-recipes`, `settings`, `orders-core`, `order-workflows`,
+`order-links`, `customers`, `inventory`, and `designs`.
 Each pull request or branch has only one active CI generation. Pushing a newer commit automatically
 cancels any superseded workflow run for that same pull request or branch so its macOS runners are
 released for the new head commit.
 CI prefers known iPhone simulator names when available, falls back to the first available iPhone,
 and uploads the Xcode result bundle for failed test jobs.
+
+See [`testing-and-ci.md`](testing-and-ci.md) for selector ownership, targeted commands, the
+changed-file formatting contract, and Release-composition verification.
 
 ## Main Branch Protection
 
