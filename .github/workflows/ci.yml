@@ -84,6 +84,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCSVExportPresentsDestinationPicker
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCSVImportPresentsFilePicker
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupSettingsRequireCellularConfirmation
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupUnavailablePhotoDecisionRequiresExplicitChoice
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupRequiresConfirmationBeforeUsingCurrentICloudAccount
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupDeletionRequiresConfirmationAndPreservesSettingsScreen
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupDeletionFailureKeepsBackupDisabledAndRetryable

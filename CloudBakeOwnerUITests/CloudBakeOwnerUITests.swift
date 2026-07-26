@@ -431,6 +431,41 @@ final class CloudBakeOwnerUITests: XCTestCase {
         waitForExpectations(timeout: 5)
     }
 
+    func testCloudBackupUnavailablePhotoDecisionRequiresExplicitChoice() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_PHOTO_DECISION"] = "1"
+        app.launch()
+
+        tapWhenReady(app.buttons["settings.backup.disclosure"])
+        let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
+        scrollToHittable(backUpNowButton, in: app)
+        app.swipeUp()
+        tapWhenReady(backUpNowButton)
+
+        let omitButton = app.buttons["settings.cloudBackup.photos.omit"]
+        XCTAssertTrue(omitButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Unavailable Photos"].exists)
+
+        tapWhenReady(app.buttons["settings.cloudBackup.photos.remove"])
+        let removalConfirmation =
+            app.buttons["settings.cloudBackup.photos.remove.confirm"]
+        XCTAssertTrue(removalConfirmation.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Remove Broken References?"].exists)
+
+        tapWhenReady(app.buttons["settings.cloudBackup.photos.remove.cancel"])
+        XCTAssertTrue(omitButton.waitForExistence(timeout: 5))
+        tapWhenReady(app.buttons["settings.cloudBackup.photos.cancel"])
+        XCTAssertFalse(omitButton.exists)
+
+        tapWhenReady(backUpNowButton)
+        tapWhenReady(app.buttons["settings.cloudBackup.photos.omit"])
+
+        let omittedStatus =
+            app.descendants(matching: .any)["settings.cloudBackup.omittedPhotos"]
+        XCTAssertTrue(omittedStatus.waitForExistence(timeout: 5))
+    }
+
     func testCloudBackupRequiresConfirmationBeforeUsingCurrentICloudAccount() throws {
         let app = makeApp(initialDestination: "settings")
         app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
