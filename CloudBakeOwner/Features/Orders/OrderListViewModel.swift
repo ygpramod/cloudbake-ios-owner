@@ -87,7 +87,7 @@ final class OrderListViewModel: ObservableObject {
             & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository
             & OrderPhotoRepository & PaymentReceiptRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
-        designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
+        designPhotoLibrary: DesignPhotoLibrary? = nil,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
         onReminderDataChanged: @escaping () -> Void = {},
@@ -113,10 +113,19 @@ final class OrderListViewModel: ObservableObject {
         self.photoWorkflow = OrderPhotoWorkflow(
             repository: repository,
             fileStore: photoFileStore,
-            photoLibrary: designPhotoLibrary,
+            photoLibrary: designPhotoLibrary ?? Self.defaultDesignPhotoLibrary(),
             idGenerator: idGenerator,
             dateProvider: dateProvider
         )
+    }
+
+    private static func defaultDesignPhotoLibrary() -> DesignPhotoLibrary {
+        #if DEBUG
+            if AcceptanceTestRuntime.isRunning {
+                return AcceptanceTestDesignPhotoLibrary()
+            }
+        #endif
+        return PhotoKitDesignPhotoLibrary()
     }
 
     var calendarDays: [OrderCalendarDay] {

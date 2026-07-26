@@ -487,8 +487,17 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(finalMetadata.waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(finalMetadata.label.contains("Finished cake"))
         XCTAssertTrue(finalMetadata.label.contains("Final Cake Photo"))
-        tapWhenReady(app.buttons["orders.detail.photos.preview.close"], timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.detail.photos.preview.promoteDesign"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Save Design"].waitForExistence(timeout: transitionTimeout))
+        let designNameField = app.textFields["orders.detail.photos.design.name"]
+        tapWhenReady(designNameField, timeout: transitionTimeout)
+        designNameField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
+        designNameField.typeText("Pink Pearl Cake")
+        tapWhenReady(app.buttons["orders.detail.photos.design.save"], timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
+        scrollToTop(in: app)
+        assertExistsAfterScrolling(app.staticTexts["orders.detail.designName"], in: app, timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["orders.detail.designName"].label.contains("Pink Pearl Cake"))
     }
 
     func testOrderShowsLinkedCustomerContext() throws {
