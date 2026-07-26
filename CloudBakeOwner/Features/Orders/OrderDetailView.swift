@@ -272,21 +272,17 @@ struct OrderDetailView: View {
                     isPresented: $isAddingExtraIngredient,
                     onSave: saveExtraIngredient
                 )
-                .centeredOrderPopup(
-                    isPresented: isConfirmingExtraIngredientInventoryShortage,
+                .orderConfirmationDialog(
+                    isPresented: $isConfirmingExtraIngredientInventoryShortage,
                     title: "Inventory Shortage",
+                    message: viewModel.inventoryShortageWarningMessage,
+                    messageAccessibilityIdentifier: "orders.extraIngredient.inventoryShortage.message",
                     onCancel: {
                         isConfirmingExtraIngredientInventoryShortage = false
                         viewModel.cancelInventoryShortageOverride()
                     }
                 ) {
-                    Text(viewModel.inventoryShortageWarningMessage)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("orders.extraIngredient.inventoryShortage.message")
-
-                    centeredPopupButton("Continue And Save", role: .destructive) {
+                    nativeDialogButton("Continue And Save", role: .destructive) {
                         if viewModel.addExtraIngredientToSelectedOrder(
                             allowingInventoryShortage: true
                         ) {
@@ -410,13 +406,13 @@ struct OrderDetailView: View {
                 )
             }
         }
-        .centeredOrderPopup(
-            isPresented: statusPendingInventoryDeduction != nil,
+        .orderConfirmationDialog(
+            isPresented: optionalPresentationBinding($statusPendingInventoryDeduction),
             title: "Deduct Inventory?",
             onCancel: { statusPendingInventoryDeduction = nil }
         ) {
             if let status = statusPendingInventoryDeduction {
-                centeredPopupButton("Mark \(status.displayName)", role: .destructive) {
+                nativeDialogButton("Mark \(status.displayName)", role: .destructive) {
                     let didChangeStatus = viewModel.changeSelectedOrderStatus(to: status)
                     statusPendingInventoryDeduction = nil
                     if !didChangeStatus, !viewModel.pendingInventoryShortages.isEmpty {
@@ -429,26 +425,20 @@ struct OrderDetailView: View {
                 .accessibilityIdentifier("orders.detail.confirmInventoryDeduction")
             }
         }
-        .centeredOrderPopup(
-            isPresented: receiptPendingVoid != nil,
-            title: "Void Payment",
-            cancelAccessibilityIdentifier: "orders.detail.payment.void.cancel",
-            onCancel: {
+        .alert(
+            "Void Payment",
+            isPresented: optionalPresentationBinding($receiptPendingVoid)
+        ) {
+            TextField("Reason (optional)", text: $paymentVoidReason)
+                .accessibilityIdentifier("orders.detail.payment.void.reason")
+
+            Button("Cancel", role: .cancel) {
                 receiptPendingVoid = nil
                 paymentVoidReason = ""
             }
-        ) {
-            Text("The original payment stays in history and is excluded from totals.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .accessibilityIdentifier("orders.detail.payment.void.message")
+            .accessibilityIdentifier("orders.detail.payment.void.cancel")
 
-            TextField("Reason (optional)", text: $paymentVoidReason)
-                .textFieldStyle(.roundedBorder)
-                .accessibilityIdentifier("orders.detail.payment.void.reason")
-
-            centeredPopupButton("Void Payment", role: .destructive) {
+            Button("Void Payment", role: .destructive) {
                 if let receiptPendingVoid {
                     _ = viewModel.voidPaymentReceipt(
                         receiptPendingVoid,
@@ -459,23 +449,22 @@ struct OrderDetailView: View {
                 paymentVoidReason = ""
             }
             .accessibilityIdentifier("orders.detail.payment.void.confirm")
+        } message: {
+            Text("The original payment stays in history and is excluded from totals.")
+                .accessibilityIdentifier("orders.detail.payment.void.message")
         }
-        .centeredOrderPopup(
-            isPresented: statusPendingInventoryShortage != nil,
+        .orderConfirmationDialog(
+            isPresented: optionalPresentationBinding($statusPendingInventoryShortage),
             title: "Inventory Shortage",
+            message: viewModel.inventoryShortageWarningMessage,
+            messageAccessibilityIdentifier: "orders.detail.inventoryShortage.message",
             onCancel: {
                 statusPendingInventoryShortage = nil
                 viewModel.cancelInventoryShortageOverride()
             }
         ) {
-            Text(viewModel.inventoryShortageWarningMessage)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .accessibilityIdentifier("orders.detail.inventoryShortage.message")
-
             if let status = statusPendingInventoryShortage {
-                centeredPopupButton("Continue And Mark \(status.displayName)", role: .destructive) {
+                nativeDialogButton("Continue And Mark \(status.displayName)", role: .destructive) {
                     let didChangeStatus = viewModel.changeSelectedOrderStatus(
                         to: status,
                         allowingInventoryShortage: true
@@ -489,65 +478,47 @@ struct OrderDetailView: View {
                 .accessibilityIdentifier("orders.detail.inventoryShortage.continue")
             }
         }
-        .centeredOrderPopup(
-            isPresented: statusChangeErrorMessage != nil,
+        .orderConfirmationDialog(
+            isPresented: optionalPresentationBinding($statusChangeErrorMessage),
             title: "Status Not Updated",
+            message: statusChangeErrorMessage ?? "Order status could not be updated.",
+            messageAccessibilityIdentifier: "orders.detail.statusChangeError",
             showsCancelButton: false,
             onCancel: {}
         ) {
-            if let statusChangeErrorMessage {
-                Text(statusChangeErrorMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.vertical, 12)
-                    .accessibilityIdentifier("orders.detail.statusChangeError")
-
-                centeredPopupButton("OK") {
-                    self.statusChangeErrorMessage = nil
-                }
-                .accessibilityIdentifier("orders.detail.statusChangeError.dismiss")
+            nativeDialogButton("OK") {
+                self.statusChangeErrorMessage = nil
             }
+            .accessibilityIdentifier("orders.detail.statusChangeError.dismiss")
         }
-        .centeredOrderPopup(
-            isPresented: isAddingPartialPayment,
-            title: "Add Partial Payment",
-            showsCancelButton: false,
-            onCancel: {
+        .alert("Add Partial Payment", isPresented: $isAddingPartialPayment) {
+            TextField("Amount", text: $partialPaymentAmount)
+                .keyboardType(.decimalPad)
+                .accessibilityIdentifier("orders.detail.payment.partial.amount")
+
+            TextField("Note (optional)", text: $partialPaymentNote)
+                .accessibilityIdentifier("orders.detail.payment.partial.note")
+
+            Button("Cancel", role: .cancel) {
                 isAddingPartialPayment = false
                 partialPaymentAmount = ""
                 partialPaymentNote = ""
             }
-        ) {
-            TextField("Amount", text: $partialPaymentAmount)
-                .keyboardType(.decimalPad)
-                .textFieldStyle(.roundedBorder)
-                .accessibilityIdentifier("orders.detail.payment.partial.amount")
+            .accessibilityIdentifier("orders.detail.payment.partial.cancel")
 
-            TextField("Note (optional)", text: $partialPaymentNote)
-                .textFieldStyle(.roundedBorder)
-                .accessibilityIdentifier("orders.detail.payment.partial.note")
-
-            HStack(spacing: 16) {
-                centeredPopupPillButton("Cancel") {
+            Button("Save") {
+                if viewModel.addPaymentToSelectedOrder(
+                    amountText: partialPaymentAmount,
+                    note: partialPaymentNote
+                ) {
                     isAddingPartialPayment = false
                     partialPaymentAmount = ""
                     partialPaymentNote = ""
                 }
-                .accessibilityIdentifier("orders.detail.payment.partial.cancel")
-
-                centeredPopupPillButton("Save") {
-                    if viewModel.addPaymentToSelectedOrder(
-                        amountText: partialPaymentAmount,
-                        note: partialPaymentNote
-                    ) {
-                        isAddingPartialPayment = false
-                        partialPaymentAmount = ""
-                        partialPaymentNote = ""
-                    }
-                }
-                .accessibilityIdentifier("orders.detail.payment.partial.save")
             }
+            .accessibilityIdentifier("orders.detail.payment.partial.save")
+        } message: {
+            Text("Add the amount received.")
         }
         .sheet(isPresented: $isEditingOrder, onDismiss: cancelEditingOrder) {
             NavigationStack {
@@ -577,21 +548,17 @@ struct OrderDetailView: View {
 
                     Button("Cancel", role: .cancel) {}
                 }
-                .centeredOrderPopup(
-                    isPresented: isConfirmingEditedOrderInventoryShortage,
+                .orderConfirmationDialog(
+                    isPresented: $isConfirmingEditedOrderInventoryShortage,
                     title: "Inventory Shortage",
+                    message: viewModel.inventoryShortageWarningMessage,
+                    messageAccessibilityIdentifier: "orders.form.inventoryShortage.message",
                     onCancel: {
                         isConfirmingEditedOrderInventoryShortage = false
                         viewModel.cancelInventoryShortageOverride()
                     }
                 ) {
-                    Text(viewModel.inventoryShortageWarningMessage)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("orders.form.inventoryShortage.message")
-
-                    centeredPopupButton("Continue And Save", role: .destructive) {
+                    nativeDialogButton("Continue And Save", role: .destructive) {
                         if viewModel.saveEditedOrder(
                             confirmingRecipeUsage: true,
                             allowingInventoryShortage: true

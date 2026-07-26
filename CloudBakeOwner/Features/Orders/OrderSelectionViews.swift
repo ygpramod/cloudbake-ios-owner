@@ -364,21 +364,21 @@ struct CustomerSelectionView: View {
         }
         .navigationTitle("Customer Record")
         .searchable(text: $searchText, prompt: "Search Customers")
-        .cloudBakeCenteredPopup(
-            isPresented: isChoosingAddMode,
+        .cloudBakeConfirmationDialog(
+            isPresented: $isChoosingAddMode,
             title: "Add Customer",
-            subtitle: "Choose how to start this customer record",
+            message: "Choose how to start this customer record",
             systemImage: "person.badge.plus",
             cancelAccessibilityIdentifier: "orders.customerSelection.add.cancel",
             onCancel: { isChoosingAddMode = false }
         ) {
-            centeredPopupButton("Import From Contacts") {
+            nativeDialogButton("Import From Contacts") {
                 isChoosingAddMode = false
                 isImportingContact = true
             }
             .accessibilityIdentifier("orders.customerSelection.add.importContacts")
 
-            centeredPopupButton("Enter Manually") {
+            nativeDialogButton("Enter Manually") {
                 isChoosingAddMode = false
                 customerViewModel.beginAddingCustomer()
                 isAddingCustomer = true

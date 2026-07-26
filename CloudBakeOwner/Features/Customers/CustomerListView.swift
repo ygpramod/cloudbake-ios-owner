@@ -20,21 +20,21 @@ struct CustomerListView: View {
     var body: some View {
         customerList
         .accessibilityIdentifier(AppDestination.customers.screenAccessibilityIdentifier)
-        .cloudBakeCenteredPopup(
-            isPresented: isChoosingAddMode,
+        .cloudBakeConfirmationDialog(
+            isPresented: $isChoosingAddMode,
             title: "Add Customer",
-            subtitle: "Choose how to start this customer record",
+            message: "Choose how to start this customer record",
             systemImage: "person.badge.plus",
             cancelAccessibilityIdentifier: "customers.add.cancel",
             onCancel: { isChoosingAddMode = false }
         ) {
-            centeredPopupButton("Import From Contacts") {
+            nativeDialogButton("Import From Contacts") {
                 isChoosingAddMode = false
                 isImportingContact = true
             }
             .accessibilityIdentifier("customers.add.importContacts")
 
-            centeredPopupButton("Enter Manually") {
+            nativeDialogButton("Enter Manually") {
                 isChoosingAddMode = false
                 viewModel.beginAddingCustomer()
                 isAddingCustomer = true

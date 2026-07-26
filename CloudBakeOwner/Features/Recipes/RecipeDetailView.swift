@@ -114,16 +114,16 @@ struct RecipeDetailView: View {
                 }
             }
         }
-        .cloudBakeCenteredPopup(
-            isPresented: pendingDeleteIngredientRow != nil,
+        .cloudBakeConfirmationDialog(
+            isPresented: optionalPresentationBinding($pendingDeleteIngredientRow),
             title: "Delete Ingredient?",
-            subtitle: pendingDeleteIngredientSubtitle,
+            message: pendingDeleteIngredientSubtitle,
             systemImage: "trash",
             cancelAccessibilityIdentifier: "recipes.ingredient.delete.cancel",
             onCancel: { pendingDeleteIngredientRow = nil }
         ) {
             if let pendingDeleteIngredientRow {
-                centeredPopupButton("Delete \(pendingDeleteIngredientRow.inventoryItemName)", role: .destructive) {
+                nativeDialogButton("Delete \(pendingDeleteIngredientRow.inventoryItemName)", role: .destructive) {
                     viewModel.deleteIngredient(pendingDeleteIngredientRow.ingredient)
                     self.pendingDeleteIngredientRow = nil
                 }

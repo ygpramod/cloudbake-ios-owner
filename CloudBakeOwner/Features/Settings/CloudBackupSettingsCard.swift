@@ -123,66 +123,93 @@ extension View {
     func cloudBackupPrompts(
         viewModel: CloudBackupSettingsViewModel
     ) -> some View {
-        cloudBakeCenteredPopup(
-            isPresented: viewModel.pendingAccountProposal != nil,
+        cloudBakeConfirmationDialog(
+            isPresented: Binding(
+                get: { viewModel.pendingAccountProposal != nil },
+                set: { isPresented in
+                    guard !isPresented,
+                          viewModel.pendingAccountProposal != nil else { return }
+                    Task { await viewModel.cancelAccountBackup() }
+                }
+            ),
             title: "Use This iCloud Account?",
-            subtitle: "CloudBake will publish a complete recovery backup to the private iCloud account currently signed in on this iPhone. Confirm only if this is the intended account.",
+            message: "CloudBake will publish a complete recovery backup to the private iCloud account currently signed in on this iPhone. Confirm only if this is the intended account.",
             systemImage: "person.crop.circle.badge.checkmark",
             cancelAccessibilityIdentifier: "settings.cloudBackup.account.cancel",
             onCancel: {
                 Task { await viewModel.cancelAccountBackup() }
             }
         ) {
-            centeredPopupButton("Confirm iCloud Account") {
+            nativeDialogButton("Confirm iCloud Account") {
                 Task { await viewModel.confirmAccountBackup() }
             }
             .accessibilityIdentifier("settings.cloudBackup.account.confirm")
         }
-        .cloudBakeCenteredPopup(
-            isPresented: viewModel.pendingCellularProposal != nil,
+        .cloudBakeConfirmationDialog(
+            isPresented: Binding(
+                get: { viewModel.pendingCellularProposal != nil },
+                set: { isPresented in
+                    guard !isPresented,
+                          viewModel.pendingCellularProposal != nil else { return }
+                    Task { await viewModel.cancelCellularBackup() }
+                }
+            ),
             title: "Use Cellular Data?",
-            subtitle: cellularConfirmationDescription(for: viewModel),
+            message: cellularConfirmationDescription(for: viewModel),
             systemImage: "antenna.radiowaves.left.and.right",
             cancelAccessibilityIdentifier: "settings.cloudBackup.cellular.cancel",
             onCancel: {
                 Task { await viewModel.cancelCellularBackup() }
             }
         ) {
-            centeredPopupButton("Back Up Using Cellular") {
+            nativeDialogButton("Back Up Using Cellular") {
                 Task { await viewModel.confirmCellularBackup() }
             }
             .accessibilityIdentifier("settings.cloudBackup.cellular.confirm")
         }
-        .cloudBakeCenteredPopup(
-            isPresented: viewModel.pendingUnavailablePhotoProposal != nil
-                && !viewModel.isConfirmingUnavailablePhotoRemoval,
+        .cloudBakeConfirmationDialog(
+            isPresented: Binding(
+                get: {
+                    viewModel.pendingUnavailablePhotoProposal != nil
+                        && !viewModel.isConfirmingUnavailablePhotoRemoval
+                },
+                set: { isPresented in
+                    guard !isPresented,
+                          viewModel.pendingUnavailablePhotoProposal != nil,
+                          !viewModel.isConfirmingUnavailablePhotoRemoval else { return }
+                    Task { await viewModel.cancelUnavailablePhotoDecision() }
+                }
+            ),
             title: "Unavailable Photos",
-            subtitle: unavailablePhotoDescription(for: viewModel),
+            message: unavailablePhotoDescription(for: viewModel),
             systemImage: "photo.badge.exclamationmark",
             cancelAccessibilityIdentifier: "settings.cloudBackup.photos.cancel",
             onCancel: {
                 Task { await viewModel.cancelUnavailablePhotoDecision() }
             }
         ) {
-            centeredPopupButton("Back Up Without Photos") {
+            nativeDialogButton("Back Up Without Photos") {
                 Task { await viewModel.approveUnavailablePhotoOmissions() }
             }
             .accessibilityIdentifier("settings.cloudBackup.photos.omit")
 
-            centeredPopupButton("Remove From CloudBake And Back Up", role: .destructive) {
+            nativeDialogButton("Remove From CloudBake And Back Up", role: .destructive) {
                 viewModel.requestUnavailablePhotoRemoval()
             }
             .accessibilityIdentifier("settings.cloudBackup.photos.remove")
         }
-        .cloudBakeCenteredPopup(
-            isPresented: viewModel.isConfirmingUnavailablePhotoRemoval,
+        .cloudBakeConfirmationDialog(
+            isPresented: Binding(
+                get: { viewModel.isConfirmingUnavailablePhotoRemoval },
+                set: { viewModel.isConfirmingUnavailablePhotoRemoval = $0 }
+            ),
             title: "Remove Broken References?",
-            subtitle: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
+            message: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
             systemImage: "trash",
             cancelAccessibilityIdentifier: "settings.cloudBackup.photos.remove.cancel",
             onCancel: { viewModel.cancelUnavailablePhotoRemoval() }
         ) {
-            centeredPopupButton("Remove And Back Up", role: .destructive) {
+            nativeDialogButton("Remove And Back Up", role: .destructive) {
                 Task { await viewModel.confirmUnavailablePhotoRemoval() }
             }
             .accessibilityIdentifier("settings.cloudBackup.photos.remove.confirm")

@@ -50,22 +50,17 @@ struct RecipeIngredientForm: View {
                 }
             }
         }
-        .centeredOrderPopup(
-            isPresented: isConfirmingInventoryShortage,
+        .orderConfirmationDialog(
+            isPresented: $isConfirmingInventoryShortage,
             title: "Inventory Shortage",
+            message: viewModel.inventoryShortageWarningMessage,
+            messageAccessibilityIdentifier: "recipes.ingredient.inventoryShortage.message",
             onCancel: {
                 isConfirmingInventoryShortage = false
                 viewModel.cancelInventoryShortageOverride()
             }
         ) {
-            Text(viewModel.inventoryShortageWarningMessage)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .accessibilityIdentifier("recipes.ingredient.inventoryShortage.message")
-
-            centeredPopupButton("Continue And Save", role: .destructive) {
+            nativeDialogButton("Continue And Save", role: .destructive) {
                 if viewModel.confirmPendingIngredientInventoryShortage() {
                     isConfirmingInventoryShortage = false
                     isPresented = false

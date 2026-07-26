@@ -49,16 +49,16 @@ struct ReminderView: View {
                 )
             }
         }
-        .cloudBakeCenteredPopup(
-            isPresented: pendingPaidItem != nil,
+        .cloudBakeConfirmationDialog(
+            isPresented: optionalPresentationBinding($pendingPaidItem),
             title: "Mark As Paid?",
-            subtitle: "Confirm payment received for this order.",
+            message: "Confirm payment received for this order.",
             systemImage: "checkmark.circle",
             cancelAccessibilityIdentifier: "reminders.paymentDue.markPaid.cancel",
             onCancel: { pendingPaidItem = nil }
         ) {
             if let pendingPaidItem {
-                centeredPopupButton("Mark \(pendingPaidItem.orderName) Paid") {
+                nativeDialogButton("Mark \(pendingPaidItem.orderName) Paid") {
                     if viewModel.markPaid(orderId: pendingPaidItem.id) {
                         self.pendingPaidItem = nil
                     }

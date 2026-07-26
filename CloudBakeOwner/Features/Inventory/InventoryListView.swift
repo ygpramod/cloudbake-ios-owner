@@ -139,32 +139,32 @@ struct InventoryListView: View {
                 )
             }
         }
-        .cloudBakeCenteredPopup(
-            isPresented: pendingArchiveItem != nil,
+        .cloudBakeConfirmationDialog(
+            isPresented: optionalPresentationBinding($pendingArchiveItem),
             title: "Archive Inventory?",
-            subtitle: "Archive this item from active inventory. You can restore it later.",
+            message: "Archive this item from active inventory. You can restore it later.",
             systemImage: "archivebox",
             cancelAccessibilityIdentifier: "inventory.archive.cancel",
             onCancel: { pendingArchiveItem = nil }
         ) {
             if let pendingArchiveItem {
-                centeredPopupButton("Archive \(pendingArchiveItem.name)", role: .destructive) {
+                nativeDialogButton("Archive \(pendingArchiveItem.name)", role: .destructive) {
                     viewModel.archiveItem(pendingArchiveItem)
                     self.pendingArchiveItem = nil
                 }
                 .accessibilityIdentifier("inventory.archive.confirm")
             }
         }
-        .cloudBakeCenteredPopup(
-            isPresented: pendingDeleteItem != nil,
+        .cloudBakeConfirmationDialog(
+            isPresented: optionalPresentationBinding($pendingDeleteItem),
             title: "Delete Inventory?",
-            subtitle: "Delete this unused inventory item permanently. Items linked to stock history, recipes, or orders must be archived instead.",
+            message: "Delete this unused inventory item permanently. Items linked to stock history, recipes, or orders must be archived instead.",
             systemImage: "trash",
             cancelAccessibilityIdentifier: "inventory.delete.cancel",
             onCancel: { pendingDeleteItem = nil }
         ) {
             if let pendingDeleteItem {
-                centeredPopupButton("Delete \(pendingDeleteItem.name)", role: .destructive) {
+                nativeDialogButton("Delete \(pendingDeleteItem.name)", role: .destructive) {
                     _ = viewModel.deleteItem(pendingDeleteItem)
                     self.pendingDeleteItem = nil
                 }

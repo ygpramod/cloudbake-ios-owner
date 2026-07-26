@@ -566,32 +566,30 @@ private struct CakeDesignPreviewView: View {
                 .accessibilityIdentifier("designs.preview.done")
             }
         }
-        .cloudBakeCenteredPopup(
-            isPresented: isEditingTags,
-            title: "Edit Tags",
-            subtitle: "Separate tags with commas.",
-            systemImage: "tag",
-            cancelAccessibilityIdentifier: "designs.tags.cancel",
-            onCancel: { isEditingTags = false }
-        ) {
+        .alert("Edit Tags", isPresented: $isEditingTags) {
             TextField("Comma-separated tags", text: $tagsText)
-                .textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("designs.preview.tags.field")
-            centeredPopupButton("Save") {
+            Button("Save") {
                 if let updated = onUpdateTags(tagsText, design) { apply(updated) }
                 isEditingTags = false
             }
             .accessibilityIdentifier("designs.preview.tags.save")
+            Button("Cancel", role: .cancel) {
+                isEditingTags = false
+            }
+            .accessibilityIdentifier("designs.tags.cancel")
+        } message: {
+            Text("Separate tags with commas.")
         }
-        .cloudBakeCenteredPopup(
-            isPresented: isConfirmingDelete,
+        .cloudBakeConfirmationDialog(
+            isPresented: $isConfirmingDelete,
             title: "Remove \(CakeDesignPresentation.itemName(for: design))?",
-            subtitle: "Remove this \(CakeDesignPresentation.itemName(for: design).lowercased()) from CloudBake. The image remains in Photos.",
+            message: "Remove this \(CakeDesignPresentation.itemName(for: design).lowercased()) from CloudBake. The image remains in Photos.",
             systemImage: "trash",
             cancelAccessibilityIdentifier: "designs.delete.cancel",
             onCancel: { isConfirmingDelete = false }
         ) {
-            centeredPopupButton("Remove \(CakeDesignPresentation.itemName(for: design))", role: .destructive) {
+            nativeDialogButton("Remove \(CakeDesignPresentation.itemName(for: design))", role: .destructive) {
                 if onDelete(design) { dismiss() }
             }
             .accessibilityIdentifier("designs.delete.confirm")
