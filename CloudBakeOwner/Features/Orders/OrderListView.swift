@@ -14,6 +14,7 @@ struct OrderListView: View {
     @State private var orderAddingPartialPayment: Order?
     @State private var partialPaymentAmount = ""
     @State private var canOpenWhatsApp = false
+    @State private var isConfirmingAddedOrderInventoryShortage = false
     @FocusState private var isSearchFocused: Bool
 
     init(viewModel: OrderListViewModel) {
@@ -28,8 +29,30 @@ struct OrderListView: View {
                     viewModel: viewModel,
                     isPresented: $isAddingOrder,
                     onCancel: viewModel.cancelAddOrder,
-                    onSave: viewModel.addOrder
+                    onSave: saveAddedOrder
                 )
+                .centeredOrderPopup(
+                    isPresented: isConfirmingAddedOrderInventoryShortage,
+                    title: "Inventory Shortage",
+                    onCancel: {
+                        isConfirmingAddedOrderInventoryShortage = false
+                        viewModel.cancelInventoryShortageOverride()
+                    }
+                ) {
+                    Text(viewModel.inventoryShortageWarningMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("orders.form.inventoryShortage.message")
+
+                    centeredPopupButton("Continue And Save", role: .destructive) {
+                        if viewModel.addOrder(allowingInventoryShortage: true) {
+                            isConfirmingAddedOrderInventoryShortage = false
+                            isAddingOrder = false
+                        }
+                    }
+                    .accessibilityIdentifier("orders.form.inventoryShortage.continue")
+                }
             }
         }
         .sheet(isPresented: $isViewingOrder, onDismiss: viewModel.closeOrderDetail) {
@@ -53,6 +76,14 @@ struct OrderListView: View {
             openPendingNewOrder()
         }
         .accessibilityIdentifier(AppDestination.orders.screenAccessibilityIdentifier)
+    }
+
+    private func saveAddedOrder() -> Bool {
+        let didSave = viewModel.addOrder()
+        if !didSave, !viewModel.pendingInventoryShortages.isEmpty {
+            isConfirmingAddedOrderInventoryShortage = true
+        }
+        return didSave
     }
 
     private var orderList: some View {

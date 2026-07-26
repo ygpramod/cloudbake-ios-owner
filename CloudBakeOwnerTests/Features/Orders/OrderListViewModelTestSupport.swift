@@ -198,6 +198,7 @@ final class FakeOrderRepository: OrderRepository,
     OrderIngredientCostRepository,
     OrderStatusChangeRepository,
     OrderExtraIngredientRepository,
+    OrderInventoryReservationMutationRepository,
     OrderChecklistRepository,
     OrderPhotoRepository {
     var orders: [Order] = []
@@ -224,6 +225,26 @@ final class FakeOrderRepository: OrderRepository,
     func save(_ order: Order) throws {
         orders.removeAll { $0.id == order.id }
         orders.append(order)
+    }
+
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients replacement: [OrderExtraIngredient],
+        allowInventoryShortage: Bool
+    ) throws {
+        if let changeOrderStatusError {
+            if case .insufficientStock = changeOrderStatusError as? OrderRecipeUsageError {
+                allowInventoryShortageRequests.append(allowInventoryShortage)
+                if !allowInventoryShortage {
+                    throw changeOrderStatusError
+                }
+            } else {
+                throw changeOrderStatusError
+            }
+        }
+        try save(order)
+        extraIngredients.removeAll { $0.orderId == order.id }
+        extraIngredients.append(contentsOf: replacement)
     }
 
     func fetchOrder(id: String) throws -> Order? {

@@ -835,6 +835,44 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
+    func testAddConfirmedOrderRequiresExplicitReservationShortageOverride() {
+        let repository = FakeOrderRepository()
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: "inventory-flour",
+                inventoryItemName: "Cake flour",
+                requiredQuantity: 300,
+                availableQuantity: 200,
+                unit: .gram
+            )
+        ])
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: { "order-short-reservation" },
+            dateProvider: { Date(timeIntervalSince1970: 1_800_060_000) }
+        )
+        viewModel.draftTitle = "Short reservation cake"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.draftDueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        viewModel.draftStatus = .confirmed
+        viewModel.draftRecipeId = "recipe-short-reservation"
+
+        XCTAssertFalse(viewModel.addOrder())
+
+        XCTAssertTrue(repository.orders.isEmpty)
+        XCTAssertEqual(
+            viewModel.inventoryShortageWarningMessage,
+            "Cake flour: short by 100 g"
+        )
+        XCTAssertEqual(repository.allowInventoryShortageRequests, [false])
+
+        XCTAssertTrue(viewModel.addOrder(allowingInventoryShortage: true))
+
+        XCTAssertEqual(repository.orders.map(\.id), ["order-short-reservation"])
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertEqual(repository.allowInventoryShortageRequests, [false, true])
+    }
+
     func testOrderFormSavesDraftExtraIngredientsWithNewOrder() throws {
         let repository = FakeOrderRepository()
         let recipe = makeRecipe(id: "recipe-vanilla", name: "Vanilla Sponge")

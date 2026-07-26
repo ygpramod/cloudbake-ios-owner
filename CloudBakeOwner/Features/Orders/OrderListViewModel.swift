@@ -76,7 +76,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var isPromotingDesign = false
     @Published private(set) var pendingInventoryShortages: [OrderInventoryShortage] = []
 
-    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
     private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
@@ -84,7 +84,7 @@ final class OrderListViewModel: ObservableObject {
     private let presentation: OrderListPresentation
 
     init(
-        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository,
+        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
@@ -422,7 +422,10 @@ final class OrderListViewModel: ObservableObject {
         return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
     }
 
-    func addOrder() -> Bool {
+    func addOrder(allowingInventoryShortage: Bool = false) -> Bool {
+        if !allowingInventoryShortage {
+            pendingInventoryShortages = []
+        }
         guard let draft = validatedDraft() else {
             return false
         }
@@ -451,12 +454,23 @@ final class OrderListViewModel: ObservableObject {
         )
 
         do {
-            try repository.save(order)
-            try saveDraftExtraIngredients(for: order, updatedAt: now)
+            try repository.saveOrder(
+                order,
+                replacingExtraIngredients: draftExtraIngredients(for: order, updatedAt: now),
+                allowInventoryShortage: allowingInventoryShortage
+            )
             resetDraft()
             draftExtraIngredientRows = []
             load()
+            pendingInventoryShortages = []
             return true
+        } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
+            pendingInventoryShortages = shortages
+            errorMessage = nil
+            return false
+        } catch let error as OrderRecipeUsageError {
+            errorMessage = recipeUsageErrorMessage(for: error)
+            return false
         } catch {
             errorMessage = "Order could not be saved."
             return false
@@ -591,8 +605,11 @@ final class OrderListViewModel: ObservableObject {
                     transactionIdProvider: idGenerator
                 )
             } else {
-                try repository.save(order)
-                try saveDraftExtraIngredients(for: order, updatedAt: now)
+                try repository.saveOrder(
+                    order,
+                    replacingExtraIngredients: draftExtraIngredients(for: order, updatedAt: now),
+                    allowInventoryShortage: allowingInventoryShortage
+                )
                 savedOrder = order
             }
             selectedOrder = savedOrder
@@ -902,7 +919,10 @@ final class OrderListViewModel: ObservableObject {
 
     func deleteExtraIngredient(_ row: OrderExtraIngredientRow) -> Bool {
         do {
-            try repository.deleteOrderExtraIngredient(id: row.ingredient.id)
+            try repository.deleteOrderExtraIngredient(
+                id: row.ingredient.id,
+                updatedAt: dateProvider()
+            )
             if let selectedOrder {
                 loadSelectedOrderExtraIngredients(for: selectedOrder)
             }
@@ -1611,25 +1631,6 @@ final class OrderListViewModel: ObservableObject {
         } catch {
             selectedOrderIngredientShortages = []
             errorMessage = "Projected ingredient availability could not be loaded."
-        }
-    }
-
-    private func saveDraftExtraIngredients(for order: Order, updatedAt: Date) throws {
-        let existingIngredients = try repository.fetchOrderExtraIngredients(orderId: order.id)
-        guard order.recipeId != nil else {
-            for ingredient in existingIngredients {
-                try repository.deleteOrderExtraIngredient(id: ingredient.id)
-            }
-            return
-        }
-
-        let keptExistingIds = Set(draftExtraIngredientRows.compactMap { $0.existingIngredient?.id })
-        for ingredient in existingIngredients where !keptExistingIds.contains(ingredient.id) {
-            try repository.deleteOrderExtraIngredient(id: ingredient.id)
-        }
-
-        for row in draftExtraIngredientRows where row.existingIngredient == nil {
-            try repository.save(draftExtraIngredient(from: row, order: order, updatedAt: updatedAt))
         }
     }
 
