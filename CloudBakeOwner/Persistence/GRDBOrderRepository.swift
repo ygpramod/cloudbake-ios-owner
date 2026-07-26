@@ -643,18 +643,40 @@ extension GRDBCoreDataRepository {
         guard (1...60).contains(limit) else {
             throw ScheduledOrderReminderQueryError.invalidLimit
         }
-        let dueThrough = cutoff.addingTimeInterval(30 * 24 * 60 * 60)
+        let dueThrough = Calendar.autoupdatingCurrent.date(
+            byAdding: .day,
+            value: 30,
+            to: cutoff
+        ) ?? cutoff.addingTimeInterval(30 * 24 * 60 * 60)
         return try writer.read { db in
-            try Row.fetchAll(
+            db.add(
+                function: DatabaseFunction(
+                    "cloudbake_subtract_calendar_days",
+                    argumentCount: 2,
+                    pure: true
+                ) { values in
+                    guard let dueTimestamp = Double.fromDatabaseValue(values[0]),
+                          let offsetDays = Int.fromDatabaseValue(values[1]) else {
+                        return nil
+                    }
+                    return orderReminderDate(
+                        dueAt: Date(timeIntervalSince1970: dueTimestamp),
+                        offsetDays: offsetDays,
+                        calendar: .autoupdatingCurrent
+                    ).timeIntervalSince1970
+                }
+            )
+            return try Row.fetchAll(
                 db,
                 sql: """
                     WITH reminder_occurrences AS (
                         SELECT
                             orders.*,
                             CAST(offset.value AS INTEGER) AS reminder_offset_days,
-                            due_at_unix_time
-                                - (CAST(offset.value AS INTEGER) * 86400)
-                                AS reminder_at_unix_time
+                            cloudbake_subtract_calendar_days(
+                                due_at_unix_time,
+                                CAST(offset.value AS INTEGER)
+                            ) AS reminder_at_unix_time
                         FROM orders INDEXED BY orders_on_status_due_id
                         JOIN order_reminder_configurations
                           ON order_reminder_configurations.order_id = orders.id
@@ -2073,6 +2095,15 @@ extension GRDBCoreDataRepository {
             )
         }
     }
+}
+
+func orderReminderDate(
+    dueAt: Date,
+    offsetDays: Int,
+    calendar: Calendar
+) -> Date {
+    calendar.date(byAdding: .day, value: -offsetDays, to: dueAt)
+        ?? dueAt.addingTimeInterval(TimeInterval(-offsetDays * 86_400))
 }
 
 private extension GRDBCoreDataRepository {

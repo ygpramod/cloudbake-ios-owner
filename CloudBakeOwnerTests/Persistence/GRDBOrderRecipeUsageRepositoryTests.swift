@@ -3,6 +3,35 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
+    func testReminderDayOffsetsPreserveLocalTimeAcrossDaylightSaving() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(
+            TimeZone(identifier: "America/Los_Angeles")
+        )
+        let dueAt = try XCTUnwrap(
+            calendar.date(
+                from: DateComponents(
+                    year: 2026,
+                    month: 3,
+                    day: 8,
+                    hour: 10
+                )
+            )
+        )
+
+        let reminder = orderReminderDate(
+            dueAt: dueAt,
+            offsetDays: 1,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(calendar.component(.hour, from: reminder), 10)
+        XCTAssertEqual(
+            dueAt.timeIntervalSince(reminder),
+            23 * 60 * 60
+        )
+    }
+
     func testCakeDesignUsageSummaryCountsAllAndBoundsRecentOrders() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let now = Date(timeIntervalSince1970: 1_800_000_000)
