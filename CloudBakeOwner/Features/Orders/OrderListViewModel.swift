@@ -1683,14 +1683,16 @@ final class OrderListViewModel: ObservableObject {
         inventoryItems: [InventoryItem]
     ) {
         do {
+            let activeOrders = try repository.fetchOrders().filter(\.hasActiveReminderState)
+            let planningSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
+                orderIds: activeOrders.map(\.id)
+            )
             selectedOrderIngredientShortages = try ProjectedIngredientDemand.shortages(
                 inventoryItems: inventoryItems,
-                orders: repository.fetchOrders(),
+                orders: activeOrders,
                 at: dateProvider(),
+                planningSnapshot: planningSnapshot,
                 stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
-                recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
-                orderReservations: repository.fetchOrderInventoryReservations(orderId:),
-                reservationRepair: repository.fetchOrderInventoryReservationRepair(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
                 recipeIngredients: repository.fetchRecipeIngredients(componentId:),
                 orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)

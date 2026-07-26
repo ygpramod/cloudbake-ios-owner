@@ -184,6 +184,38 @@ protocol OrderInventoryReservationRepository {
         limit: Int
     ) throws -> [OrderInventoryReservationEvent]
     func fetchOrderInventoryReservationRepair(orderId: String) throws -> OrderInventoryReservationRepair?
+    func fetchOrderInventoryReservationPlanningSnapshot(
+        orderIds: [String]
+    ) throws -> OrderInventoryReservationPlanningSnapshot
+}
+
+extension OrderInventoryReservationRepository where Self: OrderRecipeUsageRepository {
+    func fetchOrderInventoryReservationPlanningSnapshot(
+        orderIds: [String]
+    ) throws -> OrderInventoryReservationPlanningSnapshot {
+        var consumedOrderIds = Set<String>()
+        var reservationsByOrderId: [String: [OrderInventoryReservation]] = [:]
+        var repairsByOrderId: [String: OrderInventoryReservationRepair] = [:]
+
+        for orderId in orderIds {
+            if try fetchOrderRecipeUsage(orderId: orderId) != nil {
+                consumedOrderIds.insert(orderId)
+            }
+            let reservations = try fetchOrderInventoryReservations(orderId: orderId)
+            if !reservations.isEmpty {
+                reservationsByOrderId[orderId] = reservations
+            }
+            if let repair = try fetchOrderInventoryReservationRepair(orderId: orderId) {
+                repairsByOrderId[orderId] = repair
+            }
+        }
+
+        return OrderInventoryReservationPlanningSnapshot(
+            consumedOrderIds: consumedOrderIds,
+            reservationsByOrderId: reservationsByOrderId,
+            repairsByOrderId: repairsByOrderId
+        )
+    }
 }
 
 protocol OrderInventoryReservationMutationRepository {

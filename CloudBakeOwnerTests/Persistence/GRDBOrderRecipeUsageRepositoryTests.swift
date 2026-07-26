@@ -893,6 +893,29 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
                 updatedAt: timestamp
             )
         )
+        let planningSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
+            orderIds: [
+                order.id,
+                pendingRepairOrder.id,
+                failedRepairOrder.id,
+                "unknown-order"
+            ] + (0..<1_001).map { "unknown-order-\($0)" }
+        )
+        XCTAssertTrue(planningSnapshot.consumedOrderIds.isEmpty)
+        XCTAssertEqual(
+            planningSnapshot.reservationsByOrderId[order.id],
+            try repository.fetchOrderInventoryReservations(orderId: order.id)
+        )
+        XCTAssertEqual(planningSnapshot.repairsByOrderId.count, 3)
+        XCTAssertEqual(planningSnapshot.repairsByOrderId[order.id]?.state, .complete)
+        XCTAssertEqual(
+            planningSnapshot.repairsByOrderId[pendingRepairOrder.id]?.state,
+            .pending
+        )
+        XCTAssertEqual(
+            planningSnapshot.repairsByOrderId[failedRepairOrder.id]?.state,
+            .failed
+        )
 
         try queue.write { db in
             try db.execute(sql: "PRAGMA ignore_check_constraints = ON")

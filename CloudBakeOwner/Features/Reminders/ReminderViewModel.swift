@@ -49,14 +49,16 @@ final class ReminderViewModel: ObservableObject {
             let customers = try repository.fetchCustomers()
             let inventoryItems = try repository.fetchInventoryItems()
             let now = dateProvider()
+            let activeOrders = orders.filter(\.hasActiveReminderState)
+            let planningSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
+                orderIds: activeOrders.map(\.id)
+            )
             let shortages = try ProjectedIngredientDemand.shortages(
                 inventoryItems: inventoryItems,
-                orders: orders,
+                orders: activeOrders,
                 at: now,
+                planningSnapshot: planningSnapshot,
                 stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
-                recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
-                orderReservations: repository.fetchOrderInventoryReservations(orderId:),
-                reservationRepair: repository.fetchOrderInventoryReservationRepair(orderId:),
                 recipeComponents: repository.fetchRecipeComponents(recipeId:),
                 recipeIngredients: repository.fetchRecipeIngredients(componentId:),
                 orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)

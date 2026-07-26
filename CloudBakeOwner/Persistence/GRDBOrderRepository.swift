@@ -521,6 +521,100 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchOrderInventoryReservationPlanningSnapshot(
+        orderIds: [String]
+    ) throws -> OrderInventoryReservationPlanningSnapshot {
+        let uniqueOrderIds = Array(Set(orderIds)).sorted()
+        guard !uniqueOrderIds.isEmpty else {
+            return .empty
+        }
+
+        return try writer.read { db in
+            var consumedOrderIds = Set<String>()
+            var reservationsByOrderId: [String: [OrderInventoryReservation]] = [:]
+            var repairsByOrderId: [String: OrderInventoryReservationRepair] = [:]
+
+            for chunkStart in stride(from: 0, to: uniqueOrderIds.count, by: 400) {
+                let chunkEnd = min(chunkStart + 400, uniqueOrderIds.count)
+                let chunk = Array(uniqueOrderIds[chunkStart..<chunkEnd])
+                let placeholders = chunk.map { _ in "?" }.joined(separator: ", ")
+                let arguments = StatementArguments(chunk)
+
+                consumedOrderIds.formUnion(
+                    try String.fetchAll(
+                        db,
+                        sql: """
+                            SELECT order_id
+                            FROM order_recipe_usages
+                            WHERE order_id IN (\(placeholders))
+                            """,
+                        arguments: arguments
+                    )
+                )
+                let reservations = try reservationRows(
+                    sql: """
+                        SELECT *
+                        FROM order_inventory_reservations
+                        WHERE order_id IN (\(placeholders))
+                        ORDER BY order_id, inventory_item_id
+                        """,
+                    arguments: arguments,
+                    in: db
+                )
+                for (orderId, orderReservations) in Dictionary(
+                    grouping: reservations,
+                    by: \.orderId
+                ) {
+                    reservationsByOrderId[orderId, default: []].append(
+                        contentsOf: orderReservations
+                    )
+                }
+                let repairs = try Row.fetchAll(
+                    db,
+                    sql: """
+                        SELECT *
+                        FROM order_inventory_reservation_repairs
+                        WHERE order_id IN (\(placeholders))
+                        """,
+                    arguments: arguments
+                ).map { row -> OrderInventoryReservationRepair in
+                    let stateValue: String = row["state"]
+                    guard let state = OrderInventoryReservationRepairState(rawValue: stateValue) else {
+                        throw OrderInventoryReservationPersistenceError.invalidRepairState(stateValue)
+                    }
+                    let failureCodeValue: String? = row["failure_code"]
+                    let failureCode: OrderInventoryReservationRepairFailureCode?
+                    if let failureCodeValue {
+                        guard let parsedFailureCode = OrderInventoryReservationRepairFailureCode(
+                            rawValue: failureCodeValue
+                        ) else {
+                            throw OrderInventoryReservationPersistenceError.invalidRepairFailureCode(
+                                failureCodeValue
+                            )
+                        }
+                        failureCode = parsedFailureCode
+                    } else {
+                        failureCode = nil
+                    }
+                    return orderInventoryReservationRepair(
+                        from: row,
+                        state: state,
+                        failureCode: failureCode
+                    )
+                }
+                for repair in repairs {
+                    repairsByOrderId[repair.orderId] = repair
+                }
+            }
+
+            return OrderInventoryReservationPlanningSnapshot(
+                consumedOrderIds: consumedOrderIds,
+                reservationsByOrderId: reservationsByOrderId,
+                repairsByOrderId: repairsByOrderId
+            )
+        }
+    }
+
     func deleteOrderExtraIngredient(id: String) throws {
         try deleteOrderExtraIngredient(id: id, updatedAt: Date())
     }

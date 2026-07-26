@@ -642,6 +642,18 @@ struct OrderInventoryReservationRepairSummary: Equatable {
     }
 }
 
+struct OrderInventoryReservationPlanningSnapshot: Equatable {
+    let consumedOrderIds: Set<String>
+    let reservationsByOrderId: [String: [OrderInventoryReservation]]
+    let repairsByOrderId: [String: OrderInventoryReservationRepair]
+
+    static let empty = OrderInventoryReservationPlanningSnapshot(
+        consumedOrderIds: [],
+        reservationsByOrderId: [:],
+        repairsByOrderId: [:]
+    )
+}
+
 struct OrderChecklistItem: Equatable {
     let id: String
     let orderId: String
