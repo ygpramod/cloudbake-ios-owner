@@ -133,7 +133,7 @@ final class ReportsViewModel: ObservableObject {
         self.calendar = calendar
         let end = dateProvider()
         rangeEnd = end
-        rangeStart = calendar.date(byAdding: .year, value: -1, to: end)
+        rangeStart = calendar.date(byAdding: .day, value: -365, to: end)
             ?? end.addingTimeInterval(-365 * 86_400)
     }
 

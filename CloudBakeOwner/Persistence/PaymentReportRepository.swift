@@ -428,6 +428,7 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
             throw PaymentReportQueryError.noStatuses
         }
         return try writer.read { db in
+            registerReportDecimalFunctions(in: db)
             let statusValues = statuses.map(\.rawValue).sorted()
             let placeholders = Array(repeating: "?", count: statusValues.count)
                 .joined(separator: ", ")
@@ -447,13 +448,10 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
                 sql += """
 
                       AND orders.quoted_price_decimal IS NOT NULL
-                      AND (
-                        CAST(orders.quoted_price_decimal AS REAL)
-                        - COALESCE(
-                            CAST(orders.deposit_paid_decimal AS REAL),
-                            0
-                        )
-                      ) > 0
+                      AND cloudbake_has_outstanding(
+                        orders.quoted_price_decimal,
+                        orders.deposit_paid_decimal
+                      ) = 1
                     """
             }
             if let cursor {

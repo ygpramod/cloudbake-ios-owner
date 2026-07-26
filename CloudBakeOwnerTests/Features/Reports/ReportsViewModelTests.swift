@@ -4,6 +4,24 @@ import XCTest
 
 @MainActor
 final class ReportsViewModelTests: XCTestCase {
+    func testRollingYearDefaultRemainsValidAcrossLeapYear() throws {
+        let calendar = utcCalendar()
+        let now = try XCTUnwrap(
+            calendar.date(
+                from: DateComponents(year: 2025, month: 1, day: 1, hour: 12)
+            )
+        )
+        let viewModel = ReportsViewModel(
+            repository: try makeRepository(),
+            dateProvider: { now },
+            calendar: calendar
+        )
+
+        viewModel.load()
+
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testPaymentLedgerDefaultsToOutstandingForRollingYear() throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let repository = try makeRepository()

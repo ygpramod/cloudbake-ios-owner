@@ -1334,6 +1334,40 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(sales.statusCounts[.completed], 1)
     }
 
+    func testOutstandingPaymentPageUsesExactDecimalComparison() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let quotedPrice = decimal("9007199254740993")
+        let paidAmount = decimal("9007199254740992")
+        let order = pagedOrder(
+            id: "exact-decimal-outstanding",
+            status: .completed,
+            dueAt: start.addingTimeInterval(10),
+            quotedPrice: quotedPrice
+        )
+        try repository.save(order)
+        _ = try repository.recordPayment(
+            orderId: order.id,
+            amount: paidAmount,
+            receivedAt: start,
+            note: nil,
+            createdAt: start
+        )
+
+        let page = try repository.fetchOutstandingPaymentOrderPage(
+            dateRange: ReportDateRange(
+                start: start,
+                end: start.addingTimeInterval(60)
+            ),
+            statuses: [.completed],
+            after: nil,
+            limit: 25
+        )
+
+        XCTAssertEqual(page.orders.map(\.id), [order.id])
+        XCTAssertEqual(page.orders.first?.balanceDue, 1)
+    }
+
     func testSalesReportAggregatesAllDailyBucketsInOneBoundedQuery() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         try AppDatabaseMigrations.makeMigrator().migrate(queue)
