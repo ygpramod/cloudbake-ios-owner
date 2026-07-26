@@ -184,6 +184,7 @@ enum CloudBackupErrorCategory: String, Equatable, Sendable {
     case cancelled
     case corruptRemoteData
     case temporarilyUnavailable
+    case photoUnavailable
     case unknown
 }
 

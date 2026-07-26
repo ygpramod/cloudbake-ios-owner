@@ -104,6 +104,40 @@ struct CloudBackupSettingsCard: View {
             }
             .accessibilityIdentifier("settings.cloudBackup.cellular.confirm")
         }
+        .cloudBakeCenteredPopup(
+            isPresented: viewModel.pendingUnavailablePhotoProposal != nil
+                && !viewModel.isConfirmingUnavailablePhotoRemoval,
+            title: "Unavailable Photos",
+            subtitle: unavailablePhotoDescription,
+            systemImage: "photo.badge.exclamationmark",
+            cancelAccessibilityIdentifier: "settings.cloudBackup.photos.cancel",
+            onCancel: {
+                Task { await viewModel.cancelUnavailablePhotoDecision() }
+            }
+        ) {
+            centeredPopupButton("Back Up Without Photos") {
+                Task { await viewModel.approveUnavailablePhotoOmissions() }
+            }
+            .accessibilityIdentifier("settings.cloudBackup.photos.omit")
+
+            centeredPopupButton("Remove From CloudBake And Back Up", role: .destructive) {
+                viewModel.requestUnavailablePhotoRemoval()
+            }
+            .accessibilityIdentifier("settings.cloudBackup.photos.remove")
+        }
+        .cloudBakeCenteredPopup(
+            isPresented: viewModel.isConfirmingUnavailablePhotoRemoval,
+            title: "Remove Broken References?",
+            subtitle: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
+            systemImage: "trash",
+            cancelAccessibilityIdentifier: "settings.cloudBackup.photos.remove.cancel",
+            onCancel: { viewModel.cancelUnavailablePhotoRemoval() }
+        ) {
+            centeredPopupButton("Remove And Back Up", role: .destructive) {
+                Task { await viewModel.confirmUnavailablePhotoRemoval() }
+            }
+            .accessibilityIdentifier("settings.cloudBackup.photos.remove.confirm")
+        }
     }
 
     private var backupAction: some View {
@@ -146,5 +180,10 @@ struct CloudBackupSettingsCard: View {
             countStyle: .file
         )
         return "This backup is approximately \(size). Cellular charges may apply."
+    }
+
+    private var unavailablePhotoDescription: String {
+        let count = viewModel.pendingUnavailablePhotoProposal?.unavailablePhotoCount ?? 0
+        return "CloudBake found \(count) linked photo\(count == 1 ? "" : "s") that no longer exist\(count == 1 ? "s" : "") in Photos. Continue without \(count == 1 ? "it" : "them"), remove the broken CloudBake references, or cancel. Your previous backup is unchanged."
     }
 }

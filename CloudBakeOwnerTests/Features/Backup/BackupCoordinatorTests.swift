@@ -303,6 +303,7 @@ final class BackupCoordinatorTests: XCTestCase {
         var metadata = BackupScheduleMetadata.initial
         metadata.lastSuccessAt = Date(timeIntervalSince1970: 1_800_000_000)
         metadata.estimatedUploadByteCount = 9_000
+        metadata.lastSuccessfulOmittedAssetCount = 2
         let deleter = FakeCloudBackupDeleter()
         let fixture = CoordinatorFixture(metadata: metadata, deleter: deleter)
 
@@ -314,6 +315,7 @@ final class BackupCoordinatorTests: XCTestCase {
         XCTAssertFalse(fixture.scheduleStore.load().isEnabled)
         XCTAssertNil(fixture.scheduleStore.load().lastSuccessAt)
         XCTAssertNil(fixture.scheduleStore.load().estimatedUploadByteCount)
+        XCTAssertNil(fixture.scheduleStore.load().lastSuccessfulOmittedAssetCount)
     }
 
     func testFailedCloudDeletionPreservesBackupStateAndCanBeRetried() async {
@@ -516,6 +518,142 @@ final class BackupCoordinatorTests: XCTestCase {
         XCTAssertEqual(transferPolicies, [.wifiOnly, .wifiOnly])
     }
 
+    func testManualBackupWaitsForUnavailablePhotoDecisionAndCancelChangesNothing() async {
+        let fixture = CoordinatorFixture()
+        await fixture.snapshotCreator.reportUnavailable(
+            references: ["photos://missing"]
+        )
+
+        guard case .requiresUnavailablePhotoDecision(let proposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected an unavailable-photo decision")
+        }
+        XCTAssertEqual(proposal.unavailablePhotoCount, 1)
+
+        await fixture.coordinator.cancelManualUnavailablePhotoDecision(
+            proposalID: proposal.id
+        )
+
+        XCTAssertTrue(fixture.omissionStore.loadApprovedDigests().isEmpty)
+        XCTAssertTrue(fixture.unavailableAssetRemover.removedReferences.isEmpty)
+        let publicationCount = await fixture.publisher.publicationCount
+        XCTAssertEqual(publicationCount, 0)
+    }
+
+    func testApprovedUnavailablePhotoIsPersistedAndReportedAfterPublication() async {
+        let fixture = CoordinatorFixture()
+        let reference = "photos://missing"
+        await fixture.snapshotCreator.reportUnavailable(references: [reference])
+
+        guard case .requiresUnavailablePhotoDecision(let proposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected an unavailable-photo decision")
+        }
+        guard case .published =
+                await fixture.coordinator.approveManualUnavailablePhotoOmissions(
+                    proposalID: proposal.id
+                ) else {
+            return XCTFail("Expected approved omission to publish")
+        }
+
+        XCTAssertEqual(
+            fixture.omissionStore.loadApprovedDigests(),
+            [BackupChecksum.sha256(of: Data(reference.utf8))]
+        )
+        XCTAssertEqual(
+            fixture.scheduleStore.load().lastSuccessfulOmittedAssetCount,
+            1
+        )
+        let settings = await fixture.coordinator.currentSettings(
+            areNotificationsEnabled: true
+        )
+        XCTAssertEqual(settings.omittedAssetCount, 1)
+        let publicationCount = await fixture.publisher.publicationCount
+        XCTAssertEqual(publicationCount, 1)
+    }
+
+    func testUnavailablePhotoRemovalRetriesWithoutPersistingAnOmission() async {
+        let fixture = CoordinatorFixture()
+        let reference = "photos://missing"
+        await fixture.snapshotCreator.reportUnavailable(
+            references: [reference],
+            clearAfterReporting: true
+        )
+
+        guard case .requiresUnavailablePhotoDecision(let proposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected an unavailable-photo decision")
+        }
+        guard case .published =
+                await fixture.coordinator.removeManualUnavailablePhotos(
+                    proposalID: proposal.id
+                ) else {
+            return XCTFail("Expected removal to continue publication")
+        }
+
+        XCTAssertEqual(
+            fixture.unavailableAssetRemover.removedReferences,
+            [Set([reference])]
+        )
+        XCTAssertTrue(fixture.omissionStore.loadApprovedDigests().isEmpty)
+        XCTAssertEqual(
+            fixture.scheduleStore.load().lastSuccessfulOmittedAssetCount,
+            0
+        )
+    }
+
+    func testAutomaticBackupReportsNewUnavailablePhotoWithoutPublishing() async {
+        var metadata = BackupScheduleMetadata.initial
+        metadata.lastSuccessAt = Date(timeIntervalSince1970: 1_799_000_000)
+        let fixture = CoordinatorFixture(metadata: metadata)
+        await fixture.snapshotCreator.reportUnavailable(
+            references: ["photos://newly-missing"]
+        )
+
+        let result = await fixture.coordinator.requestAutomaticBackup(
+            trigger: .background
+        )
+
+        XCTAssertEqual(result, .failed(.photoUnavailable))
+        XCTAssertEqual(
+            fixture.scheduleStore.load().lastFailureCategory,
+            CloudBackupErrorCategory.photoUnavailable.rawValue
+        )
+        XCTAssertEqual(
+            fixture.scheduleStore.load().lastSuccessAt,
+            metadata.lastSuccessAt
+        )
+        let publicationCount = await fixture.publisher.publicationCount
+        XCTAssertEqual(publicationCount, 0)
+    }
+
+    func testApprovedOmissionStillRequiresCellularConfirmation() async {
+        let fixture = CoordinatorFixture(connection: .cellular)
+        await fixture.snapshotCreator.reportUnavailable(
+            references: ["photos://missing"]
+        )
+        guard case .requiresUnavailablePhotoDecision(let photoProposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected an unavailable-photo decision")
+        }
+
+        guard case .requiresCellularConfirmation(let cellularProposal) =
+                await fixture.coordinator.approveManualUnavailablePhotoOmissions(
+                    proposalID: photoProposal.id
+                ) else {
+            return XCTFail("Expected cellular confirmation after snapshot recovery")
+        }
+        guard case .published = await fixture.coordinator.confirmManualCellularBackup(
+            proposalID: cellularProposal.id,
+            displayedByteCount: cellularProposal.estimatedUploadByteCount
+        ) else {
+            return XCTFail("Expected cellular publication after confirmation")
+        }
+
+        let transferPolicies = await fixture.publisher.transferPolicies
+        XCTAssertEqual(transferPolicies, [.cellularAllowed])
+    }
+
     func testCellularApprovalAppliesOnlyToOneManualBackupAttempt() async {
         let fixture = CoordinatorFixture(connection: .cellular)
 
@@ -620,10 +758,12 @@ final class BackupCoordinatorTests: XCTestCase {
 private final class CoordinatorFixture {
     let now = Date(timeIntervalSince1970: 1_800_000_000)
     let scheduleStore: InMemoryBackupScheduleStore
+    let omissionStore = InMemoryBackupAssetOmissionStore()
     let snapshotCreator: FakeSnapshotCreator
     let publisher: FakeBackupPublisher
     let scheduler = FakeBackgroundScheduler()
     let cleaner = FakePackageCleaner()
+    let unavailableAssetRemover = FakeUnavailableAssetRemover()
     let environment: FakeBackupEnvironment
     let coordinator: BackupCoordinator
 
@@ -654,6 +794,8 @@ private final class CoordinatorFixture {
             snapshotCreator: snapshotCreator,
             publisher: publisher,
             scheduleStore: scheduleStore,
+            omissionStore: omissionStore,
+            unavailableAssetRemover: unavailableAssetRemover,
             connectivity: environment,
             account: environment,
             publicationAuthorization: environment,
@@ -695,22 +837,42 @@ private final class InMemoryBackupScheduleStore: BackupScheduleStoring, @uncheck
     }
 }
 
-private actor FakeSnapshotCreator: AppSnapshotCreating {
+private actor FakeSnapshotCreator: RecoverableAppSnapshotCreating {
     private let holdsCreation: Bool
     private var continuation: CheckedContinuation<Void, Never>?
     private(set) var creationCount = 0
+    private var unavailableAssets: [BackupUnavailableExternalAsset] = []
+    private var clearsUnavailableAfterReporting = false
 
     init(holdsCreation: Bool) {
         self.holdsCreation = holdsCreation
     }
 
     func createSnapshot() async throws -> AppSnapshotPackage {
+        try await createSnapshot(approvedOmissionDigests: [])
+    }
+
+    func createSnapshot(
+        approvedOmissionDigests: Set<String>
+    ) async throws -> AppSnapshotPackage {
         creationCount += 1
         if holdsCreation {
             await withCheckedContinuation { continuation in
                 self.continuation = continuation
             }
         }
+        let unresolved = unavailableAssets.filter {
+            !approvedOmissionDigests.contains($0.digest)
+        }
+        if !unresolved.isEmpty {
+            if clearsUnavailableAfterReporting {
+                unavailableAssets = []
+            }
+            throw BackupUnavailableExternalAssetsError(assets: unresolved)
+        }
+        let omittedAssetCount = unavailableAssets.filter {
+            approvedOmissionDigests.contains($0.digest)
+        }.count
         let generationID = "generation-\(creationCount)"
         let root = URL(fileURLWithPath: "/tmp/\(generationID)", isDirectory: true)
         let manifest = BackupManifest(
@@ -723,7 +885,8 @@ private actor FakeSnapshotCreator: AppSnapshotCreating {
                 byteCount: 4_000,
                 sha256: "database"
             ),
-            assets: []
+            assets: [],
+            omittedAssetCount: omittedAssetCount
         )
         return AppSnapshotPackage(
             generationID: generationID,
@@ -732,6 +895,16 @@ private actor FakeSnapshotCreator: AppSnapshotCreating {
             databaseURL: root.appendingPathComponent("database.sqlite"),
             manifest: manifest
         )
+    }
+
+    func reportUnavailable(
+        references: [String],
+        clearAfterReporting: Bool = false
+    ) {
+        unavailableAssets = references.map {
+            BackupUnavailableExternalAsset(sourceReference: $0)
+        }
+        clearsUnavailableAfterReporting = clearAfterReporting
     }
 
     func waitUntilCreationStarts() async throws {
@@ -746,6 +919,45 @@ private actor FakeSnapshotCreator: AppSnapshotCreating {
     func releaseCreation() {
         continuation?.resume()
         continuation = nil
+    }
+}
+
+private final class FakeUnavailableAssetRemover: BackupUnavailableAssetRemoving,
+    @unchecked Sendable {
+    private let lock = NSLock()
+    private var recordedReferences: [Set<String>] = []
+
+    var removedReferences: [Set<String>] {
+        lock.lock()
+        defer { lock.unlock() }
+        return recordedReferences
+    }
+
+    func removeUnavailablePhotoReferences(_ references: Set<String>) throws {
+        lock.lock()
+        recordedReferences.append(references)
+        lock.unlock()
+    }
+}
+
+private final class InMemoryBackupAssetOmissionStore: BackupAssetOmissionStoring,
+    @unchecked Sendable {
+    private let lock = NSLock()
+    private var digests: Set<String> = []
+
+    func loadApprovedDigests() -> Set<String> {
+        lock.lock()
+        defer { lock.unlock() }
+        return digests
+    }
+
+    func approve(sourceReferences: Set<String>) {
+        let digests = Set(sourceReferences.map {
+            BackupChecksum.sha256(of: Data($0.utf8))
+        })
+        lock.lock()
+        self.digests.formUnion(digests)
+        lock.unlock()
     }
 }
 

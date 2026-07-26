@@ -34,6 +34,10 @@ final class CloudBackupSettingsTests: XCTestCase {
             policy.result(for: AutomaticBackupResult.failed(.quotaExceeded)),
             .failed(.quotaExceeded)
         )
+        XCTAssertEqual(
+            policy.result(for: AutomaticBackupResult.failed(.photoUnavailable)),
+            .failed(.photoUnavailable)
+        )
         XCTAssertNil(policy.result(for: AutomaticBackupResult.failed(.networkUnavailable)))
         XCTAssertNil(policy.result(for: AutomaticBackupResult.deferred(.waitingForWiFi)))
         XCTAssertEqual(
@@ -41,6 +45,16 @@ final class CloudBackupSettingsTests: XCTestCase {
             .failed(.quotaExceeded)
         )
         XCTAssertNil(policy.result(for: ManualBackupResult.failed(.cancelled)))
+        XCTAssertNil(
+            policy.result(
+                for: ManualBackupResult.requiresUnavailablePhotoDecision(
+                    ManualUnavailablePhotoBackupProposal(
+                        id: "photo-decision",
+                        unavailablePhotoCount: 1
+                    )
+                )
+            )
+        )
     }
 
     func testNotificationDispatcherSuppressesIntentionalManualCancellation() async {
@@ -161,6 +175,84 @@ final class CloudBackupSettingsTests: XCTestCase {
         XCTAssertEqual(viewModel.pendingAccountProposal, proposal)
         XCTAssertEqual(viewModel.snapshot.state, .awaitingAccountConfirmation)
         XCTAssertFalse(viewModel.canBackUpNow)
+    }
+
+    func testViewModelPresentsUnavailablePhotosAsOneOwnerDecision() async {
+        let proposal = ManualUnavailablePhotoBackupProposal(
+            id: "photo-proposal",
+            unavailablePhotoCount: 2
+        )
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .enabled),
+            backupResult: .requiresUnavailablePhotoDecision(proposal)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+
+        await viewModel.backUpNow()
+
+        XCTAssertEqual(viewModel.pendingUnavailablePhotoProposal, proposal)
+        XCTAssertEqual(viewModel.snapshot.state, .awaitingUnavailablePhotoDecision)
+        XCTAssertFalse(viewModel.canBackUpNow)
+    }
+
+    func testViewModelReportsSuccessfulApprovedOmissionTruthfully() async {
+        let proposal = ManualUnavailablePhotoBackupProposal(
+            id: "photo-proposal",
+            unavailablePhotoCount: 2
+        )
+        var successSnapshot = settingsSnapshot(state: .successful)
+        successSnapshot.omittedAssetCount = 2
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: successSnapshot,
+            backupResult: .requiresUnavailablePhotoDecision(proposal),
+            photoDecisionResult: .published(
+                CloudBackupPublicationResult(
+                    generationID: "generation-1",
+                    replacedGenerationID: nil,
+                    wasAlreadyCurrent: false,
+                    cleanupPending: false
+                )
+            )
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+        await viewModel.backUpNow()
+
+        await viewModel.approveUnavailablePhotoOmissions()
+
+        XCTAssertNil(viewModel.pendingUnavailablePhotoProposal)
+        XCTAssertEqual(
+            viewModel.actionMessage,
+            "Cloud backup completed without 2 unavailable photos."
+        )
+        let approvedProposalIDs = await service.approvedProposalIDs
+        XCTAssertEqual(approvedProposalIDs, [proposal.id])
+    }
+
+    func testViewModelRequiresSecondConfirmationBeforeRemovingPhotoReferences() async {
+        let proposal = ManualUnavailablePhotoBackupProposal(
+            id: "photo-proposal",
+            unavailablePhotoCount: 1
+        )
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .enabled),
+            backupResult: .requiresUnavailablePhotoDecision(proposal),
+            photoDecisionResult: .deferred(.networkUnavailable)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+        await viewModel.backUpNow()
+
+        viewModel.requestUnavailablePhotoRemoval()
+
+        XCTAssertTrue(viewModel.isConfirmingUnavailablePhotoRemoval)
+        XCTAssertEqual(viewModel.pendingUnavailablePhotoProposal, proposal)
+        let removedBeforeConfirmation = await service.removedProposalIDs
+        XCTAssertTrue(removedBeforeConfirmation.isEmpty)
+
+        await viewModel.confirmUnavailablePhotoRemoval()
+
+        XCTAssertFalse(viewModel.isConfirmingUnavailablePhotoRemoval)
+        let removedAfterConfirmation = await service.removedProposalIDs
+        XCTAssertEqual(removedAfterConfirmation, [proposal.id])
     }
 
     func testViewModelReportsDeletionFailureWithoutClaimingLocalDataChanged() async {
@@ -600,15 +692,20 @@ private actor CloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
     private var snapshot: CloudBackupSettingsSnapshot
     private let backupResult: ManualBackupResult
     private let deletionResult: CloudBackupDeletionResult
+    private let photoDecisionResult: ManualBackupResult
+    private(set) var approvedProposalIDs: [String] = []
+    private(set) var removedProposalIDs: [String] = []
 
     init(
         snapshot: CloudBackupSettingsSnapshot,
         backupResult: ManualBackupResult = .deferred(.disabled),
-        deletionResult: CloudBackupDeletionResult = .failed(.unknown)
+        deletionResult: CloudBackupDeletionResult = .failed(.unknown),
+        photoDecisionResult: ManualBackupResult = .failed(.photoUnavailable)
     ) {
         self.snapshot = snapshot
         self.backupResult = backupResult
         self.deletionResult = deletionResult
+        self.photoDecisionResult = photoDecisionResult
     }
 
     func currentSettings() async -> CloudBackupSettingsSnapshot { snapshot }
@@ -631,6 +728,20 @@ private actor CloudBackupSettingsServiceSpy: CloudBackupSettingsServing {
     }
 
     func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {}
+
+    func approveUnavailablePhotoOmissions(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult {
+        approvedProposalIDs.append(proposal.id)
+        return photoDecisionResult
+    }
+
+    func removeUnavailablePhotos(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult {
+        removedProposalIDs.append(proposal.id)
+        return photoDecisionResult
+    }
 
     func deleteCloudBackup() async -> CloudBackupDeletionResult {
         snapshot.isEnabled = false

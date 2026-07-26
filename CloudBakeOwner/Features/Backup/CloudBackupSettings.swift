@@ -11,6 +11,7 @@ enum CloudBackupSettingsState: Equatable, Sendable {
     case verifying
     case awaitingCellularConfirmation
     case awaitingAccountConfirmation
+    case awaitingUnavailablePhotoDecision
     case deleting
     case deletionNeedsRetry(CloudBackupErrorCategory?)
     case successful
@@ -24,6 +25,7 @@ struct CloudBackupSettingsSnapshot: Equatable, Sendable {
     var state: CloudBackupSettingsState
     var lastSuccessAt: Date?
     var estimatedUploadByteCount: Int64?
+    var omittedAssetCount: Int = 0
 
     static let unavailable = CloudBackupSettingsSnapshot(
         isEnabled: true,
@@ -31,7 +33,8 @@ struct CloudBackupSettingsSnapshot: Equatable, Sendable {
         accountAvailability: .unavailable,
         state: .unavailable,
         lastSuccessAt: nil,
-        estimatedUploadByteCount: nil
+        estimatedUploadByteCount: nil,
+        omittedAssetCount: 0
     )
 }
 
@@ -44,6 +47,15 @@ protocol CloudBackupSettingsServing: Sendable {
     func cancelAccountBackup(_ proposal: ManualAccountBackupProposal) async
     func confirmCellularBackup(_ proposal: ManualCellularBackupProposal) async -> ManualBackupResult
     func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async
+    func approveUnavailablePhotoOmissions(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult
+    func removeUnavailablePhotos(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult
+    func cancelUnavailablePhotoDecision(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async
     func deleteCloudBackup() async -> CloudBackupDeletionResult
 }
 
@@ -54,6 +66,22 @@ extension CloudBackupSettingsServing {
 
     func cancelAccountBackup(_ proposal: ManualAccountBackupProposal) async {}
 
+    func approveUnavailablePhotoOmissions(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult {
+        .failed(.photoUnavailable)
+    }
+
+    func removeUnavailablePhotos(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult {
+        .failed(.photoUnavailable)
+    }
+
+    func cancelUnavailablePhotoDecision(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async {}
+
     func deleteCloudBackup() async -> CloudBackupDeletionResult { .failed(.unknown) }
 }
 
@@ -62,6 +90,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
     @Published private(set) var snapshot: CloudBackupSettingsSnapshot
     @Published private(set) var pendingCellularProposal: ManualCellularBackupProposal?
     @Published private(set) var pendingAccountProposal: ManualAccountBackupProposal?
+    @Published private(set) var pendingUnavailablePhotoProposal: ManualUnavailablePhotoBackupProposal?
+    @Published var isConfirmingUnavailablePhotoRemoval = false
     @Published var isConfirmingDeletion = false
     @Published private(set) var actionMessage: String?
     @Published private(set) var deletionMessage: String?
@@ -147,6 +177,40 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         snapshot = await service.currentSettings()
     }
 
+    func approveUnavailablePhotoOmissions() async {
+        guard let proposal = pendingUnavailablePhotoProposal else { return }
+        pendingUnavailablePhotoProposal = nil
+        snapshot.state = .preparing
+        let result = await service.approveUnavailablePhotoOmissions(proposal)
+        await handle(result)
+    }
+
+    func requestUnavailablePhotoRemoval() {
+        guard pendingUnavailablePhotoProposal != nil else { return }
+        isConfirmingUnavailablePhotoRemoval = true
+    }
+
+    func cancelUnavailablePhotoRemoval() {
+        isConfirmingUnavailablePhotoRemoval = false
+    }
+
+    func confirmUnavailablePhotoRemoval() async {
+        guard let proposal = pendingUnavailablePhotoProposal else { return }
+        isConfirmingUnavailablePhotoRemoval = false
+        pendingUnavailablePhotoProposal = nil
+        snapshot.state = .preparing
+        let result = await service.removeUnavailablePhotos(proposal)
+        await handle(result)
+    }
+
+    func cancelUnavailablePhotoDecision() async {
+        guard let proposal = pendingUnavailablePhotoProposal else { return }
+        pendingUnavailablePhotoProposal = nil
+        isConfirmingUnavailablePhotoRemoval = false
+        await service.cancelUnavailablePhotoDecision(proposal)
+        snapshot = await service.currentSettings()
+    }
+
     func requestCloudBackupDeletion() {
         deletionMessage = nil
         isConfirmingDeletion = true
@@ -188,6 +252,7 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         case .verifying: "Verifying"
         case .awaitingCellularConfirmation: "Confirmation Required"
         case .awaitingAccountConfirmation: "Account Confirmation Required"
+        case .awaitingUnavailablePhotoDecision: "Photo Decision Required"
         case .deleting: "Deleting Backup"
         case .deletionNeedsRetry: "Deletion Needs Retry"
         case .successful: "Up to Date"
@@ -215,6 +280,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             "Approve the estimated transfer size to continue on cellular data."
         case .awaitingAccountConfirmation:
             "Confirm this iCloud account before CloudBake publishes any local data."
+        case .awaitingUnavailablePhotoDecision:
+            "Choose whether to omit unavailable photos, remove their broken CloudBake references, or cancel."
         case .deleting:
             "Removing the complete recovery backup from private iCloud storage."
         case .deletionNeedsRetry(let category):
@@ -242,7 +309,7 @@ final class CloudBackupSettingsViewModel: ObservableObject {
     var isBusy: Bool {
         switch snapshot.state {
         case .preparing, .uploading, .verifying, .awaitingCellularConfirmation,
-             .awaitingAccountConfirmation, .deleting:
+             .awaitingAccountConfirmation, .awaitingUnavailablePhotoDecision, .deleting:
             true
         default:
             false
@@ -257,6 +324,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             pendingAccountProposal = proposal
         case .requiresCellularConfirmation(let proposal):
             pendingCellularProposal = proposal
+        case .requiresUnavailablePhotoDecision(let proposal):
+            pendingUnavailablePhotoProposal = proposal
         case .busy:
             actionMessage = "Another backup is already in progress."
         case .deferred(let reason):
@@ -271,6 +340,11 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             snapshot.state = .awaitingCellularConfirmation
         } else if pendingAccountProposal != nil {
             snapshot.state = .awaitingAccountConfirmation
+        } else if pendingUnavailablePhotoProposal != nil {
+            snapshot.state = .awaitingUnavailablePhotoDecision
+        }
+        if case .published = result, snapshot.omittedAssetCount > 0 {
+            actionMessage = "Cloud backup completed without \(snapshot.omittedAssetCount) unavailable photo\(snapshot.omittedAssetCount == 1 ? "" : "s")."
         }
     }
 
@@ -319,6 +393,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             "The cloud backup changed during publication. Try again."
         case .corruptRemoteData:
             "The cloud backup could not be verified. Try creating a new backup."
+        case .photoUnavailable:
+            "One or more linked photos are unavailable. Start Back Up Now to choose how to continue."
         case .unknown:
             "Try again later. Your previous backup and local data are unchanged."
         }
@@ -332,7 +408,7 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             "Cloud deletion could not be verified. Backup remains off. Check the connection and retry deletion."
         case .permissionDenied:
             "Cloud deletion could not be verified. Backup remains off. Check iCloud access and retry deletion."
-        case .quotaExceeded, .conflict, .corruptRemoteData, .unknown:
+        case .quotaExceeded, .conflict, .corruptRemoteData, .photoUnavailable, .unknown:
             "Cloud deletion could not be verified. Backup remains off. Retry deletion before enabling backup."
         }
     }

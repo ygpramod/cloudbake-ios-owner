@@ -105,6 +105,32 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
         await coordinator.cancelManualCellularBackup(proposalID: proposal.id)
     }
 
+    func approveUnavailablePhotoOmissions(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult {
+        let result = await coordinator.approveManualUnavailablePhotoOmissions(
+            proposalID: proposal.id
+        )
+        await notificationDispatcher.send(for: result)
+        return result
+    }
+
+    func removeUnavailablePhotos(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult {
+        let result = await coordinator.removeManualUnavailablePhotos(
+            proposalID: proposal.id
+        )
+        await notificationDispatcher.send(for: result)
+        return result
+    }
+
+    func cancelUnavailablePhotoDecision(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async {
+        await coordinator.cancelManualUnavailablePhotoDecision(proposalID: proposal.id)
+    }
+
     func deleteCloudBackup() async -> CloudBackupDeletionResult {
         await coordinator.deleteCloudBackup()
     }
@@ -185,6 +211,8 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
             snapshotCreator: snapshotService,
             publisher: publisher,
             scheduleStore: UserDefaultsBackupScheduleStore(),
+            omissionStore: UserDefaultsBackupAssetOmissionStore(),
+            unavailableAssetRemover: database,
             connectivity: connectivity,
             account: accountChecker,
             publicationAuthorization: CloudBackupAccountProtectionGate(account: accountChecker),
@@ -228,6 +256,7 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
             snapshotCreator: CellularBackupUITestTrap(),
             publisher: CellularBackupUITestTrap(),
             scheduleStore: CellularBackupUITestScheduleStore(),
+            omissionStore: CellularBackupUITestOmissionStore(),
             connectivity: environment,
             account: environment,
             publicationAuthorization: environment,
@@ -302,9 +331,15 @@ private struct CellularBackupUITestEnvironment: BackupConnectivityChecking,
     func hasSufficientWorkingStorage(estimatedUploadByteCount: Int64?) async -> Bool { true }
 }
 
-private struct CellularBackupUITestTrap: AppSnapshotCreating, CloudBackupPublishing {
+private struct CellularBackupUITestTrap: RecoverableAppSnapshotCreating, CloudBackupPublishing {
     func createSnapshot() async throws -> AppSnapshotPackage {
         fatalError("Automatic backup started a snapshot on the cellular-only UI test fixture")
+    }
+
+    func createSnapshot(
+        approvedOmissionDigests: Set<String>
+    ) async throws -> AppSnapshotPackage {
+        fatalError("Automatic backup started a recoverable snapshot on the cellular-only UI test fixture")
     }
 
     func estimatedUploadByteCount(for package: AppSnapshotPackage) async throws -> Int64 {
@@ -319,6 +354,11 @@ private struct CellularBackupUITestTrap: AppSnapshotCreating, CloudBackupPublish
     ) async throws -> CloudBackupPublicationResult {
         fatalError("Automatic backup published on the cellular-only UI test fixture")
     }
+}
+
+private struct CellularBackupUITestOmissionStore: BackupAssetOmissionStoring {
+    func loadApprovedDigests() -> Set<String> { [] }
+    func approve(sourceReferences: Set<String>) {}
 }
 
 private struct CellularBackupUITestNoOp: BackupBackgroundScheduling,

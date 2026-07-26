@@ -1093,7 +1093,8 @@ enum CloudKitBackupErrorMapper {
         case .temporarilyUnavailable: return 5
         case .corruptRemoteData: return 6
         case .cancelled: return 7
-        case .unknown: return 8
+        case .photoUnavailable: return 8
+        case .unknown: return 9
         }
     }
 }

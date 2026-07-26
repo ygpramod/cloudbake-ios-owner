@@ -50,10 +50,36 @@ struct ManualCellularBackupProposal: Equatable, Sendable {
     let estimatedUploadByteCount: Int64
 }
 
+struct ManualUnavailablePhotoBackupProposal: Equatable, Sendable {
+    let id: String
+    let unavailablePhotoCount: Int
+    fileprivate let assets: [BackupUnavailableExternalAsset]
+    fileprivate let startedAt: Date
+
+    init(id: String, unavailablePhotoCount: Int) {
+        self.id = id
+        self.unavailablePhotoCount = unavailablePhotoCount
+        assets = []
+        startedAt = .distantPast
+    }
+
+    fileprivate init(
+        id: String,
+        assets: [BackupUnavailableExternalAsset],
+        startedAt: Date
+    ) {
+        self.id = id
+        unavailablePhotoCount = assets.count
+        self.assets = assets
+        self.startedAt = startedAt
+    }
+}
+
 enum ManualBackupResult: Equatable, Sendable {
     case published(CloudBackupPublicationResult)
     case requiresAccountConfirmation(ManualAccountBackupProposal)
     case requiresCellularConfirmation(ManualCellularBackupProposal)
+    case requiresUnavailablePhotoDecision(ManualUnavailablePhotoBackupProposal)
     case busy
     case deferred(BackupDeferralReason)
     case invalidCellularApproval
@@ -132,6 +158,7 @@ actor BackupCoordinator {
         case preparingManual
         case awaitingManualCellularApproval
         case awaitingManualAccountApproval
+        case awaitingManualUnavailablePhotoDecision
         case publishingManual
         case cancellingManual
         case deletingCloudBackup
@@ -142,9 +169,11 @@ actor BackupCoordinator {
         let package: AppSnapshotPackage
     }
 
-    private let snapshotCreator: any AppSnapshotCreating
+    private let snapshotCreator: any RecoverableAppSnapshotCreating
     private let publisher: any CloudBackupPublishing
     private let scheduleStore: any BackupScheduleStoring
+    private let omissionStore: any BackupAssetOmissionStoring
+    private let unavailableAssetRemover: (any BackupUnavailableAssetRemoving)?
     private let connectivity: any BackupConnectivityChecking
     private let account: any BackupAccountChecking
     private let publicationAuthorization: any BackupPublicationAuthorizing
@@ -163,11 +192,14 @@ actor BackupCoordinator {
     private var didRecoverStaging = false
     private var preparedManualBackup: PreparedManualBackup?
     private var pendingAccountProposal: ManualAccountBackupProposal?
+    private var pendingUnavailablePhotoProposal: ManualUnavailablePhotoBackupProposal?
 
     init(
-        snapshotCreator: any AppSnapshotCreating,
+        snapshotCreator: any RecoverableAppSnapshotCreating,
         publisher: any CloudBackupPublishing,
         scheduleStore: any BackupScheduleStoring,
+        omissionStore: any BackupAssetOmissionStoring,
+        unavailableAssetRemover: (any BackupUnavailableAssetRemoving)? = nil,
         connectivity: any BackupConnectivityChecking,
         account: any BackupAccountChecking,
         publicationAuthorization: any BackupPublicationAuthorizing,
@@ -183,6 +215,8 @@ actor BackupCoordinator {
         self.snapshotCreator = snapshotCreator
         self.publisher = publisher
         self.scheduleStore = scheduleStore
+        self.omissionStore = omissionStore
+        self.unavailableAssetRemover = unavailableAssetRemover
         self.connectivity = connectivity
         self.account = account
         self.publicationAuthorization = publicationAuthorization
@@ -268,43 +302,10 @@ actor BackupCoordinator {
         metadata.lastAttemptAt = date
         scheduleStore.save(metadata)
 
-        var package: AppSnapshotPackage?
-        do {
-            let createdPackage = try await snapshotCreator.createSnapshot()
-            package = createdPackage
-            try Task.checkCancellation()
-            let byteCount = try await publisher.estimatedUploadByteCount(for: createdPackage)
-            metadata = scheduleStore.load()
-            metadata.activeGenerationID = createdPackage.generationID
-            metadata.estimatedUploadByteCount = byteCount
-            scheduleStore.save(metadata)
-
-            if environment.connection == .cellular {
-                let proposal = ManualCellularBackupProposal(
-                    id: makeProposalID(),
-                    generationID: createdPackage.generationID,
-                    estimatedUploadByteCount: byteCount
-                )
-                preparedManualBackup = PreparedManualBackup(
-                    proposal: proposal,
-                    package: createdPackage
-                )
-                activeOperation = .awaitingManualCellularApproval
-                return .requiresCellularConfirmation(proposal)
-            }
-
-            activeOperation = .publishingManual
-            return await publishManualPackage(
-                createdPackage,
-                transferPolicy: .wifiOnly,
-                startedAt: date
-            )
-        } catch {
-            if let package {
-                await packageCleaner.removePackage(generationID: package.generationID)
-            }
-            return await finishManualFailure(error, startedAt: date)
-        }
+        return await createManualSnapshotAndContinue(
+            connection: environment.connection,
+            startedAt: date
+        )
     }
 
     func confirmManualAccountBackup(proposalID: String) async -> ManualBackupResult {
@@ -333,6 +334,51 @@ actor BackupCoordinator {
         finishOperation()
     }
 
+    func approveManualUnavailablePhotoOmissions(
+        proposalID: String
+    ) async -> ManualBackupResult {
+        guard case .awaitingManualUnavailablePhotoDecision = activeOperation,
+              let proposal = pendingUnavailablePhotoProposal,
+              proposal.id == proposalID else {
+            return .failed(.photoUnavailable)
+        }
+        omissionStore.approve(
+            sourceReferences: Set(proposal.assets.map(\.sourceReference))
+        )
+        return await retryManualBackup(after: proposal)
+    }
+
+    func removeManualUnavailablePhotos(
+        proposalID: String
+    ) async -> ManualBackupResult {
+        guard case .awaitingManualUnavailablePhotoDecision = activeOperation,
+              let proposal = pendingUnavailablePhotoProposal,
+              proposal.id == proposalID else {
+            return .failed(.photoUnavailable)
+        }
+        guard let unavailableAssetRemover else {
+            pendingUnavailablePhotoProposal = nil
+            finishOperation()
+            return .failed(.unknown)
+        }
+        do {
+            try unavailableAssetRemover.removeUnavailablePhotoReferences(
+                Set(proposal.assets.map(\.sourceReference))
+            )
+        } catch {
+            pendingUnavailablePhotoProposal = nil
+            return await finishManualFailure(error, startedAt: proposal.startedAt)
+        }
+        return await retryManualBackup(after: proposal)
+    }
+
+    func cancelManualUnavailablePhotoDecision(proposalID: String) {
+        guard case .awaitingManualUnavailablePhotoDecision = activeOperation,
+              pendingUnavailablePhotoProposal?.id == proposalID else { return }
+        pendingUnavailablePhotoProposal = nil
+        finishOperation()
+    }
+
     func deleteCloudBackup() async -> CloudBackupDeletionResult {
         guard activeOperation == nil, !isRestoreSessionActive else { return .busy }
         guard let deleter else { return .failed(.unknown) }
@@ -353,6 +399,7 @@ actor BackupCoordinator {
             metadata.estimatedUploadByteCount = nil
             metadata.lastFailureCategory = nil
             metadata.deletionNeedsRetryCategory = nil
+            metadata.lastSuccessfulOmittedAssetCount = nil
             scheduleStore.save(metadata)
             finishOperation()
             return .deleted
@@ -434,7 +481,8 @@ actor BackupCoordinator {
             accountAvailability: accountAvailability,
             state: state,
             lastSuccessAt: metadata.lastSuccessAt,
-            estimatedUploadByteCount: metadata.estimatedUploadByteCount
+            estimatedUploadByteCount: metadata.estimatedUploadByteCount,
+            omittedAssetCount: metadata.lastSuccessfulOmittedAssetCount ?? 0
         )
     }
 
@@ -449,6 +497,9 @@ actor BackupCoordinator {
             metadata.nextEligibleAt = now()
         } else if case .awaitingManualAccountApproval = activeOperation {
             pendingAccountProposal = nil
+            finishOperation()
+        } else if case .awaitingManualUnavailablePhotoDecision = activeOperation {
+            pendingUnavailablePhotoProposal = nil
             finishOperation()
         } else if case .awaitingManualCellularApproval = activeOperation,
                   let preparedManualBackup {
@@ -471,7 +522,7 @@ actor BackupCoordinator {
     private func createAndPublishAutomaticBackup(startedAt: Date) async -> AutomaticBackupResult {
         var package: AppSnapshotPackage?
         do {
-            let createdPackage = try await snapshotCreator.createSnapshot()
+            let createdPackage = try await createSnapshotUsingApprovedOmissions()
             package = createdPackage
             try Task.checkCancellation()
             let byteCount = try await publisher.estimatedUploadByteCount(for: createdPackage)
@@ -498,7 +549,11 @@ actor BackupCoordinator {
                 }
             )
             await packageCleaner.removePackage(generationID: createdPackage.generationID)
-            recordSuccess(at: now(), estimatedUploadByteCount: byteCount)
+            recordSuccess(
+                at: now(),
+                estimatedUploadByteCount: byteCount,
+                omittedAssetCount: createdPackage.manifest.omittedAssetCount
+            )
             finishOperation()
             await scheduleNextAttempt(from: scheduleStore.load(), fallbackDate: startedAt)
             return .published(result)
@@ -539,7 +594,11 @@ actor BackupCoordinator {
                 ?? package.manifest.totalByteCount
             await packageCleaner.removePackage(generationID: package.generationID)
             preparedManualBackup = nil
-            recordSuccess(at: now(), estimatedUploadByteCount: byteCount)
+            recordSuccess(
+                at: now(),
+                estimatedUploadByteCount: byteCount,
+                omittedAssetCount: package.manifest.omittedAssetCount
+            )
             finishOperation()
             await scheduleNextAttempt(from: scheduleStore.load(), fallbackDate: startedAt)
             return .published(result)
@@ -559,6 +618,85 @@ actor BackupCoordinator {
         finishOperation()
         await scheduleNextAttempt(from: scheduleStore.load(), fallbackDate: startedAt)
         return .failed(category)
+    }
+
+    private func createManualSnapshotAndContinue(
+        connection: BackupConnection,
+        startedAt: Date
+    ) async -> ManualBackupResult {
+        var package: AppSnapshotPackage?
+        do {
+            let createdPackage = try await createSnapshotUsingApprovedOmissions()
+            package = createdPackage
+            try Task.checkCancellation()
+            let byteCount = try await publisher.estimatedUploadByteCount(for: createdPackage)
+            var metadata = scheduleStore.load()
+            metadata.activeGenerationID = createdPackage.generationID
+            metadata.estimatedUploadByteCount = byteCount
+            scheduleStore.save(metadata)
+
+            if connection == .cellular {
+                let proposal = ManualCellularBackupProposal(
+                    id: makeProposalID(),
+                    generationID: createdPackage.generationID,
+                    estimatedUploadByteCount: byteCount
+                )
+                preparedManualBackup = PreparedManualBackup(
+                    proposal: proposal,
+                    package: createdPackage
+                )
+                activeOperation = .awaitingManualCellularApproval
+                return .requiresCellularConfirmation(proposal)
+            }
+
+            activeOperation = .publishingManual
+            return await publishManualPackage(
+                createdPackage,
+                transferPolicy: .wifiOnly,
+                startedAt: startedAt
+            )
+        } catch let error as BackupUnavailableExternalAssetsError {
+            if let package {
+                await packageCleaner.removePackage(generationID: package.generationID)
+            }
+            let proposal = ManualUnavailablePhotoBackupProposal(
+                id: makeProposalID(),
+                assets: error.assets,
+                startedAt: startedAt
+            )
+            pendingUnavailablePhotoProposal = proposal
+            activeOperation = .awaitingManualUnavailablePhotoDecision
+            return .requiresUnavailablePhotoDecision(proposal)
+        } catch {
+            if let package {
+                await packageCleaner.removePackage(generationID: package.generationID)
+            }
+            return await finishManualFailure(error, startedAt: startedAt)
+        }
+    }
+
+    private func retryManualBackup(
+        after proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult {
+        pendingUnavailablePhotoProposal = nil
+        activeOperation = .preparingManual
+        let environment = await currentEnvironment(
+            estimatedUploadByteCount: scheduleStore.load().estimatedUploadByteCount
+        )
+        if let reason = manualDeferralReason(for: environment) {
+            finishOperation()
+            return .deferred(reason)
+        }
+        return await createManualSnapshotAndContinue(
+            connection: environment.connection,
+            startedAt: proposal.startedAt
+        )
+    }
+
+    private func createSnapshotUsingApprovedOmissions() async throws -> AppSnapshotPackage {
+        try await snapshotCreator.createSnapshot(
+            approvedOmissionDigests: omissionStore.loadApprovedDigests()
+        )
     }
 
     private func finishPreparedManualDeferral(
@@ -650,7 +788,11 @@ actor BackupCoordinator {
         return environment.connection == .unavailable ? .networkUnavailable : nil
     }
 
-    private func recordSuccess(at date: Date, estimatedUploadByteCount: Int64) {
+    private func recordSuccess(
+        at date: Date,
+        estimatedUploadByteCount: Int64,
+        omittedAssetCount: Int
+    ) {
         var metadata = scheduleStore.load()
         metadata.lastSuccessAt = date
         metadata.nextEligibleAt = schedulePolicy.nextNight(after: date)
@@ -659,6 +801,7 @@ actor BackupCoordinator {
         metadata.retryCount = 0
         metadata.estimatedUploadByteCount = estimatedUploadByteCount
         metadata.lastFailureCategory = nil
+        metadata.lastSuccessfulOmittedAssetCount = omittedAssetCount
         scheduleStore.save(metadata)
     }
 
@@ -690,6 +833,8 @@ actor BackupCoordinator {
             return .awaitingCellularConfirmation
         case .awaitingManualAccountApproval:
             return .awaitingAccountConfirmation
+        case .awaitingManualUnavailablePhotoDecision:
+            return .awaitingUnavailablePhotoDecision
         case .deletingCloudBackup:
             return .deleting
         case nil:
@@ -759,6 +904,7 @@ actor BackupCoordinator {
             return .cancelled
         }
         if let error = error as? CloudBackupStoreError { return error.category }
+        if error is BackupUnavailableExternalAssetsError { return .photoUnavailable }
         return .unknown
     }
 
