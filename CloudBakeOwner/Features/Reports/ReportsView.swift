@@ -316,50 +316,56 @@ struct ReportsView: View {
 
     private var salesAndOrders: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(viewModel.salesBuckets) { bucket in
-                Button {
-                    viewModel.loadSalesDrillDown(bucket)
-                    selectedSalesBucket = bucket
-                } label: {
-                    CloudBakeListCard {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text(viewModel.bucketTitle(bucket))
-                                    .font(.headline)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                            }
-                            HStack {
-                                reportValue("Orders", "\(bucket.summary.orderCount)")
-                                reportValue("Quoted", MoneyDisplay.formatted(bucket.summary.quotedTotal))
-                                reportValue(
-                                    "Average",
-                                    bucket.summary.averageQuotedValue.map {
-                                        MoneyDisplay.formatted($0)
-                                    }
-                                        ?? "—"
-                                )
-                            }
-                            HStack {
-                                reportValue("Received", MoneyDisplay.formatted(bucket.summary.receivedTotal))
-                                reportValue("Outstanding", MoneyDisplay.formatted(bucket.summary.outstandingTotal))
-                            }
-                            let statusText = bucket.summary.statusCounts
-                                .sorted { $0.key.rawValue < $1.key.rawValue }
-                                .map { "\($0.key.displayName) \($0.value)" }
-                                .joined(separator: " • ")
-                            if !statusText.isEmpty {
-                                Text(statusText)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(16)
-                    }
+            if viewModel.salesBuckets.isEmpty {
+                CloudBakeListCard {
+                    reportEmpty("No orders in this period.")
                 }
-                .buttonStyle(.plain)
+            } else {
+                ForEach(viewModel.salesBuckets) { bucket in
+                    Button {
+                        viewModel.loadSalesDrillDown(bucket)
+                        selectedSalesBucket = bucket
+                    } label: {
+                        CloudBakeListCard {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text(viewModel.bucketTitle(bucket))
+                                        .font(.headline)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                }
+                                HStack {
+                                    reportValue("Orders", "\(bucket.summary.orderCount)")
+                                    reportValue("Quoted", MoneyDisplay.formatted(bucket.summary.quotedTotal))
+                                    reportValue(
+                                        "Average",
+                                        bucket.summary.averageQuotedValue.map {
+                                            MoneyDisplay.formatted($0)
+                                        }
+                                            ?? "—"
+                                    )
+                                }
+                                HStack {
+                                    reportValue("Received", MoneyDisplay.formatted(bucket.summary.receivedTotal))
+                                    reportValue("Outstanding", MoneyDisplay.formatted(bucket.summary.outstandingTotal))
+                                }
+                                let statusText = bucket.summary.statusCounts
+                                    .sorted { $0.key.rawValue < $1.key.rawValue }
+                                    .map { "\($0.key.displayName) \($0.value)" }
+                                    .joined(separator: " • ")
+                                if !statusText.isEmpty {
+                                    Text(statusText)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(16)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
