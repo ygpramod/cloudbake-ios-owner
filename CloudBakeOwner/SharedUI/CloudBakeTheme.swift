@@ -54,4 +54,3 @@ enum CloudBakeTheme {
         static let controlYOffset: CGFloat = 6
     }
 }
-

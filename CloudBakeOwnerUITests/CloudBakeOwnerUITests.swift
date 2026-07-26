@@ -42,7 +42,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
             ("More", "screen.more"),
             ("Recipes", "screen.recipes"),
             ("Customers", "screen.customers"),
-            ("Designs", "screen.designs")
+            ("Designs", "screen.designs"),
         ]
 
         for destination in destinations {

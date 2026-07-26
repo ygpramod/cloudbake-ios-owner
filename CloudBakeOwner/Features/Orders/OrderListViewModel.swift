@@ -60,7 +60,13 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var canLoadMoreActiveOrders = false
     @Published private(set) var canLoadMoreCompletedOrders = false
 
-    private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository & PaymentReceiptRepository
+    private let repository:
+        any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository
+            & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository
+            & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository
+            & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository
+            & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository
+            & OrderPhotoRepository & PaymentReceiptRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let onReminderDataChanged: () -> Void
@@ -74,7 +80,12 @@ final class OrderListViewModel: ObservableObject {
     private static let orderPageSize = 25
 
     init(
-        repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository & PaymentReceiptRepository,
+        repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository
+            & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository
+            & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository
+            & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository
+            & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository
+            & OrderPhotoRepository & PaymentReceiptRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
@@ -176,7 +187,7 @@ final class OrderListViewModel: ObservableObject {
                 order.deliveryAddress,
                 order.cakeNotes,
                 order.cakeMessage,
-                order.paymentNotes
+                order.paymentNotes,
             ]
             .compactMap { $0 }
             .map(TextInputFormatting.normalizedSearchKey)
@@ -186,7 +197,8 @@ final class OrderListViewModel: ObservableObject {
 
     func whatsappMessageURL(for order: Order) -> URL? {
         guard let customerId = order.customerId,
-              let customer = customers.first(where: { $0.id == customerId }) else {
+            let customer = customers.first(where: { $0.id == customerId })
+        else {
             return nil
         }
 
@@ -200,7 +212,7 @@ final class OrderListViewModel: ObservableObject {
         components.host = "send"
         components.queryItems = [
             URLQueryItem(name: "phone", value: phone),
-            URLQueryItem(name: "text", value: orderMessage(for: order, customer: customer))
+            URLQueryItem(name: "text", value: orderMessage(for: order, customer: customer)),
         ]
         return components.url
     }
@@ -268,7 +280,8 @@ final class OrderListViewModel: ObservableObject {
             customers = loadedCustomers
             recipes = loadedRecipes
             cakeDesigns = loadedCakeDesigns
-            errorMessage = retryPendingDesignPhotoCleanups()
+            errorMessage =
+                retryPendingDesignPhotoCleanups()
                 ? nil
                 : "A previous design photo cleanup will be retried automatically."
         } catch {
@@ -402,13 +415,15 @@ final class OrderListViewModel: ObservableObject {
 
     func applySelectedCustomer() {
         guard !draftCustomerId.isEmpty,
-              let customer = customers.first(where: { $0.id == draftCustomerId }) else {
+            let customer = customers.first(where: { $0.id == draftCustomerId })
+        else {
             return
         }
 
         draftCustomerName = customer.name
         if TextInputFormatting.trimmed(draftDeliveryAddress).isEmpty,
-           let address = customer.address {
+            let address = customer.address
+        {
             draftDeliveryAddress = address
         }
     }
@@ -505,7 +520,8 @@ final class OrderListViewModel: ObservableObject {
 
     var mostUsedDesignTags: [String] {
         DesignTagRanking.mostUsed(
-            in: cakeDesigns
+            in:
+                cakeDesigns
                 .filter { $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference }
                 .map(\.tags)
         )
@@ -645,9 +661,8 @@ final class OrderListViewModel: ObservableObject {
             return false
         }
 
-        return shouldRecordRecipeUsage(from: editingOrder.status, to: draftStatus) &&
-            !draftRecipeId.isEmpty &&
-            selectedOrderRecipeUsage == nil
+        return shouldRecordRecipeUsage(from: editingOrder.status, to: draftStatus) && !draftRecipeId.isEmpty
+            && selectedOrderRecipeUsage == nil
     }
 
     func saveEditedOrder(
@@ -861,7 +876,8 @@ final class OrderListViewModel: ObservableObject {
 
     func requiresInventoryDeductionConfirmation(for order: Order, to status: OrderStatus) -> Bool {
         guard order.status.recordsRecipeUsage(whenChangingTo: status),
-              order.recipeId != nil else {
+            order.recipeId != nil
+        else {
             return false
         }
 
@@ -1020,7 +1036,8 @@ final class OrderListViewModel: ObservableObject {
             return false
         }
 
-        let inventoryItemName = availableInventoryItems
+        let inventoryItemName =
+            availableInventoryItems
             .first(where: { $0.id == draft.inventoryItemId })?
             .name ?? "Inventory item unavailable"
         draftExtraIngredientRows.append(
@@ -1054,8 +1071,9 @@ final class OrderListViewModel: ObservableObject {
 
         draftIngredientCostIsActual = false
         guard !draftRecipeId.isEmpty,
-              let scale = Decimal(string: TextInputFormatting.trimmed(draftRecipeScaleMultiplier)),
-              scale > 0 else {
+            let scale = Decimal(string: TextInputFormatting.trimmed(draftRecipeScaleMultiplier)),
+            scale > 0
+        else {
             draftIngredientCost = nil
             return
         }
@@ -1404,8 +1422,9 @@ final class OrderListViewModel: ObservableObject {
                 $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference
             }
             if let linkedDesignId = editingOrder?.cakeDesignId,
-               !cakeDesigns.contains(where: { $0.id == linkedDesignId }),
-               let linkedDesign = try repository.fetchCakeDesign(id: linkedDesignId) {
+                !cakeDesigns.contains(where: { $0.id == linkedDesignId }),
+                let linkedDesign = try repository.fetchCakeDesign(id: linkedDesignId)
+            {
                 cakeDesigns.append(linkedDesign)
             }
             availableInventoryItems = try repository.fetchInventoryItems()

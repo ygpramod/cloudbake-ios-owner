@@ -445,7 +445,8 @@ extension CloudBakeOwnerUITests {
             scrollable = scrollView
         } else {
             let collectionView = visibleElement(in: app.collectionViews)
-            scrollable = collectionView.exists
+            scrollable =
+                collectionView.exists
                 ? collectionView
                 : visibleElement(in: app.scrollViews)
         }

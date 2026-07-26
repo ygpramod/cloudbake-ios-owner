@@ -71,7 +71,9 @@ final class InventoryListViewModel: ObservableObject {
     @Published private(set) var historyItem: InventoryItem?
     @Published private(set) var historyTransactions: [InventoryTransaction] = []
 
-    private let repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & VoiceInventoryImportRepository & ExpiredStockDisposalRepository
+    private let repository:
+        any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & VoiceInventoryImportRepository
+            & ExpiredStockDisposalRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let onReminderDataChanged: () -> Void
@@ -79,7 +81,8 @@ final class InventoryListViewModel: ObservableObject {
     private var acknowledgedDuplicateNameKey: String?
 
     init(
-        repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & VoiceInventoryImportRepository & ExpiredStockDisposalRepository,
+        repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository
+            & VoiceInventoryImportRepository & ExpiredStockDisposalRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
         onReminderDataChanged: @escaping () -> Void = {}
@@ -101,16 +104,15 @@ final class InventoryListViewModel: ObservableObject {
     var visibleItems: [InventoryItem] {
         let query = TextInputFormatting.normalizedSearchKey(searchText)
         return items.filter { item in
-            itemFilter.includes(item) && (
-                query.isEmpty ||
-                [
-                    item.name,
-                    item.unit.displayName,
-                    InventoryAliases.displayText(item.aliases)
-                ]
+            itemFilter.includes(item)
+                && (query.isEmpty
+                    || [
+                        item.name,
+                        item.unit.displayName,
+                        InventoryAliases.displayText(item.aliases),
+                    ]
                     .map(TextInputFormatting.normalizedSearchKey)
-                    .contains { $0.contains(query) }
-            )
+                    .contains { $0.contains(query) })
         }
     }
 
@@ -405,7 +407,8 @@ final class InventoryListViewModel: ObservableObject {
         editingBatch = batch
         draftBatchQuantity = batch.remainingQuantity.formatted()
         draftBatchHasExpiryDate = batch.expiresAt != nil
-        draftBatchExpiryDate = batch.expiresAt
+        draftBatchExpiryDate =
+            batch.expiresAt
             ?? selectedItem.map(defaultExpiryDate(for:))
             ?? defaultExpiryDate(for: .standard)
         draftBatchAmount = TextInputFormatting.decimalText(batch.amount)
@@ -583,7 +586,8 @@ final class InventoryListViewModel: ObservableObject {
             onReminderDataChanged()
             return true
         } catch InventoryItemDeletionError.inUse {
-            errorMessage = "This inventory item is used by stock history, a recipe, or an order. Archive it instead to preserve those records."
+            errorMessage =
+                "This inventory item is used by stock history, a recipe, or an order. Archive it instead to preserve those records."
             return false
         } catch {
             errorMessage = "Inventory item could not be deleted."
@@ -702,7 +706,8 @@ final class InventoryListViewModel: ObservableObject {
 
     var selectedExpiredQuantity: Double {
         let now = dateProvider()
-        return selectedItemBatches
+        return
+            selectedItemBatches
             .filter { $0.remainingQuantity > 0 && $0.isExpired(at: now) }
             .reduce(0) { $0 + $1.remainingQuantity }
     }
@@ -872,7 +877,8 @@ final class InventoryListViewModel: ObservableObject {
         voiceInventoryDrafts[index].name = name
         voiceInventoryDrafts[index].destination = matchedItem.map { .existingItem($0.id) } ?? .unresolved
         if voiceInventoryDrafts[index].expiryUsesDefault {
-            voiceInventoryDrafts[index].expiryDate = matchedItem.map(defaultExpiryDate(for:))
+            voiceInventoryDrafts[index].expiryDate =
+                matchedItem.map(defaultExpiryDate(for:))
                 ?? defaultExpiryDate(for: .standard)
         }
         errorMessage = nil
@@ -890,7 +896,8 @@ final class InventoryListViewModel: ObservableObject {
 
     func mapVoiceInventoryDraft(_ draftId: String, to inventoryItemId: String) {
         guard let index = voiceInventoryDrafts.firstIndex(where: { $0.id == draftId }),
-              let item = items.first(where: { $0.id == inventoryItemId }) else {
+            let item = items.first(where: { $0.id == inventoryItemId })
+        else {
             return
         }
         voiceInventoryDrafts[index].destination = .existingItem(item.id)
@@ -931,7 +938,8 @@ final class InventoryListViewModel: ObservableObject {
             inventoryItems: items
         )
         if purchaseBillDrafts[draftIndex].expiryUsesDefault {
-            purchaseBillDrafts[draftIndex].expiryDate = matchedItem.map(defaultExpiryDate(for:))
+            purchaseBillDrafts[draftIndex].expiryDate =
+                matchedItem.map(defaultExpiryDate(for:))
                 ?? defaultExpiryDate(for: .standard)
         }
         purchaseBillDrafts[draftIndex].matchedInventoryItemId = matchedItem?.id
@@ -980,11 +988,12 @@ final class InventoryListViewModel: ObservableObject {
     ) -> Bool {
         let nameKey = InventoryDuplicateMatcher.duplicateKey(for: name)
         if acknowledgedDuplicateNameKey != nameKey,
-           let matchingItem = InventoryDuplicateMatcher.matchingItem(
-            named: name,
-            in: items,
-            excludingItemId: excludingItemId
-           ) {
+            let matchingItem = InventoryDuplicateMatcher.matchingItem(
+                named: name,
+                in: items,
+                excludingItemId: excludingItemId
+            )
+        {
             duplicateWarningMessage = warningMessage(matchingItem)
             errorMessage = nil
             acknowledgedDuplicateNameKey = nameKey

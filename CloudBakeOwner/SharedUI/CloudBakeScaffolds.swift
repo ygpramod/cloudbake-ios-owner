@@ -307,4 +307,3 @@ private struct CloudBakeHeaderActionMenu: View {
         .accessibilityIdentifier("screen.actions.more")
     }
 }
-

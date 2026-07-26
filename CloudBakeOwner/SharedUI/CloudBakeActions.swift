@@ -201,4 +201,3 @@ private struct CloudBakeIconActionLabel: View {
             .accessibilityHidden(true)
     }
 }
-

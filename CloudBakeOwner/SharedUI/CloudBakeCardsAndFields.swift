@@ -348,4 +348,3 @@ struct CloudBakeCardDivider: View {
             .padding(.leading, 104)
     }
 }
-
