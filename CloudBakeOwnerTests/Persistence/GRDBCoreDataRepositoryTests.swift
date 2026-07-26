@@ -534,18 +534,24 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             default:
                 status = .cancelled
             }
-            try repository.save(
-                pagedOrder(
-                    id: "scale-\(String(format: "%04d", index))",
-                    customerId: index.isMultiple(of: 3) ? customerId : nil,
-                    status: status,
-                    dueAt: now.addingTimeInterval(
-                        TimeInterval(index * 3_600)
-                    ),
-                    quotedPrice: status == .completed ? 100 : nil,
-                    depositPaid: status == .completed ? 25 : nil
-                )
+            let order = pagedOrder(
+                id: "scale-\(String(format: "%04d", index))",
+                customerId: index.isMultiple(of: 3) ? customerId : nil,
+                status: status,
+                dueAt: now.addingTimeInterval(
+                    TimeInterval(index * 3_600)
+                ),
+                quotedPrice: status == .completed ? 100 : nil,
+                depositPaid: status == .completed ? 25 : nil
             )
+            try repository.save(order)
+            if [.confirmed, .inProgress, .ready].contains(status) {
+                try repository.saveOrderReminderConfiguration(
+                    .initialDefault,
+                    orderId: order.id,
+                    updatedAt: now
+                )
+            }
         }
 
         let recorder = SQLStatementRecorder()
@@ -591,6 +597,34 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(completed.orders.count, 25)
         XCTAssertEqual(customer.orders.count, 25)
         XCTAssertEqual(upcoming.orders.count, 25)
+
+        recorder.reset()
+        let reminderOccurrences =
+            try repository.fetchScheduledOrderReminderOccurrences(
+                after: now,
+                limit: 60
+            )
+        XCTAssertEqual(reminderOccurrences.count, 60)
+        XCTAssertLessThanOrEqual(
+            recorder.statementCount,
+            5,
+            recorder.recordedStatements.joined(separator: "\n")
+        )
+        let reminderStatement = try XCTUnwrap(
+            recorder.recordedStatements.first {
+                $0.contains("WITH reminder_occurrences")
+            }
+        )
+        let reminderPlan = try expandedQueryPlan(
+            repository: repository,
+            sql: reminderStatement
+        )
+        XCTAssertTrue(
+            reminderPlan.contains {
+                $0.contains("orders_on_status_due_id")
+            },
+            reminderPlan.joined(separator: "\n")
+        )
 
         recorder.reset()
         let paymentSummary = try repository.fetchPaymentPendingSummary(
@@ -832,6 +866,20 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                     LIMIT 26
                     """,
                 arguments: StatementArguments(arguments)
+            ).map { row in
+                row["detail"]
+            }
+        }
+    }
+
+    private func expandedQueryPlan(
+        repository: GRDBCoreDataRepository,
+        sql: String
+    ) throws -> [String] {
+        try repository.writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: "EXPLAIN QUERY PLAN \(sql)"
             ).map { row in
                 row["detail"]
             }
