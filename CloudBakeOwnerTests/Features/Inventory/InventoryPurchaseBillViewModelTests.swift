@@ -443,6 +443,32 @@ extension InventoryListViewModelTests {
         XCTAssertEqual(repository.batches, [])
     }
 
+    func testSavePurchaseBillDraftsAcceptsGroupedQuantities() {
+        let repository = FakeInventoryItemRepository()
+        var ids = ["inventory-flour", "batch-flour"]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { ids.removeFirst() }
+        )
+        viewModel.purchaseBillDrafts = [
+            PurchaseBillInventoryDraft(
+                id: "draft-flour",
+                sourceLine: "Cake Flour 1,000 g",
+                name: "Cake Flour",
+                quantityText: "1,000",
+                unit: .gram,
+                minimumQuantityText: "2,000",
+                expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
+                isSelected: true
+            )
+        ]
+
+        XCTAssertTrue(viewModel.savePurchaseBillDrafts())
+        XCTAssertEqual(repository.items.first?.currentQuantity, 1_000)
+        XCTAssertEqual(repository.items.first?.minimumQuantity, 2_000)
+        XCTAssertEqual(repository.batches.first?.remainingQuantity, 1_000)
+    }
+
     func testSavePurchaseBillDraftsAddsMatchedDraftsToExistingInventory() {
         let repository = FakeInventoryItemRepository()
         let now = Date(timeIntervalSince1970: 1_800_030_000)
