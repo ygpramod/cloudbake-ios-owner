@@ -48,6 +48,8 @@ final class OrderListViewModel: ObservableObject {
     @Published var isIngredientCostBreakdownExpanded = false
     @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
     @Published private(set) var selectedOrderPhotos: [OrderPhoto] = []
+    @Published private(set) var selectedOrderPaymentReceipts: [PaymentReceipt] = []
+    @Published private(set) var selectedOrderLegacyPaidAmount: Decimal = 0
     @Published private(set) var editingOrder: Order?
     @Published private(set) var availableInventoryItems: [InventoryItem] = []
     @Published var draftTitle = ""
@@ -381,6 +383,7 @@ final class OrderListViewModel: ObservableObject {
         loadSelectedOrderExtraIngredients(for: order)
         loadSelectedOrderChecklistItems(for: order)
         loadSelectedOrderPhotos(for: order)
+        loadSelectedOrderPayments(for: order)
     }
 
     func closeOrderDetail() {
@@ -399,6 +402,8 @@ final class OrderListViewModel: ObservableObject {
         isIngredientCostBreakdownExpanded = false
         selectedOrderChecklistItems = []
         selectedOrderPhotos = []
+        selectedOrderPaymentReceipts = []
+        selectedOrderLegacyPaidAmount = 0
         draftChecklistItemTitle = ""
         resetExtraIngredientDraft()
         editingOrder = nil
@@ -1179,9 +1184,25 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderExtraIngredients(for: order)
             loadSelectedOrderChecklistItems(for: order)
             loadSelectedOrderPhotos(for: order)
+            loadSelectedOrderPayments(for: order)
         }
 
         load()
+    }
+
+    private func loadSelectedOrderPayments(for order: Order) {
+        do {
+            selectedOrderPaymentReceipts = try repository.fetchPaymentReceipts(
+                orderId: order.id
+            )
+            selectedOrderLegacyPaidAmount = try repository.fetchLegacyPaidAmount(
+                orderId: order.id
+            )
+        } catch {
+            selectedOrderPaymentReceipts = []
+            selectedOrderLegacyPaidAmount = 0
+            errorMessage = "Payment history could not be loaded."
+        }
     }
 
     private func copy(

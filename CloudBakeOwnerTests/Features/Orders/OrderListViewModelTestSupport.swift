@@ -335,6 +335,7 @@ final class FakeOrderRepository: OrderRepository,
     var pendingDesignPhotoCleanupPaths: [String] = []
     var paymentReceipts: [PaymentReceipt] = []
     var paymentReceiptVoids: [PaymentReceiptVoid] = []
+    var legacyPaidAmounts: [String: Decimal] = [:]
 
     func save(_ order: Order) throws {
         if let persistedOrder = orders.first(where: { $0.id == order.id }),
@@ -453,7 +454,7 @@ final class FakeOrderRepository: OrderRepository,
         guard orders.contains(where: { $0.id == orderId }) else {
             throw PaymentReceiptPersistenceError.orderNotFound
         }
-        return 0
+        return legacyPaidAmounts[orderId] ?? 0
     }
 
     func saveOrder(

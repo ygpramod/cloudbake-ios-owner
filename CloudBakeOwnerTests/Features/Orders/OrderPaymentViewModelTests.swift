@@ -35,6 +35,7 @@ final class OrderPaymentViewModelTests: XCTestCase {
         XCTAssertEqual(repository.orders.first?.completedAt, completedAt)
         XCTAssertEqual(repository.paymentReceipts.map(\.amount), [Decimal(150)])
         XCTAssertEqual(repository.paymentReceipts.first?.receivedAt, updatedAt)
+        XCTAssertEqual(viewModel.selectedOrderPaymentReceipts, repository.paymentReceipts)
         XCTAssertEqual(reminderRefreshCount, 1)
     }
 
@@ -59,6 +60,7 @@ final class OrderPaymentViewModelTests: XCTestCase {
         XCTAssertEqual(repository.orders.first?.depositPaid, Decimal(125))
         XCTAssertEqual(repository.paymentReceipts.map(\.amount), [Decimal(75)])
         XCTAssertEqual(repository.paymentReceipts.first?.receivedAt, updatedAt)
+        XCTAssertEqual(viewModel.selectedOrderPaymentReceipts, repository.paymentReceipts)
     }
 
     func testAddPaymentRejectsInvalidOrExcessAmount() {
@@ -81,5 +83,34 @@ final class OrderPaymentViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, "Payment received cannot be more than balance due.")
         XCTAssertEqual(repository.orders, [order])
         XCTAssertEqual(repository.paymentReceipts, [])
+    }
+
+    func testBeginViewingOrderLoadsReceiptsAndLegacyAmount() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_080_000)
+        let order = makeOrder(
+            id: "legacy-payment-order",
+            dueAt: timestamp,
+            quotedPrice: 200,
+            depositPaid: 75
+        )
+        let receipt = PaymentReceipt(
+            id: "receipt-one",
+            orderId: order.id,
+            amount: 25,
+            receivedAt: timestamp,
+            note: "Transfer",
+            createdAt: timestamp,
+            void: nil
+        )
+        repository.orders = [order]
+        repository.paymentReceipts = [receipt]
+        repository.legacyPaidAmounts[order.id] = 50
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertEqual(viewModel.selectedOrderPaymentReceipts, [receipt])
+        XCTAssertEqual(viewModel.selectedOrderLegacyPaidAmount, 50)
     }
 }
