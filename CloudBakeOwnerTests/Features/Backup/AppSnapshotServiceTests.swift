@@ -12,6 +12,18 @@ final class AppSnapshotServiceTests: XCTestCase {
         try fixture.write(Data("logo".utf8), to: "Branding/custom-logo.jpg")
         try repository.save(fixture.design(id: "captured", photoReference: "OrderPhotos/design.jpg"))
         try repository.save(fixture.design(id: "external", photoReference: "photos://asset-id"))
+        let reminderOrder = fixture.order(id: "captured-reminder-order")
+        let reminderConfiguration = try OrderReminderConfiguration(
+            mode: .custom,
+            dayOffsets: [9, 2],
+            includesDueTime: false
+        )
+        try repository.save(reminderOrder)
+        try repository.saveOrderReminderConfiguration(
+            reminderConfiguration,
+            orderId: reminderOrder.id,
+            updatedAt: reminderOrder.updatedAt
+        )
 
         let service = fixture.service(didCaptureDatabase: {
             try repository.save(fixture.design(id: "created-later", photoReference: nil))
@@ -31,9 +43,19 @@ final class AppSnapshotServiceTests: XCTestCase {
         }
         XCTAssertNotNil(recoveredExternalReference)
         XCTAssertFalse(try XCTUnwrap(recoveredExternalReference).hasPrefix("photos://"))
+        let snapshotRepository = GRDBCoreDataRepository(writer: snapshotQueue)
+        XCTAssertEqual(
+            try snapshotRepository.fetchOrderReminderConfiguration(
+                orderId: reminderOrder.id
+            ),
+            reminderConfiguration
+        )
 
         let manifest = try fixture.decodeManifest(at: package.manifestURL)
-        XCTAssertEqual(manifest.databaseSchemaVersion, "0029_add_order_ingredient_shortfall")
+        XCTAssertEqual(
+            manifest.databaseSchemaVersion,
+            "0033_add_order_reminder_configurations"
+        )
         XCTAssertEqual(
             manifest.assets.map(\.originalRelativePath),
             [
