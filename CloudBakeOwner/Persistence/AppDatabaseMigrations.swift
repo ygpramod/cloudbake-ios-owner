@@ -711,6 +711,12 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0034_add_order_completed_at") { db in
+            try db.alter(table: "orders") { table in
+                table.add(column: "completed_at_unix_time", .double)
+            }
+        }
+
         return migrator
     }
 }

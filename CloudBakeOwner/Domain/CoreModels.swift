@@ -422,6 +422,7 @@ struct Order: Equatable {
     let quotedPrice: Decimal?
     let depositPaid: Decimal?
     let paymentNotes: String?
+    let completedAt: Date?
     let createdAt: Date
     let updatedAt: Date
 
@@ -468,6 +469,7 @@ struct Order: Equatable {
         quotedPrice: Decimal? = nil,
         depositPaid: Decimal? = nil,
         paymentNotes: String? = nil,
+        completedAt: Date? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -488,6 +490,7 @@ struct Order: Equatable {
         self.quotedPrice = quotedPrice
         self.depositPaid = depositPaid
         self.paymentNotes = paymentNotes
+        self.completedAt = completedAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

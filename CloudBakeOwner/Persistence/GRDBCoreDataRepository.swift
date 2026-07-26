@@ -217,6 +217,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             quotedPrice: optionalDecimal(row["quoted_price_decimal"]),
             depositPaid: optionalDecimal(row["deposit_paid_decimal"]),
             paymentNotes: row["payment_notes"],
+            completedAt: optionalDate(row["completed_at_unix_time"]),
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )

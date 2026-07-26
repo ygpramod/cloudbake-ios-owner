@@ -470,6 +470,7 @@ extension GRDBCoreDataRepository {
             quotedPrice: order.quotedPrice,
             depositPaid: order.depositPaid,
             paymentNotes: order.paymentNotes,
+            completedAt: order.completedAt ?? (status == .completed ? updatedAt : nil),
             createdAt: order.createdAt,
             updatedAt: updatedAt
         )
@@ -1851,6 +1852,13 @@ private extension GRDBCoreDataRepository {
                 throw OrderPersistenceError.invalidCustomerReferencePhoto
             }
         }
+        let persistedOrder = try self.order(id: order.id, in: db)
+        let completedAt = persistedOrder?.completedAt
+            ?? (
+                persistedOrder?.status != .completed && order.status == .completed
+                    ? order.completedAt ?? order.updatedAt
+                    : order.completedAt
+            )
         try db.execute(
             sql: """
                 INSERT INTO orders
@@ -1872,10 +1880,11 @@ private extension GRDBCoreDataRepository {
                     quoted_price_decimal,
                     deposit_paid_decimal,
                     payment_notes,
+                    completed_at_unix_time,
                     created_at_unix_time,
                     updated_at_unix_time
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                 customer_id = excluded.customer_id,
                 cake_design_id = excluded.cake_design_id,
@@ -1893,6 +1902,7 @@ private extension GRDBCoreDataRepository {
                 quoted_price_decimal = excluded.quoted_price_decimal,
                 deposit_paid_decimal = excluded.deposit_paid_decimal,
                 payment_notes = excluded.payment_notes,
+                completed_at_unix_time = excluded.completed_at_unix_time,
                 created_at_unix_time = excluded.created_at_unix_time,
                 updated_at_unix_time = excluded.updated_at_unix_time
                 """,
@@ -1914,6 +1924,7 @@ private extension GRDBCoreDataRepository {
                 decimalString(order.quotedPrice),
                 decimalString(order.depositPaid),
                 order.paymentNotes,
+                completedAt?.timeIntervalSince1970,
                 order.createdAt.timeIntervalSince1970,
                 order.updatedAt.timeIntervalSince1970
             ])

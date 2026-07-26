@@ -3,6 +3,95 @@ import GRDB
 @testable import CloudBakeOwner
 
 final class AppDatabaseTests: XCTestCase {
+    func testOrderCompletedAtMigrationLeavesLegacyCompletionUnknown() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0033_add_order_reminder_configurations")
+        let timestamp = 1_800_001_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "legacy-completed-order",
+                    "Legacy completed cake",
+                    OrderStatus.completed.rawValue,
+                    timestamp,
+                    timestamp,
+                    timestamp
+                ]
+            )
+        }
+
+        try migrator.migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+
+        XCTAssertNil(try repository.fetchOrder(id: "legacy-completed-order")?.completedAt)
+    }
+
+    func testOrderCompletionTimestampIsRecordedOnceAndPreserved() throws {
+        let database = try AppDatabase.makeInMemory()
+        let repository = database.makeCoreDataRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let firstCompletion = Date(timeIntervalSince1970: 1_800_001_000)
+        let laterUpdate = Date(timeIntervalSince1970: 1_800_002_000)
+        let order = Order(
+            id: "completion-history",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Completion history",
+            customerName: "Customer",
+            status: .draft,
+            dueAt: createdAt,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        try repository.save(order)
+
+        let completed = Order(
+            id: order.id,
+            customerId: order.customerId,
+            cakeDesignId: order.cakeDesignId,
+            title: order.title,
+            customerName: order.customerName,
+            status: .completed,
+            dueAt: order.dueAt,
+            fulfillmentType: order.fulfillmentType,
+            deliveryAddress: order.deliveryAddress,
+            cakeNotes: order.cakeNotes,
+            createdAt: order.createdAt,
+            updatedAt: firstCompletion
+        )
+        try repository.save(completed)
+
+        let reopened = Order(
+            id: completed.id,
+            customerId: completed.customerId,
+            cakeDesignId: completed.cakeDesignId,
+            title: completed.title,
+            customerName: completed.customerName,
+            status: .confirmed,
+            dueAt: completed.dueAt,
+            fulfillmentType: completed.fulfillmentType,
+            deliveryAddress: completed.deliveryAddress,
+            cakeNotes: completed.cakeNotes,
+            completedAt: firstCompletion,
+            createdAt: completed.createdAt,
+            updatedAt: laterUpdate
+        )
+        try repository.save(reopened)
+
+        XCTAssertEqual(try repository.fetchOrder(id: order.id)?.completedAt, firstCompletion)
+    }
+
     func testOrderReminderConfigurationMigrationBackfillsExistingOrders() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         let migrator = AppDatabaseMigrations.makeMigrator()
