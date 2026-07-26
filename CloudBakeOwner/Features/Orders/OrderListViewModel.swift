@@ -93,6 +93,7 @@ final class OrderListViewModel: ObservableObject {
     private let dateProvider: () -> Date
     private let onReminderDataChanged: () -> Void
     private let presentation: OrderListPresentation
+    private let paymentWorkflow: OrderPaymentWorkflow
     private var pendingSelectedOrderExtraIngredientId: String?
     private var activeOrderCursor: OrderPageCursor?
     private var completedOrderCursor: OrderPageCursor?
@@ -116,6 +117,10 @@ final class OrderListViewModel: ObservableObject {
         self.presentation = OrderListPresentation(
             dateProvider: dateProvider,
             calendar: calendar
+        )
+        self.paymentWorkflow = OrderPaymentWorkflow(
+            repository: repository,
+            dateProvider: dateProvider
         )
     }
 
@@ -890,19 +895,7 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func markOrderPaid(_ order: Order) -> Bool {
-        let now = dateProvider()
-        do {
-            _ = try repository.recordRemainingBalancePayment(
-                orderId: order.id,
-                receivedAt: now,
-                note: nil,
-                createdAt: now
-            )
-            return refreshAfterRecordingPayment(orderId: order.id)
-        } catch {
-            errorMessage = paymentErrorMessage(for: error)
-            return false
-        }
+        applyPaymentResult(paymentWorkflow.markPaid(order))
     }
 
     func markSelectedOrderPaid() -> Bool {
@@ -919,56 +912,27 @@ final class OrderListViewModel: ObservableObject {
         amountText: String,
         note: String = ""
     ) -> Bool {
-        let trimmed = TextInputFormatting.trimmed(amountText)
-        guard let amount = Decimal(string: trimmed), amount > 0 else {
-            errorMessage = "Payment amount must be greater than zero."
-            return false
-        }
-        let now = dateProvider()
-        do {
-            _ = try repository.recordPayment(
-                orderId: order.id,
-                amount: amount,
-                receivedAt: now,
-                note: note,
-                createdAt: now
+        applyPaymentResult(
+            paymentWorkflow.record(
+                order: order,
+                amountText: amountText,
+                note: note
             )
-            return refreshAfterRecordingPayment(orderId: order.id)
-        } catch {
-            errorMessage = paymentErrorMessage(for: error)
-            return false
-        }
+        )
     }
 
-    private func refreshAfterRecordingPayment(orderId: String) -> Bool {
-        do {
-            guard let updatedOrder = try repository.fetchOrder(id: orderId) else {
-                errorMessage = "Order could not be found."
-                return false
-            }
+    private func applyPaymentResult(
+        _ result: Result<Order, OrderPaymentWorkflowError>
+    ) -> Bool {
+        switch result {
+        case .success(let updatedOrder):
             refreshAfterSavingOrder(updatedOrder)
             onReminderDataChanged()
             errorMessage = nil
             return true
-        } catch {
-            errorMessage = "Payment was recorded, but the order could not be refreshed."
+        case .failure(let error):
+            errorMessage = error.ownerMessage
             return false
-        }
-    }
-
-    private func paymentErrorMessage(for error: Error) -> String {
-        switch error as? PaymentReceiptPersistenceError {
-        case .quotedPriceMissing:
-            return "Add quoted price before recording payment."
-        case .invalidAmount:
-            return "Payment amount must be greater than zero."
-        case .exceedsBalance:
-            return "Payment received cannot be more than balance due."
-        case .orderNotFound:
-            return "Order could not be found."
-        case .receiptNotFound, .alreadyVoided, .invalidStoredAmount,
-             .directPaidTotalMutation, .none:
-            return "Payment could not be updated."
         }
     }
 
@@ -989,25 +953,12 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func voidPaymentReceipt(_ receipt: PaymentReceipt, reason: String) -> Bool {
-        let now = dateProvider()
-        do {
-            _ = try repository.voidPaymentReceipt(
-                receiptId: receipt.id,
-                reason: reason,
-                voidedAt: now,
-                createdAt: now
+        applyPaymentResult(
+            paymentWorkflow.void(
+                receipt,
+                reason: reason
             )
-            return refreshAfterRecordingPayment(orderId: receipt.orderId)
-        } catch PaymentReceiptPersistenceError.alreadyVoided {
-            errorMessage = "This payment has already been voided."
-            return false
-        } catch PaymentReceiptPersistenceError.receiptNotFound {
-            errorMessage = "Payment could not be found."
-            return false
-        } catch {
-            errorMessage = "Payment correction could not be saved."
-            return false
-        }
+        )
     }
 
     func beginAddingExtraIngredient() {
@@ -1224,17 +1175,14 @@ final class OrderListViewModel: ObservableObject {
     }
 
     private func loadSelectedOrderPayments(for order: Order) {
-        do {
-            selectedOrderPaymentReceipts = try repository.fetchPaymentReceipts(
-                orderId: order.id
-            )
-            selectedOrderLegacyPaidAmount = try repository.fetchLegacyPaidAmount(
-                orderId: order.id
-            )
-        } catch {
+        switch paymentWorkflow.history(orderId: order.id) {
+        case .success(let history):
+            selectedOrderPaymentReceipts = history.receipts
+            selectedOrderLegacyPaidAmount = history.legacyPaidAmount
+        case .failure(let error):
             selectedOrderPaymentReceipts = []
             selectedOrderLegacyPaidAmount = 0
-            errorMessage = "Payment history could not be loaded."
+            errorMessage = error.ownerMessage
         }
     }
 
