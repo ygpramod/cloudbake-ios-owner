@@ -409,7 +409,6 @@ struct VoiceInventoryImportView: View {
             isPresented: optionalPresentationBinding($pendingUnknownDraftId),
             title: "Inventory Item Not Found",
             message: unknownDraftSubtitle,
-            systemImage: "questionmark.circle",
             cancelAccessibilityIdentifier: "inventory.voice.unknown.cancel",
             onCancel: { pendingUnknownDraftId = nil }
         ) {

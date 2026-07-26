@@ -585,7 +585,6 @@ private struct CakeDesignPreviewView: View {
             isPresented: $isConfirmingDelete,
             title: "Remove \(CakeDesignPresentation.itemName(for: design))?",
             message: "Remove this \(CakeDesignPresentation.itemName(for: design).lowercased()) from CloudBake. The image remains in Photos.",
-            systemImage: "trash",
             cancelAccessibilityIdentifier: "designs.delete.cancel",
             onCancel: { isConfirmingDelete = false }
         ) {

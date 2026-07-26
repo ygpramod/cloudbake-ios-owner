@@ -143,7 +143,6 @@ struct InventoryListView: View {
             isPresented: optionalPresentationBinding($pendingArchiveItem),
             title: "Archive Inventory?",
             message: "Archive this item from active inventory. You can restore it later.",
-            systemImage: "archivebox",
             cancelAccessibilityIdentifier: "inventory.archive.cancel",
             onCancel: { pendingArchiveItem = nil }
         ) {
@@ -159,7 +158,6 @@ struct InventoryListView: View {
             isPresented: optionalPresentationBinding($pendingDeleteItem),
             title: "Delete Inventory?",
             message: "Delete this unused inventory item permanently. Items linked to stock history, recipes, or orders must be archived instead.",
-            systemImage: "trash",
             cancelAccessibilityIdentifier: "inventory.delete.cancel",
             onCancel: { pendingDeleteItem = nil }
         ) {

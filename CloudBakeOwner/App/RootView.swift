@@ -85,7 +85,6 @@ struct RootView: View {
             isPresented: .constant(isRestoreRecoveryRequired),
             title: "Reopen CloudBake to Finish Recovery",
             message: "CloudBake has stopped access to your data because restore could not return safely to the previous state. No changes can be made until CloudBake is closed and reopened.",
-            systemImage: "exclamationmark.triangle",
             messageAccessibilityIdentifier: "restore.recoveryRequired.message",
             showsCancelButton: false,
             onCancel: {}

@@ -5,7 +5,6 @@ extension View {
         isPresented: Binding<Bool>,
         title: String,
         message: String,
-        systemImage _: String? = nil,
         messageAccessibilityIdentifier: String = "cloudBake.popup.subtitle",
         showsCancelButton: Bool = true,
         cancelAccessibilityIdentifier: String = "cloudBake.popup.cancel",

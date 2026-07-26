@@ -236,7 +236,6 @@ struct InventoryItemDetailView: View {
             isPresented: $isConfirmingExpiredDisposal,
             title: "Dispose Expired Stock?",
             message: "Remove \(viewModel.selectedExpiredQuantity.formatted()) \(viewModel.selectedItem?.unit.displayName ?? "") of expired stock. This records an inventory disposal and cannot be undone.",
-            systemImage: "trash",
             cancelAccessibilityIdentifier: "inventory.disposeExpired.cancel",
             onCancel: { isConfirmingExpiredDisposal = false }
         ) {

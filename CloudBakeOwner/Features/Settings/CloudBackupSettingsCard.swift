@@ -134,7 +134,6 @@ extension View {
             ),
             title: "Use This iCloud Account?",
             message: "CloudBake will publish a complete recovery backup to the private iCloud account currently signed in on this iPhone. Confirm only if this is the intended account.",
-            systemImage: "person.crop.circle.badge.checkmark",
             cancelAccessibilityIdentifier: "settings.cloudBackup.account.cancel",
             onCancel: {
                 Task { await viewModel.cancelAccountBackup() }
@@ -156,7 +155,6 @@ extension View {
             ),
             title: "Use Cellular Data?",
             message: cellularConfirmationDescription(for: viewModel),
-            systemImage: "antenna.radiowaves.left.and.right",
             cancelAccessibilityIdentifier: "settings.cloudBackup.cellular.cancel",
             onCancel: {
                 Task { await viewModel.cancelCellularBackup() }
@@ -182,7 +180,6 @@ extension View {
             ),
             title: "Unavailable Photos",
             message: unavailablePhotoDescription(for: viewModel),
-            systemImage: "photo.badge.exclamationmark",
             cancelAccessibilityIdentifier: "settings.cloudBackup.photos.cancel",
             onCancel: {
                 Task { await viewModel.cancelUnavailablePhotoDecision() }
@@ -205,7 +202,6 @@ extension View {
             ),
             title: "Remove Broken References?",
             message: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
-            systemImage: "trash",
             cancelAccessibilityIdentifier: "settings.cloudBackup.photos.remove.cancel",
             onCancel: { viewModel.cancelUnavailablePhotoRemoval() }
         ) {

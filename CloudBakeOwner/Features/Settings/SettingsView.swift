@@ -662,7 +662,6 @@ struct SettingsView: View {
             isPresented: $cloudBackupViewModel.isConfirmingDeletion,
             title: "Delete Cloud Backup?",
             message: "This permanently removes CloudBake's complete recovery backup from the current iCloud account. Your database and photos on this iPhone will not be changed. Cloud backup will be turned off after deletion.",
-            systemImage: "trash",
             cancelAccessibilityIdentifier: "settings.cloudBackup.delete.cancel",
             onCancel: { cloudBackupViewModel.cancelCloudBackupDeletion() }
         ) {
@@ -701,7 +700,6 @@ struct SettingsView: View {
             isPresented: $isConfirmingManualBackup,
             title: "Create Full Backup?",
             message: "CloudBake will prepare the complete database, app-managed photos, lightweight recovery copies of linked Photos-library images, and your custom logo. You will choose where to save the package.",
-            systemImage: "externaldrive.badge.plus",
             cancelAccessibilityIdentifier: "settings.backup.cancel",
             onCancel: { isConfirmingManualBackup = false }
         ) {
@@ -725,7 +723,6 @@ struct SettingsView: View {
             ),
             title: "Unavailable Photos",
             message: manualBackupUnavailablePhotoDescription,
-            systemImage: "photo.badge.exclamationmark",
             cancelAccessibilityIdentifier: "settings.manualBackup.photos.cancel",
             onCancel: {
                 Task { await viewModel.cancelManualBackupPhotoDecision() }
@@ -747,7 +744,6 @@ struct SettingsView: View {
             isPresented: $viewModel.isConfirmingManualBackupPhotoRemoval,
             title: "Remove Broken References?",
             message: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
-            systemImage: "trash",
             cancelAccessibilityIdentifier: "settings.manualBackup.photos.remove.cancel",
             onCancel: { viewModel.cancelManualBackupPhotoRemoval() }
         ) {
@@ -762,7 +758,6 @@ struct SettingsView: View {
             isPresented: optionalPresentationBinding($pendingDataOperation),
             title: pendingDataOperation?.title ?? "Inventory CSV",
             message: pendingDataOperation?.explanation ?? "",
-            systemImage: pendingDataOperation?.systemImage ?? "tablecells",
             cancelAccessibilityIdentifier: "settings.data.cancel",
             onCancel: { pendingDataOperation = nil }
         ) {
