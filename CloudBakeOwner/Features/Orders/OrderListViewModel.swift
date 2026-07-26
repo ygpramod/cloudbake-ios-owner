@@ -480,6 +480,7 @@ final class OrderListViewModel: ObservableObject {
     func cancelAddOrder() {
         resetDraft()
         draftExtraIngredientRows = []
+        pendingInventoryShortages = []
         errorMessage = nil
     }
 

@@ -873,6 +873,31 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.allowInventoryShortageRequests, [false, true])
     }
 
+    func testCancellingAddOrderClearsPendingReservationShortage() {
+        let repository = FakeOrderRepository()
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: "inventory-flour",
+                inventoryItemName: "Cake flour",
+                requiredQuantity: 300,
+                availableQuantity: 200,
+                unit: .gram
+            )
+        ])
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.draftTitle = "Short reservation cake"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.draftStatus = .confirmed
+        viewModel.draftRecipeId = "recipe-short-reservation"
+        XCTAssertFalse(viewModel.addOrder())
+
+        viewModel.cancelAddOrder()
+
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertTrue(viewModel.draftTitle.isEmpty)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
     func testOrderFormSavesDraftExtraIngredientsWithNewOrder() throws {
         let repository = FakeOrderRepository()
         let recipe = makeRecipe(id: "recipe-vanilla", name: "Vanilla Sponge")

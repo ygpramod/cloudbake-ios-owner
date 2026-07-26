@@ -156,6 +156,10 @@ private func orderPopupSubtitle(for title: String) -> String {
         return "Update the order payment"
     }
 
+    if title.localizedCaseInsensitiveContains("shortage") {
+        return "Review available stock before continuing"
+    }
+
     if title.localizedCaseInsensitiveContains("inventory") {
         return "Confirm stock deduction"
     }

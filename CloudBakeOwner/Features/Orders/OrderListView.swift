@@ -23,7 +23,7 @@ struct OrderListView: View {
 
     var body: some View {
         orderList
-        .sheet(isPresented: $isAddingOrder, onDismiss: viewModel.cancelAddOrder) {
+        .sheet(isPresented: $isAddingOrder, onDismiss: cancelAddingOrder) {
             NavigationStack {
                 OrderForm(
                     viewModel: viewModel,
@@ -84,6 +84,11 @@ struct OrderListView: View {
             isConfirmingAddedOrderInventoryShortage = true
         }
         return didSave
+    }
+
+    private func cancelAddingOrder() {
+        isConfirmingAddedOrderInventoryShortage = false
+        viewModel.cancelAddOrder()
     }
 
     private var orderList: some View {

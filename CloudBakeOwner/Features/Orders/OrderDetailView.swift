@@ -431,7 +431,7 @@ struct OrderDetailView: View {
                 .accessibilityIdentifier("orders.detail.payment.partial.save")
             }
         }
-        .sheet(isPresented: $isEditingOrder, onDismiss: viewModel.cancelEditingOrder) {
+        .sheet(isPresented: $isEditingOrder, onDismiss: cancelEditingOrder) {
             NavigationStack {
                 OrderForm(
                     title: "Edit Order",
@@ -894,7 +894,17 @@ struct OrderDetailView: View {
             return false
         }
 
-        return viewModel.saveEditedOrder()
+        let didSave = viewModel.saveEditedOrder()
+        if !didSave, !viewModel.pendingInventoryShortages.isEmpty {
+            isConfirmingEditedOrderInventoryShortage = true
+        }
+        return didSave
+    }
+
+    private func cancelEditingOrder() {
+        isConfirmingEditedOrderInventoryDeduction = false
+        isConfirmingEditedOrderInventoryShortage = false
+        viewModel.cancelEditingOrder()
     }
 
     private func cancelChecklistEdit() {
