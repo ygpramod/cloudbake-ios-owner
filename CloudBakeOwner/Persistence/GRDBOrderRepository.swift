@@ -2,6 +2,75 @@ import Foundation
 import GRDB
 
 extension GRDBCoreDataRepository {
+    func saveRecipeIngredient(
+        _ ingredient: RecipeIngredient,
+        allowInventoryShortage: Bool
+    ) throws {
+        try writer.write { db in
+            guard let recipeId = try String.fetchOne(
+                db,
+                sql: "SELECT recipe_id FROM recipe_components WHERE id = ?",
+                arguments: [ingredient.componentId]
+            ) else {
+                throw RecipeIngredientReservationMutationError.componentNotFound
+            }
+            let existingRecipeId = try String.fetchOne(
+                db,
+                sql: """
+                    SELECT recipe_components.recipe_id
+                    FROM recipe_ingredients
+                    JOIN recipe_components
+                      ON recipe_components.id = recipe_ingredients.component_id
+                    WHERE recipe_ingredients.id = ?
+                    """,
+                arguments: [ingredient.id]
+            )
+            guard existingRecipeId == nil || existingRecipeId == recipeId else {
+                throw RecipeIngredientReservationMutationError.recipeReassignmentNotAllowed
+            }
+
+            try persistRecipeIngredient(ingredient, in: db)
+            try synchronizeReservationsAfterRecipeIngredientMutation(
+                recipeId: recipeId,
+                at: ingredient.updatedAt,
+                allowInventoryShortage: allowInventoryShortage,
+                in: db
+            )
+        }
+    }
+
+    func deleteRecipeIngredient(
+        id: String,
+        updatedAt: Date,
+        allowInventoryShortage: Bool
+    ) throws {
+        try writer.write { db in
+            guard let recipeId = try String.fetchOne(
+                db,
+                sql: """
+                    SELECT recipe_components.recipe_id
+                    FROM recipe_ingredients
+                    JOIN recipe_components
+                      ON recipe_components.id = recipe_ingredients.component_id
+                    WHERE recipe_ingredients.id = ?
+                    """,
+                arguments: [id]
+            ) else {
+                return
+            }
+            try db.execute(
+                sql: "DELETE FROM recipe_ingredients WHERE id = ?",
+                arguments: [id]
+            )
+            try synchronizeReservationsAfterRecipeIngredientMutation(
+                recipeId: recipeId,
+                at: updatedAt,
+                allowInventoryShortage: allowInventoryShortage,
+                in: db
+            )
+        }
+    }
+
     func save(_ order: Order) throws {
         try writer.write { db in
             try save(order, in: db)
@@ -807,6 +876,154 @@ private extension GRDBCoreDataRepository {
             reason: reason,
             in: db
         )
+    }
+
+    func synchronizeReservationsAfterRecipeIngredientMutation(
+        recipeId: String,
+        at timestamp: Date,
+        allowInventoryShortage: Bool,
+        in db: Database
+    ) throws {
+        let affectedOrders = try Row.fetchAll(
+            db,
+            sql: """
+                SELECT orders.*
+                FROM orders
+                WHERE orders.recipe_id = ?
+                  AND orders.status IN (?, ?)
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM order_recipe_usages
+                      WHERE order_recipe_usages.order_id = orders.id
+                  )
+                ORDER BY orders.id
+                """,
+            arguments: [
+                recipeId,
+                OrderStatus.confirmed.rawValue,
+                OrderStatus.inProgress.rawValue
+            ]
+        ).map(order)
+        guard !affectedOrders.isEmpty else { return }
+
+        let proposedReservations = try affectedOrders.map { order in
+            (
+                order: order,
+                usages: try pendingInventoryUsages(
+                    recipeId: recipeId,
+                    orderId: order.id,
+                    scaleMultiplier: order.recipeScaleMultiplier,
+                    in: db
+                )
+            )
+        }
+        try validateRecipeReservationAvailability(
+            proposedReservations.flatMap { $0.usages },
+            recipeId: recipeId,
+            at: timestamp,
+            allowInventoryShortage: allowInventoryShortage,
+            in: db
+        )
+        for proposedReservation in proposedReservations {
+            try replaceOrderInventoryReservations(
+                orderId: proposedReservation.order.id,
+                with: proposedReservation.usages,
+                at: timestamp,
+                reason: .recipeEdited,
+                in: db
+            )
+        }
+    }
+
+    func validateRecipeReservationAvailability(
+        _ pendingUsages: [PendingInventoryUsage],
+        recipeId: String,
+        at timestamp: Date,
+        allowInventoryShortage: Bool,
+        in db: Database
+    ) throws {
+        guard !allowInventoryShortage else { return }
+
+        var proposedByItemId: [String: PendingInventoryUsage] = [:]
+        for pendingUsage in pendingUsages {
+            if var proposed = proposedByItemId[pendingUsage.item.id] {
+                proposed.quantity += pendingUsage.quantity
+                proposedByItemId[pendingUsage.item.id] = proposed
+            } else {
+                proposedByItemId[pendingUsage.item.id] = pendingUsage
+            }
+        }
+
+        let shortages = try proposedByItemId.values.compactMap { proposed -> OrderInventoryShortage? in
+            let batches = try inventoryStockBatches(
+                inventoryItemId: proposed.item.id,
+                in: db
+            )
+            let usableQuantity = availableInventoryQuantity(
+                item: proposed.item,
+                batches: batches,
+                at: timestamp
+            )
+            let reservedQuantity = try Double.fetchOne(
+                db,
+                sql: """
+                    SELECT COALESCE(SUM(required_quantity), 0)
+                    FROM order_inventory_reservations
+                    WHERE inventory_item_id = ?
+                    """,
+                arguments: [proposed.item.id]
+            ) ?? 0
+            let affectedExistingQuantity = try Double.fetchOne(
+                db,
+                sql: """
+                    SELECT COALESCE(SUM(order_inventory_reservations.required_quantity), 0)
+                    FROM order_inventory_reservations
+                    JOIN orders
+                      ON orders.id = order_inventory_reservations.order_id
+                    WHERE order_inventory_reservations.inventory_item_id = ?
+                      AND orders.recipe_id = ?
+                      AND orders.status IN (?, ?)
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM order_recipe_usages
+                          WHERE order_recipe_usages.order_id = orders.id
+                      )
+                    """,
+                arguments: [
+                    proposed.item.id,
+                    recipeId,
+                    OrderStatus.confirmed.rawValue,
+                    OrderStatus.inProgress.rawValue
+                ]
+            ) ?? 0
+            let reservedByUnaffectedOrders = max(
+                reservedQuantity - affectedExistingQuantity,
+                0
+            )
+            let availableToPromise = max(
+                usableQuantity - reservedByUnaffectedOrders,
+                0
+            )
+            guard proposed.quantity > availableToPromise else {
+                return nil
+            }
+            return OrderInventoryShortage(
+                inventoryItemId: proposed.item.id,
+                inventoryItemName: proposed.item.name,
+                requiredQuantity: proposed.quantity,
+                availableQuantity: availableToPromise,
+                unit: proposed.item.unit
+            )
+        }
+        guard shortages.isEmpty else {
+            throw OrderRecipeUsageError.insufficientStock(
+                shortages.sorted {
+                    $0.inventoryItemName.localizedCaseInsensitiveCompare(
+                        $1.inventoryItemName
+                    ) == .orderedAscending
+                }
+            )
+        }
     }
 
     func validateReservationAvailability(

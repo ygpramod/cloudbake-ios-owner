@@ -37,6 +37,23 @@ protocol RecipeIngredientRepository {
     func deleteRecipeIngredient(id: String) throws
 }
 
+protocol RecipeIngredientReservationMutationRepository {
+    func saveRecipeIngredient(
+        _ ingredient: RecipeIngredient,
+        allowInventoryShortage: Bool
+    ) throws
+    func deleteRecipeIngredient(
+        id: String,
+        updatedAt: Date,
+        allowInventoryShortage: Bool
+    ) throws
+}
+
+enum RecipeIngredientReservationMutationError: Error, Equatable {
+    case componentNotFound
+    case recipeReassignmentNotAllowed
+}
+
 protocol RecipeCSVImportRepository {
     func saveRecipeCSVImport(
         recipes: [Recipe],

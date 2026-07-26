@@ -125,21 +125,18 @@ extension GRDBCoreDataRepository {
     }
 
     func deleteRecipeIngredient(id: String) throws {
-        try writer.write { db in
-            try db.execute(
-                sql: "DELETE FROM recipe_ingredients WHERE id = ?",
-                arguments: [id]
-            )
-        }
+        try deleteRecipeIngredient(
+            id: id,
+            updatedAt: Date(),
+            allowInventoryShortage: false
+        )
     }
 
     func save(_ ingredient: RecipeIngredient) throws {
-        try writer.write { db in
-            try save(ingredient, in: db)
-        }
+        try saveRecipeIngredient(ingredient, allowInventoryShortage: false)
     }
 
-    private func save(_ ingredient: RecipeIngredient, in db: Database) throws {
+    func persistRecipeIngredient(_ ingredient: RecipeIngredient, in db: Database) throws {
         try db.execute(
                 sql: """
                     INSERT INTO recipe_ingredients
@@ -175,7 +172,7 @@ extension GRDBCoreDataRepository {
         try writer.write { db in
             for recipe in recipes { try save(recipe, in: db) }
             for component in components { try save(component, in: db) }
-            for ingredient in ingredients { try save(ingredient, in: db) }
+            for ingredient in ingredients { try persistRecipeIngredient(ingredient, in: db) }
         }
     }
 
