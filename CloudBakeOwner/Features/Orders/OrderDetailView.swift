@@ -242,6 +242,8 @@ struct OrderDetailView: View {
                         ) {
                             isConfirmingExtraIngredientInventoryShortage = false
                             isAddingExtraIngredient = false
+                        } else {
+                            isConfirmingExtraIngredientInventoryShortage = false
                         }
                     }
                     .accessibilityIdentifier("orders.extraIngredient.inventoryShortage.continue")

@@ -848,6 +848,76 @@ final class OrderListViewModelTests: XCTestCase {
             dueAt: Date(timeIntervalSince1970: 1_800_140_000)
         )
         let almonds = makeInventoryItem(id: "inventory-almonds", name: "Almonds", unit: .gram)
+        let existingIngredient = OrderExtraIngredient(
+            id: "existing-extra",
+            orderId: order.id,
+            inventoryItemId: almonds.id,
+            quantity: 10,
+            unit: .gram,
+            note: "Existing garnish",
+            createdAt: Date(timeIntervalSince1970: 1_800_130_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_130_000)
+        )
+        repository.orders = [order]
+        repository.inventoryItems = [almonds]
+        repository.extraIngredients = [existingIngredient]
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: almonds.id,
+                inventoryItemName: almonds.name,
+                requiredQuantity: 75,
+                availableQuantity: 25,
+                unit: .gram
+            )
+        ])
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "extra"),
+            dateProvider: { Date(timeIntervalSince1970: 1_800_150_000) }
+        )
+        viewModel.beginViewingOrder(order)
+        viewModel.beginAddingExtraIngredient()
+        viewModel.draftExtraIngredientQuantity = "75"
+        viewModel.draftExtraIngredientNote = "Extra crunch"
+
+        XCTAssertFalse(viewModel.addExtraIngredientToSelectedOrder())
+
+        XCTAssertEqual(repository.extraIngredients, [existingIngredient])
+        XCTAssertEqual(viewModel.draftExtraIngredientQuantity, "75")
+        XCTAssertEqual(viewModel.draftExtraIngredientNote, "Extra crunch")
+        XCTAssertEqual(
+            viewModel.inventoryShortageWarningMessage,
+            "Almonds: short by 50 g"
+        )
+        XCTAssertEqual(repository.allowInventoryShortageRequests, [false])
+
+        viewModel.cancelInventoryShortageOverride()
+
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertEqual(viewModel.draftExtraIngredientQuantity, "75")
+        XCTAssertEqual(viewModel.draftExtraIngredientNote, "Extra crunch")
+        XCTAssertFalse(viewModel.addExtraIngredientToSelectedOrder())
+
+        XCTAssertTrue(
+            viewModel.addExtraIngredientToSelectedOrder(
+                allowingInventoryShortage: true
+            )
+        )
+
+        XCTAssertEqual(repository.extraIngredients.map(\.id), ["existing-extra", "extra-1"])
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertEqual(repository.allowInventoryShortageRequests, [false, false, true])
+    }
+
+    func testExtraIngredientOverrideFailurePreservesDraftAndCanBeRetried() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-short-extra-retry",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        let almonds = makeInventoryItem(id: "inventory-almonds", name: "Almonds", unit: .gram)
         repository.orders = [order]
         repository.inventoryItems = [almonds]
         repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock([
@@ -867,25 +937,30 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.beginViewingOrder(order)
         viewModel.beginAddingExtraIngredient()
         viewModel.draftExtraIngredientQuantity = "75"
+        viewModel.draftExtraIngredientNote = "Extra crunch"
 
         XCTAssertFalse(viewModel.addExtraIngredientToSelectedOrder())
 
-        XCTAssertTrue(repository.extraIngredients.isEmpty)
-        XCTAssertEqual(
-            viewModel.inventoryShortageWarningMessage,
-            "Almonds: short by 50 g"
-        )
-        XCTAssertEqual(repository.allowInventoryShortageRequests, [false])
-
-        XCTAssertTrue(
+        repository.saveOrderOverrideError = OrderRecipeUsageError.missingInventoryItem(almonds.id)
+        XCTAssertFalse(
             viewModel.addExtraIngredientToSelectedOrder(
                 allowingInventoryShortage: true
             )
         )
 
-        XCTAssertEqual(repository.extraIngredients.map(\.id), ["extra-2"])
         XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
-        XCTAssertEqual(repository.allowInventoryShortageRequests, [false, true])
+        XCTAssertEqual(viewModel.errorMessage, "The selected inventory item could not be found.")
+        XCTAssertEqual(viewModel.draftExtraIngredientQuantity, "75")
+        XCTAssertEqual(viewModel.draftExtraIngredientNote, "Extra crunch")
+        XCTAssertTrue(repository.extraIngredients.isEmpty)
+
+        repository.saveOrderOverrideError = nil
+        XCTAssertTrue(
+            viewModel.addExtraIngredientToSelectedOrder(
+                allowingInventoryShortage: true
+            )
+        )
+        XCTAssertEqual(repository.extraIngredients.map(\.id), ["extra-1"])
     }
 
     func testAddConfirmedOrderRequiresExplicitReservationShortageOverride() {

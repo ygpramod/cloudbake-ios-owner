@@ -82,6 +82,7 @@ final class OrderListViewModel: ObservableObject {
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let presentation: OrderListPresentation
+    private var pendingSelectedOrderExtraIngredientId: String?
 
     init(
         repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
@@ -776,6 +777,7 @@ final class OrderListViewModel: ObservableObject {
     func beginAddingExtraIngredient() {
         loadAvailableInventoryItems()
         resetExtraIngredientDraft(keepingInventoryItems: true)
+        pendingSelectedOrderExtraIngredientId = nil
         if let firstItem = availableInventoryItems.first {
             draftExtraIngredientInventoryItemId = firstItem.id
             draftExtraIngredientUnit = firstItem.unit
@@ -806,8 +808,10 @@ final class OrderListViewModel: ObservableObject {
         }
 
         let now = dateProvider()
+        let ingredientId = pendingSelectedOrderExtraIngredientId ?? idGenerator()
+        pendingSelectedOrderExtraIngredientId = ingredientId
         let ingredient = OrderExtraIngredient(
-            id: idGenerator(),
+            id: ingredientId,
             orderId: selectedOrder.id,
             inventoryItemId: draft.inventoryItemId,
             quantity: draft.quantity,
@@ -825,6 +829,7 @@ final class OrderListViewModel: ObservableObject {
                 replacingExtraIngredients: replacement,
                 allowInventoryShortage: allowingInventoryShortage
             )
+            pendingSelectedOrderExtraIngredientId = nil
             resetExtraIngredientDraft()
             refreshAfterSavingOrder(updatedOrder)
             pendingInventoryShortages = []
@@ -835,9 +840,11 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = nil
             return false
         } catch let error as OrderRecipeUsageError {
-            errorMessage = recipeUsageErrorMessage(for: error)
+            pendingInventoryShortages = []
+            errorMessage = extraIngredientErrorMessage(for: error)
             return false
         } catch {
+            pendingInventoryShortages = []
             errorMessage = "Extra ingredient could not be saved."
             return false
         }
@@ -955,6 +962,7 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func cancelExtraIngredientEdit() {
+        pendingSelectedOrderExtraIngredientId = nil
         resetExtraIngredientDraft()
         pendingInventoryShortages = []
         errorMessage = nil
@@ -1723,6 +1731,30 @@ final class OrderListViewModel: ObservableObject {
             return "\(itemName) has an incompatible recipe unit."
         case .invalidIngredientQuantity(let itemName):
             return "\(itemName) has an invalid recipe quantity."
+        case .insufficientStock(let shortages):
+            let itemNames = shortages.map(\.inventoryItemName).joined(separator: ", ")
+            return "Not enough \(itemNames) in inventory."
+        }
+    }
+
+    private func extraIngredientErrorMessage(for error: OrderRecipeUsageError) -> String {
+        switch error {
+        case .orderNotFound:
+            return "Order could not be found."
+        case .orderHasNoLinkedRecipe:
+            return "Link a recipe before adding this ingredient."
+        case .alreadyRecorded:
+            return "Inventory has already been deducted for this order."
+        case .inventoryConsumptionRequired:
+            return "Confirm inventory deduction before adding this ingredient."
+        case .recipeHasNoIngredients:
+            return "The order has no ingredients to reserve."
+        case .missingInventoryItem:
+            return "The selected inventory item could not be found."
+        case .incompatibleIngredientUnit(let itemName):
+            return "\(itemName) has an incompatible unit for this order ingredient."
+        case .invalidIngredientQuantity(let itemName):
+            return "\(itemName) has an invalid quantity."
         case .insufficientStock(let shortages):
             let itemNames = shortages.map(\.inventoryItemName).joined(separator: ", ")
             return "Not enough \(itemNames) in inventory."
