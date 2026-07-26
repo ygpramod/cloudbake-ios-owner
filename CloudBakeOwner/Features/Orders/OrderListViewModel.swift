@@ -827,6 +827,7 @@ final class OrderListViewModel: ObservableObject {
         do {
             try repository.save(updatedOrder)
             refreshAfterSavingOrder(updatedOrder)
+            onReminderConfigurationChanged()
             errorMessage = nil
             return true
         } catch {

@@ -13,7 +13,12 @@ final class OrderPaymentViewModelTests: XCTestCase {
             depositPaid: Decimal(50)
         )
         repository.orders = [order]
-        let viewModel = OrderListViewModel(repository: repository, dateProvider: { updatedAt })
+        var reminderRefreshCount = 0
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { updatedAt },
+            onReminderConfigurationChanged: { reminderRefreshCount += 1 }
+        )
 
         viewModel.beginViewingOrder(order)
 
@@ -23,6 +28,7 @@ final class OrderPaymentViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedOrder?.paymentStatus, "Paid")
         XCTAssertEqual(repository.orders.first?.depositPaid, Decimal(200))
         XCTAssertEqual(repository.orders.first?.updatedAt, updatedAt)
+        XCTAssertEqual(reminderRefreshCount, 1)
     }
 
     func testAddPaymentToSelectedOrderAddsToExistingDeposit() {
