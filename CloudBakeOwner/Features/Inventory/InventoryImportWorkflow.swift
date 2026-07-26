@@ -42,11 +42,13 @@ struct InventoryImportWorkflow {
                 return .failure(error("Draft item name is required."))
             }
             guard let currentQuantity = quantity(from: draft.quantityText),
-                  currentQuantity >= 0 else {
+                currentQuantity >= 0
+            else {
                 return .failure(error("Draft quantity must be zero or greater."))
             }
             guard let minimumQuantity = quantity(from: draft.minimumQuantityText),
-                  minimumQuantity >= 0 else {
+                minimumQuantity >= 0
+            else {
                 return .failure(error("Draft minimum quantity must be zero or greater."))
             }
 
@@ -56,10 +58,12 @@ struct InventoryImportWorkflow {
                 excludingItemId: nil
             ) {
                 let itemToUpdate = plannedExistingItems[existingItem.id] ?? existingItem
-                guard let itemQuantity = draft.unit.convertedQuantity(
-                    currentQuantity,
-                    to: existingItem.unit
-                ) else {
+                guard
+                    let itemQuantity = draft.unit.convertedQuantity(
+                        currentQuantity,
+                        to: existingItem.unit
+                    )
+                else {
                     return .failure(
                         error("Draft unit must be compatible with \(existingItem.name).")
                     )
@@ -144,8 +148,9 @@ struct InventoryImportWorkflow {
         for draft in drafts {
             let name = TextInputFormatting.trimmed(draft.name)
             guard !name.isEmpty,
-                  let draftQuantity = quantity(from: draft.quantityText),
-                  draftQuantity > 0 else {
+                let draftQuantity = quantity(from: draft.quantityText),
+                draftQuantity > 0
+            else {
                 return .failure(
                     error("Each voice draft needs a name and positive quantity.")
                 )
@@ -158,10 +163,11 @@ struct InventoryImportWorkflow {
                 )
             case .existingItem(let itemId):
                 guard let existingItem = inventoryItems.first(where: { $0.id == itemId }),
-                      let itemQuantity = draft.unit.convertedQuantity(
-                          draftQuantity,
-                          to: existingItem.unit
-                      ) else {
+                    let itemQuantity = draft.unit.convertedQuantity(
+                        draftQuantity,
+                        to: existingItem.unit
+                    )
+                else {
                     return .failure(
                         error("Draft unit must be compatible with the mapped inventory item.")
                     )
@@ -183,7 +189,8 @@ struct InventoryImportWorkflow {
                 )
             case .newItem:
                 guard let minimumQuantity = quantity(from: draft.minimumQuantityText),
-                      minimumQuantity >= 0 else {
+                    minimumQuantity >= 0
+                else {
                     return .failure(
                         error("Each new inventory draft needs a valid minimum quantity.")
                     )

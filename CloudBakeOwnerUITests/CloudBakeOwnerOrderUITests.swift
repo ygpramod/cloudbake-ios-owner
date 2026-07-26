@@ -19,7 +19,7 @@ extension CloudBakeOwnerUITests {
         let statusButton = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "orders.item.status.")
         )
-            .firstMatch
+        .firstMatch
         assertExistsAfterScrolling(statusButton, in: app, timeout: transitionTimeout)
         tapWhenReady(statusButton, timeout: transitionTimeout)
         let draftStatusOption = app.buttons["Draft"]
@@ -103,7 +103,7 @@ extension CloudBakeOwnerUITests {
                 "Payment Vanilla"
             )
         )
-            .firstMatch
+        .firstMatch
         tapWhenReady(orderRow, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
 
@@ -160,7 +160,7 @@ extension CloudBakeOwnerUITests {
                 orderTitle
             )
         )
-            .firstMatch
+        .firstMatch
         assertExistsAfterScrolling(orderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(orderRow, timeout: transitionTimeout)
 
@@ -352,14 +352,14 @@ extension CloudBakeOwnerUITests {
                 "orders.detail.checklist.item."
             )
         )
-            .firstMatch
+        .firstMatch
         XCTAssertTrue(checklistItem.waitForExistence(timeout: transitionTimeout))
         XCTAssertEqual(checklistItem.value as? String, "Incomplete")
 
         let editButton = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "orders.detail.checklist.edit.")
         )
-            .firstMatch
+        .firstMatch
         tapExisting(editButton, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Edit Checklist Item"].waitForExistence(timeout: transitionTimeout))
         let editTitle = app.textFields["orders.detail.checklist.edit.title"]
@@ -387,7 +387,7 @@ extension CloudBakeOwnerUITests {
         let deleteButton = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "orders.detail.checklist.delete.")
         )
-            .firstMatch
+        .firstMatch
         tapExisting(deleteButton, timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["orders.detail.checklist.empty"].waitForExistence(timeout: transitionTimeout))
     }
@@ -408,7 +408,7 @@ extension CloudBakeOwnerUITests {
                 "Photo Vanilla Birthday"
             )
         )
-            .firstMatch
+        .firstMatch
         tapWhenReady(orderRow, timeout: transitionTimeout)
 
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
@@ -592,7 +592,7 @@ extension CloudBakeOwnerUITests {
                 "Chocolate Celebration"
             )
         )
-            .firstMatch
+        .firstMatch
         scrollToHittable(orderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(orderRow, timeout: transitionTimeout)
 
@@ -626,13 +626,13 @@ extension CloudBakeOwnerUITests {
         tapWhenReady(recipeField, timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Recipe"].waitForExistence(timeout: transitionTimeout))
         let recipe = app.buttons.matching(
-                NSPredicate(
-                    format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
-                    "orders.recipeSelection.recipe.",
-                    "Vanilla Sponge"
-                )
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.recipeSelection.recipe.",
+                "Vanilla Sponge"
             )
-            .firstMatch
+        )
+        .firstMatch
         scrollToHittable(recipe, in: app, timeout: transitionTimeout)
         tapWhenReady(
             recipe,
@@ -650,7 +650,7 @@ extension CloudBakeOwnerUITests {
                 "Vanilla Birthday"
             )
         )
-            .firstMatch
+        .firstMatch
         scrollToHittable(orderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(orderRow, timeout: transitionTimeout)
 
@@ -704,7 +704,7 @@ extension CloudBakeOwnerUITests {
                 "Vanilla Birthday"
             )
         )
-            .firstMatch
+        .firstMatch
         scrollToHittable(orderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(orderRow, timeout: transitionTimeout)
 
@@ -1010,7 +1010,7 @@ extension CloudBakeOwnerUITests {
                 "Vanilla Birthday"
             )
         )
-            .firstMatch
+        .firstMatch
         assertExistsAfterScrolling(orderRow, in: app, timeout: transitionTimeout)
         XCTAssertTrue(orderRow.label.contains("Amy"))
         tapWhenReady(orderRow, timeout: transitionTimeout)
@@ -1111,7 +1111,7 @@ extension CloudBakeOwnerUITests {
                 "Cancelled Birthday"
             )
         )
-            .firstMatch
+        .firstMatch
         assertExistsAfterScrolling(activeOrderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(activeOrderRow, timeout: transitionTimeout)
 
@@ -1132,7 +1132,7 @@ extension CloudBakeOwnerUITests {
                 "Cancelled Birthday"
             )
         )
-            .firstMatch
+        .firstMatch
         assertExistsAfterScrolling(cancelledOrderRow, in: app, timeout: transitionTimeout)
         XCTAssertTrue(
             app.images.matching(NSPredicate(format: "identifier BEGINSWITH %@", "orders.item.cancelledBadge."))

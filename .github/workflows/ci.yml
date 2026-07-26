@@ -19,6 +19,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changed Swift files
+        env:
+          SWIFT_FORMAT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: ./scripts/lint_swift.sh
 
       - name: Show Xcode version
         run: xcodebuild -version

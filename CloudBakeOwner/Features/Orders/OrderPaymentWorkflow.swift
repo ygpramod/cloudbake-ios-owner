@@ -147,7 +147,7 @@ struct OrderPaymentWorkflow {
         case .orderNotFound:
             message = "Order could not be found."
         case .receiptNotFound, .alreadyVoided, .invalidStoredAmount,
-             .directPaidTotalMutation, .none:
+            .directPaidTotalMutation, .none:
             message = "Payment could not be updated."
         }
         return OrderPaymentWorkflowError(ownerMessage: message)

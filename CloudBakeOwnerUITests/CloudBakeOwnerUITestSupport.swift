@@ -58,7 +58,8 @@ extension CloudBakeOwnerUITests {
             || title == "Designs"
             || title == "Reminders"
             || title == "Reports"
-            || title == "Settings" {
+            || title == "Settings"
+        {
             let moreTab = app.buttons["bottom.navigation.more"]
             tapWhenReady(moreTab, timeout: timeout, file: file, line: line)
             assertScreenVisible("screen.more", in: app, timeout: timeout, file: file, line: line)
@@ -177,7 +178,8 @@ extension CloudBakeOwnerUITests {
         }
 
         let styledBackButton = app.buttons["cloudBake.back"]
-        let backButton = styledBackButton.waitForExistence(timeout: 1)
+        let backButton =
+            styledBackButton.waitForExistence(timeout: 1)
             ? styledBackButton
             : app.navigationBars.buttons.element(boundBy: 0)
         tapWhenReady(backButton, timeout: timeout, file: file, line: line)

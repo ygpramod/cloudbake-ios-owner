@@ -8,7 +8,7 @@ struct CloudBakeBottomNavigation: View {
         .dashboard,
         .orders,
         .inventory,
-        .more
+        .more,
     ]
 
     var body: some View {
@@ -89,7 +89,7 @@ struct CloudBakeScreenBackground: View {
                 colors: [
                     CloudBakeTheme.ColorToken.appBackground.opacity(0.48),
                     CloudBakeTheme.ColorToken.appBackgroundWash,
-                    CloudBakeTheme.ColorToken.appBackground.opacity(0.34)
+                    CloudBakeTheme.ColorToken.appBackground.opacity(0.34),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -112,15 +112,15 @@ extension View {
             CloudBakeTheme.ColorToken.surface.opacity(0.90),
             in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(.white.opacity(0.72), lineWidth: 1)
-            )
-            .shadow(
-                color: CloudBakeTheme.Elevation.softShadow,
-                radius: CloudBakeTheme.Elevation.softRadius,
-                y: CloudBakeTheme.Elevation.softYOffset
-            )
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(.white.opacity(0.72), lineWidth: 1)
+        )
+        .shadow(
+            color: CloudBakeTheme.Elevation.softShadow,
+            radius: CloudBakeTheme.Elevation.softRadius,
+            y: CloudBakeTheme.Elevation.softYOffset
+        )
     }
 }
 
