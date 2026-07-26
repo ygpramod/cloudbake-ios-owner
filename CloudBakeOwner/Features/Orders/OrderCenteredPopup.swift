@@ -68,64 +68,11 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
                         }
                     }
 
-                VStack(spacing: 0) {
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            VStack(spacing: 10) {
-                                Image(systemName: systemImage)
-                                    .font(.title2.weight(.semibold))
-                                    .foregroundStyle(Color.cloudBakePink)
-                                    .accessibilityHidden(true)
+                ViewThatFits(in: .vertical) {
+                    popupCard(scrollsContent: false)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                                Text(title)
-                                    .font(.title3.weight(.bold))
-                                    .foregroundStyle(.primary)
-
-                                if !subtitle.isEmpty {
-                                    Text(subtitle)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .multilineTextAlignment(.center)
-                                        .accessibilityIdentifier("cloudBake.popup.subtitle")
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.horizontal, 24)
-                            .padding(.top, 28)
-                            .padding(.bottom, 24)
-
-                            Rectangle()
-                                .fill(Color.cloudBakePink.opacity(0.24))
-                                .frame(height: 1)
-                                .padding(.horizontal, 30)
-
-                            VStack(spacing: 0) {
-                                content()
-                            }
-                            .padding(.horizontal, 24)
-                            .padding(.top, 12)
-                            .padding(.bottom, showsCancelButton ? 16 : 24)
-                        }
-                    }
-                    .scrollBounceBehavior(.basedOnSize)
-
-                    if showsCancelButton {
-                        Rectangle()
-                            .fill(.black.opacity(0.10))
-                            .frame(height: 1)
-                            .padding(.horizontal, 30)
-
-                        Button(role: .cancel, action: onCancel) {
-                            Text("Cancel")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(Color.cloudBakePink)
-                                .frame(maxWidth: .infinity, minHeight: 58)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .contentShape(Rectangle())
-                        .accessibilityIdentifier(cancelAccessibilityIdentifier)
-                    }
+                    popupCard(scrollsContent: true)
                 }
                 .frame(maxWidth: 360)
                 .frame(maxHeight: max(proxy.size.height - 32, 240))
@@ -139,6 +86,82 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .transition(.opacity.combined(with: .scale(scale: 0.98)))
         .zIndex(10)
+    }
+
+    @ViewBuilder
+    private func popupCard(scrollsContent: Bool) -> some View {
+        VStack(spacing: 0) {
+            if scrollsContent {
+                ScrollView {
+                    popupMainContent
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            } else {
+                popupMainContent
+            }
+
+            cancelSection
+        }
+    }
+
+    private var popupMainContent: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(Color.cloudBakePink)
+                    .accessibilityHidden(true)
+
+                Text(title)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.primary)
+
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("cloudBake.popup.subtitle")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 24)
+            .padding(.top, 28)
+            .padding(.bottom, 24)
+
+            Rectangle()
+                .fill(Color.cloudBakePink.opacity(0.24))
+                .frame(height: 1)
+                .padding(.horizontal, 30)
+
+            VStack(spacing: 0) {
+                content()
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 12)
+            .padding(.bottom, showsCancelButton ? 16 : 24)
+        }
+    }
+
+    @ViewBuilder
+    private var cancelSection: some View {
+        if showsCancelButton {
+            Rectangle()
+                .fill(.black.opacity(0.10))
+                .frame(height: 1)
+                .padding(.horizontal, 30)
+
+            Button(role: .cancel, action: onCancel) {
+                Text("Cancel")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.cloudBakePink)
+                    .frame(maxWidth: .infinity, minHeight: 58)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            .accessibilityIdentifier(cancelAccessibilityIdentifier)
+        }
     }
 }
 
