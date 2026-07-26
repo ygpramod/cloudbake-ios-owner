@@ -951,6 +951,45 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(app.staticTexts["orders.detail.reminder.1"], in: app, timeout: transitionTimeout)
     }
 
+    func testOrderReminderPlanCanBeDisabledAndPersists() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
+        addOrder(
+            named: "Reminder Choice Cake",
+            notes: "Reminder acceptance",
+            customerName: "Amy",
+            in: app,
+            timeout: transitionTimeout
+        )
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Reminder Choice Cake"
+            )
+        )
+        .firstMatch
+        tapWhenReady(orderRow, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.detail.edit"], timeout: transitionTimeout)
+
+        var reminderPicker = app.segmentedControls["orders.form.reminderMode"]
+        scrollToHittable(reminderPicker, in: app, timeout: transitionTimeout)
+        tapWhenReady(reminderPicker.buttons["Off"], timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
+
+        XCTAssertTrue(
+            app.staticTexts["orders.detail.cake"]
+                .waitForExistence(timeout: transitionTimeout)
+        )
+        tapWhenReady(app.buttons["orders.detail.edit"], timeout: transitionTimeout)
+        reminderPicker = app.segmentedControls["orders.form.reminderMode"]
+        scrollToHittable(reminderPicker, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(reminderPicker.buttons["Off"].isSelected)
+    }
+
     func testOrderShowsProjectedIngredientShortageAcrossActiveOrders() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15

@@ -79,6 +79,7 @@ jobs:
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsOpensHelpGuideAndReplaysIntroduction
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsOpensPrivacyPolicy
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsSavesOrderReminderDefaults
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOverdueAutomaticBackupOnCellularDoesNotDelayLaunchOrStartTransfer
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsShowsInventoryCSVActions
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCSVExportPresentsDestinationPicker
@@ -102,6 +103,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeOpenedFromListAndViewed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderDetailCanMarkPaymentPaid
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsDueRemindersAndReminderPlan
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderReminderPlanCanBeDisabledAndPersists
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsProjectedIngredientShortageAcrossActiveOrders
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderIngredientCostShowsPartialTotalAndMissingPriceWarning
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderStatusFailureIsShownImmediatelyFromDetail
