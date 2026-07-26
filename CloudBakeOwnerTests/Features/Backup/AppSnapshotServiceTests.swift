@@ -271,9 +271,10 @@ final class AppSnapshotServiceTests: XCTestCase {
         try await restoreService.activate(prepared, rollbackSnapshot: nil)
 
         let restoredRepository = targetDatabase.makeCoreDataRepository()
-        XCTAssertNil(
-            try restoredRepository.fetchCakeDesign(id: "omitted-photo")?.photoReference
+        let restoredOmittedPhotoDesign = try XCTUnwrap(
+            restoredRepository.fetchCakeDesign(id: "omitted-photo")
         )
+        XCTAssertNil(restoredOmittedPhotoDesign.photoReference)
         XCTAssertEqual(
             try restoredRepository.fetchCakeDesign(id: "retained-photo")?.photoReference,
             retainedReference
