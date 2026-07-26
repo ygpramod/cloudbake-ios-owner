@@ -155,13 +155,13 @@ shared UI primitives instead of introducing one-off styling:
 - `CloudBakeStatusBadge` and `CloudBakeLabeledField` for compact status and metadata display.
 - `cloudBakeFormScreenStyle()` for native data-entry forms.
 - native `Menu` for compact status/payment choices.
-- `cloudBakeCenteredPopup` with `centeredPopupButton` for confirmations, input workflows,
-  destructive actions, and owner decisions.
+- native `confirmationDialog` for action lists and confirmations.
+- native `Alert` for acknowledgements and short supported text input.
+- native sheets for richer input that an alert cannot safely host.
 
-Popups should match the existing centered CloudBake style used by Orders, Customers, and Inventory:
-dimmed backdrop, rounded dialog, CloudBake pink action tint, full-width pill buttons, and clear
-accessibility identifiers. Do not add a new popup, alert, sheet, or dialog style unless the slice is
-explicitly changing the design system and updates the guardrails/RFCs with that decision.
+Transient owner decisions use the system presentation appropriate to the interaction. Preserve
+destructive roles, explicit cancel behavior, concise copy, and clear accessibility identifiers.
+Do not add custom popup overlays or one-off dialog styling.
 
 ## Build
 

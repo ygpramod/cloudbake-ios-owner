@@ -136,7 +136,8 @@ The app currently supports:
     previous screen,
 104. shared CloudBake visual styling for order, inventory, recipe, and customer detail screens,
 105. shared CloudBake visual styling for owner-facing create, edit, import, and correction forms,
-106. centered CloudBake confirmation popups for order, customer, and inventory actions,
+106. native iOS alerts and confirmation dialogs for protected order, customer, inventory, recipe,
+    design, reminder, backup, restore, and data-management actions,
 107. unit, integration, and feature-sharded acceptance test lanes.
 108. persisted cake-design provenance for owner-made and customer-reference workflows, with
     historical internet-inspiration provenance retained privately for migration safety.

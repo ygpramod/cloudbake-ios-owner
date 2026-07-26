@@ -14,8 +14,10 @@ Experience Refresh slices. It applies to new or refreshed CloudBake owner iPhone
   font sizes, corner radii, shadows, or repeated spacing.
 - Keep row/card actions compact. Use one primary inline action when needed and move lower-frequency
   actions into menus, sheets, detail screens, or confirmations.
-- Use `cloudBakeCenteredPopup` for CloudBake-styled confirmation and preflight dialogs unless a
-  slice explicitly calls for a native picker/list/sheet.
+- Use native `Menu`, `confirmationDialog`, and `Alert` presentation for transient owner choices,
+  confirmations, acknowledgements, and short supported text input.
+- Use a native sheet when the workflow needs richer controls than an alert supports. Do not create
+  custom popup overlays.
 
 ## Lists, Search, and Empty States
 

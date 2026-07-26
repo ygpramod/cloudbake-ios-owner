@@ -61,13 +61,14 @@ A slice is done only when:
   `CloudBakeDetailDivider`.
 - Data-entry flows should keep native controls and use `cloudBakeFormScreenStyle()` unless there is
   an explicit UX reason to introduce a different form shell.
-- Owner-facing confirmation, choice, payment, status, destructive, and warning popups should use
-  `cloudBakeCenteredPopup` and `centeredPopupButton`.
-- Popups must stay visually aligned with the existing Orders, Customers, and Inventory style:
-  centered dialog, dimmed backdrop, rounded card, CloudBake pink action tint, full-width pill
-  buttons, clear cancel behavior, and accessibility identifiers for acceptance-testable actions.
-- Do not introduce one-off `Alert`, `confirmationDialog`, custom overlays, button treatments,
-  nested cards, or popup layouts when an existing CloudBake component fits.
+- Owner-facing transient decisions must use native iOS controls: `Menu` for anchored compact
+  choices, `confirmationDialog` for action lists and confirmations, and `Alert` for
+  acknowledgement or short supported text input.
+- Use a native sheet when a workflow needs richer controls that an alert cannot safely host.
+  Preserve destructive roles, explicit cancel behavior, concise copy, and accessibility
+  identifiers for acceptance-testable actions.
+- Do not introduce custom popup overlays, one-off dialog styling, nested cards inside system
+  dialogs, or custom action-button treatments.
 - If a new UI pattern is truly needed, document the reason in the slice RFC or PR, update these
   guardrails when the pattern becomes reusable, and avoid mixing the new pattern into unrelated
   screens in the same change.

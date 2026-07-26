@@ -51,15 +51,14 @@ It must:
 - Reuse established CloudBake UI primitives before creating new visual structures:
   `CloudBakeScreenScaffold` for second-level screens, `CloudBakeDetailCard` and
   `CloudBakeDetailRow` for detail/settings rows, `cloudBakeFormScreenStyle()` for forms,
-  `cloudBakeCenteredPopup` and `centeredPopupButton` for modal confirmations and choices.
-- Keep owner-facing confirmations and input popups visually consistent with existing order,
-  customer, and inventory popups:
-  centered dialog, dimmed background, CloudBake pink action tint, shared rounded-card layout,
-  full-width pill action buttons, destructive role only where the action is destructive, and clear
-  accessibility identifiers.
-- Use native `Menu` for compact, non-destructive choices such as order status and payment actions.
-  Do not introduce a one-off `Alert`, `confirmationDialog`, sheet, menu, custom overlay, button, or
-  card style when an established native or CloudBake pattern already fits the workflow.
+  native `Alert` for short input/acknowledgement flows, and native `confirmationDialog` for
+  confirmations and choices.
+- Owner-facing transient decisions must use native iOS presentation:
+  `Menu` for anchored compact choices, `confirmationDialog` for action lists and confirmations,
+  `Alert` for acknowledgement or short supported text input, and a sheet only when the workflow
+  needs controls that a native alert cannot safely host.
+- Preserve destructive roles, clear cancel behavior, concise system copy, and stable accessibility
+  identifiers. Do not introduce a custom popup overlay or one-off dialog style.
 - Avoid force unwraps, `try!`, `as!`, ignored errors, blocking the main thread, hardcoded API URLs,
   committed secrets, and silent failures.
 - Add or update unit, integration, and acceptance tests according to risk.
