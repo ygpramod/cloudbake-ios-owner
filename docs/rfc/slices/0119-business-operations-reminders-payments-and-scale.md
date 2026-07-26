@@ -44,6 +44,11 @@ Out of scope:
 
 ## Inventory Reservations
 
+Implementation status: complete in this improvement point. The owner app now persists reservation
+rows and audit events, repairs eligible migrated orders in bounded background batches, reads
+reservation planning state in chunked aggregate queries, and shows each current reservation
+concisely in order detail.
+
 ### Business Rules
 
 1. Draft and Cancelled orders have no active reservation. Draft demand remains a forecast under
@@ -103,11 +108,13 @@ The owner-facing calculations are:
    `max(reservedAll + forecastOnly - usable, 0)`.
 
 Confirmed/In Progress demand is read from its reservation and never also recalculated as forecast
-demand. A repair-pending order contributes its live requirement exactly once until its reservation
-is repaired. A recipe edit validates all affected proposed requirements as one set before writing
-any recipe or reservation row; it does not validate each order independently. These equations
-preserve RFC-0098's Draft warning while preventing a reservation from being subtracted or counted
-twice.
+demand. A Pending or Failed repair contributes its live requirement exactly once until its
+reservation is repaired, even if stale reservation rows are present. A Complete repair may
+intentionally contain no rows. A corrupt Complete reservation falls back to the live requirement
+instead of silently understating demand. A recipe edit validates all affected proposed requirements
+as one set before writing any recipe or reservation row; it does not validate each order
+independently. These equations preserve RFC-0098's Draft warning while preventing a reservation
+from being subtracted or counted twice.
 
 ### Persistence
 

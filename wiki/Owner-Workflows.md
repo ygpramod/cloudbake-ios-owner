@@ -531,12 +531,17 @@ Extra ingredients show as a simple quantity list, can be deleted before recipe u
 and are deducted with the linked recipe as exact order quantities. Stock batches are consumed
 oldest-expiry-first. Before deduction, CloudBake compares usable non-expired inventory with the
 combined scaled recipe and extra-ingredient demand from every active order. A shortage appears on
-each contributing order and in Dashboard and Reminders. This projection does not reserve or deduct
-stock and disappears after usage is recorded or the order is Completed or Cancelled.
+each contributing order and in Dashboard and Reminders.
+
+Confirmed and In Progress orders persist that full demand as an inventory reservation. Order detail
+shows the reserved item names and quantities in a compact Reserved Inventory section. Draft demand
+remains forecast-only. Editing a reserved order or one of its recipe ingredients replaces every
+affected reservation atomically; a shortage requires explicit confirmation but does not block the
+owner. Cancelling or returning to Draft releases the claim. Ready or Completed consumes inventory
+once and releases it, and reopening a consumed order never reserves or deducts it again.
 
 The usage can be recorded only once for the order to prevent accidental double deduction. Partial
-recipe usage, multi-recipe orders, inventory reservation, and
-serving/yield modeling remain future work.
+recipe usage, multi-recipe orders, and serving/yield modeling remain future work.
 
 Order detail includes a Checklist section for owner preparation tasks such as crumb coat, topper
 pickup, box ready, or final photo. The owner can add checklist items, edit item titles, and tap any
@@ -570,8 +575,8 @@ suggestions,
 discounts, refunds, and online payment processing remain future work.
 
 Future order slices should add reminder snooze, configurable reminders, partial recipe usage,
-multi-recipe orders, inventory reservation, checklist reordering/templates, pricing calculation,
-and richer order photo/design library workflows.
+multi-recipe orders, checklist reordering/templates, pricing calculation, and richer order
+photo/design library workflows.
 
 ## Customer Workflow
 

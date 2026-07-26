@@ -206,6 +206,9 @@ The app currently supports:
     aggregated decision; opaque persisted omission approvals; second confirmation and immediate
     revalidation before exact CloudBake-reference removal; last-good cloud generation preservation;
     and durable omitted-photo counts without exposing raw Photos identifiers.
+135. persisted full-order inventory reservations for Confirmed and In Progress work, including
+    shortage confirmation, atomic replacement and release, immutable audit events, migrated-order
+    repair, aggregate planning reads, and compact reserved quantities in order detail.
 
 ## Partially Prepared
 
@@ -234,7 +237,7 @@ Planned product areas include:
 1. stronger OCR cleanup and page correction for scanned recipes,
 2. optional LLM-assisted recipe interpretation,
 3. partial recipe usage,
-4. multi-recipe orders and inventory reservation,
+4. multi-recipe orders,
 5. order checklist reordering and templates,
 6. reminder snooze and configurable reminder offsets,
 7. pricing calculator,

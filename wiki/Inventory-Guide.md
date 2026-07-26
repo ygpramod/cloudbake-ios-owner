@@ -232,6 +232,23 @@ This strict rule applies to manual inventory use. When an order is moved to Read
 CloudBake may continue after a separate shortage confirmation: it consumes available non-expired
 stock, leaves expired stock untouched, and records the undeducted order quantity as a shortfall.
 
+## Inventory Reserved For Orders
+
+Confirmed and In Progress orders reserve the complete inventory requirement from their scaled
+recipe and order-specific extra ingredients. A reservation is a planning claim; it does not deduct
+stock or assign a particular batch.
+
+Open order detail to see the current Reserved Inventory list. Each row names the inventory item and
+quantity held for that order. Draft orders remain forecasts and do not reserve stock. Cancelling an
+order or moving it back to Draft releases its reservation. Moving it to Ready or Completed consumes
+usable stock once and releases the reservation.
+
+When usable non-expired stock cannot cover a new or changed reservation, CloudBake lists every
+short item and asks whether to continue. Continuing keeps the full required quantity reserved so
+Dashboard, Reminders, and contributing order warnings remain truthful. Existing orders that need
+reservation repair remain usable and show a warning until their saved recipe and ingredient data
+can be repaired.
+
 ## Dispose Expired Stock
 
 Open an inventory item and use the trash action beside Expiry to dispose of all remaining expired
