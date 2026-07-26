@@ -213,6 +213,79 @@ final class AppSnapshotServiceTests: XCTestCase {
         try await fixture.service().validatePackage(at: package.directoryURL)
     }
 
+    func testApprovedPhotoOmissionSurvivesFullLocalRestore() async throws {
+        let source = try Fixture()
+        defer { source.remove() }
+        let missingReference = "photos://missing-design"
+        let retainedReference = "OrderPhotos/retained.jpg"
+        let sourceRepository = source.database.makeCoreDataRepository()
+        try source.write(Data("retained-photo".utf8), to: retainedReference)
+        try sourceRepository.save(
+            source.design(id: "omitted-photo", photoReference: missingReference)
+        )
+        try sourceRepository.save(
+            source.design(id: "retained-photo", photoReference: retainedReference)
+        )
+
+        let package = try await source.service(
+            externalAssetResolver: UnavailableExternalAssetResolver()
+        ).createSnapshot(
+            approvedOmissionDigests: [
+                BackupChecksum.sha256(of: Data(missingReference.utf8))
+            ]
+        )
+        XCTAssertEqual(package.manifest.omittedAssetCount, 1)
+
+        let targetRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: targetRoot) }
+        let targetAppStorage = targetRoot.appendingPathComponent(
+            "CloudBakeOwner",
+            isDirectory: true
+        )
+        try FileManager.default.createDirectory(
+            at: targetAppStorage,
+            withIntermediateDirectories: true
+        )
+        let targetDatabase = try AppDatabase.open(
+            at: targetAppStorage.appendingPathComponent("cloudbake-owner.sqlite")
+        )
+        defer { try? targetDatabase.close() }
+        let restoreService = LocalRestoreService(
+            database: targetDatabase,
+            snapshotCreator: FixedAppSnapshotCreator(package: package),
+            appStorageRoot: targetAppStorage,
+            activationRoot: targetRoot.appendingPathComponent(
+                "RestoreActivation",
+                isDirectory: true
+            )
+        )
+        let downloaded = DownloadedRestoreSnapshot(
+            directoryURL: package.directoryURL,
+            manifest: package.manifest,
+            brokenAssets: []
+        )
+
+        let prepared = try await restoreService.prepare(downloaded)
+        XCTAssertTrue(prepared.brokenAssets.isEmpty)
+        try await restoreService.activate(prepared, rollbackSnapshot: nil)
+
+        let restoredRepository = targetDatabase.makeCoreDataRepository()
+        XCTAssertNil(
+            try restoredRepository.fetchCakeDesign(id: "omitted-photo")?.photoReference
+        )
+        XCTAssertEqual(
+            try restoredRepository.fetchCakeDesign(id: "retained-photo")?.photoReference,
+            retainedReference
+        )
+        XCTAssertEqual(
+            try Data(
+                contentsOf: targetAppStorage.appendingPathComponent(retainedReference)
+            ),
+            Data("retained-photo".utf8)
+        )
+    }
+
     func testApprovedMissingOrderPhotoClearsSnapshotLinksWithoutChangingLiveData() async throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -569,6 +642,14 @@ private struct FutureDatedExternalAssetResolver: BackupExternalAssetResolving {
             data: Data("edited-photo".utf8),
             modificationDate: .distantFuture
         )
+    }
+}
+
+private struct FixedAppSnapshotCreator: AppSnapshotCreating {
+    let package: AppSnapshotPackage
+
+    func createSnapshot() async throws -> AppSnapshotPackage {
+        package
     }
 }
 
