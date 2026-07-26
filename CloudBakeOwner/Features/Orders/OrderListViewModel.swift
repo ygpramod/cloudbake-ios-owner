@@ -67,6 +67,9 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftQuotedPrice = ""
     @Published var draftDepositPaid = ""
     @Published var draftPaymentNotes = ""
+    @Published var draftReminderMode: OrderReminderDraftMode = .useDefaults
+    @Published var draftReminderDayOffsets = "3, 2, 1"
+    @Published var draftReminderIncludesDueTime = true
     @Published var draftExtraIngredientInventoryItemId = ""
     @Published var draftExtraIngredientQuantity = ""
     @Published var draftExtraIngredientUnit: InventoryUnit = .gram
@@ -79,20 +82,22 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var isPromotingDesign = false
     @Published private(set) var pendingInventoryShortages: [OrderInventoryShortage] = []
 
-    private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
     private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
+    private let onReminderConfigurationChanged: () -> Void
     private let presentation: OrderListPresentation
     private var pendingSelectedOrderExtraIngredientId: String?
 
     init(
-        repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
+        repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
+        onReminderConfigurationChanged: @escaping () -> Void = {},
         calendar: Calendar = .current
     ) {
         self.repository = repository
@@ -100,6 +105,7 @@ final class OrderListViewModel: ObservableObject {
         self.designPhotoLibrary = designPhotoLibrary
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
+        self.onReminderConfigurationChanged = onReminderConfigurationChanged
         self.presentation = OrderListPresentation(
             dateProvider: dateProvider,
             calendar: calendar
@@ -264,6 +270,7 @@ final class OrderListViewModel: ObservableObject {
 
     func beginAddingOrder() {
         resetDraft()
+        loadDefaultReminderDraft()
         draftExtraIngredientRows = []
         pendingInventoryShortages = []
         errorMessage = nil
@@ -473,19 +480,24 @@ final class OrderListViewModel: ObservableObject {
         )
 
         do {
+            let reminderConfiguration = try draftReminderConfiguration()
             try repository.saveOrder(
                 order,
                 replacingExtraIngredients: draftExtraIngredients(for: order, updatedAt: now),
+                reminderConfiguration: reminderConfiguration,
                 allowInventoryShortage: allowingInventoryShortage
             )
             resetDraft()
             draftExtraIngredientRows = []
             load()
             pendingInventoryShortages = []
+            onReminderConfigurationChanged()
             return true
         } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
             pendingInventoryShortages = shortages
             errorMessage = nil
+            return false
+        } catch is OrderDraftValidationError {
             return false
         } catch let error as OrderRecipeUsageError {
             errorMessage = recipeUsageErrorMessage(for: error)
@@ -526,6 +538,9 @@ final class OrderListViewModel: ObservableObject {
         draftQuotedPrice = TextInputFormatting.decimalText(selectedOrder.quotedPrice)
         draftDepositPaid = TextInputFormatting.decimalText(selectedOrder.depositPaid)
         draftPaymentNotes = selectedOrder.paymentNotes ?? ""
+        applyReminderConfiguration(
+            orderReminderConfigurations[selectedOrder.id] ?? .initialDefault
+        )
         errorMessage = nil
         loadFormReferences()
         loadSelectedOrderExtraIngredients(for: selectedOrder)
@@ -592,6 +607,7 @@ final class OrderListViewModel: ObservableObject {
         )
 
         do {
+            let reminderConfiguration = try draftReminderConfiguration()
             let savedOrder: Order
             if shouldRecordRecipeUsage(from: editingOrder.status, to: order.status), order.recipeId != nil {
                 let orderBeforeStatusChange = Order(
@@ -621,6 +637,7 @@ final class OrderListViewModel: ObservableObject {
                     updatedAt: now,
                     usageId: idGenerator(),
                     extraIngredients: draftExtraIngredients(for: orderBeforeStatusChange, updatedAt: now),
+                    reminderConfiguration: reminderConfiguration,
                     allowInventoryShortage: allowingInventoryShortage,
                     transactionIdProvider: idGenerator
                 )
@@ -628,6 +645,7 @@ final class OrderListViewModel: ObservableObject {
                 try repository.saveOrder(
                     order,
                     replacingExtraIngredients: draftExtraIngredients(for: order, updatedAt: now),
+                    reminderConfiguration: reminderConfiguration,
                     allowInventoryShortage: allowingInventoryShortage
                 )
                 savedOrder = order
@@ -647,10 +665,13 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderChecklistItems(for: savedOrder)
             loadSelectedOrderPhotos(for: savedOrder)
             pendingInventoryShortages = []
+            onReminderConfigurationChanged()
             return true
         } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
             pendingInventoryShortages = shortages
             errorMessage = nil
+            return false
+        } catch is OrderDraftValidationError {
             return false
         } catch let error as OrderRecipeUsageError {
             errorMessage = recipeUsageErrorMessage(for: error)
@@ -703,6 +724,7 @@ final class OrderListViewModel: ObservableObject {
             refreshAfterSavingOrder(updatedOrder)
             pendingInventoryShortages = []
             errorMessage = nil
+            onReminderConfigurationChanged()
             return true
         } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
             pendingInventoryShortages = shortages
@@ -1860,6 +1882,9 @@ final class OrderListViewModel: ObservableObject {
         draftQuotedPrice = ""
         draftDepositPaid = ""
         draftPaymentNotes = ""
+        draftReminderMode = .useDefaults
+        draftReminderDayOffsets = "3, 2, 1"
+        draftReminderIncludesDueTime = true
         draftIngredientCost = nil
         draftIngredientCostIsActual = false
     }
@@ -1889,6 +1914,48 @@ final class OrderListViewModel: ObservableObject {
         case .failure(let error):
             errorMessage = error.message
             return nil
+        }
+    }
+
+    private func loadDefaultReminderDraft() {
+        do {
+            applyReminderConfiguration(
+                try repository.fetchDefaultOrderReminderConfiguration()
+            )
+            errorMessage = nil
+        } catch {
+            applyReminderConfiguration(.initialDefault)
+            errorMessage = "Order reminder defaults could not be loaded."
+        }
+    }
+
+    private func applyReminderConfiguration(
+        _ configuration: OrderReminderConfiguration
+    ) {
+        switch configuration.mode {
+        case .defaultSnapshot:
+            draftReminderMode = .useDefaults
+        case .custom:
+            draftReminderMode = .custom
+        case .disabled:
+            draftReminderMode = .disabled
+        }
+        draftReminderDayOffsets = configuration.dayOffsets
+            .map(String.init)
+            .joined(separator: ", ")
+        draftReminderIncludesDueTime = configuration.includesDueTime
+    }
+
+    private func draftReminderConfiguration() throws -> OrderReminderConfiguration {
+        do {
+            return try OrderReminderDraftValidation.configuration(
+                mode: draftReminderMode,
+                dayOffsetsText: draftReminderDayOffsets,
+                includesDueTime: draftReminderIncludesDueTime
+            )
+        } catch let error as OrderDraftValidationError {
+            errorMessage = error.message
+            throw error
         }
     }
 

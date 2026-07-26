@@ -49,6 +49,37 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.buttons["privacy.onlinePolicy"].waitForExistence(timeout: 5))
     }
 
+    func testSettingsSavesOrderReminderDefaults() {
+        let app = makeApp(initialDestination: "settings")
+        app.launch()
+
+        let settingsScroll = app.scrollViews["screen.settings"]
+        XCTAssertTrue(settingsScroll.waitForExistence(timeout: 5))
+        let reminderSettings = app.buttons["settings.orderReminders"]
+        tapScrollableAction(
+            reminderSettings,
+            in: settingsScroll,
+            waitingFor: app.descendants(matching: .any)[
+                "screen.settings.orderReminders"
+            ],
+            in: app
+        )
+
+        XCTAssertEqual(
+            app.textFields["settings.orderReminders.dayOffsets"].value as? String,
+            "3, 2, 1"
+        )
+        XCTAssertEqual(
+            app.switches["settings.orderReminders.dueTime"].value as? String,
+            "1"
+        )
+        tapWhenReady(app.buttons["settings.orderReminders.save"])
+        XCTAssertTrue(
+            app.staticTexts["settings.orderReminders.status"]
+                .waitForExistence(timeout: 5)
+        )
+    }
+
     override func setUpWithError() throws {
         continueAfterFailure = false
     }

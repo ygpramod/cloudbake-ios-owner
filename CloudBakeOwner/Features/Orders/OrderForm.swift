@@ -117,6 +117,49 @@ struct OrderForm: View {
                 .accessibilityIdentifier("orders.form.status")
             }
 
+            Section("Reminders") {
+                Picker("Reminder Plan", selection: $viewModel.draftReminderMode) {
+                    ForEach(OrderReminderDraftMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("orders.form.reminderMode")
+
+                if viewModel.draftReminderMode == .custom {
+                    TextField(
+                        "Days Before",
+                        text: $viewModel.draftReminderDayOffsets
+                    )
+                    .keyboardType(.numbersAndPunctuation)
+                    .accessibilityIdentifier("orders.form.reminderDayOffsets")
+
+                    Toggle(
+                        "Remind at the order due time",
+                        isOn: $viewModel.draftReminderIncludesDueTime
+                    )
+                    .accessibilityIdentifier("orders.form.reminderDueTime")
+
+                    Text("Use unique whole days from 1 to 30, separated by commas.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                } else if viewModel.draftReminderMode == .useDefaults {
+                    LabeledContent(
+                        "Reminder Days",
+                        value: viewModel.draftReminderDayOffsets.isEmpty
+                            ? "Due time only"
+                            : viewModel.draftReminderDayOffsets
+                    )
+                    Text("This order keeps its own copy of the default plan.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Reminders are off for this order.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("Fulfillment") {
                 Picker("Type", selection: $viewModel.draftFulfillmentType) {
                     ForEach(OrderFulfillmentType.allCases, id: \.self) { fulfillmentType in

@@ -185,6 +185,90 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.canSubmitOrderDraft)
     }
 
+    func testNewOrderCopiesCurrentReminderDefaultsAndRefreshesNotifications() throws {
+        let repository = FakeOrderRepository()
+        repository.defaultOrderReminderConfiguration = try OrderReminderConfiguration(
+            mode: .defaultSnapshot,
+            dayOffsets: [7, 2],
+            includesDueTime: false
+        )
+        var refreshCount = 0
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: { "order-reminder-default" },
+            onReminderConfigurationChanged: { refreshCount += 1 }
+        )
+
+        viewModel.beginAddingOrder()
+        viewModel.draftTitle = "Vanilla cake"
+        viewModel.draftCustomerName = "Amy"
+
+        XCTAssertEqual(viewModel.draftReminderMode, .useDefaults)
+        XCTAssertEqual(viewModel.draftReminderDayOffsets, "7, 2")
+        XCTAssertFalse(viewModel.draftReminderIncludesDueTime)
+        XCTAssertTrue(viewModel.addOrder())
+        XCTAssertEqual(
+            repository.orderReminderConfigurations["order-reminder-default"],
+            repository.defaultOrderReminderConfiguration
+        )
+        XCTAssertEqual(refreshCount, 1)
+    }
+
+    func testEditingOrderCanSaveCustomOrDisabledReminderPlan() throws {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-custom-reminder",
+            dueAt: Date(timeIntervalSince1970: 1_800_120_000)
+        )
+        repository.orders = [order]
+        repository.orderReminderConfigurations[order.id] = try OrderReminderConfiguration(
+            mode: .custom,
+            dayOffsets: [10, 1],
+            includesDueTime: true
+        )
+        var refreshCount = 0
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            onReminderConfigurationChanged: { refreshCount += 1 }
+        )
+
+        viewModel.load()
+        viewModel.beginViewingOrder(order)
+        viewModel.beginEditingOrder()
+
+        XCTAssertEqual(viewModel.draftReminderMode, .custom)
+        XCTAssertEqual(viewModel.draftReminderDayOffsets, "10, 1")
+        XCTAssertTrue(viewModel.draftReminderIncludesDueTime)
+
+        viewModel.draftReminderMode = .disabled
+        XCTAssertTrue(viewModel.saveEditedOrder())
+        XCTAssertEqual(
+            repository.orderReminderConfigurations[order.id],
+            .disabled
+        )
+        XCTAssertEqual(refreshCount, 1)
+    }
+
+    func testInvalidCustomReminderPlanKeepsOrderDraftOpen() {
+        let repository = FakeOrderRepository()
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: { "order-invalid-reminder" }
+        )
+        viewModel.beginAddingOrder()
+        viewModel.draftTitle = "Vanilla cake"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.draftReminderMode = .custom
+        viewModel.draftReminderDayOffsets = "3, 3"
+
+        XCTAssertFalse(viewModel.addOrder())
+        XCTAssertTrue(repository.orders.isEmpty)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "Enter each reminder day only once."
+        )
+    }
+
     func testCalendarDaysUseFilteredActiveOrders() {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()

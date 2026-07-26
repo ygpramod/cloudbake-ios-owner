@@ -260,7 +260,12 @@ struct RootView: View {
         case .orders:
             OrderListView(
                 viewModel: OrderListViewModel(
-                    repository: database.makeCoreDataRepository()
+                    repository: database.makeCoreDataRepository(),
+                    onReminderConfigurationChanged: {
+                        Task {
+                            await refreshLocalReminders()
+                        }
+                    }
                 )
             )
         case .reminders:
