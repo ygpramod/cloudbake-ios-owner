@@ -198,6 +198,35 @@ final class ReportsViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.canLoadMoreSalesDrillDown)
     }
 
+    func testSalesReportOmitsEmptyGroupingPeriods() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let repository = try makeRepository()
+        let order = makeOrder(
+            id: "only-sales-order",
+            status: .confirmed,
+            dueAt: now.addingTimeInterval(-86_400),
+            quotedPrice: 120
+        )
+        try repository.save(order)
+        let viewModel = ReportsViewModel(
+            repository: repository,
+            dateProvider: { now },
+            calendar: utcCalendar()
+        )
+        viewModel.selectedReport = .salesAndOrders
+
+        for grouping in ReportGrouping.allCases {
+            viewModel.grouping = grouping
+            viewModel.load()
+
+            XCTAssertEqual(
+                viewModel.salesBuckets.map(\.summary.orderCount),
+                [1],
+                "Expected only the populated \(grouping) period"
+            )
+        }
+    }
+
     func testProfitabilityUsesEstimatesUntilOrderIsCompleted() throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let queue = try DatabaseQueue(path: ":memory:")

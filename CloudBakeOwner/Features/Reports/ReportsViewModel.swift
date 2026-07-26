@@ -407,8 +407,9 @@ final class ReportsViewModel: ObservableObject {
             dateRanges: ranges,
             statuses: selectedStatuses
         )
-        salesBuckets = zip(ranges, summaries).map {
-            SalesOrderBucket(dateRange: $0.0, summary: $0.1)
+        salesBuckets = zip(ranges, summaries).compactMap {
+            guard $0.1.orderCount > 0 else { return nil }
+            return SalesOrderBucket(dateRange: $0.0, summary: $0.1)
         }
         canLoadMore = false
     }
