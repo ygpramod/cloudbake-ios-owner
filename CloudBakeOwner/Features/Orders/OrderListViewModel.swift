@@ -81,6 +81,8 @@ final class OrderListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published private(set) var isPromotingDesign = false
     @Published private(set) var pendingInventoryShortages: [OrderInventoryShortage] = []
+    @Published private(set) var canLoadMoreActiveOrders = false
+    @Published private(set) var canLoadMoreCompletedOrders = false
 
     private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
@@ -90,6 +92,9 @@ final class OrderListViewModel: ObservableObject {
     private let onReminderDataChanged: () -> Void
     private let presentation: OrderListPresentation
     private var pendingSelectedOrderExtraIngredientId: String?
+    private var activeOrderCursor: OrderPageCursor?
+    private var completedOrderCursor: OrderPageCursor?
+    private static let orderPageSize = 25
 
     init(
         repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
@@ -153,7 +158,16 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func order(id: String) -> Order? {
-        orders.first { $0.id == id }
+        if let loadedOrder = orders.first(where: { $0.id == id }) {
+            return loadedOrder
+        }
+
+        do {
+            return try repository.fetchOrder(id: id)
+        } catch {
+            errorMessage = "The requested order could not be loaded."
+            return nil
+        }
     }
 
     private func filteredOrders(_ source: [Order]) -> [Order] {
@@ -235,14 +249,34 @@ final class OrderListViewModel: ObservableObject {
 
     func load() {
         do {
-            orders = try repository.fetchOrders()
-            orderReminderConfigurations =
-                try repository.fetchOrderReminderConfigurations(orderIds: orders.map(\.id))
-            customers = try repository.fetchCustomers()
-            recipes = try repository.fetchRecipes()
-            cakeDesigns = try repository.fetchCakeDesigns().filter {
+            let activePage = try repository.fetchOrderPage(
+                query: .active(dueAtRange: nil),
+                after: nil,
+                limit: Self.orderPageSize
+            )
+            let completedPage = try repository.fetchOrderPage(
+                query: .completed,
+                after: nil,
+                limit: Self.orderPageSize
+            )
+            let loadedOrders = activePage.orders + completedPage.orders
+            let loadedConfigurations =
+                try repository.fetchOrderReminderConfigurations(orderIds: loadedOrders.map(\.id))
+            let loadedCustomers = try repository.fetchCustomers()
+            let loadedRecipes = try repository.fetchRecipes()
+            let loadedCakeDesigns = try repository.fetchCakeDesigns().filter {
                 $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference
             }
+
+            orders = loadedOrders
+            activeOrderCursor = activePage.nextCursor
+            completedOrderCursor = completedPage.nextCursor
+            canLoadMoreActiveOrders = activePage.nextCursor != nil
+            canLoadMoreCompletedOrders = completedPage.nextCursor != nil
+            orderReminderConfigurations = loadedConfigurations
+            customers = loadedCustomers
+            recipes = loadedRecipes
+            cakeDesigns = loadedCakeDesigns
             errorMessage = retryPendingDesignPhotoCleanups()
                 ? nil
                 : "A previous design photo cleanup will be retried automatically."
@@ -251,12 +285,58 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func loadMoreActiveOrders() {
+        loadMoreOrders(
+            query: .active(dueAtRange: nil),
+            cursor: activeOrderCursor,
+            updateCursor: { activeOrderCursor = $0 },
+            updateAvailability: { canLoadMoreActiveOrders = $0 }
+        )
+    }
+
+    func loadMoreCompletedOrders() {
+        loadMoreOrders(
+            query: .completed,
+            cursor: completedOrderCursor,
+            updateCursor: { completedOrderCursor = $0 },
+            updateAvailability: { canLoadMoreCompletedOrders = $0 }
+        )
+    }
+
     func makeCustomerListViewModel() -> CustomerListViewModel {
         CustomerListViewModel(
             repository: repository,
             idGenerator: idGenerator,
             dateProvider: dateProvider
         )
+    }
+
+    private func loadMoreOrders(
+        query: OrderPageQuery,
+        cursor: OrderPageCursor?,
+        updateCursor: (OrderPageCursor?) -> Void,
+        updateAvailability: (Bool) -> Void
+    ) {
+        guard let cursor else {
+            return
+        }
+
+        do {
+            let page = try repository.fetchOrderPage(
+                query: query,
+                after: cursor,
+                limit: Self.orderPageSize
+            )
+            let configurations =
+                try repository.fetchOrderReminderConfigurations(orderIds: page.orders.map(\.id))
+            orders.append(contentsOf: page.orders)
+            orderReminderConfigurations.merge(configurations) { _, latest in latest }
+            updateCursor(page.nextCursor)
+            updateAvailability(page.nextCursor != nil)
+            errorMessage = nil
+        } catch {
+            errorMessage = "More orders could not be loaded."
+        }
     }
 
     func reloadCustomers() {
@@ -288,6 +368,10 @@ final class OrderListViewModel: ObservableObject {
         selectedOrder = order
         pendingInventoryShortages = []
         errorMessage = nil
+        if orderReminderConfigurations[order.id] == nil {
+            orderReminderConfigurations[order.id] =
+                try? repository.fetchOrderReminderConfiguration(orderId: order.id)
+        }
         loadSelectedOrderCustomer(for: order)
         loadSelectedOrderRecipe(for: order)
         loadSelectedOrderCakeDesign(for: order)

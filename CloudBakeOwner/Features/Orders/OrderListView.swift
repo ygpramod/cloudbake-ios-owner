@@ -268,6 +268,20 @@ struct OrderListView: View {
                 }
             }
 
+            if orderScope == .active, viewModel.canLoadMoreActiveOrders {
+                loadMoreOrdersButton(
+                    title: "Load More Active Orders",
+                    accessibilityIdentifier: "orders.active.loadMore",
+                    action: viewModel.loadMoreActiveOrders
+                )
+            } else if orderScope == .completed, viewModel.canLoadMoreCompletedOrders {
+                loadMoreOrdersButton(
+                    title: "Load More Completed Orders",
+                    accessibilityIdentifier: "orders.completed.loadMore",
+                    action: viewModel.loadMoreCompletedOrders
+                )
+            }
+
             if let errorMessage = viewModel.errorMessage {
                 CloudBakeErrorBanner(
                     message: errorMessage,
@@ -275,6 +289,22 @@ struct OrderListView: View {
                 )
             }
         }
+    }
+
+    private func loadMoreOrdersButton(
+        title: String,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.cloudBakePink)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 
     private func orderRow(

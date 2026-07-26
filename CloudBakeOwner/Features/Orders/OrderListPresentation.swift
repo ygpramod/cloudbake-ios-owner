@@ -185,17 +185,9 @@ struct OrderListPresentation {
         return lhs.sortOrder < rhs.sortOrder
     }
 
-    private static func orderWasEnteredBefore(_ lhs: Order, _ rhs: Order) -> Bool {
-        if lhs.createdAt == rhs.createdAt {
-            return lhs.id < rhs.id
-        }
-
-        return lhs.createdAt < rhs.createdAt
-    }
-
     private static func orderIsDueBefore(_ lhs: Order, _ rhs: Order) -> Bool {
         if lhs.dueAt == rhs.dueAt {
-            return orderWasEnteredBefore(lhs, rhs)
+            return lhs.id < rhs.id
         }
 
         return lhs.dueAt < rhs.dueAt
@@ -203,11 +195,7 @@ struct OrderListPresentation {
 
     private static func orderWasDueAfter(_ lhs: Order, _ rhs: Order) -> Bool {
         if lhs.dueAt == rhs.dueAt {
-            if lhs.createdAt == rhs.createdAt {
-                return lhs.id < rhs.id
-            }
-
-            return lhs.createdAt > rhs.createdAt
+            return lhs.id > rhs.id
         }
 
         return lhs.dueAt > rhs.dueAt

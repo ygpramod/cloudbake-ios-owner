@@ -25,6 +25,43 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testLoadPagesActiveAndCompletedOrdersIndependently() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let activeOrders = (0..<26).map { index in
+            makeOrder(
+                id: String(format: "active-%02d", index),
+                status: .confirmed,
+                dueAt: timestamp.addingTimeInterval(TimeInterval(index))
+            )
+        }
+        let completedOrders = (0..<26).map { index in
+            makeOrder(
+                id: String(format: "completed-%02d", index),
+                status: .completed,
+                dueAt: timestamp.addingTimeInterval(TimeInterval(index))
+            )
+        }
+        repository.orders = activeOrders + completedOrders
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.activeOrders.count, 25)
+        XCTAssertEqual(viewModel.completedOrders.count, 25)
+        XCTAssertTrue(viewModel.canLoadMoreActiveOrders)
+        XCTAssertTrue(viewModel.canLoadMoreCompletedOrders)
+        XCTAssertEqual(viewModel.order(id: "active-25"), activeOrders[25])
+
+        viewModel.loadMoreActiveOrders()
+        viewModel.loadMoreCompletedOrders()
+
+        XCTAssertEqual(viewModel.activeOrders.count, 26)
+        XCTAssertEqual(viewModel.completedOrders.count, 26)
+        XCTAssertFalse(viewModel.canLoadMoreActiveOrders)
+        XCTAssertFalse(viewModel.canLoadMoreCompletedOrders)
+    }
+
     func testCalendarDaysGroupsOrdersByDueDate() {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()
