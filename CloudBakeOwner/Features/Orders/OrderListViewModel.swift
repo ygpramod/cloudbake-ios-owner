@@ -29,6 +29,7 @@ private actor DesignPromotionCoordinator {
 @MainActor
 final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
+    @Published private(set) var orderReminderConfigurations: [String: OrderReminderConfiguration] = [:]
     @Published private(set) var customers: [Customer] = []
     @Published private(set) var recipes: [Recipe] = []
     @Published private(set) var cakeDesigns: [CakeDesign] = []
@@ -78,7 +79,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var isPromotingDesign = false
     @Published private(set) var pendingInventoryShortages: [OrderInventoryShortage] = []
 
-    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
     private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
@@ -87,7 +88,7 @@ final class OrderListViewModel: ObservableObject {
     private var pendingSelectedOrderExtraIngredientId: String?
 
     init(
-        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
+        repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
@@ -206,20 +207,31 @@ final class OrderListViewModel: ObservableObject {
     }
 
     var dueReminderGroups: [OrderReminderDueGroup] {
-        presentation.dueReminderGroups(for: orders)
+        presentation.dueReminderGroups(
+            for: orders,
+            configurations: orderReminderConfigurations
+        )
     }
 
     func reminderPlan(for order: Order) -> [OrderReminderPlanItem] {
-        presentation.reminderPlan(for: order)
+        presentation.reminderPlan(
+            for: order,
+            configuration: orderReminderConfigurations[order.id] ?? .initialDefault
+        )
     }
 
     func nextReminder(for order: Order) -> OrderReminderPlanItem? {
-        presentation.nextReminder(for: order)
+        presentation.nextReminder(
+            for: order,
+            configuration: orderReminderConfigurations[order.id] ?? .initialDefault
+        )
     }
 
     func load() {
         do {
             orders = try repository.fetchOrders()
+            orderReminderConfigurations =
+                try repository.fetchOrderReminderConfigurations(orderIds: orders.map(\.id))
             customers = try repository.fetchCustomers()
             recipes = try repository.fetchRecipes()
             cakeDesigns = try repository.fetchCakeDesigns().filter {

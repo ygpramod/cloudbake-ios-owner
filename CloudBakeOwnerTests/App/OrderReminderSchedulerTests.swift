@@ -68,6 +68,58 @@ final class OrderReminderSchedulerTests: XCTestCase {
         XCTAssertEqual(requests.map(\.identifier), ["order-reminder-order-tomorrow-0d"])
     }
 
+    func testMakeReminderRequestsUsesCustomAndDisabledOrderPlans() throws {
+        let repository = FakeOrderReminderRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(
+            from: DateComponents(year: 2027, month: 2, day: 10, hour: 9)
+        )!
+        let dueAt = calendar.date(
+            from: DateComponents(year: 2027, month: 2, day: 25, hour: 15)
+        )!
+        let customOrder = makeOrder(
+            id: "order-custom",
+            status: .confirmed,
+            dueAt: dueAt,
+            now: now
+        )
+        let disabledOrder = makeOrder(
+            id: "order-disabled",
+            status: .confirmed,
+            dueAt: dueAt,
+            now: now
+        )
+        repository.orders = [customOrder, disabledOrder]
+        repository.configurations = [
+            customOrder.id: try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [14, 2],
+                includesDueTime: false
+            ),
+            disabledOrder.id: .disabled
+        ]
+        let scheduler = OrderReminderScheduler(
+            repository: repository,
+            notificationCenter: FakeOrderReminderNotificationCenter(),
+            dateProvider: { now }
+        )
+
+        let requests = try scheduler.makeReminderRequests()
+
+        XCTAssertEqual(
+            requests.map(\.identifier),
+            [
+                "order-reminder-order-custom-14d",
+                "order-reminder-order-custom-2d"
+            ]
+        )
+        XCTAssertEqual(repository.configurationFetchCount, 1)
+        XCTAssertEqual(
+            Set(repository.lastConfigurationOrderIds),
+            [customOrder.id, disabledOrder.id]
+        )
+    }
+
     func testRefreshRemindersRequestsPermissionReplacesStaleOrderRequestsAndAddsCurrentRequests() async throws {
         let repository = FakeOrderReminderRepository()
         let notificationCenter = FakeOrderReminderNotificationCenter()
@@ -127,8 +179,13 @@ final class OrderReminderSchedulerTests: XCTestCase {
     }
 }
 
-private final class FakeOrderReminderRepository: OrderRepository {
+private final class FakeOrderReminderRepository:
+    OrderRepository,
+    OrderReminderConfigurationRepository {
     var orders: [Order] = []
+    var configurations: [String: OrderReminderConfiguration] = [:]
+    var configurationFetchCount = 0
+    var lastConfigurationOrderIds: [String] = []
 
     func save(_ order: Order) throws {}
 
@@ -138,6 +195,37 @@ private final class FakeOrderReminderRepository: OrderRepository {
 
     func fetchOrders() throws -> [Order] {
         orders
+    }
+
+    func fetchDefaultOrderReminderConfiguration() throws -> OrderReminderConfiguration {
+        .initialDefault
+    }
+
+    func saveDefaultOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        updatedAt _: Date
+    ) throws {}
+
+    func fetchOrderReminderConfiguration(
+        orderId: String
+    ) throws -> OrderReminderConfiguration? {
+        configurations[orderId]
+    }
+
+    func fetchOrderReminderConfigurations(
+        orderIds: [String]
+    ) throws -> [String: OrderReminderConfiguration] {
+        configurationFetchCount += 1
+        lastConfigurationOrderIds = orderIds
+        return configurations.filter { orderIds.contains($0.key) }
+    }
+
+    func saveOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        orderId: String,
+        updatedAt _: Date
+    ) throws {
+        configurations[orderId] = configuration
     }
 }
 

@@ -9,12 +9,12 @@ struct OrderReminderScheduler {
 
     private static let calendar = Calendar(identifier: .gregorian)
 
-    private let repository: OrderRepository
+    private let repository: any OrderRepository & OrderReminderConfigurationRepository
     private let notificationCenter: LocalNotificationCenter
     private let dateProvider: () -> Date
 
     init(
-        repository: OrderRepository,
+        repository: any OrderRepository & OrderReminderConfigurationRepository,
         notificationCenter: LocalNotificationCenter = UNUserNotificationCenter.current(),
         dateProvider: @escaping () -> Date = Date.init
     ) {
@@ -45,11 +45,21 @@ struct OrderReminderScheduler {
 
     func makeReminderRequests() throws -> [UNNotificationRequest] {
         let now = dateProvider()
-        return try repository.fetchOrders()
+        let orders = try repository.fetchOrders()
             .filter(\.hasScheduledReminderState)
             .filter { $0.dueAt > now }
-            .flatMap { order in
-                reminderOffsets.compactMap { offsetDays in
+        let configurations = try repository.fetchOrderReminderConfigurations(
+            orderIds: orders.map(\.id)
+        )
+        return orders
+            .flatMap { order -> [UNNotificationRequest] in
+                let configuration = configurations[order.id] ?? .initialDefault
+                guard configuration.isEnabled else {
+                    return []
+                }
+                let offsets = configuration.dayOffsets
+                    + (configuration.includesDueTime ? [0] : [])
+                return offsets.compactMap { offsetDays in
                     guard let remindAt = Self.calendar.date(byAdding: .day, value: -offsetDays, to: order.dueAt),
                           remindAt > now else {
                         return nil
@@ -58,10 +68,6 @@ struct OrderReminderScheduler {
                     return makeReminderRequest(order: order, offsetDays: offsetDays, remindAt: remindAt)
                 }
             }
-    }
-
-    private var reminderOffsets: [Int] {
-        [3, 2, 1, 0]
     }
 
     private func makeReminderRequest(

@@ -255,6 +255,7 @@ func makeIncrementingIdGenerator(prefix: String) -> () -> String {
 }
 
 final class FakeOrderRepository: OrderRepository,
+    OrderReminderConfigurationRepository,
     CustomerRepository,
     CustomerImportantDateRepository,
     RecipeRepository,
@@ -272,6 +273,8 @@ final class FakeOrderRepository: OrderRepository,
     OrderChecklistRepository,
     OrderPhotoRepository {
     var orders: [Order] = []
+    var defaultOrderReminderConfiguration = OrderReminderConfiguration.initialDefault
+    var orderReminderConfigurations: [String: OrderReminderConfiguration] = [:]
     var customers: [Customer] = []
     var customerImportantDates: [CustomerImportantDate] = []
     var recipes: [Recipe] = []
@@ -391,6 +394,37 @@ final class FakeOrderRepository: OrderRepository,
         orders.sorted { lhs, rhs in
             lhs.dueAt == rhs.dueAt ? lhs.title < rhs.title : lhs.dueAt < rhs.dueAt
         }
+    }
+
+    func fetchDefaultOrderReminderConfiguration() throws -> OrderReminderConfiguration {
+        defaultOrderReminderConfiguration
+    }
+
+    func saveDefaultOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        updatedAt _: Date
+    ) throws {
+        defaultOrderReminderConfiguration = try configuration.snapshotAsDefault()
+    }
+
+    func fetchOrderReminderConfiguration(
+        orderId: String
+    ) throws -> OrderReminderConfiguration? {
+        orderReminderConfigurations[orderId]
+    }
+
+    func fetchOrderReminderConfigurations(
+        orderIds: [String]
+    ) throws -> [String: OrderReminderConfiguration] {
+        orderReminderConfigurations.filter { orderIds.contains($0.key) }
+    }
+
+    func saveOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        orderId: String,
+        updatedAt _: Date
+    ) throws {
+        orderReminderConfigurations[orderId] = configuration
     }
 
     func save(_ customer: Customer) throws {

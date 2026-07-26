@@ -10,7 +10,10 @@ struct OrderReminderPlanItem: Equatable {
     let remindAt: Date
 
     var title: String {
-        "\(offsetDays) \(offsetDays == 1 ? "Day" : "Days") Before"
+        if offsetDays == 0 {
+            return "Due Time"
+        }
+        return "\(offsetDays) \(offsetDays == 1 ? "Day" : "Days") Before"
     }
 }
 
@@ -97,12 +100,18 @@ struct OrderListPresentation {
         photos.filter { $0.kind == .finalCake }
     }
 
-    func dueReminderGroups(for orders: [Order]) -> [OrderReminderDueGroup] {
+    func dueReminderGroups(
+        for orders: [Order],
+        configurations: [String: OrderReminderConfiguration]
+    ) -> [OrderReminderDueGroup] {
         let now = dateProvider()
         return orders
             .filter(\.hasActiveReminderState)
             .compactMap { order in
-                let dueReminders = reminderPlan(for: order)
+                let dueReminders = reminderPlan(
+                    for: order,
+                    configuration: configurations[order.id] ?? .initialDefault
+                )
                     .filter { $0.remindAt <= now }
 
                 guard !dueReminders.isEmpty else {
@@ -128,8 +137,16 @@ struct OrderListPresentation {
             }
     }
 
-    func reminderPlan(for order: Order) -> [OrderReminderPlanItem] {
-        [3, 2, 1].compactMap { offsetDays in
+    func reminderPlan(
+        for order: Order,
+        configuration: OrderReminderConfiguration
+    ) -> [OrderReminderPlanItem] {
+        guard configuration.isEnabled else {
+            return []
+        }
+        let offsets = configuration.dayOffsets
+            + (configuration.includesDueTime ? [0] : [])
+        return offsets.compactMap { offsetDays in
             guard let remindAt = calendar.date(byAdding: .day, value: -offsetDays, to: order.dueAt) else {
                 return nil
             }
@@ -138,9 +155,12 @@ struct OrderListPresentation {
         }
     }
 
-    func nextReminder(for order: Order) -> OrderReminderPlanItem? {
+    func nextReminder(
+        for order: Order,
+        configuration: OrderReminderConfiguration
+    ) -> OrderReminderPlanItem? {
         let now = dateProvider()
-        let reminders = reminderPlan(for: order)
+        let reminders = reminderPlan(for: order, configuration: configuration)
         return reminders.first { $0.remindAt > now } ?? reminders.last
     }
 

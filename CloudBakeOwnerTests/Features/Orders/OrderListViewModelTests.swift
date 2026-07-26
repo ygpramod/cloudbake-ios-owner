@@ -209,7 +209,7 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
-    func testReminderPlanUsesThreeTwoAndOneDaysBeforeDueDate() {
+    func testReminderPlanUsesSavedDefaultIncludingDueTime() {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()
         let dueAt = Date(timeIntervalSince1970: 1_800_144_000)
@@ -230,9 +230,49 @@ final class OrderListViewModelTests: XCTestCase {
                 OrderReminderPlanItem(
                     offsetDays: 1,
                     remindAt: date(byAddingDays: -1, to: dueAt, calendar: calendar)
+                ),
+                OrderReminderPlanItem(
+                    offsetDays: 0,
+                    remindAt: dueAt
                 )
             ]
         )
+    }
+
+    func testReminderPlanUsesCustomPlanAndCanBeDisabled() throws {
+        let repository = FakeOrderRepository()
+        let calendar = utcCalendar()
+        let dueAt = Date(timeIntervalSince1970: 1_800_144_000)
+        let customOrder = makeOrder(id: "order-custom-reminder", dueAt: dueAt)
+        let disabledOrder = makeOrder(id: "order-disabled-reminder", dueAt: dueAt)
+        repository.orders = [customOrder, disabledOrder]
+        repository.orderReminderConfigurations = [
+            customOrder.id: try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [10, 2],
+                includesDueTime: false
+            ),
+            disabledOrder.id: .disabled
+        ]
+        let viewModel = OrderListViewModel(repository: repository, calendar: calendar)
+
+        viewModel.load()
+
+        XCTAssertEqual(
+            viewModel.reminderPlan(for: customOrder),
+            [
+                OrderReminderPlanItem(
+                    offsetDays: 10,
+                    remindAt: date(byAddingDays: -10, to: dueAt, calendar: calendar)
+                ),
+                OrderReminderPlanItem(
+                    offsetDays: 2,
+                    remindAt: date(byAddingDays: -2, to: dueAt, calendar: calendar)
+                )
+            ]
+        )
+        XCTAssertTrue(viewModel.reminderPlan(for: disabledOrder).isEmpty)
+        XCTAssertNil(viewModel.nextReminder(for: disabledOrder))
     }
 
     func testDueReminderGroupsIncludeActiveOrdersWithReachedReminderDates() {
