@@ -739,6 +739,24 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0036_add_order_query_indexes") { db in
+            try db.create(
+                index: "orders_on_status_due_id",
+                on: "orders",
+                columns: ["status", "due_at_unix_time", "id"]
+            )
+            try db.create(
+                index: "orders_on_customer_due_id",
+                on: "orders",
+                columns: ["customer_id", "due_at_unix_time", "id"]
+            )
+            try db.create(
+                index: "orders_on_status_completed_at_id",
+                on: "orders",
+                columns: ["status", "completed_at_unix_time", "id"]
+            )
+        }
+
         return migrator
     }
 }

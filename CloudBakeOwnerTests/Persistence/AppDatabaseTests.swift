@@ -3,6 +3,27 @@ import GRDB
 @testable import CloudBakeOwner
 
 final class AppDatabaseTests: XCTestCase {
+    func testOrderQueryIndexesAreCreated() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let indexNames = try queue.read { db in
+            try String.fetchAll(
+                db,
+                sql: """
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type = 'index'
+                      AND name LIKE 'orders_on_%'
+                    ORDER BY name
+                    """
+            )
+        }
+
+        XCTAssertTrue(indexNames.contains("orders_on_status_due_id"))
+        XCTAssertTrue(indexNames.contains("orders_on_customer_due_id"))
+        XCTAssertTrue(indexNames.contains("orders_on_status_completed_at_id"))
+    }
+
     func testPaymentReminderConfigurationDefaultsToNineAndPersistsChanges() throws {
         let database = try AppDatabase.makeInMemory()
         let repository = database.makeCoreDataRepository()
