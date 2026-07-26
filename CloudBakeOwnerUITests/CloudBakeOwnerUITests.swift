@@ -1758,6 +1758,59 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["No active orders"].waitForExistence(timeout: transitionTimeout))
     }
 
+    func testCompletedOrdersLoadNextPageWithoutDuplicatesOrMissingRows() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launchEnvironment[
+            "CLOUDBAKE_SEED_COMPLETED_ORDER_PAGINATION_FIXTURE"
+        ] = "1"
+        app.launch()
+
+        openDashboardDestination(
+            "Orders",
+            in: app,
+            timeout: transitionTimeout
+        )
+        let ordersScreen = app.scrollViews["screen.orders"]
+        XCTAssertTrue(
+            ordersScreen.waitForExistence(timeout: transitionTimeout)
+        )
+        swipeOrderScopeLeftThroughEmptySpace(in: ordersScreen)
+
+        let newest = app.buttons["orders.item.order-ui-completed-page-29"]
+        let oldest = app.buttons["orders.item.order-ui-completed-page-00"]
+        assertExistsAfterScrolling(
+            newest,
+            in: app,
+            scrollContainer: ordersScreen,
+            timeout: transitionTimeout
+        )
+        XCTAssertFalse(oldest.exists)
+
+        let loadMore = app.buttons["orders.completed.loadMore"]
+        for _ in 0..<20 where !loadMore.isHittable {
+            ordersScreen.swipeUp()
+        }
+        tapWhenReady(loadMore, timeout: transitionTimeout)
+
+        assertExistsAfterScrolling(
+            oldest,
+            in: app,
+            scrollContainer: ordersScreen,
+            timeout: transitionTimeout
+        )
+        XCTAssertEqual(
+            app.buttons.matching(
+                NSPredicate(
+                    format: "identifier BEGINSWITH %@",
+                    "orders.item.order-ui-completed-page-"
+                )
+            ).count,
+            30
+        )
+        XCTAssertFalse(app.buttons["orders.completed.loadMore"].exists)
+    }
+
     func testCancelledOrderAppearsInCompletedTabWithBadge() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15

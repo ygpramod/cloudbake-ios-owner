@@ -14,6 +14,7 @@ final class AppDatabase: @unchecked Sendable {
             try database.seedCustomerFixtureIfRequested()
             try database.seedOrderCustomerLinkFixtureIfRequested()
             try database.seedCompletedOrderFixtureIfRequested()
+            try database.seedCompletedOrderPaginationFixtureIfRequested()
             try database.seedOrderReminderFixtureIfRequested()
             try database.seedOrderStatusFailureFixtureIfRequested()
             try database.seedInventoryFixtureIfRequested()
@@ -450,6 +451,40 @@ final class AppDatabase: @unchecked Sendable {
                 updatedAt: timestamp
             )
         )
+    }
+
+    private func seedCompletedOrderPaginationFixtureIfRequested() throws {
+        guard ProcessInfo.processInfo.environment[
+            "CLOUDBAKE_SEED_COMPLETED_ORDER_PAGINATION_FIXTURE"
+        ] == "1" else {
+            return
+        }
+
+        let repository = makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        for index in 0..<30 {
+            try repository.save(
+                Order(
+                    id: "order-ui-completed-page-\(String(format: "%02d", index))",
+                    customerId: nil,
+                    cakeDesignId: nil,
+                    title: "Completed page \(String(format: "%02d", index))",
+                    customerName: "Amy",
+                    status: .completed,
+                    dueAt: timestamp.addingTimeInterval(
+                        TimeInterval(index * 3_600)
+                    ),
+                    fulfillmentType: .pickup,
+                    deliveryAddress: nil,
+                    cakeNotes: nil,
+                    completedAt: timestamp.addingTimeInterval(
+                        TimeInterval(index * 3_600)
+                    ),
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            )
+        }
     }
 
     private func seedOrderStatusFailureFixtureIfRequested() throws {
