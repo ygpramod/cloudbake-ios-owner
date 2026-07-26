@@ -163,20 +163,115 @@ final class AppSnapshotServiceTests: XCTestCase {
         }
     }
 
-    func testUnavailableExternalPhotoFailsSnapshotAndCleansStaging() async throws {
+    func testUnavailableExternalPhotosAreReportedTogetherAndCleanStaging() async throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
-        try fixture.database.makeCoreDataRepository().save(
-            fixture.design(id: "external", photoReference: "photos://missing")
-        )
+        let repository = fixture.database.makeCoreDataRepository()
+        try repository.save(fixture.design(id: "first", photoReference: "photos://first-missing"))
+        try repository.save(fixture.design(id: "second", photoReference: "photos://second-missing"))
 
         do {
             _ = try await fixture.service(
                 externalAssetResolver: UnavailableExternalAssetResolver()
             ).createSnapshot()
             XCTFail("Expected missing PhotoKit asset to fail snapshot creation")
+        } catch let error as BackupUnavailableExternalAssetsError {
+            XCTAssertEqual(
+                Set(error.assets.map(\.sourceReference)),
+                ["photos://first-missing", "photos://second-missing"]
+            )
+        }
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: fixture.stagingRoot.path), [])
+    }
+
+    func testApprovedMissingDesignPhotoIsOmittedOnlyFromSnapshot() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let reference = "photos://missing-design"
+        let repository = fixture.database.makeCoreDataRepository()
+        try repository.save(fixture.design(id: "external", photoReference: reference))
+        let approvedDigest = BackupChecksum.sha256(of: Data(reference.utf8))
+
+        let package = try await fixture.service(
+            externalAssetResolver: UnavailableExternalAssetResolver()
+        ).createSnapshot(approvedOmissionDigests: [approvedDigest])
+
+        let snapshotQueue = try DatabaseQueue(path: package.databaseURL.path)
+        let snapshotReference = try await snapshotQueue.read { db in
+            try String.fetchOne(
+                db,
+                sql: "SELECT photo_reference FROM cake_designs WHERE id = 'external'"
+            )
+        }
+        XCTAssertNil(snapshotReference)
+        XCTAssertEqual(package.manifest.omittedAssetCount, 1)
+        XCTAssertTrue(package.manifest.assets.isEmpty)
+        XCTAssertEqual(
+            try repository.fetchCakeDesign(id: "external")?.photoReference,
+            reference
+        )
+        try await fixture.service().validatePackage(at: package.directoryURL)
+    }
+
+    func testApprovedMissingOrderPhotoClearsSnapshotLinksWithoutChangingLiveData() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let reference = "photos://missing-order-reference"
+        let repository = fixture.database.makeCoreDataRepository()
+        let sourceOrder = fixture.order(id: "source-order")
+        let photo = fixture.orderPhoto(
+            id: "missing-photo",
+            orderId: sourceOrder.id,
+            reference: reference
+        )
+        let linkedOrder = fixture.order(
+            id: "linked-order",
+            customerReferencePhotoId: photo.id
+        )
+        try repository.save(sourceOrder)
+        try repository.save(photo)
+        try repository.save(linkedOrder)
+
+        let package = try await fixture.service(
+            externalAssetResolver: UnavailableExternalAssetResolver()
+        ).createSnapshot(
+            approvedOmissionDigests: [BackupChecksum.sha256(of: Data(reference.utf8))]
+        )
+
+        let snapshotQueue = try DatabaseQueue(path: package.databaseURL.path)
+        let snapshotPhotoCount = try await snapshotQueue.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM order_photos")
+        }
+        let snapshotReferenceID = try await snapshotQueue.read { db in
+            try String.fetchOne(
+                db,
+                sql: "SELECT customer_reference_photo_id FROM orders WHERE id = 'linked-order'"
+            )
+        }
+        XCTAssertEqual(snapshotPhotoCount, 0)
+        XCTAssertNil(snapshotReferenceID)
+        XCTAssertEqual(package.manifest.omittedAssetCount, 1)
+        XCTAssertEqual(try repository.fetchOrderPhoto(id: photo.id), photo)
+        XCTAssertEqual(
+            try repository.fetchOrder(id: linkedOrder.id)?.customerReferencePhotoId,
+            photo.id
+        )
+    }
+
+    func testExternalPhotoAccessDeniedRemainsAHardFailure() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.database.makeCoreDataRepository().save(
+            fixture.design(id: "external", photoReference: "photos://denied")
+        )
+
+        do {
+            _ = try await fixture.service(
+                externalAssetResolver: AccessDeniedExternalAssetResolver()
+            ).createSnapshot()
+            XCTFail("Expected photo access denial to fail snapshot creation")
         } catch let error as BackupExternalAssetResolverError {
-            XCTAssertEqual(error, .assetUnavailable)
+            XCTAssertEqual(error, .accessDenied)
         }
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: fixture.stagingRoot.path), [])
     }
@@ -324,6 +419,45 @@ private final class Fixture: @unchecked Sendable {
         )
     }
 
+    func order(
+        id: String,
+        customerReferencePhotoId: String? = nil
+    ) -> Order {
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        return Order(
+            id: id,
+            customerId: nil,
+            cakeDesignId: nil,
+            customerReferencePhotoId: customerReferencePhotoId,
+            title: id,
+            customerName: "Amy",
+            status: .draft,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+    }
+
+    func orderPhoto(
+        id: String,
+        orderId: String,
+        reference: String
+    ) -> OrderPhoto {
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        return OrderPhoto(
+            id: id,
+            orderId: orderId,
+            kind: .customerReference,
+            localPhotoPath: reference,
+            caption: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+    }
+
     func write(_ data: Data, to relativePath: String) throws {
         let url = appStorageRoot.appendingPathComponent(relativePath)
         try FileManager.default.createDirectory(
@@ -359,6 +493,12 @@ private struct FakeExternalAssetResolver: BackupExternalAssetResolving {
 private struct UnavailableExternalAssetResolver: BackupExternalAssetResolving {
     func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
         throw BackupExternalAssetResolverError.assetUnavailable
+    }
+}
+
+private struct AccessDeniedExternalAssetResolver: BackupExternalAssetResolving {
+    func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
+        throw BackupExternalAssetResolverError.accessDenied
     }
 }
 

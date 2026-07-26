@@ -9,6 +9,10 @@ protocol AppSnapshotCreating {
     func createSnapshot() async throws -> AppSnapshotPackage
 }
 
+protocol RecoverableAppSnapshotCreating: AppSnapshotCreating {
+    func createSnapshot(approvedOmissionDigests: Set<String>) async throws -> AppSnapshotPackage
+}
+
 protocol AppSnapshotValidating {
     func validatePackage(at packageURL: URL) async throws
 }
@@ -21,6 +25,18 @@ struct AppSnapshotPackage: Equatable, Sendable {
     let manifestURL: URL
     let databaseURL: URL
     let manifest: BackupManifest
+}
+
+struct BackupUnavailableExternalAsset: Equatable, Sendable {
+    let sourceReference: String
+
+    var digest: String {
+        BackupChecksum.sha256(of: Data(sourceReference.utf8))
+    }
+}
+
+struct BackupUnavailableExternalAssetsError: Error, Equatable, Sendable {
+    let assets: [BackupUnavailableExternalAsset]
 }
 
 enum AppSnapshotError: Error, Equatable {
@@ -36,9 +52,10 @@ enum AppSnapshotError: Error, Equatable {
     case invalidPayloadSize(String)
     case incompatibleManifest(BackupManifestCompatibility)
     case missingDatabaseSchemaVersion
+    case invalidOmittedAssetCount
 }
 
-actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
+actor AppSnapshotService: RecoverableAppSnapshotCreating, AppSnapshotValidating {
     static let manifestFilename = "manifest.json"
     static let databaseFilename = "database.sqlite"
 
@@ -81,6 +98,12 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
     }
 
     func createSnapshot() async throws -> AppSnapshotPackage {
+        try await createSnapshot(approvedOmissionDigests: [])
+    }
+
+    func createSnapshot(
+        approvedOmissionDigests: Set<String>
+    ) async throws -> AppSnapshotPackage {
         try cleanAbandonedStagingDirectories()
 
         let generationID = makeGenerationID()
@@ -106,11 +129,12 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
             let snapshotDatabase = try DatabaseQueue(path: databaseURL.path)
             let schemaVersion = try readSchemaVersion(from: snapshotDatabase)
             let assetSources = try readAssetSources(from: snapshotDatabase)
-            let assets = try await stageAssets(
+            let stagingResult = try await stageAssets(
                 assetSources,
                 capturedAt: databaseCapturedAt,
                 snapshotDatabase: snapshotDatabase,
-                in: buildingURL
+                in: buildingURL,
+                approvedOmissionDigests: approvedOmissionDigests
             )
             try snapshotDatabase.close()
             let databaseDescriptor = try describeFile(
@@ -123,7 +147,8 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
                 generationID: generationID,
                 createdAt: now(),
                 database: databaseDescriptor,
-                assets: assets
+                assets: stagingResult.descriptors,
+                omittedAssetCount: stagingResult.omittedAssetCount
             )
             let manifestURL = buildingURL.appendingPathComponent(Self.manifestFilename)
             let manifestData = try Self.makeEncoder().encode(manifest)
@@ -174,6 +199,9 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         guard manifest.totalByteCount >= 0,
               manifest.totalByteCount == calculatedTotal else {
             throw AppSnapshotError.totalSizeMismatch
+        }
+        guard manifest.omittedAssetCount >= 0 else {
+            throw AppSnapshotError.invalidOmittedAssetCount
         }
 
         try validate(manifest.database, in: packageURL)
@@ -244,9 +272,12 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
         _ sources: [SnapshotAssetSource],
         capturedAt: Date,
         snapshotDatabase: DatabaseQueue,
-        in buildingURL: URL
-    ) async throws -> [BackupAssetDescriptor] {
+        in buildingURL: URL,
+        approvedOmissionDigests: Set<String>
+    ) async throws -> AssetStagingResult {
         var descriptors: [BackupAssetDescriptor] = []
+        var unavailableAssets: [BackupUnavailableExternalAsset] = []
+        var omittedAssetCount = 0
         for source in sources {
             let path = source.recoveryRelativePath
             guard BackupPath.isSafeRelativePath(path) else {
@@ -260,7 +291,26 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
                 withIntermediateDirectories: true
             )
             if source.isExternal {
-                let resolved = try await externalAssetResolver.resolve(reference: source.sourceReference)
+                let resolved: BackupResolvedExternalAsset
+                do {
+                    resolved = try await externalAssetResolver.resolve(
+                        reference: source.sourceReference
+                    )
+                } catch BackupExternalAssetResolverError.assetUnavailable {
+                    let unavailableAsset = BackupUnavailableExternalAsset(
+                        sourceReference: source.sourceReference
+                    )
+                    if approvedOmissionDigests.contains(unavailableAsset.digest) {
+                        try omitExternalReference(
+                            source.sourceReference,
+                            in: snapshotDatabase
+                        )
+                        omittedAssetCount += 1
+                    } else {
+                        unavailableAssets.append(unavailableAsset)
+                    }
+                    continue
+                }
                 try Task.checkCancellation()
                 guard resolved.modificationDate <= capturedAt else {
                     throw AppSnapshotError.assetChanged(path)
@@ -284,7 +334,13 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
                 BackupAssetDescriptor(originalRelativePath: path, file: descriptor)
             )
         }
-        return descriptors
+        guard unavailableAssets.isEmpty else {
+            throw BackupUnavailableExternalAssetsError(assets: unavailableAssets)
+        }
+        return AssetStagingResult(
+            descriptors: descriptors,
+            omittedAssetCount: omittedAssetCount
+        )
     }
 
     private func stageLocalAsset(
@@ -333,6 +389,22 @@ actor AppSnapshotService: AppSnapshotCreating, AppSnapshotValidating {
             try db.execute(
                 sql: "UPDATE order_photos SET local_photo_path = ? WHERE local_photo_path = ?",
                 arguments: [recoveryRelativePath, externalReference]
+            )
+        }
+    }
+
+    private func omitExternalReference(
+        _ externalReference: String,
+        in database: DatabaseQueue
+    ) throws {
+        try database.write { db in
+            try db.execute(
+                sql: "UPDATE cake_designs SET photo_reference = NULL WHERE photo_reference = ?",
+                arguments: [externalReference]
+            )
+            try db.execute(
+                sql: "DELETE FROM order_photos WHERE local_photo_path = ?",
+                arguments: [externalReference]
             )
         }
     }
@@ -408,4 +480,9 @@ private struct SnapshotAssetSource {
     let sourceReference: String
     let recoveryRelativePath: String
     let isExternal: Bool
+}
+
+private struct AssetStagingResult {
+    let descriptors: [BackupAssetDescriptor]
+    let omittedAssetCount: Int
 }
