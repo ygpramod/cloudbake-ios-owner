@@ -173,7 +173,8 @@ actor BackupCoordinator {
     private let publisher: any CloudBackupPublishing
     private let scheduleStore: any BackupScheduleStoring
     private let omissionStore: any BackupAssetOmissionStoring
-    private let unavailableAssetRemover: (any BackupUnavailableAssetRemoving)?
+    private let unavailablePhotoRevalidator: any BackupUnavailablePhotoRevalidating
+    private let unavailableAssetRemover: any BackupUnavailableAssetRemoving
     private let connectivity: any BackupConnectivityChecking
     private let account: any BackupAccountChecking
     private let publicationAuthorization: any BackupPublicationAuthorizing
@@ -199,7 +200,8 @@ actor BackupCoordinator {
         publisher: any CloudBackupPublishing,
         scheduleStore: any BackupScheduleStoring,
         omissionStore: any BackupAssetOmissionStoring,
-        unavailableAssetRemover: (any BackupUnavailableAssetRemoving)? = nil,
+        unavailablePhotoRevalidator: any BackupUnavailablePhotoRevalidating,
+        unavailableAssetRemover: any BackupUnavailableAssetRemoving,
         connectivity: any BackupConnectivityChecking,
         account: any BackupAccountChecking,
         publicationAuthorization: any BackupPublicationAuthorizing,
@@ -216,6 +218,7 @@ actor BackupCoordinator {
         self.publisher = publisher
         self.scheduleStore = scheduleStore
         self.omissionStore = omissionStore
+        self.unavailablePhotoRevalidator = unavailablePhotoRevalidator
         self.unavailableAssetRemover = unavailableAssetRemover
         self.connectivity = connectivity
         self.account = account
@@ -356,17 +359,19 @@ actor BackupCoordinator {
               proposal.id == proposalID else {
             return .failed(.photoUnavailable)
         }
-        guard let unavailableAssetRemover else {
-            pendingUnavailablePhotoProposal = nil
-            finishOperation()
-            return .failed(.unknown)
-        }
+        pendingUnavailablePhotoProposal = nil
+        activeOperation = .preparingManual
         do {
-            try unavailableAssetRemover.removeUnavailablePhotoReferences(
-                Set(proposal.assets.map(\.sourceReference))
-            )
+            let confirmedReferences =
+                try await unavailablePhotoRevalidator.confirmedUnavailableReferences(
+                    among: Set(proposal.assets.map(\.sourceReference))
+                )
+            if !confirmedReferences.isEmpty {
+                try unavailableAssetRemover.removeUnavailablePhotoReferences(
+                    confirmedReferences
+                )
+            }
         } catch {
-            pendingUnavailablePhotoProposal = nil
             return await finishManualFailure(error, startedAt: proposal.startedAt)
         }
         return await retryManualBackup(after: proposal)
@@ -905,6 +910,18 @@ actor BackupCoordinator {
         }
         if let error = error as? CloudBackupStoreError { return error.category }
         if error is BackupUnavailableExternalAssetsError { return .photoUnavailable }
+        if let error = error as? BackupExternalAssetResolverError {
+            switch error {
+            case .accessDenied:
+                return .permissionDenied
+            case .assetUnavailable:
+                return .photoUnavailable
+            case .assetChangedDuringRead, .imageUnavailable:
+                return .temporarilyUnavailable
+            case .invalidReference, .missingVersionMetadata, .imageEncodingFailed:
+                return .unknown
+            }
+        }
         return .unknown
     }
 

@@ -602,6 +602,50 @@ final class BackupCoordinatorTests: XCTestCase {
         )
     }
 
+    func testRestoredPhotoIsNotRemovedAfterDestructiveConfirmation() async {
+        let fixture = CoordinatorFixture()
+        let reference = "photos://restored"
+        await fixture.snapshotCreator.reportUnavailable(
+            references: [reference],
+            clearAfterReporting: true
+        )
+        guard case .requiresUnavailablePhotoDecision(let proposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected an unavailable-photo decision")
+        }
+        fixture.unavailablePhotoRevalidator.markAvailable([reference])
+
+        guard case .published =
+                await fixture.coordinator.removeManualUnavailablePhotos(
+                    proposalID: proposal.id
+                ) else {
+            return XCTFail("Expected a fresh snapshot after revalidation")
+        }
+
+        XCTAssertTrue(fixture.unavailableAssetRemover.removedReferences.isEmpty)
+    }
+
+    func testRevokedPhotoAccessPreventsDestructiveReferenceRemoval() async {
+        let fixture = CoordinatorFixture()
+        await fixture.snapshotCreator.reportUnavailable(
+            references: ["photos://missing"]
+        )
+        guard case .requiresUnavailablePhotoDecision(let proposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected an unavailable-photo decision")
+        }
+        fixture.unavailablePhotoRevalidator.fail(
+            with: BackupExternalAssetResolverError.accessDenied
+        )
+
+        let result = await fixture.coordinator.removeManualUnavailablePhotos(
+            proposalID: proposal.id
+        )
+
+        XCTAssertEqual(result, .failed(.permissionDenied))
+        XCTAssertTrue(fixture.unavailableAssetRemover.removedReferences.isEmpty)
+    }
+
     func testAutomaticBackupReportsNewUnavailablePhotoWithoutPublishing() async {
         var metadata = BackupScheduleMetadata.initial
         metadata.lastSuccessAt = Date(timeIntervalSince1970: 1_799_000_000)
@@ -763,6 +807,7 @@ private final class CoordinatorFixture {
     let publisher: FakeBackupPublisher
     let scheduler = FakeBackgroundScheduler()
     let cleaner = FakePackageCleaner()
+    let unavailablePhotoRevalidator = FakeUnavailablePhotoRevalidator()
     let unavailableAssetRemover = FakeUnavailableAssetRemover()
     let environment: FakeBackupEnvironment
     let coordinator: BackupCoordinator
@@ -795,6 +840,7 @@ private final class CoordinatorFixture {
             publisher: publisher,
             scheduleStore: scheduleStore,
             omissionStore: omissionStore,
+            unavailablePhotoRevalidator: unavailablePhotoRevalidator,
             unavailableAssetRemover: unavailableAssetRemover,
             connectivity: environment,
             account: environment,
@@ -937,6 +983,34 @@ private final class FakeUnavailableAssetRemover: BackupUnavailableAssetRemoving,
         lock.lock()
         recordedReferences.append(references)
         lock.unlock()
+    }
+}
+
+private final class FakeUnavailablePhotoRevalidator: BackupUnavailablePhotoRevalidating,
+    @unchecked Sendable {
+    private let lock = NSLock()
+    private var availableReferences: Set<String> = []
+    private var failure: Error?
+
+    func confirmedUnavailableReferences(
+        among sourceReferences: Set<String>
+    ) async throws -> Set<String> {
+        try lock.withLock {
+            if let failure { throw failure }
+            return sourceReferences.subtracting(availableReferences)
+        }
+    }
+
+    func markAvailable(_ references: Set<String>) {
+        lock.withLock {
+            availableReferences.formUnion(references)
+        }
+    }
+
+    func fail(with error: Error) {
+        lock.withLock {
+            failure = error
+        }
     }
 }
 

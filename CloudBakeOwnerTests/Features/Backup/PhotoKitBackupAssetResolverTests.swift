@@ -97,6 +97,39 @@ final class PhotoKitBackupAssetResolverTests: XCTestCase {
         }
     }
 
+    func testRevalidatorReturnsOnlyReferencesStillUnavailable() async throws {
+        let revalidator = PhotoKitBackupUnavailablePhotoRevalidator(
+            resolver: BackupRevalidationResolver(
+                errors: ["photos://missing": .assetUnavailable]
+            )
+        )
+
+        let confirmed = try await revalidator.confirmedUnavailableReferences(
+            among: ["photos://missing", "photos://restored"]
+        )
+
+        XCTAssertEqual(confirmed, ["photos://missing"])
+    }
+
+    func testRevalidatorAbortsRemovalWhenPhotoAccessIsRevoked() async {
+        let revalidator = PhotoKitBackupUnavailablePhotoRevalidator(
+            resolver: BackupRevalidationResolver(
+                errors: ["photos://missing": .accessDenied]
+            )
+        )
+
+        do {
+            _ = try await revalidator.confirmedUnavailableReferences(
+                among: ["photos://missing"]
+            )
+            XCTFail("Expected revoked access to abort revalidation")
+        } catch let error as BackupExternalAssetResolverError {
+            XCTAssertEqual(error, .accessDenied)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func testVersionDatePrefersModificationDate() throws {
         let creationDate = Date(timeIntervalSince1970: 100)
         let modificationDate = Date(timeIntervalSince1970: 200)
@@ -122,5 +155,19 @@ final class PhotoKitBackupAssetResolverTests: XCTestCase {
                 .missingVersionMetadata
             )
         }
+    }
+}
+
+private struct BackupRevalidationResolver: BackupExternalAssetResolving {
+    let errors: [String: BackupExternalAssetResolverError]
+
+    func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
+        if let error = errors[reference] {
+            throw error
+        }
+        return BackupResolvedExternalAsset(
+            data: Data("available".utf8),
+            modificationDate: Date(timeIntervalSince1970: 1)
+        )
     }
 }

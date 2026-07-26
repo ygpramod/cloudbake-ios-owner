@@ -13,6 +13,7 @@ struct ManualBackupExport: Sendable {
     let packageURL: URL
     let stagingDirectoryURL: URL
     let filename: String
+    let omittedAssetCount: Int
 
     func removeStagedFiles(fileManager: FileManager = .default) {
         try? fileManager.removeItem(at: packageURL)
@@ -20,8 +21,31 @@ struct ManualBackupExport: Sendable {
     }
 }
 
+struct ManualBackupUnavailablePhotoProposal: Equatable, Sendable {
+    let id: String
+    let unavailablePhotoCount: Int
+}
+
+enum ManualBackupPreparationResult: Sendable {
+    case ready(ManualBackupExport)
+    case requiresUnavailablePhotoDecision(ManualBackupUnavailablePhotoProposal)
+}
+
+enum ManualBackupServiceError: Error, Equatable {
+    case invalidUnavailablePhotoDecision
+    case unavailablePhotoRemovalNotConfigured
+    case backupFailedAfterPhotoRemoval
+}
+
 protocol ManualBackupPreparing: Sendable {
-    func prepareBackup() async throws -> ManualBackupExport
+    func prepareBackup() async throws -> ManualBackupPreparationResult
+    func approveUnavailablePhotoOmissions(
+        proposalID: String
+    ) async throws -> ManualBackupPreparationResult
+    func removeUnavailablePhotos(
+        proposalID: String
+    ) async throws -> ManualBackupPreparationResult
+    func cancelUnavailablePhotoDecision(proposalID: String) async
 }
 
 protocol ManualBackupArchiving: Sendable {
@@ -44,29 +68,115 @@ struct ZIPManualBackupArchiver: ManualBackupArchiving {
 }
 
 actor ManualBackupService: ManualBackupPreparing {
-    private let snapshotCreator: any AppSnapshotCreating
+    private struct PendingUnavailablePhotoDecision {
+        let proposal: ManualBackupUnavailablePhotoProposal
+        let sourceReferences: Set<String>
+    }
+
+    private let snapshotCreator: any RecoverableAppSnapshotCreating
+    private let omissionStore: any BackupAssetOmissionStoring
+    private let unavailablePhotoRevalidator: any BackupUnavailablePhotoRevalidating
+    private let unavailableAssetRemover: (any BackupUnavailableAssetRemoving)?
     private let dateProvider: @Sendable () -> Date
+    private let makeProposalID: @Sendable () -> String
     private let completedPackageRoot: URL?
     private let fileManager: FileManager
     private let archiver: any ManualBackupArchiving
+    private var pendingUnavailablePhotoDecision: PendingUnavailablePhotoDecision?
 
     init(
-        snapshotCreator: any AppSnapshotCreating,
+        snapshotCreator: any RecoverableAppSnapshotCreating,
+        omissionStore: any BackupAssetOmissionStoring,
+        unavailablePhotoRevalidator: any BackupUnavailablePhotoRevalidating,
+        unavailableAssetRemover: (any BackupUnavailableAssetRemoving)? = nil,
         dateProvider: @escaping @Sendable () -> Date = { Date() },
+        makeProposalID: @escaping @Sendable () -> String = {
+            UUID().uuidString.lowercased()
+        },
         completedPackageRoot: URL? = nil,
         fileManager: FileManager = .default,
         archiver: any ManualBackupArchiving = ZIPManualBackupArchiver()
     ) {
         self.snapshotCreator = snapshotCreator
+        self.omissionStore = omissionStore
+        self.unavailablePhotoRevalidator = unavailablePhotoRevalidator
+        self.unavailableAssetRemover = unavailableAssetRemover
         self.dateProvider = dateProvider
+        self.makeProposalID = makeProposalID
         self.completedPackageRoot = completedPackageRoot
         self.fileManager = fileManager
         self.archiver = archiver
     }
 
-    func prepareBackup() async throws -> ManualBackupExport {
+    func prepareBackup() async throws -> ManualBackupPreparationResult {
+        if let pendingUnavailablePhotoDecision {
+            return .requiresUnavailablePhotoDecision(
+                pendingUnavailablePhotoDecision.proposal
+            )
+        }
+        return try await prepareFreshBackup()
+    }
+
+    func approveUnavailablePhotoOmissions(
+        proposalID: String
+    ) async throws -> ManualBackupPreparationResult {
+        let decision = try pendingDecision(matching: proposalID)
+        omissionStore.approve(sourceReferences: decision.sourceReferences)
+        pendingUnavailablePhotoDecision = nil
+        return try await prepareFreshBackup()
+    }
+
+    func removeUnavailablePhotos(
+        proposalID: String
+    ) async throws -> ManualBackupPreparationResult {
+        let decision = try pendingDecision(matching: proposalID)
+        guard let unavailableAssetRemover else {
+            throw ManualBackupServiceError.unavailablePhotoRemovalNotConfigured
+        }
+        pendingUnavailablePhotoDecision = nil
+        let confirmedReferences =
+            try await unavailablePhotoRevalidator.confirmedUnavailableReferences(
+                among: decision.sourceReferences
+            )
+        if !confirmedReferences.isEmpty {
+            try unavailableAssetRemover.removeUnavailablePhotoReferences(
+                confirmedReferences
+            )
+        }
+        do {
+            return try await prepareFreshBackup()
+        } catch {
+            if confirmedReferences.isEmpty {
+                throw error
+            }
+            throw ManualBackupServiceError.backupFailedAfterPhotoRemoval
+        }
+    }
+
+    func cancelUnavailablePhotoDecision(proposalID: String) {
+        guard pendingUnavailablePhotoDecision?.proposal.id == proposalID else { return }
+        pendingUnavailablePhotoDecision = nil
+    }
+
+    private func prepareFreshBackup() async throws -> ManualBackupPreparationResult {
         try removeCompletedStagingPackages()
-        let package = try await snapshotCreator.createSnapshot()
+        let package: AppSnapshotPackage
+        do {
+            package = try await snapshotCreator.createSnapshot(
+                approvedOmissionDigests: omissionStore.loadApprovedDigests()
+            )
+        } catch let error as BackupUnavailableExternalAssetsError {
+            let sourceReferences = Set(error.assets.map(\.sourceReference))
+            let proposal = ManualBackupUnavailablePhotoProposal(
+                id: makeProposalID(),
+                unavailablePhotoCount: sourceReferences.count
+            )
+            pendingUnavailablePhotoDecision = PendingUnavailablePhotoDecision(
+                proposal: proposal,
+                sourceReferences: sourceReferences
+            )
+            return .requiresUnavailablePhotoDecision(proposal)
+        }
         let filename = Self.filename(for: dateProvider())
         let archiveURL = package.directoryURL
             .deletingLastPathComponent()
@@ -78,10 +188,13 @@ actor ManualBackupService: ManualBackupPreparing {
             try? fileManager.removeItem(at: package.directoryURL)
             throw error
         }
-        return ManualBackupExport(
-            packageURL: archiveURL,
-            stagingDirectoryURL: package.directoryURL,
-            filename: filename
+        return .ready(
+            ManualBackupExport(
+                packageURL: archiveURL,
+                stagingDirectoryURL: package.directoryURL,
+                filename: filename,
+                omittedAssetCount: package.manifest.omittedAssetCount
+            )
         )
     }
 
@@ -118,6 +231,9 @@ actor ManualBackupService: ManualBackupPreparing {
         )
         return ManualBackupService(
             snapshotCreator: snapshotService,
+            omissionStore: UserDefaultsBackupAssetOmissionStore(),
+            unavailablePhotoRevalidator: PhotoKitBackupUnavailablePhotoRevalidator(),
+            unavailableAssetRemover: database,
             completedPackageRoot: stagingRoot
         )
     }
@@ -141,5 +257,15 @@ actor ManualBackupService: ManualBackupPreparing {
         ) where !child.lastPathComponent.hasSuffix(".building") {
             try fileManager.removeItem(at: child)
         }
+    }
+
+    private func pendingDecision(
+        matching proposalID: String
+    ) throws -> PendingUnavailablePhotoDecision {
+        guard let pendingUnavailablePhotoDecision,
+              pendingUnavailablePhotoDecision.proposal.id == proposalID else {
+            throw ManualBackupServiceError.invalidUnavailablePhotoDecision
+        }
+        return pendingUnavailablePhotoDecision
     }
 }

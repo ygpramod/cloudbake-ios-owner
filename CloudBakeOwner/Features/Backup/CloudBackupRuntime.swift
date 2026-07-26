@@ -212,6 +212,7 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
             publisher: publisher,
             scheduleStore: UserDefaultsBackupScheduleStore(),
             omissionStore: UserDefaultsBackupAssetOmissionStore(),
+            unavailablePhotoRevalidator: PhotoKitBackupUnavailablePhotoRevalidator(),
             unavailableAssetRemover: database,
             connectivity: connectivity,
             account: accountChecker,
@@ -257,6 +258,8 @@ final class CloudBackupRuntime: CloudBackupSettingsServing, CloudRestoreSettings
             publisher: CellularBackupUITestTrap(),
             scheduleStore: CellularBackupUITestScheduleStore(),
             omissionStore: CellularBackupUITestOmissionStore(),
+            unavailablePhotoRevalidator: CellularBackupUITestTrap(),
+            unavailableAssetRemover: CellularBackupUITestTrap(),
             connectivity: environment,
             account: environment,
             publicationAuthorization: environment,
@@ -331,7 +334,8 @@ private struct CellularBackupUITestEnvironment: BackupConnectivityChecking,
     func hasSufficientWorkingStorage(estimatedUploadByteCount: Int64?) async -> Bool { true }
 }
 
-private struct CellularBackupUITestTrap: RecoverableAppSnapshotCreating, CloudBackupPublishing {
+private struct CellularBackupUITestTrap: RecoverableAppSnapshotCreating, CloudBackupPublishing,
+    BackupUnavailablePhotoRevalidating, BackupUnavailableAssetRemoving {
     func createSnapshot() async throws -> AppSnapshotPackage {
         fatalError("Automatic backup started a snapshot on the cellular-only UI test fixture")
     }
@@ -344,6 +348,16 @@ private struct CellularBackupUITestTrap: RecoverableAppSnapshotCreating, CloudBa
 
     func estimatedUploadByteCount(for package: AppSnapshotPackage) async throws -> Int64 {
         fatalError("Automatic backup estimated an upload on the cellular-only UI test fixture")
+    }
+
+    func confirmedUnavailableReferences(
+        among sourceReferences: Set<String>
+    ) async throws -> Set<String> {
+        fatalError("Cellular-only UI test revalidated an unavailable photo")
+    }
+
+    func removeUnavailablePhotoReferences(_ references: Set<String>) throws {
+        fatalError("Cellular-only UI test removed an unavailable photo")
     }
 
     func publish(
