@@ -922,6 +922,46 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
     }
 
+    func testCloudRestoreKeepsPromptAvailableAfterInvalidApproval() throws {
+        let app = makeApp(initialDestination: "settings")
+        app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] = "invalid-approval"
+        app.launchEnvironment["CLOUDBAKE_SEED_CUSTOMER_FIXTURE"] = "1"
+        app.launch()
+
+        assertScreenVisible("screen.settings", in: app)
+        let settingsScroll = app.scrollViews["screen.settings"]
+        let restoreButton = app.buttons["settings.cloudBackup.restore"]
+        tapScrollableAction(
+            app.buttons["settings.dataManagement.disclosure"],
+            in: settingsScroll,
+            waitingFor: restoreButton,
+            in: app
+        )
+        tapScrollableAction(
+            restoreButton,
+            in: settingsScroll,
+            waitingFor: app.staticTexts["Replace Local Data?"],
+            in: app
+        )
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "settings.cloudRestore.replace.confirm",
+                in: app
+            )
+        )
+
+        XCTAssertTrue(
+            app.staticTexts["Replace Local Data?"].waitForExistence(timeout: 5)
+        )
+        let retry = nativeDialogAction(
+            identifiedBy: "settings.cloudRestore.replace.confirm",
+            in: app
+        )
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        XCTAssertTrue(retry.isHittable)
+        dismissNativeDialog(titled: "Replace Local Data?", in: app)
+    }
+
     func testCloudRestoreBlocksAppWhenRollbackCannotBeGuaranteed() throws {
         let app = makeApp(initialDestination: "settings")
         app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] = "recovery-required"

@@ -211,6 +211,9 @@ actor CloudRestoreSettingsUITestService: CloudRestoreSettingsServing {
         case .start:
             return .completed
         case .replaceExistingData:
+            if ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] == "invalid-approval" {
+                return .invalidApproval
+            }
             if ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CLOUD_RESTORE_FAILURE"] == "rollback" {
                 return .failed(
                     RestoreFailure(category: .activationFailed, didRollBack: true)

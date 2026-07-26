@@ -55,32 +55,37 @@ private struct CloudRestorePromptModifier: ViewModifier {
         switch prompt {
         case .restore:
             nativeDialogButton("Restore Backup") {
-                presentedPrompt = nil
-                Task { await viewModel.startRestore() }
+                performPromptAction {
+                    await viewModel.startRestore()
+                }
             }
             .accessibilityIdentifier("settings.cloudRestore.confirm")
         case .replace:
             nativeDialogButton("Replace and Restore", role: .destructive) {
-                presentedPrompt = nil
-                Task { await viewModel.confirmReplacement() }
+                performPromptAction {
+                    await viewModel.confirmReplacement()
+                }
             }
             .accessibilityIdentifier("settings.cloudRestore.replace.confirm")
         case .cellular:
             nativeDialogButton("Restore Using Cellular") {
-                presentedPrompt = nil
-                Task { await viewModel.confirmCellular() }
+                performPromptAction {
+                    await viewModel.confirmCellular()
+                }
             }
             .accessibilityIdentifier("settings.cloudRestore.cellular.confirm")
         case .brokenAssets:
             nativeDialogButton("Ignore Broken Photos") {
-                presentedPrompt = nil
-                Task { await viewModel.resolveBrokenAssets(.ignore) }
+                performPromptAction {
+                    await viewModel.resolveBrokenAssets(.ignore)
+                }
             }
             .accessibilityIdentifier("settings.cloudRestore.assets.ignore")
 
             nativeDialogButton("Remove Photo References", role: .destructive) {
-                presentedPrompt = nil
-                Task { await viewModel.resolveBrokenAssets(.removeReferences) }
+                performPromptAction {
+                    await viewModel.resolveBrokenAssets(.removeReferences)
+                }
             }
             .accessibilityIdentifier("settings.cloudRestore.assets.remove")
         case nil:
@@ -89,10 +94,21 @@ private struct CloudRestorePromptModifier: ViewModifier {
 
         if offersStartFresh {
             nativeDialogButton("Start Fresh") {
-                presentedPrompt = nil
-                Task { await viewModel.startFresh() }
+                performPromptAction {
+                    await viewModel.startFresh()
+                }
             }
             .accessibilityIdentifier("settings.cloudRestore.startFresh")
+        }
+    }
+
+    private func performPromptAction(
+        _ action: @escaping @MainActor () async -> Void
+    ) {
+        presentedPrompt = nil
+        Task {
+            await action()
+            presentedPrompt = viewModel.prompt
         }
     }
 
