@@ -20,13 +20,17 @@ struct ProjectedIngredientDemandSummary: Equatable {
     let neededInventoryItemIds: Set<String>
 }
 
+enum ProjectedIngredientDemandError: Error, Equatable {
+    case invalidLiveRequirements(orderId: String)
+}
+
 enum ProjectedIngredientDemand {
     static func summary(
         inventoryItems: [InventoryItem],
         orders: [Order],
         at date: Date,
         planningSnapshot: OrderInventoryReservationPlanningSnapshot
-    ) -> ProjectedIngredientDemandSummary {
+    ) throws -> ProjectedIngredientDemandSummary {
         let itemsById = Dictionary(uniqueKeysWithValues: inventoryItems.map { ($0.id, $0) })
         var demandByItemId: [String: Demand] = [:]
 
@@ -60,6 +64,9 @@ enum ProjectedIngredientDemand {
                     }
                     continue
                 }
+            }
+            guard !planningSnapshot.invalidLiveRequirementOrderIds.contains(order.id) else {
+                throw ProjectedIngredientDemandError.invalidLiveRequirements(orderId: order.id)
             }
             let requirements = planningSnapshot.liveRequirementsByOrderId[order.id] ?? []
             for requirement in requirements {

@@ -536,6 +536,7 @@ extension GRDBCoreDataRepository {
             var reservationsByOrderId: [String: [OrderInventoryReservation]] = [:]
             var repairsByOrderId: [String: OrderInventoryReservationRepair] = [:]
             var invalidOrderIds = Set<String>()
+            var invalidLiveRequirementOrderIds = Set<String>()
             var liveRequirementsByOrderId: [String: [OrderInventoryRequirement]] = [:]
             var requiredInventoryItemIds = Set<String>()
 
@@ -639,7 +640,7 @@ extension GRDBCoreDataRepository {
                     let orderId: String = row["order_id"]
                     let scaleValue: String = row["recipe_scale_multiplier_decimal"]
                     guard let scale = Decimal(string: scaleValue) else {
-                        invalidOrderIds.insert(orderId)
+                        invalidLiveRequirementOrderIds.insert(orderId)
                         continue
                     }
                     let scaleDouble = NSDecimalNumber(decimal: scale).doubleValue
@@ -651,7 +652,7 @@ extension GRDBCoreDataRepository {
                           quantity.isFinite,
                           quantity > 0,
                           (quantity * scaleDouble).isFinite else {
-                        invalidOrderIds.insert(orderId)
+                        invalidLiveRequirementOrderIds.insert(orderId)
                         continue
                     }
                     let inventoryItemId: String = row["inventory_item_id"]
@@ -681,7 +682,7 @@ extension GRDBCoreDataRepository {
                     guard let unit = InventoryUnit(rawValue: unitValue),
                           quantity.isFinite,
                           quantity > 0 else {
-                        invalidOrderIds.insert(orderId)
+                        invalidLiveRequirementOrderIds.insert(orderId)
                         continue
                     }
                     let inventoryItemId: String = row["inventory_item_id"]
@@ -726,6 +727,7 @@ extension GRDBCoreDataRepository {
                 reservationsByOrderId: reservationsByOrderId,
                 repairsByOrderId: repairsByOrderId,
                 invalidOrderIds: invalidOrderIds,
+                invalidLiveRequirementOrderIds: invalidLiveRequirementOrderIds,
                 liveRequirementsByOrderId: liveRequirementsByOrderId,
                 stockBatchesByInventoryItemId: stockBatchesByInventoryItemId
             )

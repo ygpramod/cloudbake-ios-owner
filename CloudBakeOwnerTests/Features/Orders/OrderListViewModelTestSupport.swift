@@ -59,6 +59,7 @@ func makeInventoryReservationPlanningSnapshot(
                 .map { ($0.orderId, $0) }
         ),
         invalidOrderIds: [],
+        invalidLiveRequirementOrderIds: [],
         liveRequirementsByOrderId: liveRequirementsByOrderId,
         stockBatchesByInventoryItemId: Dictionary(
             grouping: batches.filter {

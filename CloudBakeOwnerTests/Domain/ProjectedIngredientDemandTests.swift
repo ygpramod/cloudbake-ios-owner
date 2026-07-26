@@ -237,6 +237,49 @@ final class ProjectedIngredientDemandTests: XCTestCase {
         XCTAssertEqual(shortages.first?.requiredQuantity ?? -1, 150, accuracy: 0.001)
     }
 
+    func testValidCommittedReservationIgnoresCorruptLiveRequirements() throws {
+        let item = makeItem(quantity: 100)
+        let order = makeDemandOrder(id: "valid-reservation-corrupt-live", scale: 1)
+        let reservation = OrderInventoryReservation(
+            id: "\(order.id):flour",
+            orderId: order.id,
+            inventoryItemId: item.id,
+            requiredQuantity: 150,
+            unit: .gram,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        let shortages = try shortages(
+            item: item,
+            orders: [order],
+            recipeQuantity: 25,
+            reservations: [order.id: [reservation]],
+            invalidLiveRequirementOrderIds: [order.id]
+        )
+
+        XCTAssertEqual(shortages.first?.requiredQuantity ?? -1, 150, accuracy: 0.001)
+    }
+
+    func testDraftWithCorruptLiveRequirementsFailsInsteadOfUnderstatingDemand() {
+        let item = makeItem(quantity: 100)
+        let order = makeDemandOrder(id: "draft-corrupt-live", status: .draft, scale: 1)
+
+        XCTAssertThrowsError(
+            try shortages(
+                item: item,
+                orders: [order],
+                recipeQuantity: 25,
+                invalidLiveRequirementOrderIds: [order.id]
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? ProjectedIngredientDemandError,
+                .invalidLiveRequirements(orderId: order.id)
+            )
+        }
+    }
+
     private func shortages(
         item: InventoryItem,
         orders: [Order],
@@ -246,7 +289,8 @@ final class ProjectedIngredientDemandTests: XCTestCase {
         extras: [String: [OrderExtraIngredient]] = [:],
         reservations: [String: [OrderInventoryReservation]] = [:],
         repairs: [String: OrderInventoryReservationRepair] = [:],
-        invalidOrderIds: Set<String> = []
+        invalidOrderIds: Set<String> = [],
+        invalidLiveRequirementOrderIds: Set<String> = []
     ) throws -> [ProjectedIngredientShortage] {
         var liveRequirementsByOrderId: [String: [OrderInventoryRequirement]] = [:]
         for order in orders {
@@ -269,7 +313,7 @@ final class ProjectedIngredientDemandTests: XCTestCase {
             }
         }
 
-        return ProjectedIngredientDemand.summary(
+        return try ProjectedIngredientDemand.summary(
             inventoryItems: [item],
             orders: orders,
             at: now,
@@ -278,6 +322,7 @@ final class ProjectedIngredientDemandTests: XCTestCase {
                 reservationsByOrderId: reservations,
                 repairsByOrderId: repairs,
                 invalidOrderIds: invalidOrderIds,
+                invalidLiveRequirementOrderIds: invalidLiveRequirementOrderIds,
                 liveRequirementsByOrderId: liveRequirementsByOrderId,
                 stockBatchesByInventoryItemId: batches.isEmpty
                     ? [:]

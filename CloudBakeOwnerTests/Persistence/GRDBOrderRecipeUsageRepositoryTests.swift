@@ -747,6 +747,7 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         )
         XCTAssertEqual(snapshot.stockBatchesByInventoryItemId[item.id], [batch])
         XCTAssertTrue(snapshot.invalidOrderIds.isEmpty)
+        XCTAssertTrue(snapshot.invalidLiveRequirementOrderIds.isEmpty)
 
         try queue.write { db in
             try db.execute(
@@ -761,7 +762,8 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         let corruptSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
             orderIds: [order.id]
         )
-        XCTAssertEqual(corruptSnapshot.invalidOrderIds, [order.id])
+        XCTAssertTrue(corruptSnapshot.invalidOrderIds.isEmpty)
+        XCTAssertEqual(corruptSnapshot.invalidLiveRequirementOrderIds, [order.id])
         XCTAssertEqual(
             corruptSnapshot.liveRequirementsByOrderId[order.id],
             [

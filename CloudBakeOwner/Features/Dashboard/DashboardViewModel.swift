@@ -57,7 +57,7 @@ final class DashboardViewModel: ObservableObject {
             let planningSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
                 orderIds: activeOrders.map(\.id)
             )
-            let demandSummary = ProjectedIngredientDemand.summary(
+            let demandSummary = try ProjectedIngredientDemand.summary(
                 inventoryItems: inventoryItems,
                 orders: activeOrders,
                 at: now,

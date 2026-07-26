@@ -1721,7 +1721,7 @@ final class OrderListViewModel: ObservableObject {
             let planningSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
                 orderIds: activeOrders.map(\.id)
             )
-            selectedOrderIngredientShortages = ProjectedIngredientDemand.summary(
+            selectedOrderIngredientShortages = try ProjectedIngredientDemand.summary(
                 inventoryItems: inventoryItems,
                 orders: activeOrders,
                 at: dateProvider(),
