@@ -20,9 +20,9 @@ final class OrderReminderSchedulerTests: XCTestCase {
         XCTAssertFalse(router.isPaymentReportPending)
     }
 
-    func testPaymentReminderAggregatesOnlyOverdueCompletedBalances() throws {
+    func testPaymentReminderPlansDailyAggregateAtEachTriggerDate() throws {
         let repository = FakePaymentReminderRepository()
-        let calendar = Calendar(identifier: .gregorian)
+        let calendar = utcCalendar()
         let now = calendar.date(
             from: DateComponents(year: 2027, month: 2, day: 10, hour: 10)
         )!
@@ -55,7 +55,7 @@ final class OrderReminderSchedulerTests: XCTestCase {
             makePaymentOrder(
                 id: "future",
                 status: .completed,
-                dueAt: calendar.date(byAdding: .hour, value: 1, to: now)!,
+                dueAt: calendar.date(byAdding: .day, value: 1, to: now)!,
                 quotedPrice: 500,
                 depositPaid: nil,
                 now: now
@@ -72,12 +72,15 @@ final class OrderReminderSchedulerTests: XCTestCase {
         let scheduler = PaymentPendingReminderScheduler(
             repository: repository,
             notificationCenter: FakeOrderReminderNotificationCenter(),
-            dateProvider: { now }
+            dateProvider: { now },
+            calendar: calendar
         )
 
-        let request = try XCTUnwrap(scheduler.makeReminderRequest())
+        let requests = try scheduler.makeReminderRequests()
+        let request = try XCTUnwrap(requests.first)
 
-        XCTAssertEqual(request.identifier, "payment-pending-summary")
+        XCTAssertEqual(requests.count, 14)
+        XCTAssertEqual(request.identifier, "payment-pending-2027-02-10")
         XCTAssertEqual(request.content.title, "Payments pending")
         XCTAssertEqual(
             request.content.body,
@@ -90,9 +93,57 @@ final class OrderReminderSchedulerTests: XCTestCase {
             PaymentPendingReminderScheduler.notificationDestination
         )
         let trigger = try XCTUnwrap(request.trigger as? UNCalendarNotificationTrigger)
+        XCTAssertEqual(trigger.dateComponents.year, 2027)
+        XCTAssertEqual(trigger.dateComponents.month, 2)
+        XCTAssertEqual(trigger.dateComponents.day, 10)
         XCTAssertEqual(trigger.dateComponents.hour, 14)
         XCTAssertEqual(trigger.dateComponents.minute, 30)
-        XCTAssertTrue(trigger.repeats)
+        XCTAssertFalse(trigger.repeats)
+        XCTAssertEqual(
+            requests[1].content.body,
+            "3 completed orders have \(MoneyDisplay.formatted(630)) outstanding."
+        )
+    }
+
+    func testPaymentReminderStartsTodayBeforeConfiguredTimeAndTomorrowAfterIt() throws {
+        let repository = FakePaymentReminderRepository()
+        let calendar = utcCalendar()
+        let dueAt = calendar.date(
+            from: DateComponents(year: 2027, month: 2, day: 10, hour: 7)
+        )!
+        repository.configuration = try PaymentReminderConfiguration(hour: 9, minute: 0)
+        repository.orders = [
+            makePaymentOrder(
+                id: "unpaid",
+                status: .completed,
+                dueAt: dueAt,
+                quotedPrice: 100,
+                depositPaid: nil,
+                now: dueAt
+            )
+        ]
+        let beforeTime = calendar.date(
+            from: DateComponents(year: 2027, month: 2, day: 10, hour: 8)
+        )!
+        let afterTime = calendar.date(
+            from: DateComponents(year: 2027, month: 2, day: 10, hour: 10)
+        )!
+
+        let beforeRequests = try PaymentPendingReminderScheduler(
+            repository: repository,
+            notificationCenter: FakeOrderReminderNotificationCenter(),
+            dateProvider: { beforeTime },
+            calendar: calendar
+        ).makeReminderRequests()
+        let afterRequests = try PaymentPendingReminderScheduler(
+            repository: repository,
+            notificationCenter: FakeOrderReminderNotificationCenter(),
+            dateProvider: { afterTime },
+            calendar: calendar
+        ).makeReminderRequests()
+
+        XCTAssertEqual(beforeRequests.first?.identifier, "payment-pending-2027-02-10")
+        XCTAssertEqual(afterRequests.first?.identifier, "payment-pending-2027-02-11")
     }
 
     func testPaymentReminderRefreshRemovesRequestWhenNoOrderIsEligible() async {
@@ -100,7 +151,12 @@ final class OrderReminderSchedulerTests: XCTestCase {
         let notificationCenter = FakeOrderReminderNotificationCenter()
         notificationCenter.pendingRequests = [
             UNNotificationRequest(
-                identifier: PaymentPendingReminderScheduler.notificationIdentifier,
+                identifier: "payment-pending-2027-02-10",
+                content: UNNotificationContent(),
+                trigger: nil
+            ),
+            UNNotificationRequest(
+                identifier: "payment-pending-summary",
                 content: UNNotificationContent(),
                 trigger: nil
             ),
@@ -120,8 +176,30 @@ final class OrderReminderSchedulerTests: XCTestCase {
 
         XCTAssertEqual(
             notificationCenter.removedIdentifiers,
-            [PaymentPendingReminderScheduler.notificationIdentifier]
+            ["payment-pending-2027-02-10", "payment-pending-summary"]
         )
+        XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
+    }
+
+    func testPaymentReminderKeepsExistingRequestsWhenRepositoryReadFails() async {
+        let repository = FakePaymentReminderRepository()
+        repository.fetchError = TestFailure()
+        let notificationCenter = FakeOrderReminderNotificationCenter()
+        notificationCenter.pendingRequests = [
+            UNNotificationRequest(
+                identifier: "payment-pending-2027-02-10",
+                content: UNNotificationContent(),
+                trigger: nil
+            )
+        ]
+        let scheduler = PaymentPendingReminderScheduler(
+            repository: repository,
+            notificationCenter: notificationCenter
+        )
+
+        await scheduler.refreshReminder()
+
+        XCTAssertTrue(notificationCenter.removedIdentifiers.isEmpty)
         XCTAssertTrue(notificationCenter.addedRequests.isEmpty)
     }
 
@@ -333,6 +411,7 @@ private final class FakePaymentReminderRepository:
     PaymentReminderConfigurationRepository {
     var orders: [Order] = []
     var configuration = PaymentReminderConfiguration.initialDefault
+    var fetchError: Error?
 
     func save(_ order: Order) throws {}
 
@@ -341,7 +420,10 @@ private final class FakePaymentReminderRepository:
     }
 
     func fetchOrders() throws -> [Order] {
-        orders
+        if let fetchError {
+            throw fetchError
+        }
+        return orders
     }
 
     func fetchPaymentReminderConfiguration() throws -> PaymentReminderConfiguration {
@@ -355,6 +437,8 @@ private final class FakePaymentReminderRepository:
         self.configuration = configuration
     }
 }
+
+private struct TestFailure: Error {}
 
 private final class FakeOrderReminderRepository:
     OrderRepository,
