@@ -483,6 +483,8 @@ enum AppDatabaseMigrations {
                     .notNull()
                     .references("orders", onDelete: .restrict)
                 table.column("inventory_item_id", .text)
+                    .notNull()
+                    .references("inventory_items", onDelete: .restrict)
                 table.column("event_kind", .text)
                     .notNull()
                     .check(sql: "event_kind IN ('created', 'quantityChanged', 'released', 'repairFailed')")
@@ -508,21 +510,16 @@ enum AppDatabaseMigrations {
                     .notNull()
                     .check { $0 >= 0 }
                 table.column("unit", .text)
+                    .notNull()
                     .check(
                         sql: """
-                            unit IS NULL OR unit IN (
+                            unit IN (
                                 'kilogram', 'gram', 'liter', 'milliliter',
                                 'teaspoon', 'tablespoon', 'cup', 'each'
                             )
                             """
                     )
                 table.column("occurred_at_unix_time", .double).notNull()
-                table.check(
-                    sql: """
-                        event_kind = 'repairFailed'
-                        OR (inventory_item_id IS NOT NULL AND unit IS NOT NULL)
-                        """
-                )
             }
             try db.create(
                 index: "order_inventory_reservation_events_on_order_occurred_at",
@@ -582,6 +579,77 @@ enum AppDatabaseMigrations {
                     OrderStatus.confirmed.rawValue,
                     OrderStatus.inProgress.rawValue
                 ]
+            )
+        }
+
+        migrator.registerMigration("0031_allow_incomplete_reservation_repair_events") { db in
+            try db.drop(index: "order_inventory_reservation_events_on_order_occurred_at")
+            try db.rename(
+                table: "order_inventory_reservation_events",
+                to: "order_inventory_reservation_events_legacy"
+            )
+            try db.create(table: "order_inventory_reservation_events") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .restrict)
+                table.column("inventory_item_id", .text)
+                table.column("event_kind", .text)
+                    .notNull()
+                    .check(sql: "event_kind IN ('created', 'quantityChanged', 'released', 'repairFailed')")
+                table.column("reason", .text)
+                    .notNull()
+                    .check(
+                        sql: """
+                            reason IN (
+                                'orderConfirmed',
+                                'orderEdited',
+                                'orderReopened',
+                                'orderCancelled',
+                                'inventoryConsumed',
+                                'recipeEdited',
+                                'migrationRepair'
+                            )
+                            """
+                    )
+                table.column("previous_quantity", .double)
+                    .notNull()
+                    .check { $0 >= 0 }
+                table.column("new_quantity", .double)
+                    .notNull()
+                    .check { $0 >= 0 }
+                table.column("unit", .text)
+                    .check(
+                        sql: """
+                            unit IS NULL OR unit IN (
+                                'kilogram', 'gram', 'liter', 'milliliter',
+                                'teaspoon', 'tablespoon', 'cup', 'each'
+                            )
+                            """
+                    )
+                table.column("occurred_at_unix_time", .double).notNull()
+                table.check(
+                    sql: """
+                        event_kind = 'repairFailed'
+                        OR (inventory_item_id IS NOT NULL AND unit IS NOT NULL)
+                        """
+                )
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    SELECT id, order_id, inventory_item_id, event_kind, reason,
+                           previous_quantity, new_quantity, unit, occurred_at_unix_time
+                    FROM order_inventory_reservation_events_legacy
+                    """
+            )
+            try db.drop(table: "order_inventory_reservation_events_legacy")
+            try db.create(
+                index: "order_inventory_reservation_events_on_order_occurred_at",
+                on: "order_inventory_reservation_events",
+                columns: ["order_id", "occurred_at_unix_time"]
             )
         }
 

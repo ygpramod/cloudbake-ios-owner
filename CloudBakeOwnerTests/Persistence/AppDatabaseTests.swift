@@ -652,4 +652,123 @@ final class AppDatabaseTests: XCTestCase {
             )
         }
     }
+
+    func testReservationFailureEventSchemaUpgradesAfterMigration0030WasApplied() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0030_create_order_inventory_reservations")
+        let timestamp = 1_800_070_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO inventory_items
+                    (id, name, unit, minimum_quantity, current_quantity,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "inventory-upgrade-event",
+                    "Upgrade event flour",
+                    InventoryUnit.gram.rawValue,
+                    0,
+                    100,
+                    timestamp,
+                    timestamp
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "order-upgrade-event",
+                    "Upgrade event order",
+                    OrderStatus.confirmed.rawValue,
+                    timestamp,
+                    timestamp,
+                    timestamp
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "event-before-0031",
+                    "order-upgrade-event",
+                    "inventory-upgrade-event",
+                    OrderInventoryReservationEventKind.created.rawValue,
+                    OrderInventoryReservationEventReason.orderConfirmed.rawValue,
+                    0,
+                    25,
+                    InventoryUnit.gram.rawValue,
+                    timestamp
+                ]
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservation_events
+                        (id, order_id, inventory_item_id, event_kind, reason,
+                         previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "repair-before-0031",
+                        "order-upgrade-event",
+                        nil,
+                        OrderInventoryReservationEventKind.repairFailed.rawValue,
+                        OrderInventoryReservationEventReason.migrationRepair.rawValue,
+                        0,
+                        0,
+                        nil,
+                        timestamp
+                    ]
+                )
+            )
+        }
+
+        try migrator.migrate(queue)
+
+        try queue.write { db in
+            XCTAssertEqual(
+                try String.fetchOne(
+                    db,
+                    sql: """
+                        SELECT id
+                        FROM order_inventory_reservation_events
+                        WHERE id = ?
+                        """,
+                    arguments: ["event-before-0031"]
+                ),
+                "event-before-0031"
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "repair-after-0031",
+                    "order-upgrade-event",
+                    nil,
+                    OrderInventoryReservationEventKind.repairFailed.rawValue,
+                    OrderInventoryReservationEventReason.migrationRepair.rawValue,
+                    0,
+                    0,
+                    nil,
+                    timestamp
+                ]
+            )
+        }
+    }
 }

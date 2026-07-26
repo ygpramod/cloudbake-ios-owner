@@ -14,16 +14,12 @@ extension GRDBCoreDataRepository {
         allowInventoryShortage: Bool
     ) throws {
         try writer.write { db in
-            let previousStatusValue = try String.fetchOne(
-                db,
-                sql: "SELECT status FROM orders WHERE id = ?",
-                arguments: [order.id]
-            )
-            let previousStatus = previousStatusValue.flatMap(OrderStatus.init)
+            let persistedOrder = try self.order(id: order.id, in: db)
+            let previousStatus = persistedOrder?.status
             let isEnteringConsumedStatus = previousStatus != order.status &&
                 (order.status == .ready || order.status == .completed)
             if isEnteringConsumedStatus,
-               order.recipeId != nil,
+               (order.recipeId != nil || persistedOrder?.recipeId != nil),
                try !hasOrderRecipeUsage(orderId: order.id, in: db) {
                 throw OrderRecipeUsageError.inventoryConsumptionRequired
             }
@@ -121,12 +117,16 @@ extension GRDBCoreDataRepository {
                     completedCount += 1
                 }
             } catch {
-                try recordReservationRepairFailure(
+                guard let failure = reservationRepairFailure(for: error) else {
+                    throw error
+                }
+                if try recordReservationRepairFailure(
                     orderId: orderId,
-                    error: error,
+                    failure: failure,
                     at: timestamp
-                )
-                failedCount += 1
+                ) {
+                    failedCount += 1
+                }
             }
         }
         return OrderInventoryReservationRepairSummary(
@@ -189,11 +189,17 @@ extension GRDBCoreDataRepository {
         )
 
         try writer.write { db in
+            guard let persistedOrder = try self.order(id: order.id, in: db) else {
+                throw OrderRecipeUsageError.orderNotFound
+            }
             if let extraIngredients {
                 try replaceOrderExtraIngredients(orderId: order.id, with: extraIngredients, in: db)
             }
 
-            if shouldRecordRecipeUsage(from: order.status, to: status), let recipeId = order.recipeId {
+            if shouldRecordRecipeUsage(from: persistedOrder.status, to: status) {
+                guard let recipeId = order.recipeId else {
+                    throw OrderRecipeUsageError.orderHasNoLinkedRecipe
+                }
                 try recordRecipeUsageIfNeeded(
                     order: order,
                     recipeId: recipeId,
@@ -209,7 +215,7 @@ extension GRDBCoreDataRepository {
             try synchronizeOrderInventoryReservation(
                 for: updatedOrder,
                 at: updatedAt,
-                reason: reservationEventReason(from: order.status, to: status),
+                reason: reservationEventReason(from: persistedOrder.status, to: status),
                 allowInventoryShortage: allowInventoryShortage,
                 in: db
             )
@@ -295,9 +301,10 @@ extension GRDBCoreDataRepository {
                     ORDER BY created_at_unix_time ASC, id
                     """,
                 arguments: [orderId]
-            ).compactMap { row in
-                guard let unit = InventoryUnit(rawValue: row["unit"] as String) else {
-                    return nil
+            ).map { row in
+                let unitValue: String = row["unit"]
+                guard let unit = InventoryUnit(rawValue: unitValue) else {
+                    throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
                 }
 
                 return orderExtraIngredient(from: row, unit: unit)
@@ -775,9 +782,9 @@ private extension GRDBCoreDataRepository {
         let hasUsage = try hasOrderRecipeUsage(orderId: order.id, in: db)
         let isEligibleStatus = order.status == .confirmed || order.status == .inProgress
         let pendingUsages: [PendingInventoryUsage]
-        if isEligibleStatus, !hasUsage, let recipeId = order.recipeId {
+        if isEligibleStatus, !hasUsage {
             pendingUsages = try pendingInventoryUsages(
-                recipeId: recipeId,
+                recipeId: order.recipeId,
                 orderId: order.id,
                 scaleMultiplier: order.recipeScaleMultiplier,
                 in: db
@@ -847,24 +854,30 @@ private extension GRDBCoreDataRepository {
         }
     }
 
-    func recordReservationRepairFailure(
-        orderId: String,
-        error: Error,
-        at timestamp: Date
-    ) throws {
-        let failureCode: OrderInventoryReservationRepairFailureCode
-        let inventoryItemId: String?
+    func reservationRepairFailure(
+        for error: Error
+    ) -> (code: OrderInventoryReservationRepairFailureCode, inventoryItemId: String?)? {
         switch error as? OrderRecipeUsageError {
         case .missingInventoryItem(let itemId):
-            failureCode = .missingInventoryItem
-            inventoryItemId = itemId
+            return (.missingInventoryItem, itemId)
         case .incompatibleIngredientUnit:
-            failureCode = .incompatibleUnit
-            inventoryItemId = nil
+            return (.incompatibleUnit, nil)
+        case .recipeHasNoIngredients, .invalidIngredientQuantity:
+            return (.invalidRequirements, nil)
         default:
-            failureCode = .invalidRequirements
-            inventoryItemId = nil
+            break
         }
+        if case .invalidUnit = error as? OrderInventoryReservationPersistenceError {
+            return (.invalidRequirements, nil)
+        }
+        return nil
+    }
+
+    func recordReservationRepairFailure(
+        orderId: String,
+        failure: (code: OrderInventoryReservationRepairFailureCode, inventoryItemId: String?),
+        at timestamp: Date
+    ) throws -> Bool {
         try writer.write { db in
             try db.execute(
                 sql: """
@@ -875,16 +888,19 @@ private extension GRDBCoreDataRepository {
                         failure_code = ?,
                         updated_at_unix_time = ?
                     WHERE order_id = ?
+                      AND state IN (?, ?)
                     """,
                 arguments: [
                     OrderInventoryReservationRepairState.failed.rawValue,
                     timestamp.timeIntervalSince1970,
-                    failureCode.rawValue,
+                    failure.code.rawValue,
                     timestamp.timeIntervalSince1970,
-                    orderId
+                    orderId,
+                    OrderInventoryReservationRepairState.pending.rawValue,
+                    OrderInventoryReservationRepairState.failed.rawValue
                 ]
             )
-            guard db.changesCount > 0 else { return }
+            guard db.changesCount > 0 else { return false }
             try db.execute(
                 sql: """
                     INSERT INTO order_inventory_reservation_events
@@ -895,7 +911,7 @@ private extension GRDBCoreDataRepository {
                 arguments: arguments([
                     idProvider(),
                     orderId,
-                    inventoryItemId,
+                    failure.inventoryItemId,
                     OrderInventoryReservationEventKind.repairFailed.rawValue,
                     OrderInventoryReservationEventReason.migrationRepair.rawValue,
                     0,
@@ -904,6 +920,7 @@ private extension GRDBCoreDataRepository {
                     timestamp.timeIntervalSince1970
                 ])
             )
+            return true
         }
     }
 
@@ -1191,6 +1208,19 @@ private extension GRDBCoreDataRepository {
         with ingredients: [OrderExtraIngredient],
         in db: Database
     ) throws {
+        for ingredient in ingredients {
+            guard ingredient.orderId == orderId else {
+                throw OrderExtraIngredientError.orderReassignmentNotAllowed
+            }
+            let existingOrderId = try String.fetchOne(
+                db,
+                sql: "SELECT order_id FROM order_extra_ingredients WHERE id = ?",
+                arguments: [ingredient.id]
+            )
+            guard existingOrderId == nil || existingOrderId == orderId else {
+                throw OrderExtraIngredientError.orderReassignmentNotAllowed
+            }
+        }
         try db.execute(
             sql: "DELETE FROM order_extra_ingredients WHERE order_id = ?",
             arguments: [orderId]
@@ -1201,12 +1231,19 @@ private extension GRDBCoreDataRepository {
         }
     }
 
-    func pendingInventoryUsages(recipeId: String, orderId: String, scaleMultiplier: Decimal = 1, in db: Database) throws -> [PendingInventoryUsage] {
-        let ingredients = try recipeIngredients(recipeId: recipeId, in: db)
-        let extraIngredients = try orderExtraIngredients(orderId: orderId, in: db)
-        guard !ingredients.isEmpty || !extraIngredients.isEmpty else {
-            throw OrderRecipeUsageError.recipeHasNoIngredients
+    func pendingInventoryUsages(
+        recipeId: String?,
+        orderId: String,
+        scaleMultiplier: Decimal = 1,
+        in db: Database
+    ) throws -> [PendingInventoryUsage] {
+        let ingredients: [RecipeIngredient]
+        if let recipeId {
+            ingredients = try recipeIngredients(recipeId: recipeId, in: db)
+        } else {
+            ingredients = []
         }
+        let extraIngredients = try orderExtraIngredients(orderId: orderId, in: db)
 
         var pendingUsagesByItemId: [String: PendingInventoryUsage] = [:]
         for ingredient in ingredients {
@@ -1218,7 +1255,7 @@ private extension GRDBCoreDataRepository {
             }
             let requiredQuantity = convertedQuantity * NSDecimalNumber(decimal: scaleMultiplier).doubleValue
             guard requiredQuantity > 0 else {
-                continue
+                throw OrderRecipeUsageError.invalidIngredientQuantity(itemName: item.name)
             }
 
             if var pendingUsage = pendingUsagesByItemId[item.id] {
@@ -1236,7 +1273,7 @@ private extension GRDBCoreDataRepository {
                 throw OrderRecipeUsageError.incompatibleIngredientUnit(itemName: item.name)
             }
             guard requiredQuantity > 0 else {
-                continue
+                throw OrderRecipeUsageError.invalidIngredientQuantity(itemName: item.name)
             }
 
             if var pendingUsage = pendingUsagesByItemId[item.id] {
@@ -1249,6 +1286,9 @@ private extension GRDBCoreDataRepository {
 
         let pendingUsages = pendingUsagesByItemId.values.sorted { lhs, rhs in
             lhs.item.name.localizedCaseInsensitiveCompare(rhs.item.name) == .orderedAscending
+        }
+        if recipeId == nil, ingredients.isEmpty, extraIngredients.isEmpty {
+            return []
         }
         guard !pendingUsages.isEmpty else {
             throw OrderRecipeUsageError.recipeHasNoIngredients
@@ -1266,9 +1306,10 @@ private extension GRDBCoreDataRepository {
                 ORDER BY created_at_unix_time ASC, id
                 """,
             arguments: [orderId]
-        ).compactMap { row in
-            guard let unit = InventoryUnit(rawValue: row["unit"] as String) else {
-                return nil
+        ).map { row in
+            let unitValue: String = row["unit"]
+            guard let unit = InventoryUnit(rawValue: unitValue) else {
+                throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
             }
 
             return orderExtraIngredient(from: row, unit: unit)

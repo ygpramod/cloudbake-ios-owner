@@ -234,4 +234,66 @@ final class GRDBRecipeRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchRecipeIngredients(componentId: component.id), [])
     }
 
+    func testRecipeIngredientFetchRejectsUnknownPersistedUnit() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_020_000)
+        let inventoryItem = InventoryItem(
+            id: "inventory-invalid-unit",
+            name: "Invalid unit flour",
+            unit: .gram,
+            currentQuantity: 750,
+            minimumQuantity: 500,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let recipe = Recipe(
+            id: "recipe-invalid-unit",
+            name: "Invalid unit recipe",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-invalid-unit",
+            recipeId: recipe.id,
+            name: "Ingredients",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-invalid-unit",
+            componentId: component.id,
+            inventoryItemId: inventoryItem.id,
+            quantity: 250,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(inventoryItem)
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try queue.write { db in
+            try db.execute(sql: "PRAGMA ignore_check_constraints = ON")
+            try db.execute(
+                sql: "UPDATE recipe_ingredients SET unit = ? WHERE id = ?",
+                arguments: ["unknown-unit", ingredient.id]
+            )
+            try db.execute(sql: "PRAGMA ignore_check_constraints = OFF")
+        }
+
+        XCTAssertThrowsError(
+            try repository.fetchRecipeIngredients(componentId: component.id)
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderInventoryReservationPersistenceError,
+                .invalidUnit("unknown-unit")
+            )
+        }
+    }
+
 }

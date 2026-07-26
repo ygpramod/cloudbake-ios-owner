@@ -1707,6 +1707,8 @@ final class OrderListViewModel: ObservableObject {
 
     private func recipeUsageErrorMessage(for error: OrderRecipeUsageError) -> String {
         switch error {
+        case .orderNotFound:
+            return "Order could not be found."
         case .orderHasNoLinkedRecipe:
             return "Link a recipe before using it."
         case .alreadyRecorded:
@@ -1719,6 +1721,8 @@ final class OrderListViewModel: ObservableObject {
             return "Recipe ingredient inventory item could not be found."
         case .incompatibleIngredientUnit(let itemName):
             return "\(itemName) has an incompatible recipe unit."
+        case .invalidIngredientQuantity(let itemName):
+            return "\(itemName) has an invalid recipe quantity."
         case .insufficientStock(let shortages):
             let itemNames = shortages.map(\.inventoryItemName).joined(separator: ", ")
             return "Not enough \(itemNames) in inventory."

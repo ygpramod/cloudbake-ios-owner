@@ -547,6 +547,37 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             try repository.fetchOrderExtraIngredients(orderId: order.id),
             [extraIngredient]
         )
+        XCTAssertThrowsError(
+            try repository.saveOrder(
+                otherOrder,
+                replacingExtraIngredients: [
+                    OrderExtraIngredient(
+                        id: extraIngredient.id,
+                        orderId: otherOrder.id,
+                        inventoryItemId: extraIngredient.inventoryItemId,
+                        quantity: extraIngredient.quantity,
+                        unit: extraIngredient.unit,
+                        note: extraIngredient.note,
+                        createdAt: extraIngredient.createdAt,
+                        updatedAt: timestamp.addingTimeInterval(20)
+                    )
+                ],
+                allowInventoryShortage: false
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderExtraIngredientError,
+                .orderReassignmentNotAllowed
+            )
+        }
+        XCTAssertEqual(
+            try repository.fetchOrderExtraIngredients(orderId: order.id),
+            [extraIngredient]
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderExtraIngredients(orderId: otherOrder.id),
+            []
+        )
         try repository.deleteOrderExtraIngredient(id: extraIngredient.id)
 
         XCTAssertEqual(try repository.fetchOrderExtraIngredients(orderId: order.id), [])
@@ -1123,9 +1154,44 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertNil(try repository.fetchOrderRecipeUsage(orderId: confirmedOrder.id))
         XCTAssertEqual(try repository.fetchOrder(id: confirmedOrder.id)?.status, .confirmed)
         XCTAssertEqual(try repository.fetchInventoryItem(id: flour.id)?.currentQuantity, 500)
+        let unlinkedDirectReadyOrder = Order(
+            id: directReadyOrder.id,
+            customerId: directReadyOrder.customerId,
+            cakeDesignId: directReadyOrder.cakeDesignId,
+            customerReferencePhotoId: directReadyOrder.customerReferencePhotoId,
+            recipeId: nil,
+            recipeScaleMultiplier: 1,
+            title: directReadyOrder.title,
+            customerName: directReadyOrder.customerName,
+            status: directReadyOrder.status,
+            dueAt: directReadyOrder.dueAt,
+            fulfillmentType: directReadyOrder.fulfillmentType,
+            deliveryAddress: directReadyOrder.deliveryAddress,
+            cakeNotes: directReadyOrder.cakeNotes,
+            cakeMessage: directReadyOrder.cakeMessage,
+            quotedPrice: directReadyOrder.quotedPrice,
+            depositPaid: directReadyOrder.depositPaid,
+            paymentNotes: directReadyOrder.paymentNotes,
+            createdAt: directReadyOrder.createdAt,
+            updatedAt: directReadyOrder.updatedAt
+        )
+        XCTAssertThrowsError(
+            try repository.saveOrder(
+                unlinkedDirectReadyOrder,
+                replacingExtraIngredients: try repository.fetchOrderExtraIngredients(
+                    orderId: confirmedOrder.id
+                ),
+                allowInventoryShortage: false
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderRecipeUsageError,
+                .inventoryConsumptionRequired
+            )
+        }
 
         let readyOrder = try repository.changeOrderStatus(
-            order: confirmedOrder,
+            order: directReadyOrder,
             status: .ready,
             updatedAt: readyAt,
             usageId: "usage-reservation-cake",
@@ -1387,7 +1453,11 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             createdAt: timestamp,
             updatedAt: timestamp
         )
-        func makeOrder(id: String, recipeId: String) -> Order {
+        func makeOrder(
+            id: String,
+            recipeId: String?,
+            status: OrderStatus = .confirmed
+        ) -> Order {
             Order(
                 id: id,
                 customerId: nil,
@@ -1395,7 +1465,7 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
                 recipeId: recipeId,
                 title: id,
                 customerName: "Amy",
-                status: .confirmed,
+                status: status,
                 dueAt: timestamp.addingTimeInterval(10_000),
                 fulfillmentType: .pickup,
                 deliveryAddress: nil,
@@ -1420,6 +1490,25 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         )
         let validOrder = makeOrder(id: "order-repair-valid", recipeId: validRecipe.id)
         let invalidOrder = makeOrder(id: "order-repair-invalid", recipeId: invalidRecipe.id)
+        let extraOnlyDraftOrder = makeOrder(
+            id: "order-repair-extra-only",
+            recipeId: nil,
+            status: .draft
+        )
+        let extraOnlyOrder = makeOrder(
+            id: extraOnlyDraftOrder.id,
+            recipeId: nil
+        )
+        let extraOnlyIngredient = OrderExtraIngredient(
+            id: "extra-repair-only",
+            orderId: extraOnlyOrder.id,
+            inventoryItemId: flour.id,
+            quantity: 50,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
         try repository.save(flour)
         try repository.save(validRecipe)
         try repository.save(invalidRecipe)
@@ -1429,8 +1518,11 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         try repository.save(invalidIngredient)
         try repository.save(validOrder)
         try repository.save(invalidOrder)
+        try repository.save(extraOnlyDraftOrder)
+        try repository.save(extraOnlyIngredient)
+        try repository.save(extraOnlyOrder)
         try queue.write { db in
-            for order in [validOrder, invalidOrder] {
+            for order in [validOrder, invalidOrder, extraOnlyOrder] {
                 try db.execute(
                     sql: """
                         INSERT INTO order_inventory_reservation_repairs
@@ -1448,7 +1540,7 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
 
         XCTAssertEqual(
             try repository.repairOrderInventoryReservations(limit: 50, at: repairedAt),
-            OrderInventoryReservationRepairSummary(completedCount: 1, failedCount: 1)
+            OrderInventoryReservationRepairSummary(completedCount: 2, failedCount: 1)
         )
         XCTAssertEqual(
             try repository.fetchOrderInventoryReservations(orderId: validOrder.id)
@@ -1458,6 +1550,16 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         )
         XCTAssertEqual(
             try repository.fetchOrderInventoryReservationRepair(orderId: validOrder.id)?.state,
+            .complete
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservations(orderId: extraOnlyOrder.id)
+                .first?
+                .requiredQuantity,
+            50
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: extraOnlyOrder.id)?.state,
             .complete
         )
         XCTAssertEqual(
@@ -1517,6 +1619,116 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertEqual(
             try repository.repairOrderInventoryReservations(limit: 50, at: retryAt),
             OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 0)
+        )
+    }
+
+    func testReservationRepairPropagatesInfrastructureFailureAndStaysPending() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(
+            writer: queue,
+            idProvider: { "duplicate-repair-event" }
+        )
+        let timestamp = Date(timeIntervalSince1970: 1_800_080_000)
+        let flour = InventoryItem(
+            id: "inventory-repair-infrastructure",
+            name: "Infrastructure flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        func makeOrder(status: OrderStatus) -> Order {
+            Order(
+                id: "order-repair-infrastructure",
+                customerId: nil,
+                cakeDesignId: nil,
+                title: "Infrastructure repair",
+                customerName: "Amy",
+                status: status,
+                dueAt: timestamp.addingTimeInterval(10_000),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        }
+        let draftOrder = makeOrder(status: .draft)
+        let confirmedOrder = makeOrder(status: .confirmed)
+        let extraIngredient = OrderExtraIngredient(
+            id: "extra-repair-infrastructure",
+            orderId: draftOrder.id,
+            inventoryItemId: flour.id,
+            quantity: 50,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(flour)
+        try repository.save(draftOrder)
+        try repository.save(extraIngredient)
+        try repository.save(confirmedOrder)
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_repairs
+                    (order_id, state, attempt_count, updated_at_unix_time)
+                    VALUES (?, ?, 0, ?)
+                    """,
+                arguments: [
+                    confirmedOrder.id,
+                    OrderInventoryReservationRepairState.pending.rawValue,
+                    timestamp.timeIntervalSince1970
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "duplicate-repair-event",
+                    confirmedOrder.id,
+                    flour.id,
+                    OrderInventoryReservationEventKind.created.rawValue,
+                    OrderInventoryReservationEventReason.orderConfirmed.rawValue,
+                    0,
+                    1,
+                    InventoryUnit.gram.rawValue,
+                    timestamp.timeIntervalSince1970
+                ]
+            )
+        }
+
+        XCTAssertThrowsError(
+            try repository.repairOrderInventoryReservations(
+                limit: 50,
+                at: timestamp.addingTimeInterval(10)
+            )
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: confirmedOrder.id)?.state,
+            .pending
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: confirmedOrder.id)?.attemptCount,
+            0
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservations(orderId: confirmedOrder.id),
+            []
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationEvents(
+                orderId: confirmedOrder.id,
+                limit: 50
+            ).count,
+            1
         )
     }
 

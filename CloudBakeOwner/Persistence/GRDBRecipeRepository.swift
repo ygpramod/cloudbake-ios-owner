@@ -113,9 +113,10 @@ extension GRDBCoreDataRepository {
                     ORDER BY created_at_unix_time ASC, id
                     """,
                 arguments: [componentId]
-            ).compactMap { row in
-                guard let unit = InventoryUnit(rawValue: row["unit"]) else {
-                    return nil
+            ).map { row in
+                let unitValue: String = row["unit"]
+                guard let unit = InventoryUnit(rawValue: unitValue) else {
+                    throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
                 }
 
                 return recipeIngredient(from: row, unit: unit)
@@ -305,9 +306,10 @@ extension GRDBCoreDataRepository {
                          recipe_ingredients.id
                 """,
             arguments: [recipeId]
-        ).compactMap { row in
-            guard let unit = InventoryUnit(rawValue: row["unit"]) else {
-                return nil
+        ).map { row in
+            let unitValue: String = row["unit"]
+            guard let unit = InventoryUnit(rawValue: unitValue) else {
+                throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
             }
 
             return recipeIngredient(from: row, unit: unit)
