@@ -252,6 +252,10 @@ Settings and defaults to 9:00 AM.
     reconcile without fabricating historical events. After the owner approves the legacy rule
     below, an atomic migration may convert that amount to a labelled opening receipt and zero the
     legacy field, or keep it outside the receipt ledger.
+11. A receipt is never edited or deleted. Correcting a mistake appends one timestamped void entry
+    with an optional owner reason, excludes that receipt from derived totals, and leaves both the
+    original receipt and correction visible in payment history. The corrected amount is recorded
+    as a new receipt.
 
 ### Owner Interview Decisions
 
@@ -289,11 +293,9 @@ reports are outside this improvement point.
 
 The following also require owner confirmation before implementation:
 
-1. whether correcting a mistaken receipt means a reversible void/correction entry or editable
-   history;
-2. whether pre-migration aggregate paid amounts should become one clearly labelled opening receipt
+1. whether pre-migration aggregate paid amounts should become one clearly labelled opening receipt
    or remain outside the receipt ledger with a migration note;
-3. whether CSV export is required in this slice.
+2. whether CSV export is required in this slice.
 
 Do not implement the report UI or destructive payment correction behavior until these decisions are
 recorded here.
