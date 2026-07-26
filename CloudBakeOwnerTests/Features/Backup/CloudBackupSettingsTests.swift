@@ -123,6 +123,51 @@ final class CloudBackupSettingsTests: XCTestCase {
         )
     }
 
+    func testViewModelDirectsRevokedPhotoAccessToPhotosSettings() async {
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .enabled),
+            backupResult: .failed(.photosPermissionDenied)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+
+        await viewModel.backUpNow()
+
+        XCTAssertEqual(
+            viewModel.actionMessage,
+            "Allow CloudBake full access to Photos in iPhone Settings, then try again."
+        )
+    }
+
+    func testViewModelReportsFailureAfterPhotoRemovalTruthfully() async {
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .failed(.temporarilyUnavailable)),
+            backupResult: .failedAfterPhotoRemoval(.temporarilyUnavailable)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+
+        await viewModel.backUpNow()
+
+        XCTAssertEqual(
+            viewModel.actionMessage,
+            "The unavailable photo references were removed from CloudBake, but the backup did not complete. Check the connection and try again. Your previous backup is unchanged."
+        )
+    }
+
+    func testViewModelReportsDeferralAfterPhotoRemovalTruthfully() async {
+        let service = CloudBackupSettingsServiceSpy(
+            snapshot: settingsSnapshot(state: .waitingForWiFi),
+            backupResult: .deferredAfterPhotoRemoval(.networkUnavailable)
+        )
+        let viewModel = CloudBackupSettingsViewModel(service: service)
+
+        await viewModel.backUpNow()
+
+        XCTAssertEqual(
+            viewModel.actionMessage,
+            "The unavailable photo references were removed from CloudBake, but the backup did not continue. Connect this iPhone to the internet and try again."
+        )
+    }
+
     func testViewModelPresentsVerificationAsDistinctActiveStatus() async {
         let service = CloudBackupSettingsServiceSpy(
             snapshot: settingsSnapshot(state: .verifying)

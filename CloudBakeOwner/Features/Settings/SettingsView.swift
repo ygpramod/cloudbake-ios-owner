@@ -290,6 +290,8 @@ final class SettingsViewModel: ObservableObject {
         statusMessage = nil
         if error as? ManualBackupServiceError == .backupFailedAfterPhotoRemoval {
             errorMessage = "The unavailable photo references were removed, but CloudBake could not create the backup. Try again."
+        } else if error as? BackupExternalAssetResolverError == .accessDenied {
+            errorMessage = "Allow CloudBake full access to Photos in iPhone Settings, then try again."
         } else {
             errorMessage = "CloudBake could not create a complete backup. No backup was saved."
         }
