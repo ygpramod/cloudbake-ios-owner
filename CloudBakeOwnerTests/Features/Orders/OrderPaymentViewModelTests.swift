@@ -53,13 +53,19 @@ final class OrderPaymentViewModelTests: XCTestCase {
 
         viewModel.beginViewingOrder(order)
 
-        XCTAssertTrue(viewModel.addPaymentToSelectedOrder(amountText: "75"))
+        XCTAssertTrue(
+            viewModel.addPaymentToSelectedOrder(
+                amountText: "75",
+                note: " Bank transfer "
+            )
+        )
         XCTAssertEqual(viewModel.selectedOrder?.depositPaid, Decimal(125))
         XCTAssertEqual(viewModel.selectedOrder?.balanceDue, Decimal(75))
         XCTAssertEqual(viewModel.selectedOrder?.paymentStatus, "Part Paid")
         XCTAssertEqual(repository.orders.first?.depositPaid, Decimal(125))
         XCTAssertEqual(repository.paymentReceipts.map(\.amount), [Decimal(75)])
         XCTAssertEqual(repository.paymentReceipts.first?.receivedAt, updatedAt)
+        XCTAssertEqual(repository.paymentReceipts.first?.note, "Bank transfer")
         XCTAssertEqual(viewModel.selectedOrderPaymentReceipts, repository.paymentReceipts)
     }
 

@@ -585,7 +585,7 @@ final class OrderListViewModel: ObservableObject {
                     NewPaymentReceipt(
                         amount: $0,
                         receivedAt: now,
-                        note: nil,
+                        note: draftPaymentNotes,
                         createdAt: now
                     )
                 },
@@ -914,7 +914,11 @@ final class OrderListViewModel: ObservableObject {
         return markOrderPaid(selectedOrder)
     }
 
-    func addPayment(to order: Order, amountText: String) -> Bool {
+    func addPayment(
+        to order: Order,
+        amountText: String,
+        note: String = ""
+    ) -> Bool {
         let trimmed = TextInputFormatting.trimmed(amountText)
         guard let amount = Decimal(string: trimmed), amount > 0 else {
             errorMessage = "Payment amount must be greater than zero."
@@ -926,7 +930,7 @@ final class OrderListViewModel: ObservableObject {
                 orderId: order.id,
                 amount: amount,
                 receivedAt: now,
-                note: nil,
+                note: note,
                 createdAt: now
             )
             return refreshAfterRecordingPayment(orderId: order.id)
@@ -968,13 +972,20 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
-    func addPaymentToSelectedOrder(amountText: String) -> Bool {
+    func addPaymentToSelectedOrder(
+        amountText: String,
+        note: String = ""
+    ) -> Bool {
         guard let selectedOrder else {
             errorMessage = "Order could not be found."
             return false
         }
 
-        return addPayment(to: selectedOrder, amountText: amountText)
+        return addPayment(
+            to: selectedOrder,
+            amountText: amountText,
+            note: note
+        )
     }
 
     func voidPaymentReceipt(_ receipt: PaymentReceipt, reason: String) -> Bool {

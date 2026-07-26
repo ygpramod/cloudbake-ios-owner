@@ -23,6 +23,7 @@ struct OrderDetailView: View {
     @State private var editingChecklistItem: OrderChecklistItem?
     @State private var editedChecklistItemTitle = ""
     @State private var partialPaymentAmount = ""
+    @State private var partialPaymentNote = ""
     @State private var receiptPendingVoid: PaymentReceipt?
     @State private var paymentVoidReason = ""
     @FocusState private var isChecklistTitleFocused: Bool
@@ -514,6 +515,7 @@ struct OrderDetailView: View {
             onCancel: {
                 isAddingPartialPayment = false
                 partialPaymentAmount = ""
+                partialPaymentNote = ""
             }
         ) {
             TextField("Amount", text: $partialPaymentAmount)
@@ -521,17 +523,26 @@ struct OrderDetailView: View {
                 .textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("orders.detail.payment.partial.amount")
 
+            TextField("Note (optional)", text: $partialPaymentNote)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("orders.detail.payment.partial.note")
+
             HStack(spacing: 16) {
                 centeredPopupPillButton("Cancel") {
                     isAddingPartialPayment = false
                     partialPaymentAmount = ""
+                    partialPaymentNote = ""
                 }
                 .accessibilityIdentifier("orders.detail.payment.partial.cancel")
 
                 centeredPopupPillButton("Save") {
-                    if viewModel.addPaymentToSelectedOrder(amountText: partialPaymentAmount) {
+                    if viewModel.addPaymentToSelectedOrder(
+                        amountText: partialPaymentAmount,
+                        note: partialPaymentNote
+                    ) {
                         isAddingPartialPayment = false
                         partialPaymentAmount = ""
+                        partialPaymentNote = ""
                     }
                 }
                 .accessibilityIdentifier("orders.detail.payment.partial.save")
@@ -878,6 +889,7 @@ struct OrderDetailView: View {
 
                             Button("Add Partial Payment") {
                                 partialPaymentAmount = ""
+                                partialPaymentNote = ""
                                 isAddingPartialPayment = true
                             }
                             .accessibilityIdentifier("orders.detail.payment.partial")
