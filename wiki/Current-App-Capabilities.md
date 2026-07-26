@@ -202,6 +202,10 @@ The app currently supports:
 133. owner-confirmed Ready and Completed transitions when usable inventory is short, including
     partial non-expired deduction, persisted shortfall, non-negative stock, and full ingredient
     costing from the newest known purchase price when available.
+134. owner-controlled unavailable-photo recovery for cloud and manual full backups, with one
+    aggregated decision; opaque persisted omission approvals; second confirmation and immediate
+    revalidation before exact CloudBake-reference removal; last-good cloud generation preservation;
+    and durable omitted-photo counts without exposing raw Photos identifiers.
 
 ## Partially Prepared
 
