@@ -67,6 +67,20 @@ Before production promotion:
 Schema promotion is additive. Do not remove or change a deployed field type while a released build
 can still read it. A future format change must update the backup compatibility contract first.
 
+### First production promotion
+
+On 26 July 2026, the CloudKit Console deployment review for
+`iCloud.com.cloudbake.owner` showed only the three expected additions:
+
+- `CBBackupFile` with 13 total fields;
+- `CBBackupGeneration` with 15 total fields;
+- `CBBackupPointer` with 8 total fields.
+
+The review also included the generated query indexes and security-role grants for these types. The
+schema was promoted from Development to Production and the Production record-type list was then
+reloaded to verify all three types and field counts. No unrelated application record type was
+created or changed.
+
 ## Development-Container Smoke Check
 
 This check intentionally runs outside CI because CI must not require a personal iCloud account.

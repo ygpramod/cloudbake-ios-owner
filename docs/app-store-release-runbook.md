@@ -702,7 +702,8 @@ Use this abbreviated checklist only after reading the detailed sections above.
 - [ ] Privacy, permissions, export compliance, and CloudKit entitlements re-audited.
 - [ ] Exact Xcode Apple Account has both Developer Program and App Store Connect access.
 - [ ] Local Apple Distribution signing certificate valid.
-- [ ] CloudKit production schema compatible with the build.
+- [ ] CloudKit production schema compatible with the build; compare it with
+      `docs/cloudkit-backup-operations.md`.
 - [ ] SHA-labelled archive succeeds and metadata is inspected.
 - [ ] App Store Connect export/upload succeeds.
 - [ ] Apple processing completes without blocking warnings.
