@@ -355,6 +355,13 @@ not update the last-backup date. Direct import of a `.cloudbakebackup` file is n
 available, so retain the package and use iPhone or encrypted Finder backup as an additional
 device-level recovery option.
 
+If **Create Full Backup** finds Photos-library images that no longer exist, CloudBake shows one
+decision after scanning all references. **Back Up Without Photos** leaves active bakery records
+unchanged and creates a truthful package that reports the omitted count. **Remove From CloudBake And
+Back Up** requires a second confirmation, rechecks each photo, and removes only CloudBake references
+that are still proven unavailable. **Cancel** changes nothing. None of these choices deletes an
+original item from the iPhone Photos library.
+
 CloudBake provides one best-effort automatic disaster-recovery backup to
 the owner's private CloudKit database each eligible night. Automatic transfer is Wi-Fi-only, can be
 deferred by iCloud account, power, thermal, or storage conditions, and catches up asynchronously
@@ -374,6 +381,13 @@ data-use prompt. On cellular, CloudBake displays the estimated transfer size and
 after explicit approval. That approval applies to one backup attempt; a later cellular backup asks
 again. Status and notifications use safe operational wording and never include customer, recipe,
 cost, or photo content.
+
+If **Back Up Now** finds unavailable Photos-library images, it uses the same omit, confirmed-removal,
+or cancel decision as a full file backup. Newly missing photos stop automatic backup until the owner
+decides; automatic backup never silently approves a new omission. A successful backup continues to
+show **Backup Contents** with the number of omitted photos. Limited or denied Photos access and
+temporary iCloud Photos errors are reported for correction or retry and never treated as proof that
+a photo was deleted.
 
 Expand **Data Management** and choose **Delete Cloud Backup** to permanently remove CloudBake's
 complete recovery backup from the current private iCloud account. A destructive confirmation is

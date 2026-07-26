@@ -108,6 +108,117 @@ the next successful smoke run replaces it.
 Owner-facing backup controls and status are available in the collapsed Settings Backup section.
 Invoke the anonymous smoke check only through the explicit development harness above.
 
+## Unavailable Photos During Backup
+
+A snapshot may find a Photos-library reference whose asset no longer exists. CloudBake must
+distinguish that condition from limited or denied Photos access, cancellation, an iCloud Photos
+download failure, source mutation, encoding failure, or local storage failure. Only a missing asset
+while full Photos access is still authorized is eligible for recovery choices.
+
+**Back Up Now** and **Create Full Backup** scan the complete snapshot before presenting one owner
+decision:
+
+1. **Back Up Without Photos** stores an opaque local approval for the exact source-reference digest,
+   clears the affected references only inside the recovery snapshot, and leaves the active
+   installation unchanged.
+2. **Remove From CloudBake And Back Up** requires a second destructive confirmation. Immediately
+   before the database transaction, CloudBake rechecks Photos authorization and each candidate.
+   It removes only references still proven unavailable and never deletes a Photos-library asset.
+3. **Cancel** changes neither local records, approvals, nor the latest successful cloud generation.
+
+A newly unavailable photo stops an automatic backup safely. Automatic work may reuse only a prior
+owner-approved omission. Successful cloud and manual-file backups persist and display the omitted
+photo count; raw Photos identifiers, customer data, and filenames are not stored as omission
+metadata.
+
+When diagnosing a photo-blocked backup:
+
+1. use **Back Up Now** so the owner can make the decision;
+2. restore full Photos permission before treating access failures as deletion;
+3. retry provider or download failures without removing references;
+4. verify the previous **Last Successful Backup** remains unchanged after cancellation or failure;
+5. after success, verify **Backup Contents** reports the omitted count when it is nonzero.
+
+## Production Real-Device Disaster-Recovery Drill
+
+Complete this drill before submitting a release that changes snapshot, publication, or restore
+behavior. Use a signed distribution or TestFlight build, the production CloudKit environment, an
+unlocked iPhone, and disposable bakery records. Direct `.cloudbakebackup` import is not part of this
+drill because the app does not implement it.
+
+### Preconditions
+
+1. Record the exact git SHA, marketing version, build number, Xcode version, date, device model, and
+   iOS version.
+2. Confirm the signed app contains the `iCloud.com.cloudbake.owner` production entitlement.
+3. Confirm the production CloudKit schema is deployed and compatible.
+4. Use an iCloud account whose CloudBake data can be deleted and restored without affecting a real
+   bakery.
+5. Do not put names, phone numbers, notes, photo contents, raw Photos identifiers, CloudKit user
+   record names, generation identifiers, or payload filenames in the evidence.
+
+### Backup Phase
+
+1. Create representative disposable data: at least one customer, inventory item and stock batch,
+   recipe, order, design, custom logo, reminder-relevant date, and linked photo.
+2. Record only anonymous record counts and representative non-private field categories.
+3. Expand **Settings → Backup**, confirm the intended iCloud account if prompted, and choose
+   **Back Up Now**.
+4. On cellular, confirm the displayed size only for this attempt; otherwise use Wi-Fi.
+5. Verify Settings reports a successful backup with a fresh time and plausible estimated size.
+6. Verify restore inspection discovers a snapshot with the same created time, size, photo count,
+   integrity, and compatibility. This is the production-safe proof that the current pointer resolves
+   to the newly validated generation; private record identifiers must not be copied into evidence.
+7. If testing omission recovery, delete one disposable source photo from Photos, empty it from
+   Recently Deleted, run **Back Up Now**, choose **Back Up Without Photos**, and verify the persisted
+   omitted count. Do not use a real customer image.
+
+### Restore Phase
+
+1. Capture the anonymous expected counts, then delete the app from the disposable device or use a
+   separate clean disposable installation signed into the same iCloud account.
+2. Reinstall the exact signed build. On an empty installation, choose **Restore Backup**, never rely
+   on an automatic restore.
+3. Inspect the displayed snapshot and explicitly confirm full restore.
+4. Verify the anonymous counts and representative inventory quantity/unit, recipe linkage, order
+   status/payment category, design linkage, reminder date category, and custom-logo presence.
+5. Open the restored design and order photo surfaces. Verify available lightweight recovery images
+   render and any owner-approved omitted image is absent exactly where expected.
+6. Force-quit and relaunch. Verify restored state remains readable, reminders reconcile, and a fresh
+   **Back Up Now** can publish another validated generation.
+7. If any step fails, preserve the last valid cloud backup, record the safe error category, and do
+   not mark the release drill complete.
+
+### Evidence Template
+
+Store a completed copy in an access-controlled release record or a repository document containing
+only non-private operational evidence:
+
+```text
+Result: PASS | FAIL | BLOCKED
+Date/time zone:
+Git SHA:
+Marketing version/build:
+Distribution source: signed device build | TestFlight
+CloudKit environment: production
+Production schema verified: yes/no + method
+Device model/iOS:
+Xcode version:
+Representative anonymous record counts created:
+Back Up Now result/time/estimated size:
+Restore inspection matched created time/size/photo count/integrity/compatibility: yes/no
+Unavailable-photo choice/count (if exercised):
+Clean-install method:
+Explicit restore confirmation completed: yes/no
+Anonymous restored record counts:
+Representative field/link checks:
+Design/order/custom-logo image checks:
+Relaunch/reminder reconciliation:
+Fresh post-restore backup:
+Known issues or safe error categories:
+Evidence reviewer/date:
+```
+
 ## Background Scheduling
 
 The app registers `com.cloudbake.owner.cloud-backup` as an iOS processing task and requests the next

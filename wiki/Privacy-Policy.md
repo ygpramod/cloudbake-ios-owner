@@ -24,12 +24,20 @@ Private CloudKit data counts against the user's iCloud storage allowance.
 You can disable Cloud Backup or permanently delete its stored backup from CloudBake Settings. Local
 data remains on the iPhone when the cloud backup is deleted.
 
+If a linked Photos-library image is no longer available, CloudBake asks before creating a recovery
+backup without it or removing its broken CloudBake reference. An omission approval is stored locally
+as an opaque digest; the raw Photos identifier, customer information, and original filename are not
+uploaded as omission metadata. Removing a broken reference never deletes an item from the Photos
+library. Cancelling or failing a replacement backup leaves the latest successful cloud backup
+unchanged.
+
 ## Device Access
 
 CloudBake accesses protected iPhone resources only for features you choose to use and after iOS
 permission is granted:
 
-- Photos and camera access add bakery and reference photos to app-managed storage.
+- Photos and camera access save bakery and reference images in the iPhone Photos library and let
+  CloudBake retain their app references. The custom in-app logo uses CloudBake-managed storage.
 - Contacts access imports a contact you select into a customer draft.
 - Microphone and speech recognition create inventory drafts using on-device recognition. CloudBake
   does not retain microphone audio.

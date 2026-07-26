@@ -481,8 +481,9 @@ Perform at least this release smoke test on a real iPhone:
 8. export and import inventory and recipe CSV files through the Files picker;
 9. create a manual full backup, choose a destination, and verify the file exists;
 10. enable private Cloud Backup on a test iCloud account, run **Back Up Now**, and confirm status;
-11. exercise CloudKit full restore only with disposable test data and verify the restored records and
-    photos;
+11. complete the production real-device drill in
+    [`docs/cloudkit-backup-operations.md`](cloudkit-backup-operations.md), using only disposable test
+    data and privacy-safe evidence;
 12. verify Wi-Fi/cellular confirmation behavior;
 13. force-quit and relaunch to verify persistence;
 14. submit a TestFlight feedback report for any failure or confusing behavior.
@@ -684,6 +685,7 @@ TestFlight internal result:
 TestFlight external status:
 Real devices/iOS versions tested:
 CloudKit production schema verification:
+Production CloudKit disaster-recovery drill/result:
 Privacy/export-compliance audit:
 Known issues:
 DSA status confirmed by account holder:
