@@ -362,8 +362,7 @@ final class AppDatabase: @unchecked Sendable {
             )
         )
         for index in 1...2 {
-            try repository.save(
-                Order(
+            let order = Order(
                     id: "order-ui-projected-\(index)",
                     customerId: nil,
                     cakeDesignId: nil,
@@ -378,6 +377,10 @@ final class AppDatabase: @unchecked Sendable {
                     createdAt: timestamp,
                     updatedAt: timestamp
                 )
+            try repository.saveOrder(
+                order,
+                replacingExtraIngredients: [],
+                allowInventoryShortage: true
             )
         }
     }

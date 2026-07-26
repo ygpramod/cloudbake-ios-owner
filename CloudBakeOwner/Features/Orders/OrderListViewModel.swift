@@ -43,6 +43,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var selectedOrderIngredientCost: OrderIngredientCostSummary?
     @Published private(set) var selectedOrderIngredientCostIsActual = false
     @Published private(set) var selectedOrderInventoryReservationRepair: OrderInventoryReservationRepair?
+    @Published private(set) var selectedOrderInventoryReservations: [OrderInventoryReservationRow] = []
     @Published var isIngredientCostBreakdownExpanded = false
     @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
     @Published private(set) var selectedOrderPhotos: [OrderPhoto] = []
@@ -266,6 +267,7 @@ final class OrderListViewModel: ObservableObject {
         loadSelectedOrderCakeDesign(for: order)
         loadSelectedOrderRecipeUsage(for: order)
         loadSelectedOrderInventoryReservationRepair(for: order)
+        loadSelectedOrderInventoryReservations(for: order)
         loadSelectedOrderExtraIngredients(for: order)
         loadSelectedOrderChecklistItems(for: order)
         loadSelectedOrderPhotos(for: order)
@@ -279,6 +281,7 @@ final class OrderListViewModel: ObservableObject {
         selectedOrderCustomerReferencePhoto = nil
         selectedOrderRecipeUsage = nil
         selectedOrderInventoryReservationRepair = nil
+        selectedOrderInventoryReservations = []
         selectedOrderExtraIngredients = []
         selectedOrderIngredientShortages = []
         selectedOrderIngredientCost = nil
@@ -627,6 +630,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderCakeDesign(for: savedOrder)
             loadSelectedOrderRecipeUsage(for: savedOrder)
             loadSelectedOrderInventoryReservationRepair(for: savedOrder)
+            loadSelectedOrderInventoryReservations(for: savedOrder)
             loadSelectedOrderExtraIngredients(for: savedOrder)
             loadSelectedOrderChecklistItems(for: savedOrder)
             loadSelectedOrderPhotos(for: savedOrder)
@@ -977,6 +981,7 @@ final class OrderListViewModel: ObservableObject {
             )
             if let selectedOrder {
                 loadSelectedOrderExtraIngredients(for: selectedOrder)
+                loadSelectedOrderInventoryReservations(for: selectedOrder)
             }
             errorMessage = nil
             return true
@@ -1001,6 +1006,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderCakeDesign(for: order)
             loadSelectedOrderRecipeUsage(for: order)
             loadSelectedOrderInventoryReservationRepair(for: order)
+            loadSelectedOrderInventoryReservations(for: order)
             loadSelectedOrderExtraIngredients(for: order)
             loadSelectedOrderChecklistItems(for: order)
             loadSelectedOrderPhotos(for: order)
@@ -1602,6 +1608,34 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    private func loadSelectedOrderInventoryReservations(for order: Order) {
+        do {
+            let inventoryItems =
+                try repository.fetchInventoryItems()
+                + repository.fetchArchivedInventoryItems()
+            let itemNamesById = Dictionary(
+                uniqueKeysWithValues: inventoryItems.map { ($0.id, $0.name) }
+            )
+            selectedOrderInventoryReservations =
+                try repository.fetchOrderInventoryReservations(orderId: order.id)
+                .map { reservation in
+                    OrderInventoryReservationRow(
+                        reservation: reservation,
+                        inventoryItemName: itemNamesById[reservation.inventoryItemId]
+                            ?? "Missing inventory item"
+                    )
+                }
+                .sorted {
+                    $0.inventoryItemName.localizedCaseInsensitiveCompare(
+                        $1.inventoryItemName
+                    ) == .orderedAscending
+                }
+        } catch {
+            selectedOrderInventoryReservations = []
+            errorMessage = "Reserved inventory could not be loaded."
+        }
+    }
+
     private func loadSelectedOrderExtraIngredients(for order: Order) {
         do {
             let inventoryItems = try repository.fetchInventoryItems()
@@ -1876,6 +1910,15 @@ struct OrderExtraIngredientRow: Identifiable, Equatable {
 
     var id: String {
         ingredient.id
+    }
+}
+
+struct OrderInventoryReservationRow: Identifiable, Equatable {
+    let reservation: OrderInventoryReservation
+    let inventoryItemName: String
+
+    var id: String {
+        reservation.id
     }
 }
 

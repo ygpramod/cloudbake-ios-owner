@@ -198,6 +198,42 @@ struct OrderDetailView: View {
                     .accessibilityIdentifier("orders.detail.inventoryReservationRepairWarning")
                 }
 
+                if !viewModel.selectedOrderInventoryReservations.isEmpty {
+                    CloudBakeSection("Reserved Inventory") {
+                        CloudBakeDetailCard {
+                            ForEach(
+                                Array(viewModel.selectedOrderInventoryReservations.enumerated()),
+                                id: \.element.id
+                            ) { index, row in
+                                if index > 0 {
+                                    CloudBakeDetailDivider()
+                                }
+                                HStack(spacing: 12) {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .foregroundStyle(Color.cloudBakeMint)
+                                        .accessibilityHidden(true)
+                                    Text(row.inventoryItemName)
+                                        .font(.subheadline.weight(.semibold))
+                                    Spacer(minLength: 12)
+                                    Text(
+                                        "\(row.reservation.requiredQuantity.formatted()) \(row.reservation.unit.displayName)"
+                                    )
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                }
+                                .padding(.vertical, 14)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel(
+                                    "\(row.inventoryItemName), \(row.reservation.requiredQuantity.formatted()) \(row.reservation.unit.displayName) reserved"
+                                )
+                                .accessibilityIdentifier(
+                                    "orders.detail.inventoryReservation.\(row.reservation.inventoryItemId)"
+                                )
+                            }
+                        }
+                    }
+                }
+
                 customerSection(order: order)
                 recipeSection(order: order)
                 designSection(order: order)

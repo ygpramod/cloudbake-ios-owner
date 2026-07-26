@@ -936,6 +936,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         assertExistsAfterScrolling(warning, in: app, timeout: transitionTimeout)
         XCTAssertTrue(warning.label.contains("600 g"))
         XCTAssertTrue(warning.label.contains("500 g"))
+
+        let reservation = app.descendants(matching: .any)[
+            "orders.detail.inventoryReservation.inventory-ui-projected-flour"
+        ]
+        assertExistsAfterScrolling(reservation, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(reservation.label.contains("Projected cake flour"))
+        XCTAssertTrue(reservation.label.contains("300 g"))
     }
 
     func testOrderIngredientCostShowsPartialTotalAndMissingPriceWarning() throws {

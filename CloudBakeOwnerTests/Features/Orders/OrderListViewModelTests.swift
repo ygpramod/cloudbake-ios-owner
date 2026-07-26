@@ -869,6 +869,67 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
+    func testOrderDetailShowsReservedInventoryWithNamesAndQuantities() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_150_000)
+        let order = makeOrder(
+            id: "order-reserved-inventory",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: timestamp.addingTimeInterval(86_400)
+        )
+        let sugar = makeInventoryItem(
+            id: "inventory-sugar",
+            name: "Sugar",
+            unit: .gram
+        )
+        let flour = makeInventoryItem(
+            id: "inventory-flour",
+            name: "Cake Flour",
+            unit: .gram
+        )
+        repository.orders = [order]
+        repository.inventoryItems = [sugar, flour]
+        repository.inventoryReservations = [
+            OrderInventoryReservation(
+                id: "\(order.id):\(sugar.id)",
+                orderId: order.id,
+                inventoryItemId: sugar.id,
+                requiredQuantity: 80,
+                unit: .gram,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            ),
+            OrderInventoryReservation(
+                id: "\(order.id):\(flour.id)",
+                orderId: order.id,
+                inventoryItemId: flour.id,
+                requiredQuantity: 250,
+                unit: .gram,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertEqual(
+            viewModel.selectedOrderInventoryReservations.map(\.inventoryItemName),
+            ["Cake Flour", "Sugar"]
+        )
+        XCTAssertEqual(
+            viewModel.selectedOrderInventoryReservations.map {
+                $0.reservation.requiredQuantity
+            },
+            [250, 80]
+        )
+
+        viewModel.closeOrderDetail()
+
+        XCTAssertTrue(viewModel.selectedOrderInventoryReservations.isEmpty)
+    }
+
     func testAddingExtraIngredientRequiresReservationShortageOverride() {
         let repository = FakeOrderRepository()
         let order = makeOrder(
