@@ -14,7 +14,9 @@ The owner can use inventory to answer:
 6. what stock expires first,
 7. should an old item be hidden or restored.
 
-Today, inventory changes are manual. Recipe-driven stock reduction is future work.
+Inventory can be changed manually through stock actions. It also changes automatically when an
+order uses a linked recipe: CloudBake reserves ingredients for active preparation and deducts the
+used quantities once when the order reaches Ready or Completed.
 
 ## Recipe Workflow
 
@@ -47,8 +49,9 @@ Use the edit action in recipe detail when the recipe name or notes need correcti
 Use the `+` beside the Ingredients heading when the owner wants to manually define the stock needed
 by a recipe. Tap an ingredient row to edit it, or use the visible delete action for a mistaken row.
 
-Recipe ingredient rows do not reduce inventory yet. They prepare the app for a future Use Recipe
-flow that will deduct stock from oldest-expiring batches first.
+Editing recipe ingredient rows does not immediately change inventory. When an order links and uses
+the recipe, CloudBake scales the rows for that order, warns about shortages, and deducts available
+non-expired stock from oldest-expiring batches first when the order reaches Ready or Completed.
 
 ## Import Recipe Review
 

@@ -69,6 +69,15 @@ Confirm that:
 
 For the first release, PR #132 was rebase-merged only after all eight required checks were green.
 
+Run the repository's Release-composition gate before archiving:
+
+```sh
+./scripts/verify_release_composition.sh
+```
+
+This builds the Release app and proves that acceptance-only environment keys are absent from the
+actual app bundle. It complements signing and archive inspection; it does not replace them.
+
 ### 2. Synchronize a clean `main`
 
 Run from the owner-app repository:

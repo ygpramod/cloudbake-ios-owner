@@ -125,6 +125,9 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0117: Order Inventory Shortage Override
 - Slice RFC-0118: Backup Asset Recovery And Release Readiness
 - Slice RFC-0119: Business Operations, Reminders, Payments, And Scale
+- Slice RFC-0120: Isolate Acceptance Fixtures From Release Composition
+- Slice RFC-0121: Project Structure And Static Analysis
+- Slice RFC-0122: Test, CI, And Documentation Closeout
 
 ## Base RFCs
 
@@ -135,6 +138,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 ## Engineering Guardrails
 
 - Local guardrails: `docs/engineering-guardrails.md`
+- Testing and CI: `docs/testing-and-ci.md`
 - Architecture decisions: `docs/adr/`
 - Slice RFCs: `docs/rfc/slices/`
 - App Store release runbook: `docs/app-store-release-runbook.md`
@@ -188,7 +192,14 @@ CI has passed the unit/integration job and all feature-sharded acceptance jobs:
 xcodebuild test -project CloudBakeOwner.xcodeproj -scheme CloudBakeOwner -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-GitHub Actions runs acceptance UI tests in seven feature shards: `core-recipes`, `settings`,
-`orders-core`, `order-links`, `customers`, `inventory`, and `designs`. Customer workflows have their
-own shard so their runtime and failures do not extend the order-link shard. When adding a new
-acceptance test, add it to the matching CI shard in `.github/workflows/ci.yml`.
+GitHub Actions runs acceptance UI tests in eight feature shards: `core-recipes`, `settings`,
+`orders-core`, `order-workflows`, `order-links`, `customers`, `inventory`, and `designs`.
+`order-workflows` isolates ingredient, checklist, and photo journeys from core order navigation and
+status coverage. Every acceptance test must be registered exactly once; CI enforces this with:
+
+```sh
+./scripts/check_acceptance_test_registration.py
+```
+
+Changed Swift files and the Release app composition are also checked before unit/integration tests.
+See [`docs/testing-and-ci.md`](docs/testing-and-ci.md) for exact local commands and CI ownership.

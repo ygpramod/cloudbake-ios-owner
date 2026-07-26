@@ -31,6 +31,9 @@ Release composition.
 3. Dashboard launch and seeded completed-order acceptance journeys remain green.
 4. A Release build succeeds and a binary scan proves acceptance environment keys are absent.
 
+RFC-0122 makes validation item 4 a required CI contract through
+`scripts/verify_release_composition.sh`.
+
 ## Wiki Decision
 
 No wiki change is required. This slice changes build composition and test architecture only; it
