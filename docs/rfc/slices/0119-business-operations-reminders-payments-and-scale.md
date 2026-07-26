@@ -253,15 +253,20 @@ Settings and defaults to 9:00 AM.
     below, an atomic migration may convert that amount to a labelled opening receipt and zero the
     legacy field, or keep it outside the receipt ledger.
 
-### Owner Interview Decision
+### Owner Interview Decisions
 
-The owner must choose the report's primary purpose:
+The first reporting release contains exactly three reports:
 
-1. money received during a selected period;
-2. money still outstanding as of today;
-3. a full ledger containing both, with summary totals and drill-down.
+1. Payment Ledger;
+2. Order Profitability;
+3. Sales & Orders.
 
-Recommendation: option 3, opening on the Outstanding filter because it is the actionable view.
+The Payment Ledger is a full ledger containing both money received and money still outstanding,
+with summary totals and order drill-down. It opens on the Outstanding filter because that is the
+actionable owner view.
+
+Inventory usage and waste, upcoming workload, customer summary, and recipe/design popularity
+reports are outside this improvement point.
 
 The following also require owner confirmation before implementation:
 
