@@ -326,6 +326,25 @@ final class ManualBackupServiceTests: XCTestCase {
     }
 
     @MainActor
+    func testSettingsPreparationDirectsRevokedPhotoAccessToPhotosSettings() async throws {
+        let database = try AppDatabase.makeInMemory()
+        let viewModel = SettingsViewModel(
+            repository: database.makeCoreDataRepository(),
+            manualBackupService: ManualBackupPreparingStub(
+                result: .failure(BackupExternalAssetResolverError.accessDenied)
+            )
+        )
+
+        let prepared = await viewModel.prepareManualBackup()
+
+        XCTAssertNil(prepared)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "Allow CloudBake full access to Photos in iPhone Settings, then try again."
+        )
+    }
+
+    @MainActor
     func testSettingsWaitsForPhotoDecisionAndReportsApprovedOmission() async throws {
         let database = try AppDatabase.makeInMemory()
         let proposal = ManualBackupUnavailablePhotoProposal(

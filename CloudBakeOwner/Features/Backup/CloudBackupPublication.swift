@@ -180,6 +180,7 @@ enum CloudBackupErrorCategory: String, Equatable, Sendable {
     case quotaExceeded
     case authenticationRequired
     case permissionDenied
+    case photosPermissionDenied
     case conflict
     case cancelled
     case corruptRemoteData

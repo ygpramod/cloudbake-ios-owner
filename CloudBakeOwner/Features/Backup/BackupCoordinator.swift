@@ -55,23 +55,27 @@ struct ManualUnavailablePhotoBackupProposal: Equatable, Sendable {
     let unavailablePhotoCount: Int
     fileprivate let assets: [BackupUnavailableExternalAsset]
     fileprivate let startedAt: Date
+    fileprivate let didRemoveUnavailablePhotoReferences: Bool
 
     init(id: String, unavailablePhotoCount: Int) {
         self.id = id
         self.unavailablePhotoCount = unavailablePhotoCount
         assets = []
         startedAt = .distantPast
+        didRemoveUnavailablePhotoReferences = false
     }
 
     fileprivate init(
         id: String,
         assets: [BackupUnavailableExternalAsset],
-        startedAt: Date
+        startedAt: Date,
+        didRemoveUnavailablePhotoReferences: Bool
     ) {
         self.id = id
         unavailablePhotoCount = assets.count
         self.assets = assets
         self.startedAt = startedAt
+        self.didRemoveUnavailablePhotoReferences = didRemoveUnavailablePhotoReferences
     }
 }
 
@@ -82,8 +86,10 @@ enum ManualBackupResult: Equatable, Sendable {
     case requiresUnavailablePhotoDecision(ManualUnavailablePhotoBackupProposal)
     case busy
     case deferred(BackupDeferralReason)
+    case deferredAfterPhotoRemoval(BackupDeferralReason)
     case invalidCellularApproval
     case failed(CloudBackupErrorCategory)
+    case failedAfterPhotoRemoval(CloudBackupErrorCategory)
 }
 
 enum CloudBackupDeletionResult: Equatable, Sendable {
@@ -167,6 +173,7 @@ actor BackupCoordinator {
     private struct PreparedManualBackup {
         let proposal: ManualCellularBackupProposal
         let package: AppSnapshotPackage
+        let didRemoveUnavailablePhotoReferences: Bool
     }
 
     private let snapshotCreator: any RecoverableAppSnapshotCreating
@@ -307,7 +314,8 @@ actor BackupCoordinator {
 
         return await createManualSnapshotAndContinue(
             connection: environment.connection,
-            startedAt: date
+            startedAt: date,
+            didRemoveUnavailablePhotoReferences: false
         )
     }
 
@@ -348,7 +356,11 @@ actor BackupCoordinator {
         omissionStore.approve(
             sourceReferences: Set(proposal.assets.map(\.sourceReference))
         )
-        return await retryManualBackup(after: proposal)
+        return await retryManualBackup(
+            after: proposal,
+            didRemoveUnavailablePhotoReferences:
+                proposal.didRemoveUnavailablePhotoReferences
+        )
     }
 
     func removeManualUnavailablePhotos(
@@ -361,6 +373,7 @@ actor BackupCoordinator {
         }
         pendingUnavailablePhotoProposal = nil
         activeOperation = .preparingManual
+        let didRemoveUnavailablePhotoReferences: Bool
         do {
             let confirmedReferences =
                 try await unavailablePhotoRevalidator.confirmedUnavailableReferences(
@@ -371,10 +384,22 @@ actor BackupCoordinator {
                     confirmedReferences
                 )
             }
+            didRemoveUnavailablePhotoReferences =
+                proposal.didRemoveUnavailablePhotoReferences
+                || !confirmedReferences.isEmpty
         } catch {
-            return await finishManualFailure(error, startedAt: proposal.startedAt)
+            return await finishManualFailure(
+                error,
+                startedAt: proposal.startedAt,
+                didRemoveUnavailablePhotoReferences:
+                    proposal.didRemoveUnavailablePhotoReferences
+            )
         }
-        return await retryManualBackup(after: proposal)
+        return await retryManualBackup(
+            after: proposal,
+            didRemoveUnavailablePhotoReferences:
+                didRemoveUnavailablePhotoReferences
+        )
     }
 
     func cancelManualUnavailablePhotoDecision(proposalID: String) {
@@ -439,7 +464,9 @@ actor BackupCoordinator {
         return await publishManualPackage(
             preparedManualBackup.package,
             transferPolicy: .cellularAllowed,
-            startedAt: now()
+            startedAt: now(),
+            didRemoveUnavailablePhotoReferences:
+                preparedManualBackup.didRemoveUnavailablePhotoReferences
         )
     }
 
@@ -577,7 +604,8 @@ actor BackupCoordinator {
     private func publishManualPackage(
         _ package: AppSnapshotPackage,
         transferPolicy: CloudBackupTransferPolicy,
-        startedAt: Date
+        startedAt: Date,
+        didRemoveUnavailablePhotoReferences: Bool
     ) async -> ManualBackupResult {
         do {
             try Task.checkCancellation()
@@ -610,24 +638,33 @@ actor BackupCoordinator {
         } catch {
             await packageCleaner.removePackage(generationID: package.generationID)
             preparedManualBackup = nil
-            return await finishManualFailure(error, startedAt: startedAt)
+            return await finishManualFailure(
+                error,
+                startedAt: startedAt,
+                didRemoveUnavailablePhotoReferences:
+                    didRemoveUnavailablePhotoReferences
+            )
         }
     }
 
     private func finishManualFailure(
         _ error: Error,
-        startedAt: Date
+        startedAt: Date,
+        didRemoveUnavailablePhotoReferences: Bool = false
     ) async -> ManualBackupResult {
         let category = errorCategory(for: error)
         recordFailure(at: now(), category: category)
         finishOperation()
         await scheduleNextAttempt(from: scheduleStore.load(), fallbackDate: startedAt)
-        return .failed(category)
+        return didRemoveUnavailablePhotoReferences
+            ? .failedAfterPhotoRemoval(category)
+            : .failed(category)
     }
 
     private func createManualSnapshotAndContinue(
         connection: BackupConnection,
-        startedAt: Date
+        startedAt: Date,
+        didRemoveUnavailablePhotoReferences: Bool
     ) async -> ManualBackupResult {
         var package: AppSnapshotPackage?
         do {
@@ -648,7 +685,9 @@ actor BackupCoordinator {
                 )
                 preparedManualBackup = PreparedManualBackup(
                     proposal: proposal,
-                    package: createdPackage
+                    package: createdPackage,
+                    didRemoveUnavailablePhotoReferences:
+                        didRemoveUnavailablePhotoReferences
                 )
                 activeOperation = .awaitingManualCellularApproval
                 return .requiresCellularConfirmation(proposal)
@@ -658,7 +697,9 @@ actor BackupCoordinator {
             return await publishManualPackage(
                 createdPackage,
                 transferPolicy: .wifiOnly,
-                startedAt: startedAt
+                startedAt: startedAt,
+                didRemoveUnavailablePhotoReferences:
+                    didRemoveUnavailablePhotoReferences
             )
         } catch let error as BackupUnavailableExternalAssetsError {
             if let package {
@@ -667,7 +708,9 @@ actor BackupCoordinator {
             let proposal = ManualUnavailablePhotoBackupProposal(
                 id: makeProposalID(),
                 assets: error.assets,
-                startedAt: startedAt
+                startedAt: startedAt,
+                didRemoveUnavailablePhotoReferences:
+                    didRemoveUnavailablePhotoReferences
             )
             pendingUnavailablePhotoProposal = proposal
             activeOperation = .awaitingManualUnavailablePhotoDecision
@@ -676,12 +719,18 @@ actor BackupCoordinator {
             if let package {
                 await packageCleaner.removePackage(generationID: package.generationID)
             }
-            return await finishManualFailure(error, startedAt: startedAt)
+            return await finishManualFailure(
+                error,
+                startedAt: startedAt,
+                didRemoveUnavailablePhotoReferences:
+                    didRemoveUnavailablePhotoReferences
+            )
         }
     }
 
     private func retryManualBackup(
-        after proposal: ManualUnavailablePhotoBackupProposal
+        after proposal: ManualUnavailablePhotoBackupProposal,
+        didRemoveUnavailablePhotoReferences: Bool
     ) async -> ManualBackupResult {
         pendingUnavailablePhotoProposal = nil
         activeOperation = .preparingManual
@@ -690,11 +739,15 @@ actor BackupCoordinator {
         )
         if let reason = manualDeferralReason(for: environment) {
             finishOperation()
-            return .deferred(reason)
+            return didRemoveUnavailablePhotoReferences
+                ? .deferredAfterPhotoRemoval(reason)
+                : .deferred(reason)
         }
         return await createManualSnapshotAndContinue(
             connection: environment.connection,
-            startedAt: proposal.startedAt
+            startedAt: proposal.startedAt,
+            didRemoveUnavailablePhotoReferences:
+                didRemoveUnavailablePhotoReferences
         )
     }
 
@@ -707,6 +760,8 @@ actor BackupCoordinator {
     private func finishPreparedManualDeferral(
         _ reason: BackupDeferralReason
     ) async -> ManualBackupResult {
+        let didRemoveUnavailablePhotoReferences =
+            preparedManualBackup?.didRemoveUnavailablePhotoReferences ?? false
         if let preparedManualBackup {
             await packageCleaner.removePackage(generationID: preparedManualBackup.package.generationID)
         }
@@ -717,7 +772,9 @@ actor BackupCoordinator {
         scheduleStore.save(metadata)
         finishOperation()
         await scheduleNextAttempt(from: metadata, fallbackDate: now())
-        return .deferred(reason)
+        return didRemoveUnavailablePhotoReferences
+            ? .deferredAfterPhotoRemoval(reason)
+            : .deferred(reason)
     }
 
     private func recoverInterruptedOperationIfNeeded() async {
@@ -913,7 +970,7 @@ actor BackupCoordinator {
         if let error = error as? BackupExternalAssetResolverError {
             switch error {
             case .accessDenied:
-                return .permissionDenied
+                return .photosPermissionDenied
             case .assetUnavailable:
                 return .photoUnavailable
             case .assetChangedDuringRead, .imageUnavailable:

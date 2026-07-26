@@ -330,10 +330,14 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             actionMessage = "Another backup is already in progress."
         case .deferred(let reason):
             actionMessage = Self.guidance(for: reason)
+        case .deferredAfterPhotoRemoval(let reason):
+            actionMessage = Self.guidanceAfterPhotoRemoval(for: reason)
         case .invalidCellularApproval:
             actionMessage = "The cellular approval expired. Start the backup again."
         case .failed(let category):
             actionMessage = Self.failureGuidance(for: category)
+        case .failedAfterPhotoRemoval(let category):
+            actionMessage = Self.failureGuidanceAfterPhotoRemoval(for: category)
         }
         snapshot = await service.currentSettings()
         if pendingCellularProposal != nil {
@@ -377,6 +381,12 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         }
     }
 
+    private static func guidanceAfterPhotoRemoval(
+        for reason: BackupDeferralReason
+    ) -> String {
+        "The unavailable photo references were removed from CloudBake, but the backup did not continue. \(guidance(for: reason))"
+    }
+
     private static func failureGuidance(for category: CloudBackupErrorCategory) -> String {
         switch category {
         case .iCloudUnavailable, .authenticationRequired:
@@ -389,6 +399,8 @@ final class CloudBackupSettingsViewModel: ObservableObject {
             "The backup was cancelled. Your previous backup is unchanged."
         case .permissionDenied:
             "CloudBake cannot access its private iCloud storage. Check iCloud settings."
+        case .photosPermissionDenied:
+            "Allow CloudBake full access to Photos in iPhone Settings, then try again."
         case .conflict:
             "The cloud backup changed during publication. Try again."
         case .corruptRemoteData:
@@ -400,13 +412,19 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         }
     }
 
+    private static func failureGuidanceAfterPhotoRemoval(
+        for category: CloudBackupErrorCategory
+    ) -> String {
+        "The unavailable photo references were removed from CloudBake, but the backup did not complete. \(failureGuidance(for: category))"
+    }
+
     private static func deletionFailureGuidance(for category: CloudBackupErrorCategory) -> String {
         switch category {
         case .authenticationRequired, .iCloudUnavailable:
             "Cloud deletion could not be verified. Backup remains off. Check iCloud and retry deletion."
         case .networkUnavailable, .temporarilyUnavailable, .cancelled:
             "Cloud deletion could not be verified. Backup remains off. Check the connection and retry deletion."
-        case .permissionDenied:
+        case .permissionDenied, .photosPermissionDenied:
             "Cloud deletion could not be verified. Backup remains off. Check iCloud access and retry deletion."
         case .quotaExceeded, .conflict, .corruptRemoteData, .photoUnavailable, .unknown:
             "Cloud deletion could not be verified. Backup remains off. Retry deletion before enabling backup."

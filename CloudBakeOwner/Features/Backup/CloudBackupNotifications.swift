@@ -52,17 +52,20 @@ struct CloudBackupNotificationPolicy: Sendable {
             return .completed
         case .failed(let category) where Self.isActionable(category):
             return .failed(category)
+        case .failedAfterPhotoRemoval(let category) where Self.isActionable(category):
+            return .failed(category)
         case .failed, .requiresAccountConfirmation, .requiresCellularConfirmation,
              .requiresUnavailablePhotoDecision,
-             .busy, .deferred, .invalidCellularApproval:
+             .busy, .deferred, .deferredAfterPhotoRemoval,
+             .failedAfterPhotoRemoval, .invalidCellularApproval:
             return nil
         }
     }
 
     private static func isActionable(_ category: CloudBackupErrorCategory) -> Bool {
         switch category {
-        case .quotaExceeded, .authenticationRequired, .permissionDenied, .corruptRemoteData,
-             .photoUnavailable:
+        case .quotaExceeded, .authenticationRequired, .permissionDenied,
+             .photosPermissionDenied, .corruptRemoteData, .photoUnavailable:
             true
         case .iCloudUnavailable, .networkUnavailable, .conflict, .cancelled,
              .temporarilyUnavailable, .unknown:

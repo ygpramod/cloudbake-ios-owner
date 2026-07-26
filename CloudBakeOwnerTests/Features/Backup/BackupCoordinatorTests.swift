@@ -642,8 +642,68 @@ final class BackupCoordinatorTests: XCTestCase {
             proposalID: proposal.id
         )
 
-        XCTAssertEqual(result, .failed(.permissionDenied))
+        XCTAssertEqual(result, .failed(.photosPermissionDenied))
         XCTAssertTrue(fixture.unavailableAssetRemover.removedReferences.isEmpty)
+    }
+
+    func testFailureAfterPhotoRemovalReportsTheLocalChangeTruthfully() async throws {
+        let fixture = CoordinatorFixture(holdsPublication: true)
+        let reference = "photos://missing"
+        await fixture.snapshotCreator.reportUnavailable(
+            references: [reference],
+            clearAfterReporting: true
+        )
+        guard case .requiresUnavailablePhotoDecision(let proposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected an unavailable-photo decision")
+        }
+
+        let removal = Task {
+            await fixture.coordinator.removeManualUnavailablePhotos(
+                proposalID: proposal.id
+            )
+        }
+        try await fixture.publisher.waitUntilPublicationStarts()
+        await fixture.publisher.releasePublication(
+            throwing: CloudBackupStoreError(
+                category: .temporarilyUnavailable,
+                operationID: "publish"
+            )
+        )
+
+        let result = await removal.value
+        XCTAssertEqual(result, .failedAfterPhotoRemoval(.temporarilyUnavailable))
+        XCTAssertEqual(
+            fixture.unavailableAssetRemover.removedReferences,
+            [Set([reference])]
+        )
+    }
+
+    func testDeferralAfterPhotoRemovalReportsTheLocalChangeTruthfully() async {
+        let fixture = CoordinatorFixture()
+        let reference = "photos://missing"
+        await fixture.snapshotCreator.reportUnavailable(
+            references: [reference],
+            clearAfterReporting: true
+        )
+        guard case .requiresUnavailablePhotoDecision(let proposal) =
+                await fixture.coordinator.prepareManualBackup() else {
+            return XCTFail("Expected an unavailable-photo decision")
+        }
+        await fixture.environment.setConnection(.unavailable)
+
+        let result = await fixture.coordinator.removeManualUnavailablePhotos(
+            proposalID: proposal.id
+        )
+
+        XCTAssertEqual(
+            result,
+            .deferredAfterPhotoRemoval(.networkUnavailable)
+        )
+        XCTAssertEqual(
+            fixture.unavailableAssetRemover.removedReferences,
+            [Set([reference])]
+        )
     }
 
     func testAutomaticBackupReportsNewUnavailablePhotoWithoutPublishing() async {
@@ -1106,7 +1166,7 @@ private actor FakeBackupEnvironment: BackupConnectivityChecking,
     BackupPublicationAuthorizing,
     BackupPowerChecking,
     BackupStorageChecking {
-    let connection: BackupConnection
+    private var connection: BackupConnection
     let account: BackupAccountAvailability
     let hasEligiblePower: Bool
     let hasSufficientStorage: Bool
@@ -1133,6 +1193,9 @@ private actor FakeBackupEnvironment: BackupConnectivityChecking,
     }
 
     func currentConnection() async -> BackupConnection { connection }
+    func setConnection(_ connection: BackupConnection) {
+        self.connection = connection
+    }
     func currentAvailability() async -> BackupAccountAvailability {
         didStartEligibilityCheck = true
         if holdsEligibility {

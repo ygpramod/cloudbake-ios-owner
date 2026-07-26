@@ -1086,7 +1086,7 @@ enum CloudKitBackupErrorMapper {
     private static func priority(_ category: CloudBackupErrorCategory) -> Int {
         switch category {
         case .authenticationRequired, .iCloudUnavailable: return 0
-        case .permissionDenied: return 1
+        case .permissionDenied, .photosPermissionDenied: return 1
         case .quotaExceeded: return 2
         case .conflict: return 3
         case .networkUnavailable: return 4
