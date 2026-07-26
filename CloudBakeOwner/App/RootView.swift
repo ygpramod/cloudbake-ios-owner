@@ -259,13 +259,8 @@ struct RootView: View {
             )
         case .orders:
             OrderListView(
-                viewModel: OrderListViewModel(
-                    repository: database.makeCoreDataRepository(),
-                    onReminderConfigurationChanged: {
-                        Task {
-                            await refreshLocalReminders()
-                        }
-                    }
+                viewModel: makeOrderListViewModel(
+                    repository: database.makeCoreDataRepository()
                 )
             )
         case .reminders:
@@ -275,7 +270,7 @@ struct RootView: View {
                     repository: repository
                 ),
                 makeOrderViewModel: {
-                    OrderListViewModel(repository: repository)
+                    makeOrderListViewModel(repository: repository)
                 },
                 makeInventoryViewModel: {
                     InventoryListViewModel(repository: repository)
@@ -307,6 +302,19 @@ struct RootView: View {
                 )
             )
         }
+    }
+
+    private func makeOrderListViewModel(
+        repository: GRDBCoreDataRepository
+    ) -> OrderListViewModel {
+        OrderListViewModel(
+            repository: repository,
+            onReminderConfigurationChanged: {
+                Task {
+                    await refreshLocalReminders()
+                }
+            }
+        )
     }
 
     private func refreshLocalReminders() async {
