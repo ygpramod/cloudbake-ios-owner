@@ -765,6 +765,18 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0038_add_inventory_expiry_query_index") { db in
+            try db.create(
+                index: "inventory_batches_on_expiry_remaining_id",
+                on: "inventory_stock_batches",
+                columns: [
+                    "expires_at_unix_time",
+                    "remaining_quantity",
+                    "id"
+                ]
+            )
+        }
+
         return migrator
     }
 }

@@ -565,6 +565,76 @@ protocol InventoryStockBatchRepository {
     func fetchInventoryStockBatches(inventoryItemId: String) throws -> [InventoryStockBatch]
 }
 
+struct InventoryExpiryReminderCandidate: Equatable {
+    let inventoryItemId: String
+    let itemName: String
+    let unit: InventoryUnit
+    let batch: InventoryStockBatch
+}
+
+enum InventoryExpiryReminderQueryError: Error, Equatable {
+    case invalidLimit
+    case invalidDateRange
+}
+
+protocol InventoryExpiryReminderRepository {
+    func fetchInventoryExpiryReminderCandidates(
+        expiringFrom: Date,
+        through: Date,
+        limit: Int
+    ) throws -> [InventoryExpiryReminderCandidate]
+}
+
+extension InventoryExpiryReminderRepository
+where Self: InventoryItemRepository & InventoryStockBatchRepository {
+    func fetchInventoryExpiryReminderCandidates(
+        expiringFrom: Date,
+        through: Date,
+        limit: Int
+    ) throws -> [InventoryExpiryReminderCandidate] {
+        guard (1...60).contains(limit) else {
+            throw InventoryExpiryReminderQueryError.invalidLimit
+        }
+        guard expiringFrom <= through else {
+            throw InventoryExpiryReminderQueryError.invalidDateRange
+        }
+        return try fetchInventoryItems()
+            .flatMap { item in
+                try fetchInventoryStockBatches(inventoryItemId: item.id)
+                    .compactMap { batch in
+                        guard batch.remainingQuantity > 0,
+                              let expiresAt = batch.expiresAt,
+                              expiresAt >= expiringFrom,
+                              expiresAt <= through else {
+                            return nil
+                        }
+                        return InventoryExpiryReminderCandidate(
+                            inventoryItemId: item.id,
+                            itemName: item.name,
+                            unit: item.unit,
+                            batch: batch
+                        )
+                    }
+            }
+            .sorted {
+                let lhsExpiry = $0.batch.expiresAt ?? .distantFuture
+                let rhsExpiry = $1.batch.expiresAt ?? .distantFuture
+                if lhsExpiry != rhsExpiry {
+                    return lhsExpiry < rhsExpiry
+                }
+                let nameOrder = $0.itemName.localizedCaseInsensitiveCompare(
+                    $1.itemName
+                )
+                if nameOrder != .orderedSame {
+                    return nameOrder == .orderedAscending
+                }
+                return $0.batch.id < $1.batch.id
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+}
+
 protocol VoiceInventoryImportRepository {
     func saveVoiceInventoryImport(
         items: [InventoryItem],

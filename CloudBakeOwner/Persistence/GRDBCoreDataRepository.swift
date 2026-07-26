@@ -48,6 +48,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     OrderPhotoRepository,
     InventoryTransactionRepository,
     InventoryStockBatchRepository,
+    InventoryExpiryReminderRepository,
     VoiceInventoryImportRepository,
     ExpiredStockDisposalRepository,
     PricingRuleRepository {

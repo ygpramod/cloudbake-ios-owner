@@ -23,6 +23,22 @@ final class AppDatabaseTests: XCTestCase {
         XCTAssertTrue(indexNames.contains("orders_on_customer_due_id"))
         XCTAssertTrue(indexNames.contains("orders_on_status_completed_at_id"))
         XCTAssertTrue(indexNames.contains("orders_on_design_due_id"))
+        let inventoryIndexNames = try queue.read { db in
+            try String.fetchAll(
+                db,
+                sql: """
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type = 'index'
+                      AND name LIKE 'inventory_batches_on_%'
+                    """
+            )
+        }
+        XCTAssertTrue(
+            inventoryIndexNames.contains(
+                "inventory_batches_on_expiry_remaining_id"
+            )
+        )
     }
 
     func testPaymentReminderConfigurationDefaultsToNineAndPersistsChanges() throws {

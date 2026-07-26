@@ -71,8 +71,7 @@ struct LocalNotificationScheduleCoordinator {
         "inventory-expiry-"
     ]
 
-    private let repository: any InventoryItemRepository
-        & InventoryStockBatchRepository
+    private let repository: any InventoryExpiryReminderRepository
         & ScheduledOrderReminderRepository
         & PaymentReminderConfigurationRepository
         & PaymentPendingSummaryRepository
@@ -83,8 +82,7 @@ struct LocalNotificationScheduleCoordinator {
     private let capacityPolicy: CloudBakeNotificationCapacityPolicy
 
     init(
-        repository: any InventoryItemRepository
-            & InventoryStockBatchRepository
+        repository: any InventoryExpiryReminderRepository
             & ScheduledOrderReminderRepository
             & PaymentReminderConfigurationRepository
             & PaymentPendingSummaryRepository,

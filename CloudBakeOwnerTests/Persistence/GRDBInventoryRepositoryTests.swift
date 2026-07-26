@@ -3,6 +3,48 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class GRDBInventoryRepositoryTests: XCTestCase {
+    func testExpiryReminderCandidatesAreOrderedAndHardLimitedInSQL() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let now = Date(timeIntervalSince1970: 1_800_020_000)
+        let item = InventoryItem(
+            id: "inventory-expiry-scale",
+            name: "Cake flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: now,
+            updatedAt: now
+        )
+        try repository.save(item)
+        for index in 0..<4 {
+            try repository.save(
+                InventoryStockBatch(
+                    id: "batch-expiry-\(index)",
+                    inventoryItemId: item.id,
+                    remainingQuantity: index == 0 ? 0 : 100,
+                    expiresAt: now.addingTimeInterval(
+                        TimeInterval((4 - index) * 86_400)
+                    ),
+                    createdAt: now,
+                    updatedAt: now
+                )
+            )
+        }
+
+        let candidates = try repository.fetchInventoryExpiryReminderCandidates(
+            expiringFrom: now,
+            through: now.addingTimeInterval(5 * 86_400),
+            limit: 2
+        )
+
+        XCTAssertEqual(candidates.map(\.batch.id), [
+            "batch-expiry-3",
+            "batch-expiry-2"
+        ])
+        XCTAssertEqual(candidates.map(\.itemName), ["Cake flour", "Cake flour"])
+        XCTAssertEqual(candidates.map(\.unit), [.gram, .gram])
+    }
+
     func testInventoryItemSaveUpdatesExistingItemWithSameId() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let createdAt = Date(timeIntervalSince1970: 1_800_020_000)

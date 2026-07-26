@@ -214,6 +214,60 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchInventoryExpiryReminderCandidates(
+        expiringFrom: Date,
+        through: Date,
+        limit: Int
+    ) throws -> [InventoryExpiryReminderCandidate] {
+        guard (1...60).contains(limit) else {
+            throw InventoryExpiryReminderQueryError.invalidLimit
+        }
+        guard expiringFrom <= through else {
+            throw InventoryExpiryReminderQueryError.invalidDateRange
+        }
+        return try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT
+                        inventory_stock_batches.*,
+                        inventory_items.name AS inventory_item_name,
+                        inventory_items.unit AS inventory_item_unit
+                    FROM inventory_stock_batches
+                    JOIN inventory_items
+                      ON inventory_items.id =
+                        inventory_stock_batches.inventory_item_id
+                    WHERE inventory_stock_batches.remaining_quantity > 0
+                      AND inventory_stock_batches.expires_at_unix_time
+                            BETWEEN ? AND ?
+                    ORDER BY
+                        inventory_stock_batches.expires_at_unix_time,
+                        lower(inventory_items.name),
+                        inventory_items.name,
+                        inventory_stock_batches.id
+                    LIMIT ?
+                    """,
+                arguments: [
+                    expiringFrom.timeIntervalSince1970,
+                    through.timeIntervalSince1970,
+                    limit
+                ]
+            ).compactMap { row in
+                guard let unit = InventoryUnit(
+                    rawValue: row["inventory_item_unit"]
+                ) else {
+                    return nil
+                }
+                return InventoryExpiryReminderCandidate(
+                    inventoryItemId: row["inventory_item_id"],
+                    itemName: row["inventory_item_name"],
+                    unit: unit,
+                    batch: inventoryStockBatch(from: row)
+                )
+            }
+        }
+    }
+
     func save(_ item: InventoryItem, in db: Database) throws {
         try db.execute(
             sql: """
