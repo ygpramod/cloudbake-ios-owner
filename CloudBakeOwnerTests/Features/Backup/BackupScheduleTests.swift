@@ -8,15 +8,43 @@ final class BackupScheduleTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let store = UserDefaultsBackupAssetOmissionStore(defaults: defaults)
 
-        store.approve(digests: ["digest-b", "digest-a"])
-        store.approve(digests: ["digest-a", "digest-c"])
+        let firstReference = "photos://asset-a"
+        let secondReference = "photos://asset-b"
+        store.approve(sourceReferences: [firstReference, secondReference])
+        store.approve(sourceReferences: [firstReference])
 
         XCTAssertEqual(
             UserDefaultsBackupAssetOmissionStore(defaults: defaults).loadApprovedDigests(),
-            ["digest-a", "digest-b", "digest-c"]
+            [
+                BackupChecksum.sha256(of: Data(firstReference.utf8)),
+                BackupChecksum.sha256(of: Data(secondReference.utf8))
+            ]
         )
-        XCTAssertNil(
-            defaults.string(forKey: UserDefaultsBackupAssetOmissionStore.approvedDigestsKey)
+        let persisted = defaults.stringArray(
+            forKey: UserDefaultsBackupAssetOmissionStore.approvedDigestsKey
+        ) ?? []
+        XCTAssertFalse(persisted.contains(where: { $0.hasPrefix("photos://") }))
+    }
+
+    func testConcurrentOmissionStoreInstancesPreserveEveryApproval() {
+        let suiteName = "BackupAssetOmissionStoreTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let stores = [
+            UserDefaultsBackupAssetOmissionStore(defaults: defaults),
+            UserDefaultsBackupAssetOmissionStore(defaults: defaults)
+        ]
+        let references = (0..<100).map { "photos://asset-\($0)" }
+
+        DispatchQueue.concurrentPerform(iterations: references.count) { index in
+            stores[index % stores.count].approve(
+                sourceReferences: [references[index]]
+            )
+        }
+
+        XCTAssertEqual(
+            Set(stores[0].loadApprovedDigests()),
+            Set(references.map { BackupChecksum.sha256(of: Data($0.utf8)) })
         )
     }
 
