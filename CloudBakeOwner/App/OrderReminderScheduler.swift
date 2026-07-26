@@ -60,12 +60,12 @@ struct OrderReminderScheduler {
 
     private static let calendar = Calendar(identifier: .gregorian)
 
-    private let repository: any OrderRepository & OrderReminderConfigurationRepository
+    private let repository: any ScheduledOrderReminderRepository
     private let notificationCenter: LocalNotificationCenter
     private let dateProvider: () -> Date
 
     init(
-        repository: any OrderRepository & OrderReminderConfigurationRepository,
+        repository: any ScheduledOrderReminderRepository,
         notificationCenter: LocalNotificationCenter = UNUserNotificationCenter.current(),
         dateProvider: @escaping () -> Date = Date.init
     ) {
@@ -96,28 +96,16 @@ struct OrderReminderScheduler {
 
     func makeReminderRequests() throws -> [UNNotificationRequest] {
         let now = dateProvider()
-        let orders = try repository.fetchOrders()
-            .filter(\.hasScheduledReminderState)
-            .filter { $0.dueAt > now }
-        let configurations = try repository.fetchOrderReminderConfigurations(
-            orderIds: orders.map(\.id)
+        return try repository.fetchScheduledOrderReminderOccurrences(
+            after: now,
+            limit: 60
         )
-        return orders
-            .flatMap { order -> [UNNotificationRequest] in
-                let configuration = configurations[order.id] ?? .initialDefault
-                guard configuration.isEnabled else {
-                    return []
-                }
-                let offsets = configuration.dayOffsets
-                    + (configuration.includesDueTime ? [0] : [])
-                return offsets.compactMap { offsetDays in
-                    guard let remindAt = Self.calendar.date(byAdding: .day, value: -offsetDays, to: order.dueAt),
-                          remindAt > now else {
-                        return nil
-                    }
-
-                    return makeReminderRequest(order: order, offsetDays: offsetDays, remindAt: remindAt)
-                }
+            .map { occurrence in
+                makeReminderRequest(
+                    order: occurrence.order,
+                    offsetDays: occurrence.offsetDays,
+                    remindAt: occurrence.remindAt
+                )
             }
     }
 
@@ -161,13 +149,13 @@ struct PaymentPendingReminderScheduler {
     private static let legacyNotificationIdentifier = "payment-pending-summary"
     private static let schedulingHorizonDays = 14
 
-    private let repository: any OrderRepository & PaymentReminderConfigurationRepository
+    private let repository: any PaymentReminderConfigurationRepository & PaymentPendingSummaryRepository
     private let notificationCenter: LocalNotificationCenter
     private let dateProvider: () -> Date
     private let calendar: Calendar
 
     init(
-        repository: any OrderRepository & PaymentReminderConfigurationRepository,
+        repository: any PaymentReminderConfigurationRepository & PaymentPendingSummaryRepository,
         notificationCenter: LocalNotificationCenter = UNUserNotificationCenter.current(),
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
@@ -210,13 +198,6 @@ struct PaymentPendingReminderScheduler {
 
     func makeReminderRequests() throws -> [UNNotificationRequest] {
         let now = dateProvider()
-        let candidateOrders = try repository.fetchOrders().filter {
-            $0.status == .completed && ($0.balanceDue ?? 0) > 0
-        }
-        guard !candidateOrders.isEmpty else {
-            return []
-        }
-
         let configuration = try repository.fetchPaymentReminderConfiguration()
         let startOfToday = calendar.startOfDay(for: now)
         var requests: [UNNotificationRequest] = []
@@ -238,15 +219,13 @@ struct PaymentPendingReminderScheduler {
                 continue
             }
 
-            let eligibleOrders = candidateOrders.filter {
-                $0.hasPaymentPending(at: triggerDate)
-            }
-            guard !eligibleOrders.isEmpty else {
+            let summary = try repository.fetchPaymentPendingSummary(at: triggerDate)
+            guard summary.orderCount > 0 else {
                 continue
             }
             requests.append(
                 makeReminderRequest(
-                    eligibleOrders: eligibleOrders,
+                    summary: summary,
                     triggerDate: triggerDate
                 )
             )
@@ -256,17 +235,14 @@ struct PaymentPendingReminderScheduler {
     }
 
     private func makeReminderRequest(
-        eligibleOrders: [Order],
+        summary: PaymentPendingSummary,
         triggerDate: Date
     ) -> UNNotificationRequest {
-        let totalBalance = eligibleOrders.reduce(Decimal.zero) {
-            $0 + max($1.balanceDue ?? 0, 0)
-        }
         let content = UNMutableNotificationContent()
         content.title = "Payments pending"
         content.body = paymentSummaryBody(
-            orderCount: eligibleOrders.count,
-            totalBalance: totalBalance
+            orderCount: summary.orderCount,
+            totalBalance: summary.totalBalance
         )
         content.sound = .default
         content.userInfo = [

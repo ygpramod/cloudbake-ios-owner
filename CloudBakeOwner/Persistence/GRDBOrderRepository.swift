@@ -283,6 +283,120 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchScheduledOrderReminderOccurrences(
+        after cutoff: Date,
+        limit: Int
+    ) throws -> [ScheduledOrderReminderOccurrence] {
+        guard (1...60).contains(limit) else {
+            throw ScheduledOrderReminderQueryError.invalidLimit
+        }
+        return try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    WITH reminder_occurrences AS (
+                        SELECT
+                            orders.*,
+                            CAST(offset.value AS INTEGER) AS reminder_offset_days,
+                            due_at_unix_time
+                                - (CAST(offset.value AS INTEGER) * 86400)
+                                AS reminder_at_unix_time
+                        FROM orders
+                        JOIN order_reminder_configurations
+                          ON order_reminder_configurations.order_id = orders.id
+                        JOIN json_each(
+                            order_reminder_configurations.day_offsets_json
+                        ) AS offset
+                        WHERE orders.status IN (?, ?, ?)
+                          AND order_reminder_configurations.mode != ?
+
+                        UNION ALL
+
+                        SELECT
+                            orders.*,
+                            0 AS reminder_offset_days,
+                            due_at_unix_time AS reminder_at_unix_time
+                        FROM orders
+                        JOIN order_reminder_configurations
+                          ON order_reminder_configurations.order_id = orders.id
+                        WHERE orders.status IN (?, ?, ?)
+                          AND order_reminder_configurations.mode != ?
+                          AND order_reminder_configurations.includes_due_time = 1
+                    )
+                    SELECT *
+                    FROM reminder_occurrences
+                    WHERE reminder_at_unix_time > ?
+                    ORDER BY
+                        reminder_at_unix_time,
+                        due_at_unix_time,
+                        id,
+                        reminder_offset_days DESC
+                    LIMIT ?
+                    """,
+                arguments: [
+                    OrderStatus.confirmed.rawValue,
+                    OrderStatus.inProgress.rawValue,
+                    OrderStatus.ready.rawValue,
+                    OrderReminderConfigurationMode.disabled.rawValue,
+                    OrderStatus.confirmed.rawValue,
+                    OrderStatus.inProgress.rawValue,
+                    OrderStatus.ready.rawValue,
+                    OrderReminderConfigurationMode.disabled.rawValue,
+                    cutoff.timeIntervalSince1970,
+                    limit
+                ]
+            ).map {
+                ScheduledOrderReminderOccurrence(
+                    order: order(from: $0),
+                    offsetDays: $0["reminder_offset_days"],
+                    remindAt: date($0["reminder_at_unix_time"])
+                )
+            }
+        }
+    }
+
+    func fetchPaymentPendingSummary(at date: Date) throws -> PaymentPendingSummary {
+        try writer.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: """
+                    SELECT
+                        COUNT(*) AS order_count,
+                        COALESCE(
+                            SUM(
+                                CAST(quoted_price_decimal AS NUMERIC)
+                                    - COALESCE(
+                                        CAST(deposit_paid_decimal AS NUMERIC),
+                                        0
+                                    )
+                            ),
+                            0
+                        ) AS total_balance
+                    FROM orders
+                    WHERE status = ?
+                      AND due_at_unix_time <= ?
+                      AND quoted_price_decimal IS NOT NULL
+                      AND CAST(quoted_price_decimal AS NUMERIC)
+                            > COALESCE(
+                                CAST(deposit_paid_decimal AS NUMERIC),
+                                0
+                            )
+                    """,
+                arguments: [
+                    OrderStatus.completed.rawValue,
+                    date.timeIntervalSince1970
+                ]
+            ) else {
+                return .empty
+            }
+            let totalBalance: Double = row["total_balance"]
+            return PaymentPendingSummary(
+                orderCount: row["order_count"],
+                totalBalance: Decimal(totalBalance)
+            )
+        }
+    }
+
     private func orderFilter(
         for query: OrderPageQuery
     ) throws -> (

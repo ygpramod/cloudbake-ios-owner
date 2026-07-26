@@ -3,6 +3,161 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
+    func testScheduledOrderReminderOccurrencesAreBoundedAndOrderedByTrigger() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+        func makeOrder(
+            id: String,
+            status: OrderStatus,
+            dueInDays: Int
+        ) -> Order {
+            Order(
+                id: id,
+                customerId: nil,
+                cakeDesignId: nil,
+                title: id,
+                customerName: "Amy",
+                status: status,
+                dueAt: now.addingTimeInterval(TimeInterval(dueInDays * 86_400)),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
+                createdAt: now,
+                updatedAt: now
+            )
+        }
+
+        let laterOrder = makeOrder(
+            id: "order-later-due",
+            status: .confirmed,
+            dueInDays: 10
+        )
+        let earlierOrder = makeOrder(
+            id: "order-earlier-due",
+            status: .ready,
+            dueInDays: 5
+        )
+        let disabledOrder = makeOrder(
+            id: "order-disabled",
+            status: .confirmed,
+            dueInDays: 2
+        )
+        let draftOrder = makeOrder(
+            id: "order-draft",
+            status: .draft,
+            dueInDays: 1
+        )
+        for order in [laterOrder, earlierOrder, disabledOrder, draftOrder] {
+            try repository.save(order)
+        }
+        try repository.saveOrderReminderConfiguration(
+            try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [9, 1],
+                includesDueTime: true
+            ),
+            orderId: laterOrder.id,
+            updatedAt: now
+        )
+        try repository.saveOrderReminderConfiguration(
+            try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [3],
+                includesDueTime: false
+            ),
+            orderId: earlierOrder.id,
+            updatedAt: now
+        )
+        try repository.saveOrderReminderConfiguration(
+            .disabled,
+            orderId: disabledOrder.id,
+            updatedAt: now
+        )
+
+        let occurrences = try repository.fetchScheduledOrderReminderOccurrences(
+            after: now,
+            limit: 2
+        )
+
+        XCTAssertEqual(occurrences.map(\.order.id), [
+            laterOrder.id,
+            earlierOrder.id
+        ])
+        XCTAssertEqual(occurrences.map(\.offsetDays), [9, 3])
+        XCTAssertEqual(occurrences.map(\.remindAt), [
+            now.addingTimeInterval(86_400),
+            now.addingTimeInterval(2 * 86_400)
+        ])
+    }
+
+    func testPaymentPendingSummaryAggregatesEligibleOrdersInSQL() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+        func makeOrder(
+            id: String,
+            status: OrderStatus,
+            dueAt: Date,
+            quotedPrice: Decimal?,
+            depositPaid: Decimal?
+        ) -> Order {
+            Order(
+                id: id,
+                customerId: nil,
+                cakeDesignId: nil,
+                title: id,
+                customerName: "Amy",
+                status: status,
+                dueAt: dueAt,
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
+                quotedPrice: quotedPrice,
+                depositPaid: depositPaid,
+                completedAt: status == .completed ? now : nil,
+                createdAt: now,
+                updatedAt: now
+            )
+        }
+
+        try repository.save(
+            makeOrder(
+                id: "order-payment-due",
+                status: .completed,
+                dueAt: now.addingTimeInterval(-1),
+                quotedPrice: Decimal(string: "100.50"),
+                depositPaid: Decimal(string: "25.25")
+            )
+        )
+        try repository.save(
+            makeOrder(
+                id: "order-payment-future",
+                status: .completed,
+                dueAt: now.addingTimeInterval(1),
+                quotedPrice: 200,
+                depositPaid: 50
+            )
+        )
+        try repository.save(
+            makeOrder(
+                id: "order-payment-ready",
+                status: .ready,
+                dueAt: now.addingTimeInterval(-1),
+                quotedPrice: 300,
+                depositPaid: 0
+            )
+        )
+
+        XCTAssertEqual(
+            try repository.fetchPaymentPendingSummary(at: now),
+            PaymentPendingSummary(
+                orderCount: 1,
+                totalBalance: Decimal(string: "75.25")!
+            )
+        )
+    }
+
     func testOrderAndCustomReminderConfigurationSaveTogether() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_004_000)

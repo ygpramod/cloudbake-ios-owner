@@ -508,7 +508,8 @@ final class OrderReminderSchedulerTests: XCTestCase {
 
 private final class FakePaymentReminderRepository:
     OrderRepository,
-    PaymentReminderConfigurationRepository {
+    PaymentReminderConfigurationRepository,
+    PaymentPendingSummaryRepository {
     var orders: [Order] = []
     var configuration = PaymentReminderConfiguration.initialDefault
     var fetchError: Error?
@@ -571,7 +572,8 @@ private actor RefreshEventRecorder {
 
 private final class FakeOrderReminderRepository:
     OrderRepository,
-    OrderReminderConfigurationRepository {
+    OrderReminderConfigurationRepository,
+    ScheduledOrderReminderRepository {
     var orders: [Order] = []
     var configurations: [String: OrderReminderConfiguration] = [:]
     var configurationFetchCount = 0

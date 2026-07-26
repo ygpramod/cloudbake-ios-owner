@@ -239,12 +239,114 @@ protocol OrderReminderConfigurationRepository {
     ) throws
 }
 
+struct ScheduledOrderReminderOccurrence: Equatable {
+    let order: Order
+    let offsetDays: Int
+    let remindAt: Date
+}
+
+enum ScheduledOrderReminderQueryError: Error, Equatable {
+    case invalidLimit
+}
+
+protocol ScheduledOrderReminderRepository {
+    func fetchScheduledOrderReminderOccurrences(
+        after date: Date,
+        limit: Int
+    ) throws -> [ScheduledOrderReminderOccurrence]
+}
+
+extension ScheduledOrderReminderRepository
+where Self: OrderRepository & OrderReminderConfigurationRepository {
+    func fetchScheduledOrderReminderOccurrences(
+        after date: Date,
+        limit: Int
+    ) throws -> [ScheduledOrderReminderOccurrence] {
+        guard (1...60).contains(limit) else {
+            throw ScheduledOrderReminderQueryError.invalidLimit
+        }
+        let calendar = Calendar(identifier: .gregorian)
+        let orders = try fetchOrders()
+            .filter(\.hasScheduledReminderState)
+            .filter { $0.dueAt > date }
+        let configurations = try fetchOrderReminderConfigurations(
+            orderIds: orders.map(\.id)
+        )
+        return orders
+            .flatMap { order -> [ScheduledOrderReminderOccurrence] in
+                let configuration = configurations[order.id] ?? .initialDefault
+                guard configuration.isEnabled else {
+                    return []
+                }
+                let offsets = configuration.dayOffsets
+                    + (configuration.includesDueTime ? [0] : [])
+                return offsets.compactMap { offsetDays in
+                    guard let remindAt = calendar.date(
+                        byAdding: .day,
+                        value: -offsetDays,
+                        to: order.dueAt
+                    ),
+                    remindAt > date else {
+                        return nil
+                    }
+                    return ScheduledOrderReminderOccurrence(
+                        order: order,
+                        offsetDays: offsetDays,
+                        remindAt: remindAt
+                    )
+                }
+            }
+            .sorted {
+                if $0.remindAt != $1.remindAt {
+                    return $0.remindAt < $1.remindAt
+                }
+                if $0.order.dueAt != $1.order.dueAt {
+                    return $0.order.dueAt < $1.order.dueAt
+                }
+                if $0.order.id != $1.order.id {
+                    return $0.order.id < $1.order.id
+                }
+                return $0.offsetDays > $1.offsetDays
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+}
+
 protocol PaymentReminderConfigurationRepository {
     func fetchPaymentReminderConfiguration() throws -> PaymentReminderConfiguration
     func savePaymentReminderConfiguration(
         _ configuration: PaymentReminderConfiguration,
         updatedAt: Date
     ) throws
+}
+
+struct PaymentPendingSummary: Equatable {
+    static let empty = PaymentPendingSummary(
+        orderCount: 0,
+        totalBalance: 0
+    )
+
+    let orderCount: Int
+    let totalBalance: Decimal
+}
+
+protocol PaymentPendingSummaryRepository {
+    func fetchPaymentPendingSummary(at date: Date) throws -> PaymentPendingSummary
+}
+
+extension PaymentPendingSummaryRepository where Self: OrderRepository {
+    func fetchPaymentPendingSummary(at date: Date) throws -> PaymentPendingSummary {
+        let eligibleOrders = try fetchOrders().filter {
+            $0.hasPaymentPending(at: date)
+        }
+        return PaymentPendingSummary(
+            orderCount: eligibleOrders.count,
+            totalBalance: eligibleOrders.reduce(Decimal.zero) {
+                $0 + max($1.balanceDue ?? 0, 0)
+            }
+        )
+    }
 }
 
 protocol OrderStatusChangeRepository {
