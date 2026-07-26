@@ -213,6 +213,30 @@ final class ProjectedIngredientDemandTests: XCTestCase {
         XCTAssertTrue(shortages.isEmpty)
     }
 
+    func testPersistedCorruptionMarkerForcesLiveDemandFallback() throws {
+        let item = makeItem(quantity: 100)
+        let order = makeDemandOrder(id: "persisted-corruption", scale: 1)
+        let reservation = OrderInventoryReservation(
+            id: "\(order.id):flour",
+            orderId: order.id,
+            inventoryItemId: item.id,
+            requiredQuantity: 25,
+            unit: .gram,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        let shortages = try shortages(
+            item: item,
+            orders: [order],
+            recipeQuantity: 150,
+            reservations: [order.id: [reservation]],
+            invalidOrderIds: [order.id]
+        )
+
+        XCTAssertEqual(shortages.first?.requiredQuantity ?? -1, 150, accuracy: 0.001)
+    }
+
     private func shortages(
         item: InventoryItem,
         orders: [Order],
@@ -221,7 +245,8 @@ final class ProjectedIngredientDemandTests: XCTestCase {
         recipeQuantity: Double,
         extras: [String: [OrderExtraIngredient]] = [:],
         reservations: [String: [OrderInventoryReservation]] = [:],
-        repairs: [String: OrderInventoryReservationRepair] = [:]
+        repairs: [String: OrderInventoryReservationRepair] = [:],
+        invalidOrderIds: Set<String> = []
     ) throws -> [ProjectedIngredientShortage] {
         let component = RecipeComponent(
             id: "component",
@@ -249,7 +274,8 @@ final class ProjectedIngredientDemandTests: XCTestCase {
             planningSnapshot: OrderInventoryReservationPlanningSnapshot(
                 consumedOrderIds: consumedOrderIds,
                 reservationsByOrderId: reservations,
-                repairsByOrderId: repairs
+                repairsByOrderId: repairs,
+                invalidOrderIds: invalidOrderIds
             ),
             stockBatches: { _ in batches },
             recipeComponents: { _ in [component] },

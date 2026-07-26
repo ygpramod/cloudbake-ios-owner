@@ -486,6 +486,12 @@ private final class PreviewDashboardInventoryItemRepository: InventoryItemReposi
         nil
     }
 
+    func fetchOrderInventoryReservationPlanningSnapshot(
+        orderIds _: [String]
+    ) throws -> OrderInventoryReservationPlanningSnapshot {
+        .empty
+    }
+
     func save(_ batch: InventoryStockBatch) throws {}
 
     func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}

@@ -34,8 +34,12 @@ enum ProjectedIngredientDemand {
             if order.status == .confirmed || order.status == .inProgress {
                 let reservations = planningSnapshot.reservationsByOrderId[order.id] ?? []
                 let repair = planningSnapshot.repairsByOrderId[order.id]
-                let shouldUseReservations = repair?.state == .complete
-                    || (repair == nil && !reservations.isEmpty)
+                let shouldUseReservations =
+                    !planningSnapshot.invalidOrderIds.contains(order.id)
+                    && (
+                        repair?.state == .complete
+                            || (repair == nil && !reservations.isEmpty)
+                    )
                 if shouldUseReservations,
                    let committedDemand = committedDemand(
                        reservations: reservations,

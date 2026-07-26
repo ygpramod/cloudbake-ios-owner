@@ -653,6 +653,12 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0032_track_reservation_repair_activation") { db in
+            try db.alter(table: "order_inventory_reservation_repairs") { table in
+                table.add(column: "last_activation_id", .text)
+            }
+        }
+
         return migrator
     }
 }

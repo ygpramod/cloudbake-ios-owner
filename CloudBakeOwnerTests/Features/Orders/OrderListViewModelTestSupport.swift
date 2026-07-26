@@ -257,7 +257,8 @@ final class FakeOrderRepository: OrderRepository,
 
     func repairOrderInventoryReservations(
         limit _: Int,
-        at _: Date
+        at _: Date,
+        activationId _: String
     ) throws -> OrderInventoryReservationRepairSummary {
         OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 0)
     }
@@ -295,6 +296,29 @@ final class FakeOrderRepository: OrderRepository,
         orderId: String
     ) throws -> OrderInventoryReservationRepair? {
         inventoryReservationRepairs.first { $0.orderId == orderId }
+    }
+
+    func fetchOrderInventoryReservationPlanningSnapshot(
+        orderIds: [String]
+    ) throws -> OrderInventoryReservationPlanningSnapshot {
+        let orderIdSet = Set(orderIds)
+        return OrderInventoryReservationPlanningSnapshot(
+            consumedOrderIds: Set(
+                usages.lazy.filter { orderIdSet.contains($0.orderId) }.map(\.orderId)
+            ),
+            reservationsByOrderId: Dictionary(
+                grouping: inventoryReservations.filter {
+                    orderIdSet.contains($0.orderId)
+                },
+                by: \.orderId
+            ),
+            repairsByOrderId: Dictionary(
+                uniqueKeysWithValues: inventoryReservationRepairs
+                    .filter { orderIdSet.contains($0.orderId) }
+                    .map { ($0.orderId, $0) }
+            ),
+            invalidOrderIds: []
+        )
     }
 
     func fetchOrder(id: String) throws -> Order? {

@@ -23,7 +23,7 @@ final class AppDestinationTests: XCTestCase {
         )
     }
 
-    func testReservationRepairRunnerDrainsFullBatchesAndStopsAfterPartialBatch() throws {
+    func testReservationRepairRunnerDrainsFullBatchesAndStopsAfterPartialBatch() async throws {
         let repository = FakeReservationRepairRepository(
             summaries: [
                 OrderInventoryReservationRepairSummary(
@@ -44,9 +44,10 @@ final class AppDestinationTests: XCTestCase {
         )
         let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
 
-        let summary = try OrderInventoryReservationRepairRunner(
+        let summary = try await OrderInventoryReservationRepairRunner(
             repository: repository,
-            dateProvider: { timestamp }
+            dateProvider: { timestamp },
+            activationIdProvider: { "activation-1" }
         ).run()
 
         XCTAssertEqual(
@@ -58,10 +59,11 @@ final class AppDestinationTests: XCTestCase {
         )
         XCTAssertEqual(repository.requestedLimits, [50, 50, 50])
         XCTAssertEqual(repository.requestedDates, [timestamp, timestamp, timestamp])
+        XCTAssertEqual(repository.requestedActivationIds, ["activation-1", "activation-1", "activation-1"])
         XCTAssertFalse(summary.hasMore)
     }
 
-    func testReservationRepairRunnerHonorsMaximumBatchCount() throws {
+    func testReservationRepairRunnerHonorsMaximumBatchCount() async throws {
         let repository = FakeReservationRepairRepository(
             summaries: Array(
                 repeating: OrderInventoryReservationRepairSummary(
@@ -73,9 +75,10 @@ final class AppDestinationTests: XCTestCase {
             )
         )
 
-        let summary = try OrderInventoryReservationRepairRunner(
+        let summary = try await OrderInventoryReservationRepairRunner(
             repository: repository,
-            maximumBatchCount: 2
+            maximumBatchCount: 2,
+            activationIdProvider: { "activation-2" }
         ).run()
 
         XCTAssertEqual(summary.completedCount, 100)
@@ -89,6 +92,7 @@ private final class FakeReservationRepairRepository:
     var summaries: [OrderInventoryReservationRepairSummary]
     var requestedLimits: [Int] = []
     var requestedDates: [Date] = []
+    var requestedActivationIds: [String] = []
 
     init(summaries: [OrderInventoryReservationRepairSummary]) {
         self.summaries = summaries
@@ -102,10 +106,12 @@ private final class FakeReservationRepairRepository:
 
     func repairOrderInventoryReservations(
         limit: Int,
-        at timestamp: Date
+        at timestamp: Date,
+        activationId: String
     ) throws -> OrderInventoryReservationRepairSummary {
         requestedLimits.append(limit)
         requestedDates.append(timestamp)
+        requestedActivationIds.append(activationId)
         guard !summaries.isEmpty else {
             return OrderInventoryReservationRepairSummary(
                 completedCount: 0,

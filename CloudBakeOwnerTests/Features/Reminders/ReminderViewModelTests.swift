@@ -336,6 +336,27 @@ private final class FakeReminderRepository: OrderRepository,
         reservationRepairs.first { $0.orderId == orderId }
     }
 
+    func fetchOrderInventoryReservationPlanningSnapshot(
+        orderIds: [String]
+    ) throws -> OrderInventoryReservationPlanningSnapshot {
+        let orderIdSet = Set(orderIds)
+        return OrderInventoryReservationPlanningSnapshot(
+            consumedOrderIds: Set(
+                usages.lazy.filter { orderIdSet.contains($0.orderId) }.map(\.orderId)
+            ),
+            reservationsByOrderId: Dictionary(
+                grouping: reservations.filter { orderIdSet.contains($0.orderId) },
+                by: \.orderId
+            ),
+            repairsByOrderId: Dictionary(
+                uniqueKeysWithValues: reservationRepairs
+                    .filter { orderIdSet.contains($0.orderId) }
+                    .map { ($0.orderId, $0) }
+            ),
+            invalidOrderIds: []
+        )
+    }
+
     func save(_ batch: InventoryStockBatch) throws {}
     func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}
     func deleteBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}

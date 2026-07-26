@@ -22,7 +22,7 @@ struct RootView: View {
     @State private var isPresentingIntroduction = false
     @StateObject private var emptyRestoreViewModel: CloudRestoreSettingsViewModel
     private let maximumSectionHistoryCount = 4
-    private let reservationRepairCoordinator = OrderInventoryReservationRepairCoordinator()
+    private let reservationRepairCoordinator = OrderInventoryReservationRepairCoordinator.shared
 
     init(database: AppDatabase, cloudBackupRuntime: CloudBackupRuntime? = nil) {
         self.database = database
@@ -141,7 +141,7 @@ struct RootView: View {
         }
         .task {
             await prepareInitialRestoreOrBackup()
-            await repairInventoryReservations()
+            guard await repairInventoryReservations() else { return }
             navigateToInitialUITestDestination()
             await refreshLocalReminders()
         }
@@ -316,13 +316,18 @@ struct RootView: View {
         await ManualBackupReminderScheduler().refreshReminder()
     }
 
-    private func repairInventoryReservations() async {
+    private func repairInventoryReservations() async -> Bool {
         do {
             _ = try await reservationRepairCoordinator.repair(database: database)
+            try Task.checkCancellation()
+            return true
+        } catch is CancellationError {
+            return false
         } catch {
             reservationRepairLogger.error(
                 "Inventory reservation repair stopped after a persistence failure"
             )
+            return true
         }
     }
 
@@ -342,7 +347,7 @@ struct RootView: View {
     private func refreshAfterRestore() async {
         navigationPath.removeAll()
         restoredDataRevision += 1
-        await repairInventoryReservations()
+        guard await repairInventoryReservations() else { return }
         await RestoreCompletionReconciler(
             refreshReminders: refreshLocalReminders,
             resumeBackup: { cloudBackupRuntime?.startPostRestoreCatchUp() }
@@ -355,8 +360,9 @@ struct OrderInventoryReservationRepairRunner {
     var batchLimit = 50
     var maximumBatchCount = 20
     var dateProvider: () -> Date = Date.init
+    var activationIdProvider: () -> String = { UUID().uuidString }
 
-    func run() throws -> OrderInventoryReservationRepairSummary {
+    func run() async throws -> OrderInventoryReservationRepairSummary {
         guard batchLimit > 0, maximumBatchCount > 0 else {
             return OrderInventoryReservationRepairSummary(
                 completedCount: 0,
@@ -368,10 +374,13 @@ struct OrderInventoryReservationRepairRunner {
         var failedCount = 0
         var hasMore = false
         let timestamp = dateProvider()
+        let activationId = activationIdProvider()
         for _ in 0..<maximumBatchCount {
+            try Task.checkCancellation()
             let summary = try repository.repairOrderInventoryReservations(
                 limit: batchLimit,
-                at: timestamp
+                at: timestamp,
+                activationId: activationId
             )
             completedCount += summary.completedCount
             failedCount += summary.failedCount
@@ -379,6 +388,7 @@ struct OrderInventoryReservationRepairRunner {
             guard summary.hasMore else {
                 break
             }
+            await Task.yield()
         }
         return OrderInventoryReservationRepairSummary(
             completedCount: completedCount,
@@ -389,19 +399,56 @@ struct OrderInventoryReservationRepairRunner {
 }
 
 actor OrderInventoryReservationRepairCoordinator {
+    static let shared = OrderInventoryReservationRepairCoordinator()
+
+    private var isRepairing = false
+    private var waiters: [
+        CheckedContinuation<OrderInventoryReservationRepairSummary, Error>
+    ] = []
+
     func repair(
         database: AppDatabase,
-        dateProvider: () -> Date = Date.init
+        dateProvider: () -> Date = Date.init,
+        activationIdProvider: () -> String = { UUID().uuidString }
+    ) async throws -> OrderInventoryReservationRepairSummary {
+        if isRepairing {
+            return try await withCheckedThrowingContinuation { continuation in
+                waiters.append(continuation)
+            }
+        }
+
+        isRepairing = true
+        do {
+            let summary = try await performRepair(
+                database: database,
+                dateProvider: dateProvider,
+                activationIdProvider: activationIdProvider
+            )
+            finishWaiters(with: .success(summary))
+            return summary
+        } catch {
+            finishWaiters(with: .failure(error))
+            throw error
+        }
+    }
+
+    private func performRepair(
+        database: AppDatabase,
+        dateProvider: () -> Date,
+        activationIdProvider: () -> String
     ) async throws -> OrderInventoryReservationRepairSummary {
         let repository = database.makeCoreDataRepository()
         let timestamp = dateProvider()
+        let activationId = activationIdProvider()
         var completedCount = 0
         var failedCount = 0
 
-        while !Task.isCancelled {
-            let summary = try OrderInventoryReservationRepairRunner(
+        while true {
+            try Task.checkCancellation()
+            let summary = try await OrderInventoryReservationRepairRunner(
                 repository: repository,
-                dateProvider: { timestamp }
+                dateProvider: { timestamp },
+                activationIdProvider: { activationId }
             ).run()
             completedCount += summary.completedCount
             failedCount += summary.failedCount
@@ -413,12 +460,17 @@ actor OrderInventoryReservationRepairCoordinator {
             }
             await Task.yield()
         }
+    }
 
-        return OrderInventoryReservationRepairSummary(
-            completedCount: completedCount,
-            failedCount: failedCount,
-            hasMore: true
-        )
+    private func finishWaiters(
+        with result: Result<OrderInventoryReservationRepairSummary, Error>
+    ) {
+        isRepairing = false
+        let continuations = waiters
+        waiters = []
+        for continuation in continuations {
+            continuation.resume(with: result)
+        }
     }
 }
 

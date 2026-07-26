@@ -189,35 +189,6 @@ protocol OrderInventoryReservationRepository {
     ) throws -> OrderInventoryReservationPlanningSnapshot
 }
 
-extension OrderInventoryReservationRepository where Self: OrderRecipeUsageRepository {
-    func fetchOrderInventoryReservationPlanningSnapshot(
-        orderIds: [String]
-    ) throws -> OrderInventoryReservationPlanningSnapshot {
-        var consumedOrderIds = Set<String>()
-        var reservationsByOrderId: [String: [OrderInventoryReservation]] = [:]
-        var repairsByOrderId: [String: OrderInventoryReservationRepair] = [:]
-
-        for orderId in orderIds {
-            if try fetchOrderRecipeUsage(orderId: orderId) != nil {
-                consumedOrderIds.insert(orderId)
-            }
-            let reservations = try fetchOrderInventoryReservations(orderId: orderId)
-            if !reservations.isEmpty {
-                reservationsByOrderId[orderId] = reservations
-            }
-            if let repair = try fetchOrderInventoryReservationRepair(orderId: orderId) {
-                repairsByOrderId[orderId] = repair
-            }
-        }
-
-        return OrderInventoryReservationPlanningSnapshot(
-            consumedOrderIds: consumedOrderIds,
-            reservationsByOrderId: reservationsByOrderId,
-            repairsByOrderId: repairsByOrderId
-        )
-    }
-}
-
 protocol OrderInventoryReservationMutationRepository {
     func saveOrder(
         _ order: Order,
@@ -226,7 +197,8 @@ protocol OrderInventoryReservationMutationRepository {
     ) throws
     func repairOrderInventoryReservations(
         limit: Int,
-        at timestamp: Date
+        at timestamp: Date,
+        activationId: String
     ) throws -> OrderInventoryReservationRepairSummary
 }
 

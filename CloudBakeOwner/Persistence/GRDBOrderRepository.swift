@@ -115,9 +115,11 @@ extension GRDBCoreDataRepository {
 
     func repairOrderInventoryReservations(
         limit: Int,
-        at timestamp: Date
+        at timestamp: Date,
+        activationId: String
     ) throws -> OrderInventoryReservationRepairSummary {
-        guard (1...50).contains(limit) else {
+        guard (1...50).contains(limit),
+              !activationId.isEmpty else {
             throw OrderInventoryReservationQueryError.invalidLimit
         }
         let orderIds = try writer.read { db in
@@ -126,14 +128,11 @@ extension GRDBCoreDataRepository {
                 sql: """
                     SELECT order_id
                     FROM order_inventory_reservation_repairs
-                    WHERE state = ?
-                       OR (
-                           state = ?
-                           AND (
-                               last_attempted_at_unix_time IS NULL
-                               OR last_attempted_at_unix_time < ?
-                           )
-                       )
+                    WHERE state IN (?, ?)
+                      AND (
+                          last_activation_id IS NULL
+                          OR last_activation_id != ?
+                      )
                     ORDER BY
                         CASE state WHEN ? THEN 0 ELSE 1 END,
                         updated_at_unix_time,
@@ -143,7 +142,7 @@ extension GRDBCoreDataRepository {
                 arguments: [
                     OrderInventoryReservationRepairState.pending.rawValue,
                     OrderInventoryReservationRepairState.failed.rawValue,
-                    timestamp.timeIntervalSince1970,
+                    activationId,
                     OrderInventoryReservationRepairState.pending.rawValue,
                     limit
                 ]
@@ -171,6 +170,7 @@ extension GRDBCoreDataRepository {
                                 attempt_count = attempt_count + 1,
                                 last_attempted_at_unix_time = ?,
                                 failure_code = NULL,
+                                last_activation_id = ?,
                                 updated_at_unix_time = ?
                             WHERE order_id = ?
                               AND state IN (?, ?)
@@ -178,6 +178,7 @@ extension GRDBCoreDataRepository {
                         arguments: [
                             OrderInventoryReservationRepairState.complete.rawValue,
                             timestamp.timeIntervalSince1970,
+                            activationId,
                             timestamp.timeIntervalSince1970,
                             orderId,
                             OrderInventoryReservationRepairState.pending.rawValue,
@@ -196,14 +197,15 @@ extension GRDBCoreDataRepository {
                 if try recordReservationRepairFailure(
                     orderId: orderId,
                     failure: failure,
-                    at: timestamp
+                    at: timestamp,
+                    activationId: activationId
                 ) {
                     failedCount += 1
                 }
             }
         }
         let hasMore = try hasEligibleInventoryReservationRepairs(
-            before: timestamp
+            excludingActivationId: activationId
         )
         return OrderInventoryReservationRepairSummary(
             completedCount: completedCount,
@@ -533,6 +535,7 @@ extension GRDBCoreDataRepository {
             var consumedOrderIds = Set<String>()
             var reservationsByOrderId: [String: [OrderInventoryReservation]] = [:]
             var repairsByOrderId: [String: OrderInventoryReservationRepair] = [:]
+            var invalidOrderIds = Set<String>()
 
             for chunkStart in stride(from: 0, to: uniqueOrderIds.count, by: 400) {
                 let chunkEnd = min(chunkStart + 400, uniqueOrderIds.count)
@@ -551,25 +554,31 @@ extension GRDBCoreDataRepository {
                         arguments: arguments
                     )
                 )
-                let reservations = try reservationRows(
+                let reservationRows = try Row.fetchAll(
+                    db,
                     sql: """
                         SELECT *
                         FROM order_inventory_reservations
                         WHERE order_id IN (\(placeholders))
                         ORDER BY order_id, inventory_item_id
                         """,
-                    arguments: arguments,
-                    in: db
+                    arguments: arguments
                 )
-                for (orderId, orderReservations) in Dictionary(
-                    grouping: reservations,
-                    by: \.orderId
-                ) {
+                for row in reservationRows {
+                    let orderId: String = row["order_id"]
+                    let unitValue: String = row["unit"]
+                    let requiredQuantity: Double = row["required_quantity"]
+                    guard let unit = InventoryUnit(rawValue: unitValue),
+                          requiredQuantity.isFinite,
+                          requiredQuantity > 0 else {
+                        invalidOrderIds.insert(orderId)
+                        continue
+                    }
                     reservationsByOrderId[orderId, default: []].append(
-                        contentsOf: orderReservations
+                        orderInventoryReservation(from: row, unit: unit)
                     )
                 }
-                let repairs = try Row.fetchAll(
+                let repairRows = try Row.fetchAll(
                     db,
                     sql: """
                         SELECT *
@@ -577,10 +586,13 @@ extension GRDBCoreDataRepository {
                         WHERE order_id IN (\(placeholders))
                         """,
                     arguments: arguments
-                ).map { row -> OrderInventoryReservationRepair in
+                )
+                for row in repairRows {
+                    let orderId: String = row["order_id"]
                     let stateValue: String = row["state"]
                     guard let state = OrderInventoryReservationRepairState(rawValue: stateValue) else {
-                        throw OrderInventoryReservationPersistenceError.invalidRepairState(stateValue)
+                        invalidOrderIds.insert(orderId)
+                        continue
                     }
                     let failureCodeValue: String? = row["failure_code"]
                     let failureCode: OrderInventoryReservationRepairFailureCode?
@@ -588,21 +600,18 @@ extension GRDBCoreDataRepository {
                         guard let parsedFailureCode = OrderInventoryReservationRepairFailureCode(
                             rawValue: failureCodeValue
                         ) else {
-                            throw OrderInventoryReservationPersistenceError.invalidRepairFailureCode(
-                                failureCodeValue
-                            )
+                            invalidOrderIds.insert(orderId)
+                            continue
                         }
                         failureCode = parsedFailureCode
                     } else {
                         failureCode = nil
                     }
-                    return orderInventoryReservationRepair(
+                    let repair = orderInventoryReservationRepair(
                         from: row,
                         state: state,
                         failureCode: failureCode
                     )
-                }
-                for repair in repairs {
                     repairsByOrderId[repair.orderId] = repair
                 }
             }
@@ -610,7 +619,8 @@ extension GRDBCoreDataRepository {
             return OrderInventoryReservationPlanningSnapshot(
                 consumedOrderIds: consumedOrderIds,
                 reservationsByOrderId: reservationsByOrderId,
-                repairsByOrderId: repairsByOrderId
+                repairsByOrderId: repairsByOrderId,
+                invalidOrderIds: invalidOrderIds
             )
         }
     }
@@ -1229,7 +1239,7 @@ private extension GRDBCoreDataRepository {
     }
 
     func hasEligibleInventoryReservationRepairs(
-        before timestamp: Date
+        excludingActivationId activationId: String
     ) throws -> Bool {
         try writer.read { db in
             try Bool.fetchOne(
@@ -1238,20 +1248,17 @@ private extension GRDBCoreDataRepository {
                     SELECT EXISTS (
                         SELECT 1
                         FROM order_inventory_reservation_repairs
-                        WHERE state = ?
-                           OR (
-                               state = ?
-                               AND (
-                                   last_attempted_at_unix_time IS NULL
-                                   OR last_attempted_at_unix_time < ?
-                               )
-                           )
+                        WHERE state IN (?, ?)
+                          AND (
+                              last_activation_id IS NULL
+                              OR last_activation_id != ?
+                          )
                     )
                     """,
                 arguments: [
                     OrderInventoryReservationRepairState.pending.rawValue,
                     OrderInventoryReservationRepairState.failed.rawValue,
-                    timestamp.timeIntervalSince1970
+                    activationId
                 ]
             ) ?? false
         }
@@ -1303,7 +1310,8 @@ private extension GRDBCoreDataRepository {
     func recordReservationRepairFailure(
         orderId: String,
         failure: (code: OrderInventoryReservationRepairFailureCode, inventoryItemId: String?),
-        at timestamp: Date
+        at timestamp: Date,
+        activationId: String
     ) throws -> Bool {
         try writer.write { db in
             try db.execute(
@@ -1313,6 +1321,7 @@ private extension GRDBCoreDataRepository {
                         attempt_count = attempt_count + 1,
                         last_attempted_at_unix_time = ?,
                         failure_code = ?,
+                        last_activation_id = ?,
                         updated_at_unix_time = ?
                     WHERE order_id = ?
                       AND state IN (?, ?)
@@ -1321,6 +1330,7 @@ private extension GRDBCoreDataRepository {
                     OrderInventoryReservationRepairState.failed.rawValue,
                     timestamp.timeIntervalSince1970,
                     failure.code.rawValue,
+                    activationId,
                     timestamp.timeIntervalSince1970,
                     orderId,
                     OrderInventoryReservationRepairState.pending.rawValue,

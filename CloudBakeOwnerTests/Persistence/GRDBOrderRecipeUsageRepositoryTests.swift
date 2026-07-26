@@ -933,6 +933,15 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
                 .invalidUnit("invalid-unit")
             )
         }
+        let corruptPlanningSnapshot =
+            try repository.fetchOrderInventoryReservationPlanningSnapshot(
+                orderIds: [order.id, pendingRepairOrder.id]
+            )
+        XCTAssertEqual(corruptPlanningSnapshot.invalidOrderIds, [order.id])
+        XCTAssertEqual(
+            corruptPlanningSnapshot.repairsByOrderId[pendingRepairOrder.id]?.state,
+            .pending
+        )
 
         try queue.write { db in
             try db.execute(sql: "PRAGMA ignore_check_constraints = ON")
@@ -1562,7 +1571,11 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            try repository.repairOrderInventoryReservations(limit: 50, at: repairedAt),
+            try repository.repairOrderInventoryReservations(
+                limit: 50,
+                at: repairedAt,
+                activationId: "activation-1"
+            ),
             OrderInventoryReservationRepairSummary(completedCount: 2, failedCount: 1)
         )
         XCTAssertEqual(
@@ -1608,7 +1621,11 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertNil(failureEvent.unit)
 
         XCTAssertEqual(
-            try repository.repairOrderInventoryReservations(limit: 50, at: repairedAt),
+            try repository.repairOrderInventoryReservations(
+                limit: 50,
+                at: repairedAt,
+                activationId: "activation-1"
+            ),
             OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 0)
         )
         XCTAssertEqual(
@@ -1616,9 +1633,13 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             1
         )
 
-        let retryAt = repairedAt.addingTimeInterval(20)
+        let retryAt = repairedAt.addingTimeInterval(-20)
         XCTAssertEqual(
-            try repository.repairOrderInventoryReservations(limit: 50, at: retryAt),
+            try repository.repairOrderInventoryReservations(
+                limit: 50,
+                at: retryAt,
+                activationId: "activation-2"
+            ),
             OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 1)
         )
         XCTAssertEqual(
@@ -1654,7 +1675,11 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             100
         )
         XCTAssertEqual(
-            try repository.repairOrderInventoryReservations(limit: 50, at: retryAt),
+            try repository.repairOrderInventoryReservations(
+                limit: 50,
+                at: retryAt,
+                activationId: "activation-2"
+            ),
             OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 0)
         )
     }
@@ -1700,7 +1725,8 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertEqual(
             try repository.repairOrderInventoryReservations(
                 limit: 1,
-                at: timestamp.addingTimeInterval(10)
+                at: timestamp.addingTimeInterval(10),
+                activationId: "page-activation"
             ),
             OrderInventoryReservationRepairSummary(
                 completedCount: 1,
@@ -1711,7 +1737,8 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertEqual(
             try repository.repairOrderInventoryReservations(
                 limit: 1,
-                at: timestamp.addingTimeInterval(10)
+                at: timestamp.addingTimeInterval(10),
+                activationId: "page-activation"
             ),
             OrderInventoryReservationRepairSummary(
                 completedCount: 1,
@@ -1806,7 +1833,8 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertThrowsError(
             try repository.repairOrderInventoryReservations(
                 limit: 50,
-                at: timestamp.addingTimeInterval(10)
+                at: timestamp.addingTimeInterval(10),
+                activationId: "infrastructure-activation"
             )
         )
         XCTAssertEqual(

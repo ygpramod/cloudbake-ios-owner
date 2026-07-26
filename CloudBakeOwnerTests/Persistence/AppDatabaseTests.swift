@@ -413,6 +413,10 @@ final class AppDatabaseTests: XCTestCase {
             XCTAssertTrue(try db.tableExists("order_inventory_reservations"))
             XCTAssertTrue(try db.tableExists("order_inventory_reservation_events"))
             XCTAssertTrue(try db.tableExists("order_inventory_reservation_repairs"))
+            XCTAssertTrue(
+                try db.columns(in: "order_inventory_reservation_repairs")
+                    .contains { $0.name == "last_activation_id" }
+            )
             XCTAssertEqual(
                 try String.fetchAll(
                     db,
