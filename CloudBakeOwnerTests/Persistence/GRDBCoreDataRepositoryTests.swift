@@ -551,7 +551,16 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
     }
 
     func testThousandOrderFixtureKeepsMainPagesBoundedIndexedAndUsesBoundedStatements() throws {
-        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        var nextGeneratedID = 0
+        let repository = GRDBCoreDataRepository(
+            writer: queue,
+            idProvider: {
+                nextGeneratedID += 1
+                return "scale-generated-\(nextGeneratedID)"
+            }
+        )
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let customerId = "scale-customer"
         try repository.save(
@@ -597,14 +606,20 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 depositPaid: status == .completed ? 25 : nil
             )
             try repository.save(orderWithoutRecordedPayment(order))
-            if let amount = order.depositPaid, amount > 0 {
-                _ = try repository.recordPayment(
-                    orderId: order.id,
-                    amount: amount,
-                    receivedAt: now,
-                    note: nil,
-                    createdAt: now
-                )
+            if status == .completed {
+                for receiptIndex in 0..<13 {
+                    _ = try repository.recordPayment(
+                        orderId: order.id,
+                        amount: receiptIndex == 12 ? 1 : 2,
+                        receivedAt: now.addingTimeInterval(
+                            TimeInterval(receiptIndex)
+                        ),
+                        note: nil,
+                        createdAt: now.addingTimeInterval(
+                            TimeInterval(receiptIndex)
+                        )
+                    )
+                }
             }
             if [.confirmed, .inProgress, .ready].contains(status) {
                 try repository.saveOrderReminderConfiguration(
@@ -658,6 +673,99 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(completed.orders.count, 25)
         XCTAssertEqual(customer.orders.count, 25)
         XCTAssertEqual(upcoming.orders.count, 25)
+
+        let receiptCount = try repository.writer.read { db in
+            try Int.fetchOne(
+                db,
+                sql: "SELECT COUNT(*) FROM payment_receipts"
+            ) ?? 0
+        }
+        XCTAssertEqual(receiptCount, 2_158)
+
+        let reportRange = ReportDateRange(
+            start: now.addingTimeInterval(-1),
+            end: now.addingTimeInterval(1_000 * 3_600)
+        )
+        let reportStatuses: Set<OrderStatus> = [
+            .confirmed, .inProgress, .ready, .completed
+        ]
+
+        recorder.reset()
+        let receivedPage = try repository.fetchReceivedPaymentPage(
+            dateRange: reportRange,
+            statuses: reportStatuses,
+            after: nil,
+            limit: 25
+        )
+        XCTAssertEqual(receivedPage.rows.count, 25)
+        XCTAssertNotNil(receivedPage.nextCursor)
+        XCTAssertLessThanOrEqual(
+            recorder.statementCount,
+            5,
+            recorder.recordedStatements.joined(separator: "\n")
+        )
+        let receivedStatement = try XCTUnwrap(
+            recorder.recordedStatements.first {
+                $0.contains("FROM payment_receipts")
+                    && $0.contains("ORDER BY payment_receipts.received_at_unix_time")
+            }
+        )
+        let receivedPlan = try expandedQueryPlan(
+            repository: repository,
+            sql: receivedStatement
+        )
+        XCTAssertTrue(
+            receivedPlan.contains {
+                $0.contains("payment_receipts_on_order_received_at_id")
+            },
+            receivedPlan.joined(separator: "\n")
+        )
+
+        recorder.reset()
+        let outstandingPage = try repository.fetchOutstandingPaymentOrderPage(
+            dateRange: reportRange,
+            statuses: reportStatuses,
+            after: nil,
+            limit: 25
+        )
+        XCTAssertEqual(outstandingPage.orders.count, 25)
+        XCTAssertNotNil(outstandingPage.nextCursor)
+        XCTAssertLessThanOrEqual(
+            recorder.statementCount,
+            5,
+            recorder.recordedStatements.joined(separator: "\n")
+        )
+        let outstandingStatement = try XCTUnwrap(
+            recorder.recordedStatements.first {
+                $0.contains("cloudbake_has_outstanding")
+                    && $0.contains("ORDER BY orders.due_at_unix_time")
+            }
+        )
+        let outstandingPlan = try expandedQueryPlan(
+            repository: repository,
+            sql: outstandingStatement
+        )
+        XCTAssertTrue(
+            outstandingPlan.contains {
+                $0.contains("orders_on_status_due_id")
+            },
+            outstandingPlan.joined(separator: "\n")
+        )
+
+        recorder.reset()
+        let salesSummaries = try repository.fetchSalesOrderSummaries(
+            dateRanges: [reportRange],
+            statuses: reportStatuses
+        )
+        XCTAssertEqual(salesSummaries.count, 1)
+        XCTAssertEqual(salesSummaries[0].orderCount, 667)
+        XCTAssertEqual(salesSummaries[0].receivedTotal, 4_150)
+        XCTAssertEqual(salesSummaries[0].outstandingTotal, 12_450)
+        XCTAssertLessThanOrEqual(
+            recorder.statementCount,
+            5,
+            recorder.recordedStatements.joined(separator: "\n")
+        )
 
         recorder.reset()
         let reminderOccurrences =
