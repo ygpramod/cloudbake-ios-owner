@@ -126,7 +126,37 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt
         )
-        try repository.save(order)
+        let persistedOrder = Order(
+            id: order.id,
+            customerId: order.customerId,
+            cakeDesignId: order.cakeDesignId,
+            recipeId: order.recipeId,
+            title: order.title,
+            customerName: order.customerName,
+            status: order.status,
+            dueAt: order.dueAt,
+            fulfillmentType: order.fulfillmentType,
+            deliveryAddress: order.deliveryAddress,
+            cakeNotes: order.cakeNotes,
+            cakeMessage: order.cakeMessage,
+            quotedPrice: order.quotedPrice,
+            depositPaid: nil,
+            paymentNotes: order.paymentNotes,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt
+        )
+        try repository.saveOrder(
+            persistedOrder,
+            replacingExtraIngredients: [],
+            reminderConfiguration: .initialDefault,
+            openingPayment: NewPaymentReceipt(
+                amount: try XCTUnwrap(order.depositPaid),
+                receivedAt: timestamps.updatedAt,
+                note: order.paymentNotes,
+                createdAt: timestamps.updatedAt
+            ),
+            allowInventoryShortage: false
+        )
         XCTAssertEqual(try repository.fetchOrder(id: order.id), order)
         XCTAssertEqual(try repository.fetchOrders(), [order])
 
@@ -1052,6 +1082,31 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             try repository.fetchOrder(id: order.id)?.depositPaid,
             25
         )
+    }
+
+    func testDirectOrderSaveCannotCreateDerivedPaidTotal() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+
+        XCTAssertThrowsError(
+            try repository.save(
+                pagedOrder(
+                    id: "protected-new-paid-total",
+                    status: .confirmed,
+                    dueAt: timestamp,
+                    quotedPrice: 100,
+                    depositPaid: 25
+                )
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? PaymentReceiptPersistenceError,
+                .directPaidTotalMutation
+            )
+        }
+        XCTAssertNil(try repository.fetchOrder(id: "protected-new-paid-total"))
     }
 
     func testReceivedPaymentReportIsPagedAndExcludesVoids() throws {
