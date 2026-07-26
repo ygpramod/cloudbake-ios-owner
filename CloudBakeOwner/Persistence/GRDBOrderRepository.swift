@@ -529,6 +529,12 @@ extension GRDBCoreDataRepository {
             var predicates = filter.predicates
             var values = filter.values
             let direction = query.isDescending ? "DESC" : "ASC"
+            let indexName: String
+            if case .customer = query {
+                indexName = "orders_on_customer_due_id"
+            } else {
+                indexName = "orders_on_status_due_id"
+            }
             if let cursor {
                 let comparison = query.isDescending ? "<" : ">"
                 predicates.append(
@@ -549,7 +555,7 @@ extension GRDBCoreDataRepository {
                 db,
                 sql: """
                     SELECT *
-                    FROM orders
+                    FROM orders INDEXED BY \(indexName)
                     WHERE \(predicates.joined(separator: " AND "))
                     ORDER BY due_at_unix_time \(direction), id \(direction)
                     LIMIT ?

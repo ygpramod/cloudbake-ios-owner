@@ -498,6 +498,130 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         }
     }
 
+    func testThousandOrderFixtureKeepsMainPagesBoundedIndexedAndUsesBoundedStatements() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let customerId = "scale-customer"
+        try repository.save(
+            Customer(
+                id: customerId,
+                name: "Scale Customer",
+                phone: "5550199",
+                email: nil,
+                address: nil,
+                likes: nil,
+                dislikes: nil,
+                allergies: nil,
+                dietaryRestrictions: nil,
+                notes: nil,
+                createdAt: now,
+                updatedAt: now
+            )
+        )
+        for index in 0..<1_000 {
+            let status: OrderStatus
+            switch index % 6 {
+            case 0:
+                status = .draft
+            case 1:
+                status = .confirmed
+            case 2:
+                status = .inProgress
+            case 3:
+                status = .ready
+            case 4:
+                status = .completed
+            default:
+                status = .cancelled
+            }
+            try repository.save(
+                pagedOrder(
+                    id: "scale-\(String(format: "%04d", index))",
+                    customerId: index.isMultiple(of: 3) ? customerId : nil,
+                    status: status,
+                    dueAt: now.addingTimeInterval(
+                        TimeInterval(index * 3_600)
+                    )
+                )
+            )
+        }
+
+        let recorder = SQLStatementRecorder()
+        try repository.writer.writeWithoutTransaction { db in
+            db.trace(options: .statement) { event in
+                recorder.record(event.expandedDescription)
+            }
+        }
+
+        let active = try measuredPage(recorder: recorder) {
+            try repository.fetchOrderPage(
+                query: .active(dueAtRange: nil),
+                after: nil,
+                limit: 25
+            )
+        }
+        let completed = try measuredPage(recorder: recorder) {
+            try repository.fetchOrderPage(
+                query: .completed,
+                after: nil,
+                limit: 25
+            )
+        }
+        let customer = try measuredPage(recorder: recorder) {
+            try repository.fetchOrderPage(
+                query: .customer(id: customerId),
+                after: nil,
+                limit: 25
+            )
+        }
+        let upcoming = try measuredPage(recorder: recorder) {
+            try repository.fetchOrderPage(
+                query: .upcoming(
+                    from: now,
+                    through: now.addingTimeInterval(30 * 24 * 60 * 60)
+                ),
+                after: nil,
+                limit: 25
+            )
+        }
+
+        XCTAssertEqual(active.orders.count, 25)
+        XCTAssertEqual(completed.orders.count, 25)
+        XCTAssertEqual(customer.orders.count, 25)
+        XCTAssertEqual(upcoming.orders.count, 25)
+
+        let activePlan = try orderQueryPlan(
+            repository: repository,
+            indexName: "orders_on_status_due_id",
+            predicate: "status IN (?, ?, ?, ?)",
+            arguments: [
+                OrderStatus.draft.rawValue,
+                OrderStatus.confirmed.rawValue,
+                OrderStatus.inProgress.rawValue,
+                OrderStatus.ready.rawValue
+            ]
+        )
+        XCTAssertTrue(
+            activePlan.contains {
+                $0.contains("orders_on_status_due_id")
+            },
+            activePlan.joined(separator: "\n")
+        )
+
+        let customerPlan = try orderQueryPlan(
+            repository: repository,
+            indexName: "orders_on_customer_due_id",
+            predicate: "customer_id = ?",
+            arguments: [customerId]
+        )
+        XCTAssertTrue(
+            customerPlan.contains {
+                $0.contains("orders_on_customer_due_id")
+            },
+            customerPlan.joined(separator: "\n")
+        )
+    }
+
     func testProjectedIngredientDemandAggregatesLiveAndReservedOrdersInSQL() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let now = Date(timeIntervalSince1970: 1_800_000_000)
@@ -628,6 +752,50 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(shortage.orderIds, [draftOrder.id, confirmedOrder.id])
     }
 
+    private func measuredPage(
+        recorder: SQLStatementRecorder,
+        operation: () throws -> OrderPage
+    ) throws -> OrderPage {
+        recorder.reset()
+        let page = try operation()
+        XCTAssertLessThanOrEqual(
+            recorder.statementCount,
+            5,
+            recorder.recordedStatements.joined(separator: "\n")
+        )
+        XCTAssertEqual(
+            recorder.recordedStatements.filter {
+                $0.contains("SELECT *") && $0.contains("FROM orders")
+            }.count,
+            1
+        )
+        return page
+    }
+
+    private func orderQueryPlan(
+        repository: GRDBCoreDataRepository,
+        indexName: String,
+        predicate: String,
+        arguments: [any DatabaseValueConvertible]
+    ) throws -> [String] {
+        try repository.writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    EXPLAIN QUERY PLAN
+                    SELECT *
+                    FROM orders INDEXED BY \(indexName)
+                    WHERE \(predicate)
+                    ORDER BY due_at_unix_time, id
+                    LIMIT 26
+                    """,
+                arguments: StatementArguments(arguments)
+            ).map { row in
+                row["detail"]
+            }
+        }
+    }
+
     private func pagedOrder(
         id: String,
         customerId: String? = nil,
@@ -679,4 +847,33 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         )
     }
 
+}
+
+private final class SQLStatementRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var statements: [String] = []
+
+    var statementCount: Int {
+        lock.withLock {
+            statements.count
+        }
+    }
+
+    var recordedStatements: [String] {
+        lock.withLock {
+            statements
+        }
+    }
+
+    func record(_ statement: String) {
+        lock.withLock {
+            statements.append(statement)
+        }
+    }
+
+    func reset() {
+        lock.withLock {
+            statements.removeAll(keepingCapacity: true)
+        }
+    }
 }
