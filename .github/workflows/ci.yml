@@ -25,6 +25,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check acceptance test registration
+        run: ./scripts/check_acceptance_test_registration.py
+
       - name: Check changed Swift files
         env:
           SWIFT_FORMAT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -82,6 +85,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testFirstLaunchIntroductionSupportsNextAndSkip
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testPrimaryNavigationDestinationsAreReachable
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testReportsOpenOnOutstandingPaymentLedger
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDashboardDesignsShortcutOpensDesigns
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipesCanBeAdded
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
@@ -95,6 +99,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsShowsInventoryCSVActions
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCSVExportPresentsDestinationPicker
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCSVImportPresentsFilePicker
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testManualFullBackupPresentsDestinationPicker
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupSettingsRequireCellularConfirmation
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupUnavailablePhotoDecisionRequiresExplicitChoice
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudBackupDeniedPhotosAccessDoesNotOfferDestructiveChoices
@@ -116,15 +121,22 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderDetailCanMarkPaymentPaid
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsDueRemindersAndReminderPlan
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderReminderPlanCanBeDisabledAndPersists
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsProjectedIngredientShortageAcrossActiveOrders
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderIngredientCostShowsPartialTotalAndMissingPriceWarning
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderStatusFailureIsShownImmediatelyFromDetail
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDraftOrderCannotBypassInventoryDeductionWhenMarkedReady
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanContinueAfterInventoryShortageWarning
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeEditedFromDetail
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCalendarViewShowsOrders
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrderAppearsInCompletedTab
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCompletedOrdersLoadNextPageWithoutDuplicatesOrMissingRows
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCancelledOrderAppearsInCompletedTabWithBadge
+          - feature: order-workflows
+            only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsProjectedIngredientShortageAcrossActiveOrders
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderIngredientCostShowsPartialTotalAndMissingPriceWarning
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderFormShowsIngredientCostWhileQuoting
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderChecklistItemCanBeAddedAndCompleted
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderDetailShowsSavedOrderPhotos
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanUseLinkedRecipeToDeductInventory
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDraftOrderCannotBypassInventoryDeductionWhenMarkedReady
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanContinueAfterInventoryShortageWarning
           - feature: order-links
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsLinkedCustomerContext
@@ -144,7 +156,10 @@ jobs:
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDuplicateNameShowsWarningBeforeAdding
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryOwnerJourneyShowsDetailEditsStockHistoryAndDashboard
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventorySwipeReturnStopsAtClosedCard
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCanBeArchivedAndRestored
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testUnusedArchivedInventoryCanBeDeleted
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCardsPreserveVerticalScrollingAcrossLongLists
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDetailShowsStockActionsInMoreMenu
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryEmptySpaceSwipesBetweenAdjacentFilters
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryPurchaseBillImportShowsCameraAndManualDraftControls
