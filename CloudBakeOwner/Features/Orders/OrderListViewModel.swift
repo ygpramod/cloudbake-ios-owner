@@ -791,7 +791,12 @@ final class OrderListViewModel: ObservableObject {
         draftExtraIngredientUnit = item.unit
     }
 
-    func addExtraIngredientToSelectedOrder() -> Bool {
+    func addExtraIngredientToSelectedOrder(
+        allowingInventoryShortage: Bool = false
+    ) -> Bool {
+        if !allowingInventoryShortage {
+            pendingInventoryShortages = []
+        }
         guard let selectedOrder else {
             errorMessage = "Order could not be found."
             return false
@@ -811,13 +816,27 @@ final class OrderListViewModel: ObservableObject {
             createdAt: now,
             updatedAt: now
         )
+        let updatedOrder = copy(selectedOrder, updatedAt: now)
+        let replacement = selectedOrderExtraIngredients.map(\.ingredient) + [ingredient]
 
         do {
-            try repository.save(ingredient)
+            try repository.saveOrder(
+                updatedOrder,
+                replacingExtraIngredients: replacement,
+                allowInventoryShortage: allowingInventoryShortage
+            )
             resetExtraIngredientDraft()
-            loadSelectedOrderExtraIngredients(for: selectedOrder)
+            refreshAfterSavingOrder(updatedOrder)
+            pendingInventoryShortages = []
             errorMessage = nil
             return true
+        } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
+            pendingInventoryShortages = shortages
+            errorMessage = nil
+            return false
+        } catch let error as OrderRecipeUsageError {
+            errorMessage = recipeUsageErrorMessage(for: error)
+            return false
         } catch {
             errorMessage = "Extra ingredient could not be saved."
             return false
@@ -937,6 +956,7 @@ final class OrderListViewModel: ObservableObject {
 
     func cancelExtraIngredientEdit() {
         resetExtraIngredientDraft()
+        pendingInventoryShortages = []
         errorMessage = nil
     }
 

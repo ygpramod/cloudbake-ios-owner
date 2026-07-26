@@ -19,6 +19,7 @@ struct OrderDetailView: View {
     @State private var previewingPhoto: OrderPhoto?
     @State private var isPreviewingLinkedDesign = false
     @State private var isAddingExtraIngredient = false
+    @State private var isConfirmingExtraIngredientInventoryShortage = false
     @State private var editingChecklistItem: OrderChecklistItem?
     @State private var editedChecklistItemTitle = ""
     @State private var partialPaymentAmount = ""
@@ -213,14 +214,38 @@ struct OrderDetailView: View {
         }
         .sheet(
             isPresented: $isAddingExtraIngredient,
-            onDismiss: viewModel.cancelExtraIngredientEdit
+            onDismiss: cancelExtraIngredientEdit
         ) {
             NavigationStack {
                 OrderExtraIngredientForm(
                     viewModel: viewModel,
                     isPresented: $isAddingExtraIngredient,
-                    onSave: viewModel.addExtraIngredientToSelectedOrder
+                    onSave: saveExtraIngredient
                 )
+                .centeredOrderPopup(
+                    isPresented: isConfirmingExtraIngredientInventoryShortage,
+                    title: "Inventory Shortage",
+                    onCancel: {
+                        isConfirmingExtraIngredientInventoryShortage = false
+                        viewModel.cancelInventoryShortageOverride()
+                    }
+                ) {
+                    Text(viewModel.inventoryShortageWarningMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("orders.extraIngredient.inventoryShortage.message")
+
+                    centeredPopupButton("Continue And Save", role: .destructive) {
+                        if viewModel.addExtraIngredientToSelectedOrder(
+                            allowingInventoryShortage: true
+                        ) {
+                            isConfirmingExtraIngredientInventoryShortage = false
+                            isAddingExtraIngredient = false
+                        }
+                    }
+                    .accessibilityIdentifier("orders.extraIngredient.inventoryShortage.continue")
+                }
             }
         }
         .sheet(
@@ -899,6 +924,19 @@ struct OrderDetailView: View {
             isConfirmingEditedOrderInventoryShortage = true
         }
         return didSave
+    }
+
+    private func saveExtraIngredient() -> Bool {
+        let didSave = viewModel.addExtraIngredientToSelectedOrder()
+        if !didSave, !viewModel.pendingInventoryShortages.isEmpty {
+            isConfirmingExtraIngredientInventoryShortage = true
+        }
+        return didSave
+    }
+
+    private func cancelExtraIngredientEdit() {
+        isConfirmingExtraIngredientInventoryShortage = false
+        viewModel.cancelExtraIngredientEdit()
     }
 
     private func cancelEditingOrder() {
