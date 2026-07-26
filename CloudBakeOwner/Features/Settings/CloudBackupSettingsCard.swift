@@ -42,6 +42,7 @@ struct CloudBackupSettingsCard: View {
 
             CloudBakeDetailRow("Last Successful Backup") {
                 Text(viewModel.lastSuccessDescription)
+                    .accessibilityIdentifier("settings.cloudBackup.lastSuccess")
             }
 
             if viewModel.snapshot.omittedAssetCount > 0 {
@@ -50,8 +51,8 @@ struct CloudBackupSettingsCard: View {
                 CloudBakeDetailRow("Backup Contents") {
                     let count = viewModel.snapshot.omittedAssetCount
                     Text("Without \(count) unavailable photo\(count == 1 ? "" : "s")")
+                        .accessibilityIdentifier("settings.cloudBackup.omittedPhotos")
                 }
-                .accessibilityIdentifier("settings.cloudBackup.omittedPhotos")
             }
 
             CloudBakeDetailDivider()

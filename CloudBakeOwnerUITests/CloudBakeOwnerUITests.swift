@@ -441,6 +441,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
         scrollToHittable(backUpNowButton, in: app)
         app.swipeUp()
+        let lastSuccess = app.descendants(matching: .any)[
+            "settings.cloudBackup.lastSuccess"
+        ]
+        XCTAssertTrue(lastSuccess.waitForExistence(timeout: 5))
+        let lastSuccessBeforeCancellation = lastSuccess.label
         tapWhenReady(backUpNowButton)
 
         let omitButton = app.buttons["settings.cloudBackup.photos.omit"]
@@ -457,6 +462,19 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(omitButton.waitForExistence(timeout: 5))
         tapWhenReady(app.buttons["settings.cloudBackup.photos.cancel"])
         XCTAssertFalse(omitButton.exists)
+        XCTAssertEqual(lastSuccess.label, lastSuccessBeforeCancellation)
+
+        tapWhenReady(backUpNowButton)
+        tapWhenReady(app.buttons["settings.cloudBackup.photos.remove"])
+        tapWhenReady(app.buttons["settings.cloudBackup.photos.remove.confirm"])
+        let actionMessage = app.staticTexts[
+            "settings.cloudBackup.actionMessage"
+        ]
+        XCTAssertTrue(actionMessage.waitForExistence(timeout: 5))
+        XCTAssertEqual(
+            actionMessage.label,
+            "Cloud backup completed successfully."
+        )
 
         tapWhenReady(backUpNowButton)
         tapWhenReady(app.buttons["settings.cloudBackup.photos.omit"])
@@ -464,6 +482,23 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let omittedStatus =
             app.descendants(matching: .any)["settings.cloudBackup.omittedPhotos"]
         XCTAssertTrue(omittedStatus.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            omittedStatus.label.contains("Without 2 unavailable photos")
+        )
+        XCTAssertEqual(
+            actionMessage.label,
+            "Cloud backup completed without 2 unavailable photos."
+        )
+
+        let backupDisclosure = app.buttons["settings.backup.disclosure"]
+        scrollToHittable(backupDisclosure, in: app)
+        tapWhenReady(backupDisclosure)
+        XCTAssertFalse(omittedStatus.exists)
+        tapWhenReady(backupDisclosure)
+        XCTAssertTrue(omittedStatus.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            omittedStatus.label.contains("Without 2 unavailable photos")
+        )
     }
 
     func testCloudBackupRequiresConfirmationBeforeUsingCurrentICloudAccount() throws {
