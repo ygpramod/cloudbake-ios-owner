@@ -5,6 +5,18 @@ enum CakeDesignPersistenceError: Error, Equatable {
     case invalidSourceKind(String)
 }
 
+enum OrderInventoryReservationPersistenceError: Error, Equatable {
+    case invalidUnit(String)
+    case invalidEventKind(String)
+    case invalidEventReason(String)
+    case invalidRepairState(String)
+    case invalidRepairFailureCode(String)
+}
+
+enum OrderInventoryReservationQueryError: Error, Equatable {
+    case invalidLimit
+}
+
 final class GRDBCoreDataRepository: InventoryItemRepository,
     RecipeRepository,
     RecipeComponentRepository,
@@ -259,15 +271,15 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 
     func orderInventoryReservationRepair(
         from row: Row,
-        state: OrderInventoryReservationRepairState
+        state: OrderInventoryReservationRepairState,
+        failureCode: OrderInventoryReservationRepairFailureCode?
     ) -> OrderInventoryReservationRepair {
-        let failureCodeValue: String? = row["failure_code"]
-        return OrderInventoryReservationRepair(
+        OrderInventoryReservationRepair(
             orderId: row["order_id"],
             state: state,
             attemptCount: row["attempt_count"],
             lastAttemptedAt: optionalDate(row["last_attempted_at_unix_time"]),
-            failureCode: failureCodeValue.flatMap(OrderInventoryReservationRepairFailureCode.init),
+            failureCode: failureCode,
             updatedAt: date(row["updated_at_unix_time"])
         )
     }

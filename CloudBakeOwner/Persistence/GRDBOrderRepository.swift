@@ -169,39 +169,65 @@ extension GRDBCoreDataRepository {
         }
     }
 
-    func fetchInventoryReservations(inventoryItemId: String) throws -> [OrderInventoryReservation] {
+    func fetchInventoryReservationTotal(
+        inventoryItemId: String,
+        excludingOrderId: String?
+    ) throws -> Double {
         try writer.read { db in
-            try reservationRows(
+            if let excludingOrderId {
+                return try Double.fetchOne(
+                    db,
+                    sql: """
+                        SELECT COALESCE(SUM(required_quantity), 0)
+                        FROM order_inventory_reservations
+                        WHERE inventory_item_id = ?
+                          AND order_id != ?
+                        """,
+                    arguments: [inventoryItemId, excludingOrderId]
+                ) ?? 0
+            }
+            return try Double.fetchOne(
+                db,
                 sql: """
-                    SELECT *
+                    SELECT COALESCE(SUM(required_quantity), 0)
                     FROM order_inventory_reservations
                     WHERE inventory_item_id = ?
-                    ORDER BY order_id
                     """,
-                arguments: [inventoryItemId],
-                in: db
-            )
+                arguments: [inventoryItemId]
+            ) ?? 0
         }
     }
 
     func fetchOrderInventoryReservationEvents(
-        orderId: String
+        orderId: String,
+        limit: Int
     ) throws -> [OrderInventoryReservationEvent] {
-        try writer.read { db in
+        guard (1...50).contains(limit) else {
+            throw OrderInventoryReservationQueryError.invalidLimit
+        }
+        return try writer.read { db in
             try Row.fetchAll(
                 db,
                 sql: """
                     SELECT *
                     FROM order_inventory_reservation_events
                     WHERE order_id = ?
-                    ORDER BY occurred_at_unix_time, id
+                    ORDER BY occurred_at_unix_time DESC, id DESC
+                    LIMIT ?
                     """,
-                arguments: [orderId]
-            ).compactMap { row in
-                guard let kind = OrderInventoryReservationEventKind(rawValue: row["event_kind"]),
-                      let reason = OrderInventoryReservationEventReason(rawValue: row["reason"]),
-                      let unit = InventoryUnit(rawValue: row["unit"]) else {
-                    return nil
+                arguments: [orderId, limit]
+            ).map { row in
+                let kindValue: String = row["event_kind"]
+                guard let kind = OrderInventoryReservationEventKind(rawValue: kindValue) else {
+                    throw OrderInventoryReservationPersistenceError.invalidEventKind(kindValue)
+                }
+                let reasonValue: String = row["reason"]
+                guard let reason = OrderInventoryReservationEventReason(rawValue: reasonValue) else {
+                    throw OrderInventoryReservationPersistenceError.invalidEventReason(reasonValue)
+                }
+                let unitValue: String = row["unit"]
+                guard let unit = InventoryUnit(rawValue: unitValue) else {
+                    throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
                 }
                 return orderInventoryReservationEvent(
                     from: row,
@@ -225,10 +251,32 @@ extension GRDBCoreDataRepository {
                     WHERE order_id = ?
                     """,
                 arguments: [orderId]
-            ), let state = OrderInventoryReservationRepairState(rawValue: row["state"]) else {
+            ) else {
                 return nil
             }
-            return orderInventoryReservationRepair(from: row, state: state)
+            let stateValue: String = row["state"]
+            guard let state = OrderInventoryReservationRepairState(rawValue: stateValue) else {
+                throw OrderInventoryReservationPersistenceError.invalidRepairState(stateValue)
+            }
+            let failureCodeValue: String? = row["failure_code"]
+            let failureCode: OrderInventoryReservationRepairFailureCode?
+            if let failureCodeValue {
+                guard let parsedFailureCode = OrderInventoryReservationRepairFailureCode(
+                    rawValue: failureCodeValue
+                ) else {
+                    throw OrderInventoryReservationPersistenceError.invalidRepairFailureCode(
+                        failureCodeValue
+                    )
+                }
+                failureCode = parsedFailureCode
+            } else {
+                failureCode = nil
+            }
+            return orderInventoryReservationRepair(
+                from: row,
+                state: state,
+                failureCode: failureCode
+            )
         }
     }
 
@@ -456,9 +504,10 @@ private extension GRDBCoreDataRepository {
         arguments: StatementArguments,
         in db: Database
     ) throws -> [OrderInventoryReservation] {
-        try Row.fetchAll(db, sql: sql, arguments: arguments).compactMap { row in
-            guard let unit = InventoryUnit(rawValue: row["unit"]) else {
-                return nil
+        try Row.fetchAll(db, sql: sql, arguments: arguments).map { row in
+            let unitValue: String = row["unit"]
+            guard let unit = InventoryUnit(rawValue: unitValue) else {
+                throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
             }
             return orderInventoryReservation(from: row, unit: unit)
         }

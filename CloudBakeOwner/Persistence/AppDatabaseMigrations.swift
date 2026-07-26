@@ -457,7 +457,16 @@ enum AppDatabaseMigrations {
                 table.column("required_quantity", .double)
                     .notNull()
                     .check { $0 > 0 }
-                table.column("unit", .text).notNull()
+                table.column("unit", .text)
+                    .notNull()
+                    .check(
+                        sql: """
+                            unit IN (
+                                'kilogram', 'gram', 'liter', 'milliliter',
+                                'teaspoon', 'tablespoon', 'cup', 'each'
+                            )
+                            """
+                    )
                 table.column("created_at_unix_time", .double).notNull()
                 table.column("updated_at_unix_time", .double).notNull()
                 table.uniqueKey(["order_id", "inventory_item_id"])
@@ -500,7 +509,16 @@ enum AppDatabaseMigrations {
                 table.column("new_quantity", .double)
                     .notNull()
                     .check { $0 >= 0 }
-                table.column("unit", .text).notNull()
+                table.column("unit", .text)
+                    .notNull()
+                    .check(
+                        sql: """
+                            unit IN (
+                                'kilogram', 'gram', 'liter', 'milliliter',
+                                'teaspoon', 'tablespoon', 'cup', 'each'
+                            )
+                            """
+                    )
                 table.column("occurred_at_unix_time", .double).notNull()
             }
             try db.create(

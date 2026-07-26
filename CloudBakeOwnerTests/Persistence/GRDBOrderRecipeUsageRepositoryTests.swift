@@ -542,8 +542,38 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             createdAt: timestamp,
             updatedAt: timestamp
         )
+        let pendingRepairOrder = Order(
+            id: "order-reservation-repair-pending",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Pending reservation repair",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let failedRepairOrder = Order(
+            id: "order-reservation-repair-failed",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Failed reservation repair",
+            customerName: "Amy",
+            status: .confirmed,
+            dueAt: timestamp,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
         try repository.save(item)
         try repository.save(order)
+        try repository.save(pendingRepairOrder)
+        try repository.save(failedRepairOrder)
 
         try queue.write { db in
             try db.execute(
@@ -561,6 +591,25 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
                     item.unit.rawValue,
                     timestamp.timeIntervalSince1970,
                     timestamp.timeIntervalSince1970
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason, previous_quantity,
+                     new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "reservation-event-changed",
+                    order.id,
+                    item.id,
+                    OrderInventoryReservationEventKind.quantityChanged.rawValue,
+                    OrderInventoryReservationEventReason.orderEdited.rawValue,
+                    125,
+                    150,
+                    item.unit.rawValue,
+                    timestamp.addingTimeInterval(10).timeIntervalSince1970
                 ]
             )
             try db.execute(
@@ -597,6 +646,36 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
                     timestamp.timeIntervalSince1970
                 ]
             )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_repairs
+                    (order_id, state, attempt_count, last_attempted_at_unix_time,
+                     failure_code, updated_at_unix_time)
+                    VALUES (?, ?, ?, NULL, NULL, ?)
+                    """,
+                arguments: [
+                    pendingRepairOrder.id,
+                    OrderInventoryReservationRepairState.pending.rawValue,
+                    0,
+                    timestamp.timeIntervalSince1970
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_repairs
+                    (order_id, state, attempt_count, last_attempted_at_unix_time,
+                     failure_code, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    failedRepairOrder.id,
+                    OrderInventoryReservationRepairState.failed.rawValue,
+                    2,
+                    timestamp.timeIntervalSince1970,
+                    OrderInventoryReservationRepairFailureCode.incompatibleUnit.rawValue,
+                    timestamp.timeIntervalSince1970
+                ]
+            )
         }
 
         XCTAssertEqual(
@@ -614,12 +693,34 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             ]
         )
         XCTAssertEqual(
-            try repository.fetchInventoryReservations(inventoryItemId: item.id),
-            try repository.fetchOrderInventoryReservations(orderId: order.id)
+            try repository.fetchInventoryReservationTotal(
+                inventoryItemId: item.id,
+                excludingOrderId: nil
+            ),
+            125
         )
-        let event = try XCTUnwrap(
-            repository.fetchOrderInventoryReservationEvents(orderId: order.id).first
+        XCTAssertEqual(
+            try repository.fetchInventoryReservationTotal(
+                inventoryItemId: item.id,
+                excludingOrderId: order.id
+            ),
+            0
         )
+        let events = try repository.fetchOrderInventoryReservationEvents(
+            orderId: order.id,
+            limit: 50
+        )
+        XCTAssertEqual(events.map(\.id), ["reservation-event-changed", "reservation-event-created"])
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationEvents(orderId: order.id, limit: 1).map(\.id),
+            ["reservation-event-changed"]
+        )
+        XCTAssertThrowsError(
+            try repository.fetchOrderInventoryReservationEvents(orderId: order.id, limit: 0)
+        ) { error in
+            XCTAssertEqual(error as? OrderInventoryReservationQueryError, .invalidLimit)
+        }
+        let event = events[1]
         XCTAssertEqual(event.id, "reservation-event-created")
         XCTAssertEqual(event.orderId, order.id)
         XCTAssertEqual(event.inventoryItemId, item.id)
@@ -640,6 +741,115 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
                 updatedAt: timestamp
             )
         )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: pendingRepairOrder.id),
+            OrderInventoryReservationRepair(
+                orderId: pendingRepairOrder.id,
+                state: .pending,
+                attemptCount: 0,
+                lastAttemptedAt: nil,
+                failureCode: nil,
+                updatedAt: timestamp
+            )
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: failedRepairOrder.id),
+            OrderInventoryReservationRepair(
+                orderId: failedRepairOrder.id,
+                state: .failed,
+                attemptCount: 2,
+                lastAttemptedAt: timestamp,
+                failureCode: .incompatibleUnit,
+                updatedAt: timestamp
+            )
+        )
+
+        try queue.write { db in
+            try db.execute(sql: "PRAGMA ignore_check_constraints = ON")
+            try db.execute(
+                sql: "UPDATE order_inventory_reservations SET unit = ? WHERE id = ?",
+                arguments: ["invalid-unit", "\(order.id):\(item.id)"]
+            )
+            try db.execute(sql: "PRAGMA ignore_check_constraints = OFF")
+        }
+        XCTAssertThrowsError(
+            try repository.fetchOrderInventoryReservations(orderId: order.id)
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderInventoryReservationPersistenceError,
+                .invalidUnit("invalid-unit")
+            )
+        }
+
+        try queue.write { db in
+            try db.execute(sql: "PRAGMA ignore_check_constraints = ON")
+            try db.execute(
+                sql: "UPDATE order_inventory_reservation_events SET event_kind = ? WHERE id = ?",
+                arguments: ["invalid-event", "reservation-event-created"]
+            )
+            try db.execute(sql: "PRAGMA ignore_check_constraints = OFF")
+        }
+        XCTAssertThrowsError(
+            try repository.fetchOrderInventoryReservationEvents(orderId: order.id, limit: 50)
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderInventoryReservationPersistenceError,
+                .invalidEventKind("invalid-event")
+            )
+        }
+        try queue.write { db in
+            try db.execute(sql: "PRAGMA ignore_check_constraints = ON")
+            try db.execute(
+                sql: """
+                    UPDATE order_inventory_reservation_events
+                    SET event_kind = ?, reason = ?
+                    WHERE id = ?
+                    """,
+                arguments: [
+                    OrderInventoryReservationEventKind.created.rawValue,
+                    "invalid-reason",
+                    "reservation-event-created"
+                ]
+            )
+            try db.execute(sql: "PRAGMA ignore_check_constraints = OFF")
+        }
+        XCTAssertThrowsError(
+            try repository.fetchOrderInventoryReservationEvents(orderId: order.id, limit: 50)
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderInventoryReservationPersistenceError,
+                .invalidEventReason("invalid-reason")
+            )
+        }
+
+        try queue.write { db in
+            try db.execute(sql: "PRAGMA ignore_check_constraints = ON")
+            try db.execute(
+                sql: "UPDATE order_inventory_reservation_repairs SET state = ? WHERE order_id = ?",
+                arguments: ["invalid-state", pendingRepairOrder.id]
+            )
+            try db.execute(
+                sql: "UPDATE order_inventory_reservation_repairs SET failure_code = ? WHERE order_id = ?",
+                arguments: ["invalid-failure", failedRepairOrder.id]
+            )
+            try db.execute(sql: "PRAGMA ignore_check_constraints = OFF")
+        }
+        XCTAssertThrowsError(
+            try repository.fetchOrderInventoryReservationRepair(orderId: pendingRepairOrder.id)
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderInventoryReservationPersistenceError,
+                .invalidRepairState("invalid-state")
+            )
+        }
+        XCTAssertThrowsError(
+            try repository.fetchOrderInventoryReservationRepair(orderId: failedRepairOrder.id)
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderInventoryReservationPersistenceError,
+                .invalidRepairFailureCode("invalid-failure")
+            )
+        }
     }
 
 }

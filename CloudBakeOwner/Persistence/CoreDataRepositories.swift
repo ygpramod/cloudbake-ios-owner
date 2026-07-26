@@ -150,8 +150,14 @@ protocol OrderExtraIngredientRepository {
 
 protocol OrderInventoryReservationRepository {
     func fetchOrderInventoryReservations(orderId: String) throws -> [OrderInventoryReservation]
-    func fetchInventoryReservations(inventoryItemId: String) throws -> [OrderInventoryReservation]
-    func fetchOrderInventoryReservationEvents(orderId: String) throws -> [OrderInventoryReservationEvent]
+    func fetchInventoryReservationTotal(
+        inventoryItemId: String,
+        excludingOrderId: String?
+    ) throws -> Double
+    func fetchOrderInventoryReservationEvents(
+        orderId: String,
+        limit: Int
+    ) throws -> [OrderInventoryReservationEvent]
     func fetchOrderInventoryReservationRepair(orderId: String) throws -> OrderInventoryReservationRepair?
 }
 
