@@ -356,7 +356,18 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 dueAt: start.addingTimeInterval(180)
             )
         ]
-        try orders.forEach(repository.save)
+        for order in orders {
+            try repository.save(orderWithoutRecordedPayment(order))
+            if let amount = order.depositPaid, amount > 0 {
+                _ = try repository.recordPayment(
+                    orderId: order.id,
+                    amount: amount,
+                    receivedAt: order.updatedAt,
+                    note: nil,
+                    createdAt: order.updatedAt
+                )
+            }
+        }
 
         let first = try repository.fetchOrderPage(
             query: .active(dueAtRange: nil),
@@ -449,7 +460,18 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 depositPaid: 100
             )
         ]
-        try orders.forEach(repository.save)
+        for order in orders {
+            try repository.save(orderWithoutRecordedPayment(order))
+            if let amount = order.depositPaid, amount > 0 {
+                _ = try repository.recordPayment(
+                    orderId: order.id,
+                    amount: amount,
+                    receivedAt: now,
+                    note: nil,
+                    createdAt: now
+                )
+            }
+        }
 
         let upcoming = try repository.fetchOrderPage(
             query: .upcoming(
@@ -574,7 +596,16 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 quotedPrice: status == .completed ? 100 : nil,
                 depositPaid: status == .completed ? 25 : nil
             )
-            try repository.save(order)
+            try repository.save(orderWithoutRecordedPayment(order))
+            if let amount = order.depositPaid, amount > 0 {
+                _ = try repository.recordPayment(
+                    orderId: order.id,
+                    amount: amount,
+                    receivedAt: now,
+                    note: nil,
+                    createdAt: now
+                )
+            }
             if [.confirmed, .inProgress, .ready].contains(status) {
                 try repository.saveOrderReminderConfiguration(
                     .initialDefault,

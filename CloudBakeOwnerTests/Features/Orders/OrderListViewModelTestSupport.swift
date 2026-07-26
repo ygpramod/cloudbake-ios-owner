@@ -134,6 +134,31 @@ func orderWithPayment(
     )
 }
 
+func orderWithoutRecordedPayment(_ order: Order) -> Order {
+    Order(
+        id: order.id,
+        customerId: order.customerId,
+        cakeDesignId: order.cakeDesignId,
+        customerReferencePhotoId: order.customerReferencePhotoId,
+        recipeId: order.recipeId,
+        recipeScaleMultiplier: order.recipeScaleMultiplier,
+        title: order.title,
+        customerName: order.customerName,
+        status: order.status,
+        dueAt: order.dueAt,
+        fulfillmentType: order.fulfillmentType,
+        deliveryAddress: order.deliveryAddress,
+        cakeNotes: order.cakeNotes,
+        cakeMessage: order.cakeMessage,
+        quotedPrice: order.quotedPrice,
+        depositPaid: nil,
+        paymentNotes: order.paymentNotes,
+        completedAt: order.completedAt,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt
+    )
+}
+
 func utcCalendar() -> Calendar {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt

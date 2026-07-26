@@ -248,23 +248,35 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
             )
         }
 
-        try repository.save(
-            makeOrder(
+        let paymentDueOrder = makeOrder(
                 id: "order-payment-due",
                 status: .completed,
                 dueAt: now.addingTimeInterval(-1),
                 quotedPrice: Decimal(string: "100.50"),
                 depositPaid: Decimal(string: "25.25")
-            )
         )
-        try repository.save(
-            makeOrder(
+        let paymentFutureOrder = makeOrder(
                 id: "order-payment-future",
                 status: .completed,
                 dueAt: now.addingTimeInterval(1),
                 quotedPrice: 200,
                 depositPaid: 50
-            )
+        )
+        try repository.save(orderWithoutRecordedPayment(paymentDueOrder))
+        _ = try repository.recordPayment(
+            orderId: paymentDueOrder.id,
+            amount: Decimal(string: "25.25")!,
+            receivedAt: now,
+            note: nil,
+            createdAt: now
+        )
+        try repository.save(orderWithoutRecordedPayment(paymentFutureOrder))
+        _ = try repository.recordPayment(
+            orderId: paymentFutureOrder.id,
+            amount: 50,
+            receivedAt: now,
+            note: nil,
+            createdAt: now
         )
         try repository.save(
             makeOrder(
