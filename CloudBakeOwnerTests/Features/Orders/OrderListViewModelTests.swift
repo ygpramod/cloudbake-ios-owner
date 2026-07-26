@@ -196,7 +196,7 @@ final class OrderListViewModelTests: XCTestCase {
         let viewModel = OrderListViewModel(
             repository: repository,
             idGenerator: { "order-reminder-default" },
-            onReminderConfigurationChanged: { refreshCount += 1 }
+            onReminderDataChanged: { refreshCount += 1 }
         )
 
         viewModel.beginAddingOrder()
@@ -229,7 +229,7 @@ final class OrderListViewModelTests: XCTestCase {
         var refreshCount = 0
         let viewModel = OrderListViewModel(
             repository: repository,
-            onReminderConfigurationChanged: { refreshCount += 1 }
+            onReminderDataChanged: { refreshCount += 1 }
         )
 
         viewModel.load()

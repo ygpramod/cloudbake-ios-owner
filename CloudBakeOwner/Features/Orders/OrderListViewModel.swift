@@ -87,7 +87,7 @@ final class OrderListViewModel: ObservableObject {
     private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
-    private let onReminderConfigurationChanged: () -> Void
+    private let onReminderDataChanged: () -> Void
     private let presentation: OrderListPresentation
     private var pendingSelectedOrderExtraIngredientId: String?
 
@@ -97,7 +97,7 @@ final class OrderListViewModel: ObservableObject {
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
-        onReminderConfigurationChanged: @escaping () -> Void = {},
+        onReminderDataChanged: @escaping () -> Void = {},
         calendar: Calendar = .current
     ) {
         self.repository = repository
@@ -105,7 +105,7 @@ final class OrderListViewModel: ObservableObject {
         self.designPhotoLibrary = designPhotoLibrary
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
-        self.onReminderConfigurationChanged = onReminderConfigurationChanged
+        self.onReminderDataChanged = onReminderDataChanged
         self.presentation = OrderListPresentation(
             dateProvider: dateProvider,
             calendar: calendar
@@ -498,7 +498,7 @@ final class OrderListViewModel: ObservableObject {
             draftExtraIngredientRows = []
             load()
             pendingInventoryShortages = []
-            onReminderConfigurationChanged()
+            onReminderDataChanged()
             return true
         } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
             pendingInventoryShortages = shortages
@@ -674,7 +674,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderChecklistItems(for: savedOrder)
             loadSelectedOrderPhotos(for: savedOrder)
             pendingInventoryShortages = []
-            onReminderConfigurationChanged()
+            onReminderDataChanged()
             return true
         } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
             pendingInventoryShortages = shortages
@@ -733,7 +733,7 @@ final class OrderListViewModel: ObservableObject {
             refreshAfterSavingOrder(updatedOrder)
             pendingInventoryShortages = []
             errorMessage = nil
-            onReminderConfigurationChanged()
+            onReminderDataChanged()
             return true
         } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
             pendingInventoryShortages = shortages
@@ -829,7 +829,7 @@ final class OrderListViewModel: ObservableObject {
         do {
             try repository.save(updatedOrder)
             refreshAfterSavingOrder(updatedOrder)
-            onReminderConfigurationChanged()
+            onReminderDataChanged()
             errorMessage = nil
             return true
         } catch {

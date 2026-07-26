@@ -20,7 +20,7 @@ final class OrderPaymentViewModelTests: XCTestCase {
         let viewModel = OrderListViewModel(
             repository: repository,
             dateProvider: { updatedAt },
-            onReminderConfigurationChanged: { reminderRefreshCount += 1 }
+            onReminderDataChanged: { reminderRefreshCount += 1 }
         )
 
         viewModel.beginViewingOrder(order)

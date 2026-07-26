@@ -339,7 +339,7 @@ struct RootView: View {
     ) -> OrderListViewModel {
         OrderListViewModel(
             repository: repository,
-            onReminderConfigurationChanged: {
+            onReminderDataChanged: {
                 Task {
                     await refreshLocalReminders()
                 }
