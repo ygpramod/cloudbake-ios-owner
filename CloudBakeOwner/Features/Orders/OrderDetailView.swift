@@ -187,6 +187,17 @@ struct OrderDetailView: View {
                     }
                 }
 
+                if let warning = viewModel.selectedOrderInventoryReservationRepairWarning {
+                    CloudBakeDetailCard {
+                        Label(warning, systemImage: "exclamationmark.triangle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 14)
+                    }
+                    .accessibilityIdentifier("orders.detail.inventoryReservationRepairWarning")
+                }
+
                 customerSection(order: order)
                 recipeSection(order: order)
                 designSection(order: order)

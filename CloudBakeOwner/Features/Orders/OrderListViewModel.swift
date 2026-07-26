@@ -42,6 +42,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var selectedOrderIngredientShortages: [ProjectedIngredientShortage] = []
     @Published private(set) var selectedOrderIngredientCost: OrderIngredientCostSummary?
     @Published private(set) var selectedOrderIngredientCostIsActual = false
+    @Published private(set) var selectedOrderInventoryReservationRepair: OrderInventoryReservationRepair?
     @Published var isIngredientCostBreakdownExpanded = false
     @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
     @Published private(set) var selectedOrderPhotos: [OrderPhoto] = []
@@ -76,7 +77,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var isPromotingDesign = false
     @Published private(set) var pendingInventoryShortages: [OrderInventoryShortage] = []
 
-    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
     private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
@@ -85,7 +86,7 @@ final class OrderListViewModel: ObservableObject {
     private var pendingSelectedOrderExtraIngredientId: String?
 
     init(
-        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
+        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
@@ -264,6 +265,7 @@ final class OrderListViewModel: ObservableObject {
         loadSelectedOrderRecipe(for: order)
         loadSelectedOrderCakeDesign(for: order)
         loadSelectedOrderRecipeUsage(for: order)
+        loadSelectedOrderInventoryReservationRepair(for: order)
         loadSelectedOrderExtraIngredients(for: order)
         loadSelectedOrderChecklistItems(for: order)
         loadSelectedOrderPhotos(for: order)
@@ -276,6 +278,7 @@ final class OrderListViewModel: ObservableObject {
         selectedOrderCakeDesign = nil
         selectedOrderCustomerReferencePhoto = nil
         selectedOrderRecipeUsage = nil
+        selectedOrderInventoryReservationRepair = nil
         selectedOrderExtraIngredients = []
         selectedOrderIngredientShortages = []
         selectedOrderIngredientCost = nil
@@ -623,6 +626,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderRecipe(for: savedOrder)
             loadSelectedOrderCakeDesign(for: savedOrder)
             loadSelectedOrderRecipeUsage(for: savedOrder)
+            loadSelectedOrderInventoryReservationRepair(for: savedOrder)
             loadSelectedOrderExtraIngredients(for: savedOrder)
             loadSelectedOrderChecklistItems(for: savedOrder)
             loadSelectedOrderPhotos(for: savedOrder)
@@ -705,6 +709,27 @@ final class OrderListViewModel: ObservableObject {
         pendingInventoryShortages.map { shortage in
             "\(shortage.inventoryItemName): short by \(shortage.shortfallQuantity.formatted()) \(shortage.unit.displayName)"
         }.joined(separator: "\n")
+    }
+
+    var selectedOrderInventoryReservationRepairWarning: String? {
+        guard let repair = selectedOrderInventoryReservationRepair else {
+            return nil
+        }
+        switch repair.state {
+        case .complete:
+            return nil
+        case .pending:
+            return "CloudBake is preparing this order’s inventory reservation. Availability may be incomplete until repair finishes."
+        case .failed:
+            switch repair.failureCode {
+            case .missingInventoryItem:
+                return "This order’s reservation needs attention because a recipe inventory item is missing."
+            case .incompatibleUnit:
+                return "This order’s reservation needs attention because an ingredient unit is incompatible."
+            case .invalidRequirements, nil:
+                return "This order’s reservation needs attention because its ingredient requirements are invalid."
+            }
+        }
     }
 
     func requiresInventoryDeductionConfirmation(for order: Order, to status: OrderStatus) -> Bool {
@@ -975,6 +1000,7 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderRecipe(for: order)
             loadSelectedOrderCakeDesign(for: order)
             loadSelectedOrderRecipeUsage(for: order)
+            loadSelectedOrderInventoryReservationRepair(for: order)
             loadSelectedOrderExtraIngredients(for: order)
             loadSelectedOrderChecklistItems(for: order)
             loadSelectedOrderPhotos(for: order)
@@ -1563,6 +1589,16 @@ final class OrderListViewModel: ObservableObject {
         } catch {
             selectedOrderRecipeUsage = nil
             errorMessage = "Recipe usage details could not be loaded."
+        }
+    }
+
+    private func loadSelectedOrderInventoryReservationRepair(for order: Order) {
+        do {
+            selectedOrderInventoryReservationRepair =
+                try repository.fetchOrderInventoryReservationRepair(orderId: order.id)
+        } catch {
+            selectedOrderInventoryReservationRepair = nil
+            errorMessage = "Inventory reservation status could not be loaded."
         }
     }
 

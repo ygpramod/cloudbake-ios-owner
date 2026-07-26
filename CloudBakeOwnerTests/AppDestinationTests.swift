@@ -22,4 +22,91 @@ final class AppDestinationTests: XCTestCase {
             ["Recipes", "Designs", "Reminders", "Customers", "Settings"]
         )
     }
+
+    func testReservationRepairRunnerDrainsFullBatchesAndStopsAfterPartialBatch() throws {
+        let repository = FakeReservationRepairRepository(
+            summaries: [
+                OrderInventoryReservationRepairSummary(
+                    completedCount: 50,
+                    failedCount: 0
+                ),
+                OrderInventoryReservationRepairSummary(
+                    completedCount: 49,
+                    failedCount: 1
+                ),
+                OrderInventoryReservationRepairSummary(
+                    completedCount: 2,
+                    failedCount: 0
+                )
+            ]
+        )
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+
+        let summary = try OrderInventoryReservationRepairRunner(
+            repository: repository,
+            dateProvider: { timestamp }
+        ).run()
+
+        XCTAssertEqual(
+            summary,
+            OrderInventoryReservationRepairSummary(
+                completedCount: 101,
+                failedCount: 1
+            )
+        )
+        XCTAssertEqual(repository.requestedLimits, [50, 50, 50])
+        XCTAssertEqual(repository.requestedDates, [timestamp, timestamp, timestamp])
+    }
+
+    func testReservationRepairRunnerHonorsMaximumBatchCount() throws {
+        let repository = FakeReservationRepairRepository(
+            summaries: Array(
+                repeating: OrderInventoryReservationRepairSummary(
+                    completedCount: 50,
+                    failedCount: 0
+                ),
+                count: 3
+            )
+        )
+
+        let summary = try OrderInventoryReservationRepairRunner(
+            repository: repository,
+            maximumBatchCount: 2
+        ).run()
+
+        XCTAssertEqual(summary.completedCount, 100)
+        XCTAssertEqual(repository.requestedLimits, [50, 50])
+    }
+}
+
+private final class FakeReservationRepairRepository:
+    OrderInventoryReservationMutationRepository {
+    var summaries: [OrderInventoryReservationRepairSummary]
+    var requestedLimits: [Int] = []
+    var requestedDates: [Date] = []
+
+    init(summaries: [OrderInventoryReservationRepairSummary]) {
+        self.summaries = summaries
+    }
+
+    func saveOrder(
+        _: Order,
+        replacingExtraIngredients _: [OrderExtraIngredient],
+        allowInventoryShortage _: Bool
+    ) throws {}
+
+    func repairOrderInventoryReservations(
+        limit: Int,
+        at timestamp: Date
+    ) throws -> OrderInventoryReservationRepairSummary {
+        requestedLimits.append(limit)
+        requestedDates.append(timestamp)
+        guard !summaries.isEmpty else {
+            return OrderInventoryReservationRepairSummary(
+                completedCount: 0,
+                failedCount: 0
+            )
+        }
+        return summaries.removeFirst()
+    }
 }

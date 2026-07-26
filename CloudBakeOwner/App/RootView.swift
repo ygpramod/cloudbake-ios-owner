@@ -1,4 +1,10 @@
 import SwiftUI
+import os
+
+private let reservationRepairLogger = Logger(
+    subsystem: "com.cloudbake.owner",
+    category: "InventoryReservationRepair"
+)
 
 struct RootView: View {
     let database: AppDatabase
@@ -134,6 +140,7 @@ struct RootView: View {
         }
         .task {
             await prepareInitialRestoreOrBackup()
+            repairInventoryReservations()
             navigateToInitialUITestDestination()
             await refreshLocalReminders()
         }
@@ -308,6 +315,19 @@ struct RootView: View {
         await ManualBackupReminderScheduler().refreshReminder()
     }
 
+    private func repairInventoryReservations() {
+        let repository = database.makeCoreDataRepository()
+        do {
+            _ = try OrderInventoryReservationRepairRunner(
+                repository: repository
+            ).run()
+        } catch {
+            reservationRepairLogger.error(
+                "Inventory reservation repair stopped after a persistence failure"
+            )
+        }
+    }
+
     private func prepareInitialRestoreOrBackup() async {
         guard cloudRestoreSettingsService != nil,
               (try? OwnerInstallationState(database: database).hasRestorableData()) == false else {
@@ -324,10 +344,46 @@ struct RootView: View {
     private func refreshAfterRestore() async {
         navigationPath.removeAll()
         restoredDataRevision += 1
+        repairInventoryReservations()
         await RestoreCompletionReconciler(
             refreshReminders: refreshLocalReminders,
             resumeBackup: { cloudBackupRuntime?.startPostRestoreCatchUp() }
         ).reconcile()
+    }
+}
+
+struct OrderInventoryReservationRepairRunner {
+    let repository: any OrderInventoryReservationMutationRepository
+    var batchLimit = 50
+    var maximumBatchCount = 20
+    var dateProvider: () -> Date = Date.init
+
+    func run() throws -> OrderInventoryReservationRepairSummary {
+        guard batchLimit > 0, maximumBatchCount > 0 else {
+            return OrderInventoryReservationRepairSummary(
+                completedCount: 0,
+                failedCount: 0
+            )
+        }
+
+        var completedCount = 0
+        var failedCount = 0
+        let timestamp = dateProvider()
+        for _ in 0..<maximumBatchCount {
+            let summary = try repository.repairOrderInventoryReservations(
+                limit: batchLimit,
+                at: timestamp
+            )
+            completedCount += summary.completedCount
+            failedCount += summary.failedCount
+            guard summary.completedCount + summary.failedCount == batchLimit else {
+                break
+            }
+        }
+        return OrderInventoryReservationRepairSummary(
+            completedCount: completedCount,
+            failedCount: failedCount
+        )
     }
 }
 

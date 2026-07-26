@@ -839,6 +839,36 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
+    func testOrderDetailSurfacesFailedInventoryReservationRepair() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_150_000)
+        let order = makeOrder(
+            id: "order-repair-warning",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: timestamp.addingTimeInterval(86_400)
+        )
+        repository.orders = [order]
+        repository.inventoryReservationRepairs = [
+            OrderInventoryReservationRepair(
+                orderId: order.id,
+                state: .failed,
+                attemptCount: 1,
+                lastAttemptedAt: timestamp,
+                failureCode: .incompatibleUnit,
+                updatedAt: timestamp
+            )
+        ]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertEqual(
+            viewModel.selectedOrderInventoryReservationRepairWarning,
+            "This order’s reservation needs attention because an ingredient unit is incompatible."
+        )
+    }
+
     func testAddingExtraIngredientRequiresReservationShortageOverride() {
         let repository = FakeOrderRepository()
         let order = makeOrder(

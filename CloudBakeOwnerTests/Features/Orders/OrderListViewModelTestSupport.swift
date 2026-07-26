@@ -198,6 +198,7 @@ final class FakeOrderRepository: OrderRepository,
     OrderIngredientCostRepository,
     OrderStatusChangeRepository,
     OrderExtraIngredientRepository,
+    OrderInventoryReservationRepository,
     OrderInventoryReservationMutationRepository,
     OrderChecklistRepository,
     OrderPhotoRepository {
@@ -215,6 +216,9 @@ final class FakeOrderRepository: OrderRepository,
     var extraIngredients: [OrderExtraIngredient] = []
     var checklistItems: [OrderChecklistItem] = []
     var orderPhotos: [OrderPhoto] = []
+    var inventoryReservations: [OrderInventoryReservation] = []
+    var inventoryReservationEvents: [OrderInventoryReservationEvent] = []
+    var inventoryReservationRepairs: [OrderInventoryReservationRepair] = []
     var recordedTransactionIds: [String] = []
     var recordRecipeUsageError: Error?
     var changeOrderStatusError: Error?
@@ -256,6 +260,41 @@ final class FakeOrderRepository: OrderRepository,
         at _: Date
     ) throws -> OrderInventoryReservationRepairSummary {
         OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 0)
+    }
+
+    func fetchOrderInventoryReservations(
+        orderId: String
+    ) throws -> [OrderInventoryReservation] {
+        inventoryReservations.filter { $0.orderId == orderId }
+    }
+
+    func fetchInventoryReservationTotal(
+        inventoryItemId: String,
+        excludingOrderId: String?
+    ) throws -> Double {
+        inventoryReservations
+            .filter {
+                $0.inventoryItemId == inventoryItemId
+                    && $0.orderId != excludingOrderId
+            }
+            .reduce(0) { $0 + $1.requiredQuantity }
+    }
+
+    func fetchOrderInventoryReservationEvents(
+        orderId: String,
+        limit: Int
+    ) throws -> [OrderInventoryReservationEvent] {
+        Array(
+            inventoryReservationEvents
+                .filter { $0.orderId == orderId }
+                .prefix(limit)
+        )
+    }
+
+    func fetchOrderInventoryReservationRepair(
+        orderId: String
+    ) throws -> OrderInventoryReservationRepair? {
+        inventoryReservationRepairs.first { $0.orderId == orderId }
     }
 
     func fetchOrder(id: String) throws -> Order? {
