@@ -16,8 +16,11 @@ if [[ "$#" -gt 0 ]]; then
 else
   base_sha="${SWIFT_FORMAT_BASE_SHA:-}"
 
-  if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]]; then
+  if [[ "$base_sha" =~ ^0+$ ]]; then
     base_sha="$(git rev-parse HEAD^)"
+  elif [[ -z "$base_sha" ]]; then
+    echo "Set SWIFT_FORMAT_BASE_SHA or pass the Swift files to lint." >&2
+    exit 2
   fi
 
   while IFS= read -r file; do
