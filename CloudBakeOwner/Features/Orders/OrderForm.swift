@@ -156,6 +156,10 @@ struct OrderForm: View {
                             ? "Due time only"
                             : viewModel.draftReminderDayOffsets
                     )
+                    LabeledContent(
+                        "Due-time Reminder",
+                        value: viewModel.draftReminderIncludesDueTime ? "On" : "Off"
+                    )
                     Text("This order keeps its own copy of the default plan.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
