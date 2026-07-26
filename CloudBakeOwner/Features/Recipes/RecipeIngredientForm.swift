@@ -58,15 +58,12 @@ struct RecipeIngredientForm: View {
                 viewModel.cancelInventoryShortageOverride()
             }
         ) {
-            ScrollView {
-                Text(viewModel.inventoryShortageWarningMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityIdentifier("recipes.ingredient.inventoryShortage.message")
-            }
-            .frame(maxHeight: 180)
+            Text(viewModel.inventoryShortageWarningMessage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .accessibilityIdentifier("recipes.ingredient.inventoryShortage.message")
 
             centeredPopupButton("Continue And Save", role: .destructive) {
                 if viewModel.confirmPendingIngredientInventoryShortage() {

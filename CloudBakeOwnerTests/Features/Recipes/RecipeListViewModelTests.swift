@@ -554,10 +554,14 @@ final class RecipeListViewModelTests: XCTestCase {
                 unit: .gram
             )
         ])
+        var dateOffset: TimeInterval = 0
         let viewModel = RecipeListViewModel(
             repository: repository,
             idGenerator: makeIncrementingIdGenerator(prefix: "ingredient"),
-            dateProvider: { timestamp }
+            dateProvider: {
+                defer { dateOffset += 1 }
+                return timestamp.addingTimeInterval(dateOffset)
+            }
         )
         viewModel.beginViewingRecipe(recipe)
         viewModel.beginAddingIngredient()
@@ -591,6 +595,14 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertEqual(repository.ingredients.map(\.id), ["ingredient-2"])
         XCTAssertEqual(repository.ingredients.first?.quantity, 300)
         XCTAssertEqual(repository.allowInventoryShortageRequests, [false, false, true])
+        XCTAssertEqual(
+            repository.recipeIngredientMutationRequests[1].ingredient,
+            repository.recipeIngredientMutationRequests[2].ingredient
+        )
+        XCTAssertEqual(
+            repository.recipeIngredientMutationRequests[1].component,
+            repository.recipeIngredientMutationRequests[2].component
+        )
     }
 
     func testSaveIngredientOverrideFailureRemainsEditable() {
@@ -623,6 +635,17 @@ final class RecipeListViewModelTests: XCTestCase {
         repository.recipes = [recipe]
         repository.components = [component]
         repository.inventoryItems = [flour]
+        let existingIngredient = RecipeIngredient(
+            id: "ingredient-flour",
+            componentId: component.id,
+            inventoryItemId: flour.id,
+            quantity: 100,
+            unit: .gram,
+            note: "Original",
+            createdAt: timestamp.addingTimeInterval(-100),
+            updatedAt: timestamp.addingTimeInterval(-50)
+        )
+        repository.ingredients = [existingIngredient]
         repository.recipeIngredientMutationError = OrderRecipeUsageError.insufficientStock([
             OrderInventoryShortage(
                 inventoryItemId: flour.id,
@@ -632,13 +655,17 @@ final class RecipeListViewModelTests: XCTestCase {
                 unit: .gram
             )
         ])
+        var dateOffset: TimeInterval = 0
         let viewModel = RecipeListViewModel(
             repository: repository,
             idGenerator: { "ingredient-flour" },
-            dateProvider: { timestamp }
+            dateProvider: {
+                defer { dateOffset += 1 }
+                return timestamp.addingTimeInterval(dateOffset)
+            }
         )
         viewModel.beginViewingRecipe(recipe)
-        viewModel.beginAddingIngredient()
+        viewModel.beginEditingIngredient(existingIngredient)
         viewModel.draftIngredientQuantity = "300"
 
         XCTAssertFalse(viewModel.saveIngredient())
@@ -653,7 +680,26 @@ final class RecipeListViewModelTests: XCTestCase {
             "A recipe ingredient inventory item could not be found."
         )
         XCTAssertEqual(viewModel.draftIngredientQuantity, "300")
-        XCTAssertTrue(repository.ingredients.isEmpty)
+        XCTAssertEqual(repository.ingredients, [existingIngredient])
+
+        repository.recipeIngredientMutationError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: flour.id,
+                inventoryItemName: flour.name,
+                requiredQuantity: 300,
+                availableQuantity: 100,
+                unit: .gram
+            )
+        ])
+        XCTAssertFalse(viewModel.saveIngredient())
+        XCTAssertTrue(viewModel.confirmPendingIngredientInventoryShortage())
+
+        XCTAssertEqual(repository.ingredients.first?.id, existingIngredient.id)
+        XCTAssertEqual(repository.ingredients.first?.createdAt, existingIngredient.createdAt)
+        XCTAssertEqual(
+            repository.recipeIngredientMutationRequests[2].ingredient,
+            repository.recipeIngredientMutationRequests[3].ingredient
+        )
     }
 
     func testDeleteIngredientRemovesIngredientAndReloadsRows() {

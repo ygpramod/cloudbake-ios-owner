@@ -2,6 +2,12 @@ import CoreGraphics
 import Foundation
 @testable import CloudBakeOwner
 
+struct RecipeIngredientMutationRequest: Equatable {
+    let ingredient: RecipeIngredient
+    let component: RecipeComponent
+    let allowsInventoryShortage: Bool
+}
+
 func placeholderCGImage() -> CGImage? {
     let colorSpace = CGColorSpaceCreateDeviceRGB()
     guard let context = CGContext(
@@ -33,6 +39,7 @@ final class FakeRecipeRepository: RecipeRepository,
     var recipeCSVImportError: Error?
     var recipeIngredientMutationError: Error?
     var allowInventoryShortageRequests: [Bool] = []
+    var recipeIngredientMutationRequests: [RecipeIngredientMutationRequest] = []
 
     func saveRecipeCSVImport(
         recipes: [Recipe],
@@ -82,6 +89,13 @@ final class FakeRecipeRepository: RecipeRepository,
         allowInventoryShortage: Bool
     ) throws {
         allowInventoryShortageRequests.append(allowInventoryShortage)
+        recipeIngredientMutationRequests.append(
+            RecipeIngredientMutationRequest(
+                ingredient: ingredient,
+                component: component,
+                allowsInventoryShortage: allowInventoryShortage
+            )
+        )
         if let recipeIngredientMutationError {
             if case .insufficientStock = recipeIngredientMutationError as? OrderRecipeUsageError,
                allowInventoryShortage {

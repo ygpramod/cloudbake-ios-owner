@@ -68,40 +68,45 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
                     }
 
                 VStack(spacing: 0) {
-                    VStack(spacing: 10) {
-                        Image(systemName: systemImage)
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(Color.cloudBakePink)
-                            .accessibilityHidden(true)
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            VStack(spacing: 10) {
+                                Image(systemName: systemImage)
+                                    .font(.title2.weight(.semibold))
+                                    .foregroundStyle(Color.cloudBakePink)
+                                    .accessibilityHidden(true)
 
-                        Text(title)
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(.primary)
+                                Text(title)
+                                    .font(.title3.weight(.bold))
+                                    .foregroundStyle(.primary)
 
-                        if !subtitle.isEmpty {
-                            Text(subtitle)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                                .accessibilityIdentifier("cloudBake.popup.subtitle")
+                                if !subtitle.isEmpty {
+                                    Text(subtitle)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .accessibilityIdentifier("cloudBake.popup.subtitle")
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 28)
+                            .padding(.bottom, 24)
+
+                            Rectangle()
+                                .fill(Color.cloudBakePink.opacity(0.24))
+                                .frame(height: 1)
+                                .padding(.horizontal, 30)
+
+                            VStack(spacing: 0) {
+                                content()
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 12)
+                            .padding(.bottom, showsCancelButton ? 16 : 24)
                         }
                     }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 28)
-                        .padding(.bottom, 24)
-
-                    Rectangle()
-                        .fill(Color.cloudBakePink.opacity(0.24))
-                        .frame(height: 1)
-                        .padding(.horizontal, 30)
-
-                    VStack(spacing: 0) {
-                        content()
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 12)
-                    .padding(.bottom, showsCancelButton ? 16 : 24)
+                    .scrollBounceBehavior(.basedOnSize)
 
                     if showsCancelButton {
                         Rectangle()
@@ -122,6 +127,7 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
                     }
                 }
                 .frame(maxWidth: 360)
+                .frame(maxHeight: max(proxy.size.height - 32, 240))
                 .background(.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .padding(.horizontal, 24)
                 .shadow(color: .black.opacity(0.20), radius: 24, y: 14)
