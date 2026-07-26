@@ -185,8 +185,8 @@ CloudBake also schedules at most one aggregate Payment Pending notification per 
 meets the same rule. It shows the number of outstanding completed orders and their combined balance
 rather than consuming one notification slot per order. CloudBake maintains a rolling 14-day local
 schedule and refreshes it whenever the app opens or returns to the foreground. Open Settings →
-Order Reminders to choose the daily time; the default is 9:00 AM. Until the payment report slice is
-complete, tapping the notification opens the payment-due area in Reminders.
+Order Reminders to choose the daily time; the default is 9:00 AM. Tapping the notification opens
+Reports on the Outstanding Payment Ledger.
 
 Reminder order and inventory rows open their detail screens in place so the owner stays in the
 Reminders workflow.
@@ -558,11 +558,35 @@ checklist row to mark it complete or incomplete. Checklist items stay in entry o
 deleted from order detail. Checklist reordering, templates, and checklist-driven status changes are
 future work.
 
-Order add/edit includes a Pricing And Payment section for the owner-entered quoted price, deposit
-paid, and payment notes. Order detail shows payment status, quoted price, deposit paid, and derived
-balance due. From order detail, the owner can mark the order Paid or add a partial payment without
-opening full edit. Marking Paid sets the paid amount to the quoted price and makes balance due zero.
-Adding a partial payment asks for the newly received amount and adds it to the existing paid amount.
+Add Order includes quoted price, an optional initial payment, and payment notes. The initial payment
+is saved atomically with the order as its opening receipt. Amount Paid is read-only in Edit Order.
+Order detail shows payment status, quoted price, amount paid, balance due, legacy payment when
+applicable, and dated receipt history. Mark Paid records only the remaining balance; Add Partial
+Payment records exactly the newly received amount.
+
+To correct a payment, open its actions in order detail and choose Void Payment. An optional reason
+can be entered. CloudBake keeps the original receipt and correction visible, removes the voided
+amount from totals, and allows the correct amount to be recorded as a new receipt.
+
+## Review Business Reports
+
+Open More → Reports. The default is Payment Ledger → Outstanding for the rolling year ending today,
+grouped by month. Choose Day, Week, or Month, adjust the date range up to 366 days, and include or
+exclude order statuses.
+
+Payment Ledger has:
+
+1. Outstanding, grouped by order due date, with balance and overdue days;
+2. Received, grouped by each receipt's received date, with its early/on-time/late difference from
+   the order due date.
+
+Order Profitability shows order-by-order quoted price, ingredient cost, ingredient margin, amount
+paid, and balance due. Active orders use estimated ingredient cost; Completed orders use actual
+consumption cost. Partial cost remains visible with a missing-price warning.
+
+Sales & Orders shows each selected period's order count, quoted total, average quoted value,
+received, outstanding, and status breakdown. Tap a period for its bounded order drill-down. Tap
+payment or profitability rows to open the order.
 
 When a linked recipe has inventory-backed ingredients, the order form shows Estimated Ingredient
 Cost beside the quoted-price input so the owner can use it while preparing a quote. The estimate

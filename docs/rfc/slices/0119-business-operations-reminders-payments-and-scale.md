@@ -2,7 +2,10 @@
 
 ## Status
 
-In progress. Payment-report presentation and payment-history correction rules are owner-confirmed.
+Implemented in the owner app. Inventory reservations, reminder customization, daily payment-pending
+notifications, immutable payment receipts and corrections, three bounded reports, shared
+notification capacity, and scale-oriented queries are complete. Final validation is tracked by the
+implementation PR.
 
 ## Parent RFCs
 
@@ -182,12 +185,11 @@ The owner confirmed that customization includes both global defaults and per-ord
 
 ## Daily Payment-Pending Reminder
 
-Implementation status: scheduling foundation complete; final Outstanding-report routing,
-shared-budget allocation, and the end-to-end acceptance journey remain part of this improvement
-point. CloudBake records the first known completion time for newly completed orders, uses one
-shared eligibility rule for the Reminders screen and local notification, persists the
-owner-selected daily time, and refreshes aggregate requests after order, status, payment, settings,
-launch, foreground, and restore changes.
+Implementation status: complete in this improvement point. CloudBake records the first known
+completion time for newly completed orders, uses one shared eligibility rule for the Reminders
+screen and local notification, persists the owner-selected daily time, refreshes aggregate requests
+after order, status, payment, settings, launch, foreground, and restore changes, routes payment
+notifications to the Outstanding report, and shares the app notification budget.
 
 ### Business Rules
 
@@ -316,8 +318,10 @@ reports are outside this improvement point.
 CSV export is deferred. This improvement point first delivers reliable on-screen reports; export
 can follow in a separate slice after the owner validates the final columns and filters.
 
-The payment-report interview decisions are complete. Report UI and append-only payment correction
-implementation may proceed under this contract.
+Implementation status: complete in this improvement point. The Reports screen opens Payment Ledger
+on Outstanding, supports received-payment and outstanding grouping, provides Order Profitability
+and Sales & Orders with the owner-confirmed defaults and filters, pages row drill-down, and keeps
+voided receipts visible in order payment history while excluding them from totals.
 
 ## Scale-Oriented Order Queries
 

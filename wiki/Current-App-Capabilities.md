@@ -215,6 +215,13 @@ The app currently supports:
     the in-app Payment Due list, an owner-selected reminder time, immediate refresh after
     payment/order/settings changes, and first-completion timestamps that preserve unknown legacy
     history.
+137. immutable dated payment receipts for opening, partial, and remaining-balance payments, with
+    atomic paid-total reconciliation, append-only void corrections, and explicit legacy payments
+    whose dates are unknown.
+138. a Reports screen with Payment Ledger, Order Profitability, and Sales & Orders; a rolling
+    one-year default ending today; custom date ranges up to 366 days; status filters; Day, Week, and
+    Month grouping where applicable; bounded row and sales-bucket drill-down; payment delay from
+    order due date; partial ingredient-cost warnings; and exact receipt/sales totals.
 
 ## Partially Prepared
 
