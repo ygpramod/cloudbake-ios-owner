@@ -352,17 +352,19 @@ struct RootView: View {
             return
         }
 
-        let repository = database.makeCoreDataRepository()
-        await ExpiryReminderScheduler(
-            repository: repository
-        ).refreshReminders()
-        await OrderReminderScheduler(
-            repository: repository
-        ).refreshReminders()
-        await PaymentPendingReminderScheduler(
-            repository: repository
-        ).refreshReminder()
-        await ManualBackupReminderScheduler().refreshReminder()
+        await LocalReminderRefreshCoordinator.shared.refresh {
+            let repository = database.makeCoreDataRepository()
+            await ExpiryReminderScheduler(
+                repository: repository
+            ).refreshReminders()
+            await OrderReminderScheduler(
+                repository: repository
+            ).refreshReminders()
+            await PaymentPendingReminderScheduler(
+                repository: repository
+            ).refreshReminder()
+            await ManualBackupReminderScheduler().refreshReminder()
+        }
     }
 
     private func repairInventoryReservations() async -> Bool {

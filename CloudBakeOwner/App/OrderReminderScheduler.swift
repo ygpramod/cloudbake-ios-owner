@@ -1,6 +1,57 @@
 import Foundation
 import UserNotifications
 
+actor LocalReminderRefreshCoordinator {
+    static let shared = LocalReminderRefreshCoordinator()
+
+    typealias RefreshOperation = @Sendable () async -> Void
+
+    private struct PendingRefresh {
+        var operation: RefreshOperation
+        var continuations: [CheckedContinuation<Void, Never>]
+    }
+
+    private var pendingRefresh: PendingRefresh?
+    private var isRefreshing = false
+
+    func refresh(
+        _ operation: @escaping RefreshOperation
+    ) async {
+        await withCheckedContinuation { continuation in
+            if pendingRefresh == nil {
+                pendingRefresh = PendingRefresh(
+                    operation: operation,
+                    continuations: [continuation]
+                )
+            } else {
+                pendingRefresh?.operation = operation
+                pendingRefresh?.continuations.append(continuation)
+            }
+
+            guard !isRefreshing else {
+                return
+            }
+            isRefreshing = true
+            Task {
+                await drain()
+            }
+        }
+    }
+
+    var pendingRequestCount: Int {
+        pendingRefresh?.continuations.count ?? 0
+    }
+
+    private func drain() async {
+        while let refresh = pendingRefresh {
+            pendingRefresh = nil
+            await refresh.operation()
+            refresh.continuations.forEach { $0.resume() }
+        }
+        isRefreshing = false
+    }
+}
+
 struct OrderReminderScheduler {
     private static let notificationPrefix = "order-reminder-"
     static let orderNotificationOrderIdKey = "cloudbake.orderId"

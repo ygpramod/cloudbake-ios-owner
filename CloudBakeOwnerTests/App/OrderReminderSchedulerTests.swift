@@ -3,6 +3,47 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class OrderReminderSchedulerTests: XCTestCase {
+    func testNewestRefreshRunsAfterOverlappingStaleRefresh() async {
+        let coordinator = LocalReminderRefreshCoordinator()
+        let gate = AsyncTestGate()
+        let events = RefreshEventRecorder()
+
+        let staleRefresh = Task {
+            await coordinator.refresh {
+                await events.record("stale-unpaid")
+                await gate.wait()
+            }
+        }
+        await waitUntil {
+            await events.values == ["stale-unpaid"]
+        }
+
+        let intermediateRefresh = Task {
+            await coordinator.refresh {
+                await events.record("intermediate-paid")
+            }
+        }
+        let newestRefresh = Task {
+            await coordinator.refresh {
+                await events.record("newest-paid")
+            }
+        }
+        await waitUntil {
+            await coordinator.pendingRequestCount == 2
+        }
+
+        await gate.open()
+        await staleRefresh.value
+        await intermediateRefresh.value
+        await newestRefresh.value
+        let recordedEvents = await events.values
+
+        XCTAssertEqual(
+            recordedEvents,
+            ["stale-unpaid", "newest-paid"]
+        )
+    }
+
     @MainActor
     func testPaymentNotificationRoutesToPaymentReport() {
         let router = OrderNotificationRouter()
@@ -425,6 +466,18 @@ final class OrderReminderSchedulerTests: XCTestCase {
         )
     }
 
+    private func waitUntil(
+        _ condition: @escaping () async -> Bool
+    ) async {
+        for _ in 0..<1_000 {
+            if await condition() {
+                return
+            }
+            await Task.yield()
+        }
+        XCTFail("Timed out waiting for asynchronous test state.")
+    }
+
     private func makePaymentOrder(
         id: String,
         status: OrderStatus,
@@ -486,6 +539,35 @@ private final class FakePaymentReminderRepository:
 }
 
 private struct TestFailure: Error {}
+
+private actor AsyncTestGate {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        guard !isOpen else {
+            return
+        }
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+        }
+    }
+
+    func open() {
+        isOpen = true
+        let pendingWaiters = waiters
+        waiters = []
+        pendingWaiters.forEach { $0.resume() }
+    }
+}
+
+private actor RefreshEventRecorder {
+    private(set) var values: [String] = []
+
+    func record(_ value: String) {
+        values.append(value)
+    }
+}
 
 private final class FakeOrderReminderRepository:
     OrderRepository,
