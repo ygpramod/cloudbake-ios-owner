@@ -270,6 +270,7 @@ final class FakeOrderRepository: OrderRepository,
     OrderExtraIngredientRepository,
     OrderInventoryReservationRepository,
     OrderInventoryReservationMutationRepository,
+    OrderReminderPlanOrderMutationRepository,
     OrderChecklistRepository,
     OrderPhotoRepository {
     var orders: [Order] = []
@@ -325,6 +326,20 @@ final class FakeOrderRepository: OrderRepository,
         try save(order)
         extraIngredients.removeAll { $0.orderId == order.id }
         extraIngredients.append(contentsOf: replacement)
+    }
+
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients replacement: [OrderExtraIngredient],
+        reminderConfiguration: OrderReminderConfiguration,
+        allowInventoryShortage: Bool
+    ) throws {
+        try saveOrder(
+            order,
+            replacingExtraIngredients: replacement,
+            allowInventoryShortage: allowInventoryShortage
+        )
+        orderReminderConfigurations[order.id] = reminderConfiguration
     }
 
     func repairOrderInventoryReservations(
@@ -798,6 +813,29 @@ final class FakeOrderRepository: OrderRepository,
             )
         }
 
+        return updatedOrder
+    }
+
+    func changeOrderStatus(
+        order: Order,
+        status: OrderStatus,
+        updatedAt: Date,
+        usageId: String,
+        extraIngredients: [OrderExtraIngredient]?,
+        reminderConfiguration: OrderReminderConfiguration,
+        allowInventoryShortage: Bool,
+        transactionIdProvider: () -> String
+    ) throws -> Order {
+        let updatedOrder = try changeOrderStatus(
+            order: order,
+            status: status,
+            updatedAt: updatedAt,
+            usageId: usageId,
+            extraIngredients: extraIngredients,
+            allowInventoryShortage: allowInventoryShortage,
+            transactionIdProvider: transactionIdProvider
+        )
+        orderReminderConfigurations[order.id] = reminderConfiguration
         return updatedOrder
     }
 

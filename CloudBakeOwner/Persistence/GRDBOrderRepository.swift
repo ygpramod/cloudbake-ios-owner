@@ -84,6 +84,34 @@ extension GRDBCoreDataRepository {
         replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
         allowInventoryShortage: Bool
     ) throws {
+        try saveOrder(
+            order,
+            replacingExtraIngredients: extraIngredients,
+            reminderConfiguration: nil,
+            allowInventoryShortage: allowInventoryShortage
+        )
+    }
+
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
+        reminderConfiguration: OrderReminderConfiguration,
+        allowInventoryShortage: Bool
+    ) throws {
+        try saveOrder(
+            order,
+            replacingExtraIngredients: extraIngredients,
+            reminderConfiguration: Optional(reminderConfiguration),
+            allowInventoryShortage: allowInventoryShortage
+        )
+    }
+
+    private func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
+        reminderConfiguration: OrderReminderConfiguration?,
+        allowInventoryShortage: Bool
+    ) throws {
         try writer.write { db in
             let persistedOrder = try self.order(id: order.id, in: db)
             let previousStatus = persistedOrder?.status
@@ -95,6 +123,15 @@ extension GRDBCoreDataRepository {
                 throw OrderRecipeUsageError.inventoryConsumptionRequired
             }
             try save(order, in: db)
+            if let reminderConfiguration {
+                try saveOrderReminderConfiguration(
+                    reminderConfiguration,
+                    orderId: order.id,
+                    createdAt: order.createdAt,
+                    updatedAt: order.updatedAt,
+                    in: db
+                )
+            }
             try replaceOrderExtraIngredients(
                 orderId: order.id,
                 with: extraIngredients,
@@ -371,6 +408,50 @@ extension GRDBCoreDataRepository {
         allowInventoryShortage: Bool = false,
         transactionIdProvider: () -> String
     ) throws -> Order {
+        try changeOrderStatus(
+            order: order,
+            status: status,
+            updatedAt: updatedAt,
+            usageId: usageId,
+            extraIngredients: extraIngredients,
+            reminderConfiguration: nil,
+            allowInventoryShortage: allowInventoryShortage,
+            transactionIdProvider: transactionIdProvider
+        )
+    }
+
+    func changeOrderStatus(
+        order: Order,
+        status: OrderStatus,
+        updatedAt: Date,
+        usageId: String,
+        extraIngredients: [OrderExtraIngredient]?,
+        reminderConfiguration: OrderReminderConfiguration,
+        allowInventoryShortage: Bool,
+        transactionIdProvider: () -> String
+    ) throws -> Order {
+        try changeOrderStatus(
+            order: order,
+            status: status,
+            updatedAt: updatedAt,
+            usageId: usageId,
+            extraIngredients: extraIngredients,
+            reminderConfiguration: Optional(reminderConfiguration),
+            allowInventoryShortage: allowInventoryShortage,
+            transactionIdProvider: transactionIdProvider
+        )
+    }
+
+    private func changeOrderStatus(
+        order: Order,
+        status: OrderStatus,
+        updatedAt: Date,
+        usageId: String,
+        extraIngredients: [OrderExtraIngredient]?,
+        reminderConfiguration: OrderReminderConfiguration?,
+        allowInventoryShortage: Bool,
+        transactionIdProvider: () -> String
+    ) throws -> Order {
         let updatedOrder = Order(
             id: order.id,
             customerId: order.customerId,
@@ -417,6 +498,24 @@ extension GRDBCoreDataRepository {
             }
 
             try save(updatedOrder, in: db)
+            if let reminderConfiguration {
+                let createdAt = try Double.fetchOne(
+                    db,
+                    sql: """
+                        SELECT created_at_unix_time
+                        FROM order_reminder_configurations
+                        WHERE order_id = ?
+                        """,
+                    arguments: [order.id]
+                ).map(Date.init(timeIntervalSince1970:)) ?? updatedAt
+                try saveOrderReminderConfiguration(
+                    reminderConfiguration,
+                    orderId: order.id,
+                    createdAt: createdAt,
+                    updatedAt: updatedAt,
+                    in: db
+                )
+            }
             try synchronizeOrderInventoryReservation(
                 for: updatedOrder,
                 at: updatedAt,

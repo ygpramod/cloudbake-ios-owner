@@ -3,6 +3,43 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
+    func testOrderAndCustomReminderConfigurationSaveTogether() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_004_000)
+        let order = Order(
+            id: "order-atomic-reminder",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Atomic reminder cake",
+            customerName: "Amy",
+            status: .draft,
+            dueAt: timestamp.addingTimeInterval(100_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let configuration = try OrderReminderConfiguration(
+            mode: .custom,
+            dayOffsets: [8, 1],
+            includesDueTime: false
+        )
+
+        try repository.saveOrder(
+            order,
+            replacingExtraIngredients: [],
+            reminderConfiguration: configuration,
+            allowInventoryShortage: false
+        )
+
+        XCTAssertEqual(try repository.fetchOrder(id: order.id), order)
+        XCTAssertEqual(
+            try repository.fetchOrderReminderConfiguration(orderId: order.id),
+            configuration
+        )
+    }
+
     func testOrderReminderConfigurationsSnapshotDefaultsAndPersistOverrides() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         try AppDatabaseMigrations.makeMigrator().migrate(queue)

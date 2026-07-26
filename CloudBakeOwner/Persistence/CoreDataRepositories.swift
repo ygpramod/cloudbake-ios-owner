@@ -219,6 +219,25 @@ protocol OrderInventoryReservationMutationRepository {
     ) throws -> OrderInventoryReservationRepairSummary
 }
 
+protocol OrderReminderPlanOrderMutationRepository {
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
+        reminderConfiguration: OrderReminderConfiguration,
+        allowInventoryShortage: Bool
+    ) throws
+    func changeOrderStatus(
+        order: Order,
+        status: OrderStatus,
+        updatedAt: Date,
+        usageId: String,
+        extraIngredients: [OrderExtraIngredient]?,
+        reminderConfiguration: OrderReminderConfiguration,
+        allowInventoryShortage: Bool,
+        transactionIdProvider: () -> String
+    ) throws -> Order
+}
+
 protocol OrderChecklistRepository {
     func save(_ item: OrderChecklistItem) throws
     func fetchOrderChecklistItems(orderId: String) throws -> [OrderChecklistItem]
