@@ -30,10 +30,9 @@ final class OrderReminderSettingsViewModel: ObservableObject {
     @discardableResult
     func save() -> Bool {
         do {
-            let offsets = try parsedDayOffsets()
-            let configuration = try OrderReminderConfiguration(
-                mode: .defaultSnapshot,
-                dayOffsets: offsets,
+            let configuration = try OrderReminderDraftValidation.configuration(
+                mode: .useDefaults,
+                dayOffsetsText: dayOffsetsText,
                 includesDueTime: includesDueTime
             )
             try repository.saveDefaultOrderReminderConfiguration(
@@ -44,13 +43,9 @@ final class OrderReminderSettingsViewModel: ObservableObject {
             statusMessage = "New orders will use these reminder defaults."
             errorMessage = nil
             return true
-        } catch let error as OrderReminderSettingsInputError {
+        } catch let error as OrderDraftValidationError {
             statusMessage = nil
             errorMessage = error.message
-            return false
-        } catch let error as OrderReminderConfigurationError {
-            statusMessage = nil
-            errorMessage = Self.message(for: error)
             return false
         } catch {
             statusMessage = nil
@@ -64,40 +59,6 @@ final class OrderReminderSettingsViewModel: ObservableObject {
         includesDueTime = configuration.includesDueTime
     }
 
-    private func parsedDayOffsets() throws -> [Int] {
-        let tokens = dayOffsetsText
-            .split(separator: ",", omittingEmptySubsequences: false)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        if tokens.count == 1, tokens[0].isEmpty {
-            return []
-        }
-        guard !tokens.contains(where: \.isEmpty),
-              tokens.allSatisfy({ Int($0) != nil }) else {
-            throw OrderReminderSettingsInputError.invalidDayOffsets
-        }
-        return tokens.compactMap(Int.init)
-    }
-
-    private static func message(for error: OrderReminderConfigurationError) -> String {
-        switch error {
-        case .invalidDayOffset:
-            return "Each reminder day must be a whole number from 1 to 30."
-        case .duplicateDayOffset:
-            return "Enter each reminder day only once."
-        case .emptyEnabledSchedule:
-            return "Add at least one reminder day or keep the due-time reminder on."
-        case .invalidDisabledSchedule:
-            return "The reminder schedule is invalid."
-        }
-    }
-}
-
-private enum OrderReminderSettingsInputError: Error {
-    case invalidDayOffsets
-
-    var message: String {
-        "Enter reminder days as whole numbers separated by commas, for example 7, 3, 1."
-    }
 }
 
 struct OrderReminderSettingsView: View {

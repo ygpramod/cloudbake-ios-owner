@@ -89,3 +89,71 @@ enum OrderDraftValidation {
         return amount
     }
 }
+
+enum OrderReminderDraftMode: String, CaseIterable {
+    case useDefaults
+    case custom
+    case disabled
+
+    var displayName: String {
+        switch self {
+        case .useDefaults:
+            return "Use Defaults"
+        case .custom:
+            return "Custom"
+        case .disabled:
+            return "Off"
+        }
+    }
+}
+
+enum OrderReminderDraftValidation {
+    static func configuration(
+        mode: OrderReminderDraftMode,
+        dayOffsetsText: String,
+        includesDueTime: Bool
+    ) throws -> OrderReminderConfiguration {
+        if mode == .disabled {
+            return .disabled
+        }
+
+        let tokens = dayOffsetsText
+            .split(separator: ",", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let offsets: [Int]
+        if tokens.count == 1, tokens[0].isEmpty {
+            offsets = []
+        } else {
+            guard !tokens.contains(where: \.isEmpty),
+                  tokens.allSatisfy({ Int($0) != nil }) else {
+                throw OrderDraftValidationError(
+                    message: "Enter reminder days as whole numbers separated by commas, for example 7, 3, 1."
+                )
+            }
+            offsets = tokens.compactMap(Int.init)
+        }
+
+        do {
+            return try OrderReminderConfiguration(
+                mode: mode == .custom ? .custom : .defaultSnapshot,
+                dayOffsets: offsets,
+                includesDueTime: includesDueTime
+            )
+        } catch let error as OrderReminderConfigurationError {
+            throw OrderDraftValidationError(message: message(for: error))
+        }
+    }
+
+    private static func message(for error: OrderReminderConfigurationError) -> String {
+        switch error {
+        case .invalidDayOffset:
+            return "Each reminder day must be a whole number from 1 to 30."
+        case .duplicateDayOffset:
+            return "Enter each reminder day only once."
+        case .emptyEnabledSchedule:
+            return "Add at least one reminder day or keep the due-time reminder on."
+        case .invalidDisabledSchedule:
+            return "The reminder schedule is invalid."
+        }
+    }
+}
