@@ -160,6 +160,7 @@
 		410000000000000000000059 /* GRDBCustomerRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000061 /* GRDBCustomerRepository.swift */; };
 		41000000000000000000005A /* GRDBPricingRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000062 /* GRDBPricingRepository.swift */; };
 		41000000000000000000005B /* GRDBOrderRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000063 /* GRDBOrderRepository.swift */; };
+		A20000000000000000000001 /* PaymentReportRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* PaymentReportRepository.swift */; };
 		41000000000000000000005C /* CloudBakeOwnerUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */; };
 		41000000000000000000005D /* CloudBakeOwnerInventoryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */; };
 		41000000000000000000005E /* InventoryListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000066 /* InventoryListViewModelTestSupport.swift */; };
@@ -369,6 +370,7 @@
 		420000000000000000000061 /* GRDBCustomerRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBCustomerRepository.swift; sourceTree = "<group>"; };
 		420000000000000000000062 /* GRDBPricingRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBPricingRepository.swift; sourceTree = "<group>"; };
 		420000000000000000000063 /* GRDBOrderRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBOrderRepository.swift; sourceTree = "<group>"; };
+		A10000000000000000000001 /* PaymentReportRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentReportRepository.swift; sourceTree = "<group>"; };
 		420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerUITestSupport.swift; sourceTree = "<group>"; };
 		420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerInventoryUITests.swift; sourceTree = "<group>"; };
 		420000000000000000000066 /* InventoryListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModelTestSupport.swift; sourceTree = "<group>"; };
@@ -684,6 +686,7 @@
 				420000000000000000000061 /* GRDBCustomerRepository.swift */,
 				42000000000000000000005F /* GRDBInventoryRepository.swift */,
 				420000000000000000000063 /* GRDBOrderRepository.swift */,
+				A10000000000000000000001 /* PaymentReportRepository.swift */,
 				420000000000000000000062 /* GRDBPricingRepository.swift */,
 				420000000000000000000060 /* GRDBRecipeRepository.swift */,
 				420000000000000000000013 /* HealthCheckRepository.swift */,
@@ -1056,6 +1059,7 @@
 				410000000000000000000059 /* GRDBCustomerRepository.swift in Sources */,
 				410000000000000000000057 /* GRDBInventoryRepository.swift in Sources */,
 				41000000000000000000005B /* GRDBOrderRepository.swift in Sources */,
+				A20000000000000000000001 /* PaymentReportRepository.swift in Sources */,
 				41000000000000000000005A /* GRDBPricingRepository.swift in Sources */,
 				410000000000000000000058 /* GRDBRecipeRepository.swift in Sources */,
 				410000000000000000000055 /* TextInputFormatting.swift in Sources */,

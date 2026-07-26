@@ -1054,6 +1054,157 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         )
     }
 
+    func testReceivedPaymentReportIsPagedAndExcludesVoids() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        var nextID = 0
+        let repository = GRDBCoreDataRepository(
+            writer: queue,
+            idProvider: {
+                nextID += 1
+                return "report-entry-\(nextID)"
+            }
+        )
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        for index in 1...3 {
+            try repository.save(
+                pagedOrder(
+                    id: "report-order-\(index)",
+                    status: .completed,
+                    dueAt: start,
+                    quotedPrice: 100
+                )
+            )
+        }
+        let first = try repository.recordPayment(
+            orderId: "report-order-1",
+            amount: decimal("0.10"),
+            receivedAt: start.addingTimeInterval(10),
+            note: nil,
+            createdAt: start.addingTimeInterval(10)
+        )
+        let second = try repository.recordPayment(
+            orderId: "report-order-2",
+            amount: decimal("0.20"),
+            receivedAt: start.addingTimeInterval(20),
+            note: nil,
+            createdAt: start.addingTimeInterval(20)
+        )
+        let voided = try repository.recordPayment(
+            orderId: "report-order-3",
+            amount: 1,
+            receivedAt: start.addingTimeInterval(30),
+            note: nil,
+            createdAt: start.addingTimeInterval(30)
+        )
+        _ = try repository.voidPaymentReceipt(
+            receiptId: voided.id,
+            reason: nil,
+            voidedAt: start.addingTimeInterval(40),
+            createdAt: start.addingTimeInterval(40)
+        )
+        let range = ReportDateRange(
+            start: start,
+            end: start.addingTimeInterval(60)
+        )
+
+        let firstPage = try repository.fetchReceivedPaymentPage(
+            dateRange: range,
+            after: nil,
+            limit: 1
+        )
+        let secondPage = try repository.fetchReceivedPaymentPage(
+            dateRange: range,
+            after: firstPage.nextCursor,
+            limit: 1
+        )
+        let summary = try repository.fetchPaymentLedgerSummary(
+            dateRange: range,
+            statuses: [.confirmed, .inProgress, .ready, .completed]
+        )
+
+        XCTAssertEqual(firstPage.rows.map(\.receipt.id), [second.id])
+        XCTAssertNotNil(firstPage.nextCursor)
+        XCTAssertEqual(secondPage.rows.map(\.receipt.id), [first.id])
+        XCTAssertNil(secondPage.nextCursor)
+        XCTAssertEqual(summary.receivedTotal, decimal("0.30"))
+        XCTAssertEqual(summary.receivedCount, 2)
+    }
+
+    func testOutstandingPaymentReportFiltersStatusesAndPaginates() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        var nextID = 0
+        let repository = GRDBCoreDataRepository(
+            writer: queue,
+            idProvider: {
+                nextID += 1
+                return "outstanding-entry-\(nextID)"
+            }
+        )
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        try repository.save(
+            pagedOrder(
+                id: "confirmed-outstanding",
+                status: .confirmed,
+                dueAt: start.addingTimeInterval(10),
+                quotedPrice: 100
+            )
+        )
+        try repository.save(
+            pagedOrder(
+                id: "completed-outstanding",
+                status: .completed,
+                dueAt: start.addingTimeInterval(20),
+                quotedPrice: 80
+            )
+        )
+        try repository.save(
+            pagedOrder(
+                id: "draft-outstanding",
+                status: .draft,
+                dueAt: start.addingTimeInterval(30),
+                quotedPrice: 90
+            )
+        )
+        _ = try repository.recordPayment(
+            orderId: "confirmed-outstanding",
+            amount: 25,
+            receivedAt: start,
+            note: nil,
+            createdAt: start
+        )
+        _ = try repository.recordRemainingBalancePayment(
+            orderId: "completed-outstanding",
+            receivedAt: start,
+            note: nil,
+            createdAt: start
+        )
+        let range = ReportDateRange(
+            start: start,
+            end: start.addingTimeInterval(60)
+        )
+        let statuses: Set<OrderStatus> = [
+            .confirmed, .inProgress, .ready, .completed
+        ]
+
+        let page = try repository.fetchOutstandingPaymentOrderPage(
+            dateRange: range,
+            statuses: statuses,
+            after: nil,
+            limit: 1
+        )
+        let summary = try repository.fetchPaymentLedgerSummary(
+            dateRange: range,
+            statuses: statuses
+        )
+
+        XCTAssertEqual(page.orders.map(\.id), ["confirmed-outstanding"])
+        XCTAssertNil(page.nextCursor)
+        XCTAssertEqual(summary.outstandingTotal, 75)
+        XCTAssertEqual(summary.outstandingOrderCount, 1)
+    }
+
     func testVoidingReceiptAppendsCorrectionAndReconcilesPaidTotal() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         try AppDatabaseMigrations.makeMigrator().migrate(queue)
