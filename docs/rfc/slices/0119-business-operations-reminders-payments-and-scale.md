@@ -275,6 +275,11 @@ Outstanding view filters and groups unpaid orders by order due date because thos
 have a payment received date. Order Profitability and Sales & Orders filter and group by order due
 date.
 
+Each received-payment row shows the calendar-day difference between its received date and the
+order due date as early, on time, or late. Each partial receipt has its own delay value. An
+Outstanding row shows the number of calendar days currently overdue; orders not yet due show no
+overdue duration.
+
 Payment method is not collected or reported in this slice. A receipt contains its amount,
 received-at timestamp, and optional owner note without requiring a cash, card, or transfer
 classification.
