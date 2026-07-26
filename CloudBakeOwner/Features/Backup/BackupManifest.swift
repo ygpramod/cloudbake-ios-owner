@@ -11,6 +11,7 @@ struct BackupManifest: Codable, Equatable, Sendable {
     let createdAt: Date
     let database: BackupFileDescriptor
     let assets: [BackupAssetDescriptor]
+    let omittedAssetCount: Int
     let totalByteCount: Int64
 
     init(
@@ -20,7 +21,8 @@ struct BackupManifest: Codable, Equatable, Sendable {
         generationID: String,
         createdAt: Date,
         database: BackupFileDescriptor,
-        assets: [BackupAssetDescriptor]
+        assets: [BackupAssetDescriptor],
+        omittedAssetCount: Int = 0
     ) {
         self.formatVersion = formatVersion
         self.databaseSchemaVersion = databaseSchemaVersion
@@ -29,10 +31,42 @@ struct BackupManifest: Codable, Equatable, Sendable {
         self.createdAt = createdAt
         self.database = database
         self.assets = assets.sorted { $0.originalRelativePath < $1.originalRelativePath }
+        self.omittedAssetCount = omittedAssetCount
         totalByteCount = Self.calculatedTotalByteCount(
             database: database,
             assets: assets
         ) ?? -1
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case formatVersion
+        case databaseSchemaVersion
+        case minimumCompatibleAppVersion
+        case generationID
+        case createdAt
+        case database
+        case assets
+        case omittedAssetCount
+        case totalByteCount
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        formatVersion = try container.decode(Int.self, forKey: .formatVersion)
+        databaseSchemaVersion = try container.decode(String.self, forKey: .databaseSchemaVersion)
+        minimumCompatibleAppVersion = try container.decode(
+            String.self,
+            forKey: .minimumCompatibleAppVersion
+        )
+        generationID = try container.decode(String.self, forKey: .generationID)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        database = try container.decode(BackupFileDescriptor.self, forKey: .database)
+        assets = try container.decode([BackupAssetDescriptor].self, forKey: .assets)
+        omittedAssetCount = try container.decodeIfPresent(
+            Int.self,
+            forKey: .omittedAssetCount
+        ) ?? 0
+        totalByteCount = try container.decode(Int64.self, forKey: .totalByteCount)
     }
 
     static func calculatedTotalByteCount(

@@ -16,9 +16,32 @@ final class BackupManifestTests: XCTestCase {
             ["Branding/custom-logo.jpg", "OrderPhotos/z.jpg"]
         )
         XCTAssertEqual(manifest.totalByteCount, 22)
+        XCTAssertEqual(manifest.omittedAssetCount, 0)
 
         let data = try JSONEncoder().encode(manifest)
         XCTAssertEqual(try JSONDecoder().decode(BackupManifest.self, from: data), manifest)
+    }
+
+    func testManifestDefaultsOmittedAssetCountForExistingBackups() throws {
+        let json = """
+            {
+              "formatVersion": 1,
+              "databaseSchemaVersion": "0027_add_order_ingredient_costs",
+              "minimumCompatibleAppVersion": "1.0",
+              "generationID": "generation-1",
+              "createdAt": 1800000000,
+              "database": {"relativePath":"database.sqlite","byteCount":10,"sha256":"db"},
+              "assets": [],
+              "totalByteCount": 10
+            }
+            """
+
+        let manifest = try JSONDecoder().decode(
+            BackupManifest.self,
+            from: Data(json.utf8)
+        )
+
+        XCTAssertEqual(manifest.omittedAssetCount, 0)
     }
 
     func testCompatibilityRejectsUnknownFormatAndOlderApp() {
