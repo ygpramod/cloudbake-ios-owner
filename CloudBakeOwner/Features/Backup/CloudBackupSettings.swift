@@ -200,10 +200,6 @@ final class CloudBackupSettingsViewModel: ObservableObject {
         isConfirmingUnavailablePhotoRemoval = true
     }
 
-    func cancelUnavailablePhotoRemoval() {
-        isConfirmingUnavailablePhotoRemoval = false
-    }
-
     func confirmUnavailablePhotoRemoval() async {
         guard let proposal = pendingUnavailablePhotoProposal else { return }
         isConfirmingUnavailablePhotoRemoval = false

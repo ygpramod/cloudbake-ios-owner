@@ -203,7 +203,9 @@ extension View {
             title: "Remove Broken References?",
             message: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
             cancelAccessibilityIdentifier: "settings.cloudBackup.photos.remove.cancel",
-            onCancel: { viewModel.cancelUnavailablePhotoRemoval() }
+            onCancel: {
+                Task { await viewModel.cancelUnavailablePhotoDecision() }
+            }
         ) {
             nativeDialogButton("Remove And Back Up", role: .destructive) {
                 Task { await viewModel.confirmUnavailablePhotoRemoval() }
