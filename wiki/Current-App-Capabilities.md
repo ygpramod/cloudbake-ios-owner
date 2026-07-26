@@ -210,10 +210,11 @@ The app currently supports:
 135. persisted full-order inventory reservations for Confirmed and In Progress work, including
     shortage confirmation, atomic replacement and release, immutable audit events, migrated-order
     repair, aggregate planning reads, and compact reserved quantities in order detail.
-136. one daily aggregate Payment Pending notification for overdue Completed orders with a remaining
-    balance, using the same eligibility as the in-app Payment Due list, an owner-selected reminder
-    time, immediate refresh after payment/order/settings changes, and first-completion timestamps
-    that preserve unknown legacy history.
+136. at most one aggregate Payment Pending notification per calendar day for overdue Completed
+    orders with a remaining balance, using a rolling 14-day local schedule, the same eligibility as
+    the in-app Payment Due list, an owner-selected reminder time, immediate refresh after
+    payment/order/settings changes, and first-completion timestamps that preserve unknown legacy
+    history.
 
 ## Partially Prepared
 

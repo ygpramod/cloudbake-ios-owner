@@ -181,10 +181,12 @@ For Payment Due, WhatsApp Reminder appears only when WhatsApp is installed. It o
 prefilled customer payment reminder using the linked customer phone number. Mark as Paid asks for
 confirmation, then sets the order paid and removes the payment reminder.
 
-CloudBake also schedules one aggregate Payment Pending notification per day while any order meets
-the same rule. It shows the number of outstanding completed orders and their combined balance rather
-than consuming one notification slot per order. Open Settings → Order Reminders to choose the daily
-time; the default is 9:00 AM. Tapping the notification opens the payment-due area in Reminders.
+CloudBake also schedules at most one aggregate Payment Pending notification per day while any order
+meets the same rule. It shows the number of outstanding completed orders and their combined balance
+rather than consuming one notification slot per order. CloudBake maintains a rolling 14-day local
+schedule and refreshes it whenever the app opens or returns to the foreground. Open Settings →
+Order Reminders to choose the daily time; the default is 9:00 AM. Until the payment report slice is
+complete, tapping the notification opens the payment-due area in Reminders.
 
 Reminder order and inventory rows open their detail screens in place so the owner stays in the
 Reminders workflow.

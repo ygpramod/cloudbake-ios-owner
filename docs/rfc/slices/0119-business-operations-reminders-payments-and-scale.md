@@ -183,10 +183,12 @@ The owner confirmed that customization includes both global defaults and per-ord
 
 ## Daily Payment-Pending Reminder
 
-Implementation status: complete in this improvement point. CloudBake records the first known
-completion time for newly completed orders, uses one shared eligibility rule for the Reminders
-screen and local notification, persists the owner-selected daily time, and refreshes the aggregate
-request after order, status, payment, settings, launch, foreground, and restore changes.
+Implementation status: scheduling foundation complete; final Outstanding-report routing,
+shared-budget allocation, and the end-to-end acceptance journey remain part of this improvement
+point. CloudBake records the first known completion time for newly completed orders, uses one
+shared eligibility rule for the Reminders screen and local notification, persists the
+owner-selected daily time, and refreshes aggregate requests after order, status, payment, settings,
+launch, foreground, and restore changes.
 
 ### Business Rules
 
@@ -198,9 +200,12 @@ request after order, status, payment, settings, launch, foreground, and restore 
 3. The reminder fires once per calendar day at the owner-selected reminder time. The initial
    recommendation is 9:00 AM.
 4. If the order becomes eligible after today's reminder time, the first reminder is tomorrow.
-5. CloudBake uses one aggregate daily payment-pending request while any order is eligible. It shows
-   the outstanding-order count and deep-links to the Outstanding payment report. This prevents one
-   notification request per unpaid order from exhausting the shared local-notification budget.
+5. CloudBake uses at most one aggregate payment-pending notification per calendar day while any
+   order is eligible. The local-only scheduler plans a rolling 14-day set of date-keyed one-shot
+   requests and refreshes that horizon on launch and foreground because iOS cannot defer the start
+   of an indefinite daily repeating local notification. The later shared allocator keeps these
+   requests within the 60-slot app budget. Each notification shows the outstanding-order count and
+   deep-links to the Outstanding payment report.
 6. Marking the order Paid removes its pending payment reminder immediately.
 7. Reducing the balance without paying it in full keeps the reminder active with the updated
    balance.
