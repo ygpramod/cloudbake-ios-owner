@@ -33,6 +33,8 @@ final class OrderPaymentViewModelTests: XCTestCase {
         XCTAssertEqual(repository.orders.first?.updatedAt, updatedAt)
         XCTAssertEqual(viewModel.selectedOrder?.completedAt, completedAt)
         XCTAssertEqual(repository.orders.first?.completedAt, completedAt)
+        XCTAssertEqual(repository.paymentReceipts.map(\.amount), [Decimal(150)])
+        XCTAssertEqual(repository.paymentReceipts.first?.receivedAt, updatedAt)
         XCTAssertEqual(reminderRefreshCount, 1)
     }
 
@@ -55,6 +57,8 @@ final class OrderPaymentViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedOrder?.balanceDue, Decimal(75))
         XCTAssertEqual(viewModel.selectedOrder?.paymentStatus, "Part Paid")
         XCTAssertEqual(repository.orders.first?.depositPaid, Decimal(125))
+        XCTAssertEqual(repository.paymentReceipts.map(\.amount), [Decimal(75)])
+        XCTAssertEqual(repository.paymentReceipts.first?.receivedAt, updatedAt)
     }
 
     func testAddPaymentRejectsInvalidOrExcessAmount() {
@@ -76,5 +80,6 @@ final class OrderPaymentViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.addPaymentToSelectedOrder(amountText: "75"))
         XCTAssertEqual(viewModel.errorMessage, "Payment received cannot be more than balance due.")
         XCTAssertEqual(repository.orders, [order])
+        XCTAssertEqual(repository.paymentReceipts, [])
     }
 }

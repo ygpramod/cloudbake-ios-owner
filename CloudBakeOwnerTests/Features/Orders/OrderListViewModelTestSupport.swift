@@ -105,6 +105,35 @@ func makeOrder(
     )
 }
 
+func orderWithPayment(
+    _ order: Order,
+    depositPaid: Decimal,
+    updatedAt: Date
+) -> Order {
+    Order(
+        id: order.id,
+        customerId: order.customerId,
+        cakeDesignId: order.cakeDesignId,
+        customerReferencePhotoId: order.customerReferencePhotoId,
+        recipeId: order.recipeId,
+        recipeScaleMultiplier: order.recipeScaleMultiplier,
+        title: order.title,
+        customerName: order.customerName,
+        status: order.status,
+        dueAt: order.dueAt,
+        fulfillmentType: order.fulfillmentType,
+        deliveryAddress: order.deliveryAddress,
+        cakeNotes: order.cakeNotes,
+        cakeMessage: order.cakeMessage,
+        quotedPrice: order.quotedPrice,
+        depositPaid: depositPaid,
+        paymentNotes: order.paymentNotes,
+        completedAt: order.completedAt,
+        createdAt: order.createdAt,
+        updatedAt: updatedAt
+    )
+}
+
 func utcCalendar() -> Calendar {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
@@ -276,7 +305,8 @@ final class FakeOrderRepository: OrderRepository,
     OrderInventoryReservationMutationRepository,
     OrderReminderPlanOrderMutationRepository,
     OrderChecklistRepository,
-    OrderPhotoRepository {
+    OrderPhotoRepository,
+    PaymentReceiptRepository {
     var orders: [Order] = []
     var defaultOrderReminderConfiguration = OrderReminderConfiguration.initialDefault
     var orderReminderConfigurations: [String: OrderReminderConfiguration] = [:]
@@ -303,10 +333,123 @@ final class FakeOrderRepository: OrderRepository,
     var allowInventoryShortageRequests: [Bool] = []
     var savePromotedDesignError: Error?
     var pendingDesignPhotoCleanupPaths: [String] = []
+    var paymentReceipts: [PaymentReceipt] = []
+    var paymentReceiptVoids: [PaymentReceiptVoid] = []
 
     func save(_ order: Order) throws {
         orders.removeAll { $0.id == order.id }
         orders.append(order)
+    }
+
+    func recordPayment(
+        orderId: String,
+        amount: Decimal,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt {
+        guard amount > 0 else {
+            throw PaymentReceiptPersistenceError.invalidAmount
+        }
+        guard let index = orders.firstIndex(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        guard let quotedPrice = orders[index].quotedPrice else {
+            throw PaymentReceiptPersistenceError.quotedPriceMissing
+        }
+        let updatedPaid = (orders[index].depositPaid ?? 0) + amount
+        guard updatedPaid <= quotedPrice else {
+            throw PaymentReceiptPersistenceError.exceedsBalance
+        }
+        let receipt = PaymentReceipt(
+            id: "receipt-\(paymentReceipts.count + 1)",
+            orderId: orderId,
+            amount: amount,
+            receivedAt: receivedAt,
+            note: TextInputFormatting.optionalText(note ?? ""),
+            createdAt: createdAt,
+            void: nil
+        )
+        paymentReceipts.append(receipt)
+        orders[index] = orderWithPayment(
+            orders[index],
+            depositPaid: updatedPaid,
+            updatedAt: createdAt
+        )
+        return receipt
+    }
+
+    func recordRemainingBalancePayment(
+        orderId: String,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt {
+        guard let order = orders.first(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        guard let balance = order.balanceDue else {
+            throw PaymentReceiptPersistenceError.quotedPriceMissing
+        }
+        return try recordPayment(
+            orderId: orderId,
+            amount: balance,
+            receivedAt: receivedAt,
+            note: note,
+            createdAt: createdAt
+        )
+    }
+
+    func voidPaymentReceipt(
+        receiptId: String,
+        reason: String?,
+        voidedAt: Date,
+        createdAt: Date
+    ) throws -> PaymentReceiptVoid {
+        guard let receiptIndex = paymentReceipts.firstIndex(where: { $0.id == receiptId }) else {
+            throw PaymentReceiptPersistenceError.receiptNotFound
+        }
+        guard paymentReceipts[receiptIndex].void == nil else {
+            throw PaymentReceiptPersistenceError.alreadyVoided
+        }
+        let receipt = paymentReceipts[receiptIndex]
+        guard let orderIndex = orders.firstIndex(where: { $0.id == receipt.orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        let correction = PaymentReceiptVoid(
+            id: "void-\(paymentReceiptVoids.count + 1)",
+            receiptId: receiptId,
+            reason: TextInputFormatting.optionalText(reason ?? ""),
+            voidedAt: voidedAt,
+            createdAt: createdAt
+        )
+        paymentReceiptVoids.append(correction)
+        paymentReceipts[receiptIndex] = PaymentReceipt(
+            id: receipt.id,
+            orderId: receipt.orderId,
+            amount: receipt.amount,
+            receivedAt: receipt.receivedAt,
+            note: receipt.note,
+            createdAt: receipt.createdAt,
+            void: correction
+        )
+        orders[orderIndex] = orderWithPayment(
+            orders[orderIndex],
+            depositPaid: (orders[orderIndex].depositPaid ?? 0) - receipt.amount,
+            updatedAt: voidedAt
+        )
+        return correction
+    }
+
+    func fetchPaymentReceipts(orderId: String) throws -> [PaymentReceipt] {
+        paymentReceipts.filter { $0.orderId == orderId }
+    }
+
+    func fetchLegacyPaidAmount(orderId: String) throws -> Decimal {
+        guard orders.contains(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        return 0
     }
 
     func saveOrder(

@@ -31,7 +31,7 @@ final class ReminderViewModel: ObservableObject {
     @Published private(set) var canLoadMoreTodayOrderItems = false
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository
+    private let repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository & PaymentReceiptRepository
     private let dateProvider: () -> Date
     private let calendar: Calendar
     private let onPaymentChanged: () -> Void
@@ -43,7 +43,7 @@ final class ReminderViewModel: ObservableObject {
     private static let orderPageSize = 25
 
     init(
-        repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository,
+        repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository & PaymentReceiptRepository,
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current,
         onPaymentChanged: @escaping () -> Void = {}
@@ -151,22 +151,23 @@ final class ReminderViewModel: ObservableObject {
     }
 
     func markPaid(orderId: String) -> Bool {
+        let now = dateProvider()
         do {
-            guard let order = try repository.fetchOrder(id: orderId) else {
-                errorMessage = "Order could not be found."
-                return false
-            }
-
-            switch OrderPaymentUpdate.markingPaid(order, updatedAt: dateProvider()) {
-            case .success(let updatedOrder):
-                try repository.save(updatedOrder)
-                load()
-                onPaymentChanged()
-                return true
-            case .failure(let error):
-                errorMessage = error.message
-                return false
-            }
+            _ = try repository.recordRemainingBalancePayment(
+                orderId: orderId,
+                receivedAt: now,
+                note: nil,
+                createdAt: now
+            )
+            load()
+            onPaymentChanged()
+            return true
+        } catch PaymentReceiptPersistenceError.quotedPriceMissing {
+            errorMessage = "Add quoted price before recording payment."
+            return false
+        } catch PaymentReceiptPersistenceError.orderNotFound {
+            errorMessage = "Order could not be found."
+            return false
         } catch {
             errorMessage = "Payment could not be updated."
             return false

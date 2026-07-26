@@ -336,7 +336,8 @@ private final class FakeReminderRepository: OrderRepository,
     CustomerRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
-    OrderExtraIngredientRepository {
+    OrderExtraIngredientRepository,
+    PaymentReceiptRepository {
     var orders: [Order] = []
     var items: [InventoryItem] = []
     var customers: [Customer] = []
@@ -356,6 +357,83 @@ private final class FakeReminderRepository: OrderRepository,
         } else {
             orders.append(order)
         }
+    }
+
+    func recordPayment(
+        orderId: String,
+        amount: Decimal,
+        receivedAt _: Date,
+        note _: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt {
+        guard let index = orders.firstIndex(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        guard let quotedPrice = orders[index].quotedPrice else {
+            throw PaymentReceiptPersistenceError.quotedPriceMissing
+        }
+        let paid = (orders[index].depositPaid ?? 0) + amount
+        guard amount > 0 else {
+            throw PaymentReceiptPersistenceError.invalidAmount
+        }
+        guard paid <= quotedPrice else {
+            throw PaymentReceiptPersistenceError.exceedsBalance
+        }
+        orders[index] = orderWithPayment(
+            orders[index],
+            depositPaid: paid,
+            updatedAt: createdAt
+        )
+        return PaymentReceipt(
+            id: "receipt-\(orderId)",
+            orderId: orderId,
+            amount: amount,
+            receivedAt: createdAt,
+            note: nil,
+            createdAt: createdAt,
+            void: nil
+        )
+    }
+
+    func recordRemainingBalancePayment(
+        orderId: String,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt {
+        guard let order = orders.first(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        guard let balance = order.balanceDue else {
+            throw PaymentReceiptPersistenceError.quotedPriceMissing
+        }
+        return try recordPayment(
+            orderId: orderId,
+            amount: balance,
+            receivedAt: receivedAt,
+            note: note,
+            createdAt: createdAt
+        )
+    }
+
+    func voidPaymentReceipt(
+        receiptId _: String,
+        reason _: String?,
+        voidedAt _: Date,
+        createdAt _: Date
+    ) throws -> PaymentReceiptVoid {
+        throw PaymentReceiptPersistenceError.receiptNotFound
+    }
+
+    func fetchPaymentReceipts(orderId _: String) throws -> [PaymentReceipt] {
+        []
+    }
+
+    func fetchLegacyPaidAmount(orderId: String) throws -> Decimal {
+        guard orders.contains(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        return 0
     }
 
     func fetchOrder(id: String) throws -> Order? {

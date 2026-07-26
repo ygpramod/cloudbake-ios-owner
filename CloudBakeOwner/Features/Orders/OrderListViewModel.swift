@@ -84,7 +84,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var canLoadMoreActiveOrders = false
     @Published private(set) var canLoadMoreCompletedOrders = false
 
-    private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository & PaymentReceiptRepository
     private let photoFileStore: OrderPhotoFileStore
     private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
@@ -97,7 +97,7 @@ final class OrderListViewModel: ObservableObject {
     private static let orderPageSize = 25
 
     init(
-        repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
+        repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository & PaymentReceiptRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
@@ -877,11 +877,17 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func markOrderPaid(_ order: Order) -> Bool {
-        switch OrderPaymentUpdate.markingPaid(order, updatedAt: dateProvider()) {
-        case .success(let updatedOrder):
-            return savePaymentUpdate(updatedOrder)
-        case .failure(let error):
-            errorMessage = error.message
+        let now = dateProvider()
+        do {
+            _ = try repository.recordRemainingBalancePayment(
+                orderId: order.id,
+                receivedAt: now,
+                note: nil,
+                createdAt: now
+            )
+            return refreshAfterRecordingPayment(orderId: order.id)
+        } catch {
+            errorMessage = paymentErrorMessage(for: error)
             return false
         }
     }
@@ -896,29 +902,55 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func addPayment(to order: Order, amountText: String) -> Bool {
-        switch OrderPaymentUpdate.addingPayment(
-            amountText,
-            to: order,
-            updatedAt: dateProvider()
-        ) {
-        case .success(let updatedOrder):
-            return savePaymentUpdate(updatedOrder)
-        case .failure(let error):
-            errorMessage = error.message
+        let trimmed = TextInputFormatting.trimmed(amountText)
+        guard let amount = Decimal(string: trimmed), amount > 0 else {
+            errorMessage = "Payment amount must be greater than zero."
+            return false
+        }
+        let now = dateProvider()
+        do {
+            _ = try repository.recordPayment(
+                orderId: order.id,
+                amount: amount,
+                receivedAt: now,
+                note: nil,
+                createdAt: now
+            )
+            return refreshAfterRecordingPayment(orderId: order.id)
+        } catch {
+            errorMessage = paymentErrorMessage(for: error)
             return false
         }
     }
 
-    private func savePaymentUpdate(_ updatedOrder: Order) -> Bool {
+    private func refreshAfterRecordingPayment(orderId: String) -> Bool {
         do {
-            try repository.save(updatedOrder)
+            guard let updatedOrder = try repository.fetchOrder(id: orderId) else {
+                errorMessage = "Order could not be found."
+                return false
+            }
             refreshAfterSavingOrder(updatedOrder)
             onReminderDataChanged()
             errorMessage = nil
             return true
         } catch {
-            errorMessage = "Payment could not be updated."
+            errorMessage = "Payment was recorded, but the order could not be refreshed."
             return false
+        }
+    }
+
+    private func paymentErrorMessage(for error: Error) -> String {
+        switch error as? PaymentReceiptPersistenceError {
+        case .quotedPriceMissing:
+            return "Add quoted price before recording payment."
+        case .invalidAmount:
+            return "Payment amount must be greater than zero."
+        case .exceedsBalance:
+            return "Payment received cannot be more than balance due."
+        case .orderNotFound:
+            return "Order could not be found."
+        case .receiptNotFound, .alreadyVoided, .invalidStoredAmount, .none:
+            return "Payment could not be updated."
         }
     }
 
