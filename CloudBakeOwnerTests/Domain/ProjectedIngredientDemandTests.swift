@@ -248,26 +248,28 @@ final class ProjectedIngredientDemandTests: XCTestCase {
         repairs: [String: OrderInventoryReservationRepair] = [:],
         invalidOrderIds: Set<String> = []
     ) throws -> [ProjectedIngredientShortage] {
-        let component = RecipeComponent(
-            id: "component",
-            recipeId: "recipe",
-            name: "Cake",
-            sortOrder: 0,
-            createdAt: now,
-            updatedAt: now
-        )
-        let ingredient = RecipeIngredient(
-            id: "ingredient",
-            componentId: component.id,
-            inventoryItemId: item.id,
-            quantity: recipeQuantity,
-            unit: .gram,
-            note: nil,
-            createdAt: now,
-            updatedAt: now
-        )
+        var liveRequirementsByOrderId: [String: [OrderInventoryRequirement]] = [:]
+        for order in orders {
+            let scale = NSDecimalNumber(decimal: order.recipeScaleMultiplier).doubleValue
+            liveRequirementsByOrderId[order.id, default: []].append(
+                OrderInventoryRequirement(
+                    inventoryItemId: item.id,
+                    quantity: recipeQuantity * scale,
+                    unit: .gram
+                )
+            )
+            for extra in extras[order.id] ?? [] {
+                liveRequirementsByOrderId[order.id, default: []].append(
+                    OrderInventoryRequirement(
+                        inventoryItemId: extra.inventoryItemId,
+                        quantity: extra.quantity,
+                        unit: extra.unit
+                    )
+                )
+            }
+        }
 
-        return try ProjectedIngredientDemand.shortages(
+        return ProjectedIngredientDemand.summary(
             inventoryItems: [item],
             orders: orders,
             at: now,
@@ -275,13 +277,13 @@ final class ProjectedIngredientDemandTests: XCTestCase {
                 consumedOrderIds: consumedOrderIds,
                 reservationsByOrderId: reservations,
                 repairsByOrderId: repairs,
-                invalidOrderIds: invalidOrderIds
-            ),
-            stockBatches: { _ in batches },
-            recipeComponents: { _ in [component] },
-            recipeIngredients: { _ in [ingredient] },
-            orderExtraIngredients: { extras[$0] ?? [] }
-        )
+                invalidOrderIds: invalidOrderIds,
+                liveRequirementsByOrderId: liveRequirementsByOrderId,
+                stockBatchesByInventoryItemId: batches.isEmpty
+                    ? [:]
+                    : [item.id: batches]
+            )
+        ).shortages
     }
 
     private func makeItem(quantity: Double) -> InventoryItem {

@@ -1,6 +1,74 @@
 import XCTest
 @testable import CloudBakeOwner
 
+func makeInventoryReservationPlanningSnapshot(
+    orderIds: [String],
+    orders: [Order],
+    usages: [OrderRecipeUsage],
+    reservations: [OrderInventoryReservation],
+    repairs: [OrderInventoryReservationRepair],
+    components: [RecipeComponent],
+    ingredients: [RecipeIngredient],
+    extras: [OrderExtraIngredient],
+    batches: [InventoryStockBatch]
+) -> OrderInventoryReservationPlanningSnapshot {
+    let orderIdSet = Set(orderIds)
+    let componentsByRecipeId = Dictionary(grouping: components, by: \.recipeId)
+    let ingredientsByComponentId = Dictionary(grouping: ingredients, by: \.componentId)
+    var liveRequirementsByOrderId: [String: [OrderInventoryRequirement]] = [:]
+
+    for order in orders where orderIdSet.contains(order.id) {
+        let scale = NSDecimalNumber(decimal: order.recipeScaleMultiplier).doubleValue
+        if let recipeId = order.recipeId {
+            for component in componentsByRecipeId[recipeId] ?? [] {
+                for ingredient in ingredientsByComponentId[component.id] ?? [] {
+                    liveRequirementsByOrderId[order.id, default: []].append(
+                        OrderInventoryRequirement(
+                            inventoryItemId: ingredient.inventoryItemId,
+                            quantity: ingredient.quantity * scale,
+                            unit: ingredient.unit
+                        )
+                    )
+                }
+            }
+        }
+        for extra in extras where extra.orderId == order.id {
+            liveRequirementsByOrderId[order.id, default: []].append(
+                OrderInventoryRequirement(
+                    inventoryItemId: extra.inventoryItemId,
+                    quantity: extra.quantity,
+                    unit: extra.unit
+                )
+            )
+        }
+    }
+
+    let scopedReservations = reservations.filter { orderIdSet.contains($0.orderId) }
+    let requiredInventoryItemIds = Set(
+        scopedReservations.map(\.inventoryItemId)
+            + liveRequirementsByOrderId.values.flatMap { $0.map(\.inventoryItemId) }
+    )
+    return OrderInventoryReservationPlanningSnapshot(
+        consumedOrderIds: Set(
+            usages.lazy.filter { orderIdSet.contains($0.orderId) }.map(\.orderId)
+        ),
+        reservationsByOrderId: Dictionary(grouping: scopedReservations, by: \.orderId),
+        repairsByOrderId: Dictionary(
+            uniqueKeysWithValues: repairs
+                .filter { orderIdSet.contains($0.orderId) }
+                .map { ($0.orderId, $0) }
+        ),
+        invalidOrderIds: [],
+        liveRequirementsByOrderId: liveRequirementsByOrderId,
+        stockBatchesByInventoryItemId: Dictionary(
+            grouping: batches.filter {
+                requiredInventoryItemIds.contains($0.inventoryItemId)
+            },
+            by: \.inventoryItemId
+        )
+    )
+}
+
 func makeOrder(
     id: String,
     title: String = "Vanilla Birthday",
@@ -301,23 +369,16 @@ final class FakeOrderRepository: OrderRepository,
     func fetchOrderInventoryReservationPlanningSnapshot(
         orderIds: [String]
     ) throws -> OrderInventoryReservationPlanningSnapshot {
-        let orderIdSet = Set(orderIds)
-        return OrderInventoryReservationPlanningSnapshot(
-            consumedOrderIds: Set(
-                usages.lazy.filter { orderIdSet.contains($0.orderId) }.map(\.orderId)
-            ),
-            reservationsByOrderId: Dictionary(
-                grouping: inventoryReservations.filter {
-                    orderIdSet.contains($0.orderId)
-                },
-                by: \.orderId
-            ),
-            repairsByOrderId: Dictionary(
-                uniqueKeysWithValues: inventoryReservationRepairs
-                    .filter { orderIdSet.contains($0.orderId) }
-                    .map { ($0.orderId, $0) }
-            ),
-            invalidOrderIds: []
+        makeInventoryReservationPlanningSnapshot(
+            orderIds: orderIds,
+            orders: orders,
+            usages: usages,
+            reservations: inventoryReservations,
+            repairs: inventoryReservationRepairs,
+            components: recipeComponents,
+            ingredients: recipeIngredients,
+            extras: extraIngredients,
+            batches: inventoryStockBatches
         )
     }
 

@@ -644,6 +644,136 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchOrder(id: draftOrder.id), draftOrder)
     }
 
+    func testReservationPlanningSnapshotLoadsLiveRequirementsAndStockBatches() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_025_000)
+        let item = InventoryItem(
+            id: "inventory-planning-flour",
+            name: "Planning flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let batch = InventoryStockBatch(
+            id: "batch-planning-flour",
+            inventoryItemId: item.id,
+            remainingQuantity: 350,
+            expiresAt: timestamp.addingTimeInterval(100_000),
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let recipe = Recipe(
+            id: "recipe-planning-cake",
+            name: "Planning cake",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-planning-cake",
+            recipeId: recipe.id,
+            name: "Cake",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let ingredient = RecipeIngredient(
+            id: "ingredient-planning-flour",
+            componentId: component.id,
+            inventoryItemId: item.id,
+            quantity: 100,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let order = Order(
+            id: "order-planning-cake",
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: recipe.id,
+            recipeScaleMultiplier: 2,
+            title: "Planning cake",
+            customerName: "Amy",
+            status: .draft,
+            dueAt: timestamp.addingTimeInterval(10_000),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let extra = OrderExtraIngredient(
+            id: "extra-planning-flour",
+            orderId: order.id,
+            inventoryItemId: item.id,
+            quantity: 50,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(item)
+        try repository.save(batch)
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(ingredient)
+        try repository.save(order)
+        try repository.save(extra)
+
+        let snapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
+            orderIds: [order.id]
+        )
+
+        XCTAssertEqual(
+            snapshot.liveRequirementsByOrderId[order.id],
+            [
+                OrderInventoryRequirement(
+                    inventoryItemId: item.id,
+                    quantity: 200,
+                    unit: .gram
+                ),
+                OrderInventoryRequirement(
+                    inventoryItemId: item.id,
+                    quantity: 50,
+                    unit: .gram
+                )
+            ]
+        )
+        XCTAssertEqual(snapshot.stockBatchesByInventoryItemId[item.id], [batch])
+        XCTAssertTrue(snapshot.invalidOrderIds.isEmpty)
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE orders
+                    SET recipe_scale_multiplier_decimal = ?
+                    WHERE id = ?
+                    """,
+                arguments: ["invalid-scale", order.id]
+            )
+        }
+        let corruptSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
+            orderIds: [order.id]
+        )
+        XCTAssertEqual(corruptSnapshot.invalidOrderIds, [order.id])
+        XCTAssertEqual(
+            corruptSnapshot.liveRequirementsByOrderId[order.id],
+            [
+                OrderInventoryRequirement(
+                    inventoryItemId: item.id,
+                    quantity: 50,
+                    unit: .gram
+                )
+            ]
+        )
+    }
+
     func testOrderInventoryReservationStateCanBeRead() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         try AppDatabaseMigrations.makeMigrator().migrate(queue)

@@ -536,6 +536,8 @@ extension GRDBCoreDataRepository {
             var reservationsByOrderId: [String: [OrderInventoryReservation]] = [:]
             var repairsByOrderId: [String: OrderInventoryReservationRepair] = [:]
             var invalidOrderIds = Set<String>()
+            var liveRequirementsByOrderId: [String: [OrderInventoryRequirement]] = [:]
+            var requiredInventoryItemIds = Set<String>()
 
             for chunkStart in stride(from: 0, to: uniqueOrderIds.count, by: 400) {
                 let chunkEnd = min(chunkStart + 400, uniqueOrderIds.count)
@@ -577,6 +579,7 @@ extension GRDBCoreDataRepository {
                     reservationsByOrderId[orderId, default: []].append(
                         orderInventoryReservation(from: row, unit: unit)
                     )
+                    requiredInventoryItemIds.insert(row["inventory_item_id"])
                 }
                 let repairRows = try Row.fetchAll(
                     db,
@@ -614,13 +617,117 @@ extension GRDBCoreDataRepository {
                     )
                     repairsByOrderId[repair.orderId] = repair
                 }
+
+                let recipeRequirementRows = try Row.fetchAll(
+                    db,
+                    sql: """
+                        SELECT orders.id AS order_id,
+                               orders.recipe_scale_multiplier_decimal,
+                               recipe_ingredients.inventory_item_id,
+                               recipe_ingredients.quantity,
+                               recipe_ingredients.unit
+                        FROM orders
+                        JOIN recipe_components
+                          ON recipe_components.recipe_id = orders.recipe_id
+                        JOIN recipe_ingredients
+                          ON recipe_ingredients.component_id = recipe_components.id
+                        WHERE orders.id IN (\(placeholders))
+                        """,
+                    arguments: arguments
+                )
+                for row in recipeRequirementRows {
+                    let orderId: String = row["order_id"]
+                    let scaleValue: String = row["recipe_scale_multiplier_decimal"]
+                    guard let scale = Decimal(string: scaleValue) else {
+                        invalidOrderIds.insert(orderId)
+                        continue
+                    }
+                    let scaleDouble = NSDecimalNumber(decimal: scale).doubleValue
+                    let quantity: Double = row["quantity"]
+                    let unitValue: String = row["unit"]
+                    guard let unit = InventoryUnit(rawValue: unitValue),
+                          scaleDouble.isFinite,
+                          scaleDouble > 0,
+                          quantity.isFinite,
+                          quantity > 0,
+                          (quantity * scaleDouble).isFinite else {
+                        invalidOrderIds.insert(orderId)
+                        continue
+                    }
+                    let inventoryItemId: String = row["inventory_item_id"]
+                    liveRequirementsByOrderId[orderId, default: []].append(
+                        OrderInventoryRequirement(
+                            inventoryItemId: inventoryItemId,
+                            quantity: quantity * scaleDouble,
+                            unit: unit
+                        )
+                    )
+                    requiredInventoryItemIds.insert(inventoryItemId)
+                }
+
+                let extraRequirementRows = try Row.fetchAll(
+                    db,
+                    sql: """
+                        SELECT order_id, inventory_item_id, quantity, unit
+                        FROM order_extra_ingredients
+                        WHERE order_id IN (\(placeholders))
+                        """,
+                    arguments: arguments
+                )
+                for row in extraRequirementRows {
+                    let orderId: String = row["order_id"]
+                    let quantity: Double = row["quantity"]
+                    let unitValue: String = row["unit"]
+                    guard let unit = InventoryUnit(rawValue: unitValue),
+                          quantity.isFinite,
+                          quantity > 0 else {
+                        invalidOrderIds.insert(orderId)
+                        continue
+                    }
+                    let inventoryItemId: String = row["inventory_item_id"]
+                    liveRequirementsByOrderId[orderId, default: []].append(
+                        OrderInventoryRequirement(
+                            inventoryItemId: inventoryItemId,
+                            quantity: quantity,
+                            unit: unit
+                        )
+                    )
+                    requiredInventoryItemIds.insert(inventoryItemId)
+                }
+            }
+
+            var stockBatchesByInventoryItemId: [String: [InventoryStockBatch]] = [:]
+            let sortedInventoryItemIds = requiredInventoryItemIds.sorted()
+            for chunkStart in stride(from: 0, to: sortedInventoryItemIds.count, by: 400) {
+                let chunkEnd = min(chunkStart + 400, sortedInventoryItemIds.count)
+                let chunk = Array(sortedInventoryItemIds[chunkStart..<chunkEnd])
+                let placeholders = chunk.map { _ in "?" }.joined(separator: ", ")
+                let rows = try Row.fetchAll(
+                    db,
+                    sql: """
+                        SELECT *
+                        FROM inventory_stock_batches
+                        WHERE inventory_item_id IN (\(placeholders))
+                        ORDER BY inventory_item_id, created_at_unix_time, id
+                        """,
+                    arguments: StatementArguments(chunk)
+                )
+                for row in rows {
+                    let batch = inventoryStockBatch(from: row)
+                    stockBatchesByInventoryItemId[
+                        batch.inventoryItemId,
+                        default: []
+                    ].append(batch)
+                }
             }
 
             return OrderInventoryReservationPlanningSnapshot(
                 consumedOrderIds: consumedOrderIds,
                 reservationsByOrderId: reservationsByOrderId,
                 repairsByOrderId: repairsByOrderId,
-                invalidOrderIds: invalidOrderIds
+                invalidOrderIds: invalidOrderIds,
+                liveRequirementsByOrderId: liveRequirementsByOrderId,
+                stockBatchesByInventoryItemId: stockBatchesByInventoryItemId
             )
         }
     }

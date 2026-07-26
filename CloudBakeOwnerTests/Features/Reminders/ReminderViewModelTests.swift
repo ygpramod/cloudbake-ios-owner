@@ -233,6 +233,8 @@ final class ReminderViewModelTests: XCTestCase {
         viewModel.load()
 
         XCTAssertEqual(viewModel.lowInventoryItems.map(\.id), ["inventory-flour"])
+        XCTAssertEqual(repository.planningSnapshotFetchCount, 1)
+        XCTAssertEqual(Set(repository.lastPlanningOrderIds), ["order-one", "order-two"])
     }
 
     func testMarkPaidUpdatesOrderAndRemovesPaymentDueReminder() {
@@ -277,6 +279,8 @@ private final class FakeReminderRepository: OrderRepository,
     var usages: [OrderRecipeUsage] = []
     var reservations: [OrderInventoryReservation] = []
     var reservationRepairs: [OrderInventoryReservationRepair] = []
+    var planningSnapshotFetchCount = 0
+    var lastPlanningOrderIds: [String] = []
 
     func save(_ order: Order) throws {
         if let existingIndex = orders.firstIndex(where: { $0.id == order.id }) {
@@ -339,21 +343,18 @@ private final class FakeReminderRepository: OrderRepository,
     func fetchOrderInventoryReservationPlanningSnapshot(
         orderIds: [String]
     ) throws -> OrderInventoryReservationPlanningSnapshot {
-        let orderIdSet = Set(orderIds)
-        return OrderInventoryReservationPlanningSnapshot(
-            consumedOrderIds: Set(
-                usages.lazy.filter { orderIdSet.contains($0.orderId) }.map(\.orderId)
-            ),
-            reservationsByOrderId: Dictionary(
-                grouping: reservations.filter { orderIdSet.contains($0.orderId) },
-                by: \.orderId
-            ),
-            repairsByOrderId: Dictionary(
-                uniqueKeysWithValues: reservationRepairs
-                    .filter { orderIdSet.contains($0.orderId) }
-                    .map { ($0.orderId, $0) }
-            ),
-            invalidOrderIds: []
+        planningSnapshotFetchCount += 1
+        lastPlanningOrderIds = orderIds
+        return makeInventoryReservationPlanningSnapshot(
+            orderIds: orderIds,
+            orders: orders,
+            usages: usages,
+            reservations: reservations,
+            repairs: reservationRepairs,
+            components: components,
+            ingredients: ingredients,
+            extras: extraIngredients,
+            batches: batches
         )
     }
 

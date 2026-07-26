@@ -57,25 +57,18 @@ final class DashboardViewModel: ObservableObject {
             let planningSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
                 orderIds: activeOrders.map(\.id)
             )
-            let shortages = try ProjectedIngredientDemand.shortages(
+            let demandSummary = ProjectedIngredientDemand.summary(
                 inventoryItems: inventoryItems,
                 orders: activeOrders,
                 at: now,
-                planningSnapshot: planningSnapshot,
-                stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
-                recipeComponents: repository.fetchRecipeComponents(recipeId:),
-                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
-                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
+                planningSnapshot: planningSnapshot
             )
+            let shortages = demandSummary.shortages
             projectedIngredientShortages = Dictionary(uniqueKeysWithValues: shortages.map { ($0.id, $0) })
-            lowInventoryItems = try InventoryLowInventoryAlertRules.itemsForAlerts(
+            lowInventoryItems = InventoryLowInventoryAlertRules.itemsForAlerts(
                 inventoryItems: inventoryItems,
-                activeOrders: orders,
-                orderRecipeUsage: repository.fetchOrderRecipeUsage(orderId:),
-                projectedShortageIds: Set(shortages.map(\.inventoryItemId)),
-                recipeComponents: repository.fetchRecipeComponents(recipeId:),
-                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
-                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
+                neededInventoryItemIds: demandSummary.neededInventoryItemIds,
+                projectedShortageIds: Set(shortages.map(\.inventoryItemId))
             )
             upcomingOrders = orderPresentation.upcomingOrders(from: orders)
             overdueOrderAlert = orderPresentation.primaryOverdueAlert(from: orders)

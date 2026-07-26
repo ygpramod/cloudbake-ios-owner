@@ -1721,16 +1721,12 @@ final class OrderListViewModel: ObservableObject {
             let planningSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
                 orderIds: activeOrders.map(\.id)
             )
-            selectedOrderIngredientShortages = try ProjectedIngredientDemand.shortages(
+            selectedOrderIngredientShortages = ProjectedIngredientDemand.summary(
                 inventoryItems: inventoryItems,
                 orders: activeOrders,
                 at: dateProvider(),
-                planningSnapshot: planningSnapshot,
-                stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
-                recipeComponents: repository.fetchRecipeComponents(recipeId:),
-                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
-                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
-            ).filter { $0.orderIds.contains(order.id) }
+                planningSnapshot: planningSnapshot
+            ).shortages.filter { $0.orderIds.contains(order.id) }
         } catch {
             selectedOrderIngredientShortages = []
             errorMessage = "Projected ingredient availability could not be loaded."
