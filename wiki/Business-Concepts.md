@@ -90,6 +90,15 @@ order-specific extra ingredients. It is a warning only and does not reserve or d
 An order stops contributing projected demand after its inventory usage is recorded or when it is
 Completed or Cancelled. Projection is recalculated from current data and is not historical.
 
+## Payment Pending
+
+A payment becomes pending only after an order is Completed, its due date and time have passed, and
+its quoted price minus recorded payments remains greater than zero. Ready orders do not qualify.
+
+CloudBake uses this same rule for the in-app Payment Due list and its one aggregate daily local
+notification. The aggregate reports the current order count and combined balance; it is refreshed
+from current order and payment data rather than stored as payment history.
+
 ## Inventory Transaction
 
 An inventory transaction records why stock changed.

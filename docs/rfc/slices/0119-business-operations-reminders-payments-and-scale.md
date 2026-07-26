@@ -183,6 +183,11 @@ The owner confirmed that customization includes both global defaults and per-ord
 
 ## Daily Payment-Pending Reminder
 
+Implementation status: complete in this improvement point. CloudBake records the first known
+completion time for newly completed orders, uses one shared eligibility rule for the Reminders
+screen and local notification, persists the owner-selected daily time, and refreshes the aggregate
+request after order, status, payment, settings, launch, foreground, and restore changes.
+
 ### Business Rules
 
 1. An order becomes eligible only when:
@@ -209,8 +214,8 @@ time as Legacy/Unknown because their mutable `updatedAt` is not trustworthy comp
 Payment eligibility still uses status and due time, so the nullable legacy value never suppresses a
 valid reminder. Later payment changes must not alter `completedAt`.
 
-The owner must confirm whether the payment reminder time is globally customizable. The recommended
-contract makes it part of Reminder Settings and defaults to 9:00 AM.
+The owner confirmed that the payment reminder time is globally customizable. It is part of Reminder
+Settings and defaults to 9:00 AM.
 
 ## Payment History And Report
 
