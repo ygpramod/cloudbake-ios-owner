@@ -247,6 +247,13 @@ final class FakeOrderRepository: OrderRepository,
         extraIngredients.append(contentsOf: replacement)
     }
 
+    func repairOrderInventoryReservations(
+        limit _: Int,
+        at _: Date
+    ) throws -> OrderInventoryReservationRepairSummary {
+        OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 0)
+    }
+
     func fetchOrder(id: String) throws -> Order? {
         orders.first { $0.id == id }
     }

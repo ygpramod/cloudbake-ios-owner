@@ -1162,4 +1162,195 @@ final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchInventoryItem(id: flour.id)?.currentQuantity, 500)
     }
 
+    func testReservationRepairCompletesValidOrdersAndRetriesFailures() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        var eventSequence = 0
+        let repository = GRDBCoreDataRepository(
+            writer: queue,
+            idProvider: {
+                eventSequence += 1
+                return "repair-event-\(eventSequence)"
+            }
+        )
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let repairedAt = timestamp.addingTimeInterval(100)
+        let flour = InventoryItem(
+            id: "inventory-repair-flour",
+            name: "Repair flour",
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let validComponent = RecipeComponent(
+            id: "component-repair-valid",
+            recipeId: "recipe-repair-valid",
+            name: "Valid",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let invalidComponent = RecipeComponent(
+            id: "component-repair-invalid",
+            recipeId: "recipe-repair-invalid",
+            name: "Invalid",
+            sortOrder: 1,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let validIngredient = RecipeIngredient(
+            id: "ingredient-repair-valid",
+            componentId: validComponent.id,
+            inventoryItemId: flour.id,
+            quantity: 100,
+            unit: .gram,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let invalidIngredient = RecipeIngredient(
+            id: "ingredient-repair-invalid",
+            componentId: invalidComponent.id,
+            inventoryItemId: flour.id,
+            quantity: 1,
+            unit: .each,
+            note: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        func makeOrder(id: String, recipeId: String) -> Order {
+            Order(
+                id: id,
+                customerId: nil,
+                cakeDesignId: nil,
+                recipeId: recipeId,
+                title: id,
+                customerName: "Amy",
+                status: .confirmed,
+                dueAt: timestamp.addingTimeInterval(10_000),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        }
+        let validRecipe = Recipe(
+            id: "recipe-repair-valid",
+            name: "Valid repair recipe",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let invalidRecipe = Recipe(
+            id: "recipe-repair-invalid",
+            name: "Invalid repair recipe",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let validOrder = makeOrder(id: "order-repair-valid", recipeId: validRecipe.id)
+        let invalidOrder = makeOrder(id: "order-repair-invalid", recipeId: invalidRecipe.id)
+        try repository.save(flour)
+        try repository.save(validRecipe)
+        try repository.save(invalidRecipe)
+        try repository.save(validComponent)
+        try repository.save(invalidComponent)
+        try repository.save(validIngredient)
+        try repository.save(invalidIngredient)
+        try repository.save(validOrder)
+        try repository.save(invalidOrder)
+        try queue.write { db in
+            for order in [validOrder, invalidOrder] {
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservation_repairs
+                        (order_id, state, attempt_count, updated_at_unix_time)
+                        VALUES (?, ?, 0, ?)
+                        """,
+                    arguments: [
+                        order.id,
+                        OrderInventoryReservationRepairState.pending.rawValue,
+                        timestamp.timeIntervalSince1970
+                    ]
+                )
+            }
+        }
+
+        XCTAssertEqual(
+            try repository.repairOrderInventoryReservations(limit: 50, at: repairedAt),
+            OrderInventoryReservationRepairSummary(completedCount: 1, failedCount: 1)
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservations(orderId: validOrder.id)
+                .first?
+                .requiredQuantity,
+            100
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: validOrder.id)?.state,
+            .complete
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: invalidOrder.id),
+            OrderInventoryReservationRepair(
+                orderId: invalidOrder.id,
+                state: .failed,
+                attemptCount: 1,
+                lastAttemptedAt: repairedAt,
+                failureCode: .incompatibleUnit,
+                updatedAt: repairedAt
+            )
+        )
+        let failureEvent = try XCTUnwrap(
+            repository.fetchOrderInventoryReservationEvents(
+                orderId: invalidOrder.id,
+                limit: 50
+            ).first
+        )
+        XCTAssertEqual(failureEvent.kind, .repairFailed)
+        XCTAssertEqual(failureEvent.reason, .migrationRepair)
+        XCTAssertNil(failureEvent.inventoryItemId)
+        XCTAssertNil(failureEvent.unit)
+
+        try repository.save(
+            RecipeIngredient(
+                id: invalidIngredient.id,
+                componentId: invalidIngredient.componentId,
+                inventoryItemId: invalidIngredient.inventoryItemId,
+                quantity: 100,
+                unit: .gram,
+                note: invalidIngredient.note,
+                createdAt: invalidIngredient.createdAt,
+                updatedAt: repairedAt.addingTimeInterval(10)
+            )
+        )
+        let retryAt = repairedAt.addingTimeInterval(20)
+
+        XCTAssertEqual(
+            try repository.repairOrderInventoryReservations(limit: 50, at: retryAt),
+            OrderInventoryReservationRepairSummary(completedCount: 1, failedCount: 0)
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: invalidOrder.id)?.state,
+            .complete
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservationRepair(orderId: invalidOrder.id)?.attemptCount,
+            2
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderInventoryReservations(orderId: invalidOrder.id)
+                .first?
+                .requiredQuantity,
+            100
+        )
+        XCTAssertEqual(
+            try repository.repairOrderInventoryReservations(limit: 50, at: retryAt),
+            OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 0)
+        )
+    }
+
 }

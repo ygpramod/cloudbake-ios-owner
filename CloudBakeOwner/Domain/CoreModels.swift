@@ -596,12 +596,12 @@ enum OrderInventoryReservationEventReason: String, Equatable {
 struct OrderInventoryReservationEvent: Equatable {
     let id: String
     let orderId: String
-    let inventoryItemId: String
+    let inventoryItemId: String?
     let kind: OrderInventoryReservationEventKind
     let reason: OrderInventoryReservationEventReason
     let previousQuantity: Double
     let newQuantity: Double
-    let unit: InventoryUnit
+    let unit: InventoryUnit?
     let occurredAt: Date
 }
 
@@ -624,6 +624,11 @@ struct OrderInventoryReservationRepair: Equatable {
     let lastAttemptedAt: Date?
     let failureCode: OrderInventoryReservationRepairFailureCode?
     let updatedAt: Date
+}
+
+struct OrderInventoryReservationRepairSummary: Equatable {
+    let completedCount: Int
+    let failedCount: Int
 }
 
 struct OrderChecklistItem: Equatable {

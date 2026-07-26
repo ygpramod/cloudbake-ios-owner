@@ -556,6 +556,46 @@ final class AppDatabaseTests: XCTestCase {
                 ),
                 "text"
             )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "repair-failure-event-id",
+                    "order-confirmed",
+                    "missing-inventory-item",
+                    OrderInventoryReservationEventKind.repairFailed.rawValue,
+                    OrderInventoryReservationEventReason.migrationRepair.rawValue,
+                    0,
+                    0,
+                    nil,
+                    timestamp
+                ]
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservation_events
+                        (id, order_id, inventory_item_id, event_kind, reason,
+                         previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "invalid-created-event-id",
+                        "order-confirmed",
+                        nil,
+                        OrderInventoryReservationEventKind.created.rawValue,
+                        OrderInventoryReservationEventReason.orderConfirmed.rawValue,
+                        0,
+                        25,
+                        nil,
+                        timestamp
+                    ]
+                )
+            )
             XCTAssertThrowsError(
                 try db.execute(
                     sql: "DELETE FROM orders WHERE id = ?",

@@ -174,6 +174,10 @@ protocol OrderInventoryReservationMutationRepository {
         replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
         allowInventoryShortage: Bool
     ) throws
+    func repairOrderInventoryReservations(
+        limit: Int,
+        at timestamp: Date
+    ) throws -> OrderInventoryReservationRepairSummary
 }
 
 protocol OrderChecklistRepository {

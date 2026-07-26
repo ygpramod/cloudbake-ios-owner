@@ -260,7 +260,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
         from row: Row,
         kind: OrderInventoryReservationEventKind,
         reason: OrderInventoryReservationEventReason,
-        unit: InventoryUnit
+        unit: InventoryUnit?
     ) -> OrderInventoryReservationEvent {
         OrderInventoryReservationEvent(
             id: row["id"],

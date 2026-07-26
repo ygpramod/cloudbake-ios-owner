@@ -124,10 +124,14 @@ Add one `order_inventory_reservations` row per order and inventory item:
 Add append-only `order_inventory_reservation_events` rows containing:
 
 - stable event id;
-- order and inventory item ids;
+- order id and, when the failed requirement can be identified, inventory item id;
 - event kind and reason;
 - previous and new quantities in the inventory item's unit;
 - occurrence timestamp.
+
+Normal reservation events require an inventory item and unit. A repair-failure event may leave the
+item or unit empty when the broken legacy requirement cannot be represented safely; the persisted
+typed repair code remains the owner-facing recovery signal.
 
 Add one `order_inventory_reservation_repairs` row per eligible pre-migration order. Its state is
 Pending, Complete, or Failed, with attempt count, last attempted time, and a typed failure code.

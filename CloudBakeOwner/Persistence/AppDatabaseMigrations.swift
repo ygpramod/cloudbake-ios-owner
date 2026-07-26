@@ -483,8 +483,6 @@ enum AppDatabaseMigrations {
                     .notNull()
                     .references("orders", onDelete: .restrict)
                 table.column("inventory_item_id", .text)
-                    .notNull()
-                    .references("inventory_items", onDelete: .restrict)
                 table.column("event_kind", .text)
                     .notNull()
                     .check(sql: "event_kind IN ('created', 'quantityChanged', 'released', 'repairFailed')")
@@ -510,16 +508,21 @@ enum AppDatabaseMigrations {
                     .notNull()
                     .check { $0 >= 0 }
                 table.column("unit", .text)
-                    .notNull()
                     .check(
                         sql: """
-                            unit IN (
+                            unit IS NULL OR unit IN (
                                 'kilogram', 'gram', 'liter', 'milliliter',
                                 'teaspoon', 'tablespoon', 'cup', 'each'
                             )
                             """
                     )
                 table.column("occurred_at_unix_time", .double).notNull()
+                table.check(
+                    sql: """
+                        event_kind = 'repairFailed'
+                        OR (inventory_item_id IS NOT NULL AND unit IS NOT NULL)
+                        """
+                )
             }
             try db.create(
                 index: "order_inventory_reservation_events_on_order_occurred_at",

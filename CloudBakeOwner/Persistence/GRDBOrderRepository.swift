@@ -45,6 +45,89 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func repairOrderInventoryReservations(
+        limit: Int,
+        at timestamp: Date
+    ) throws -> OrderInventoryReservationRepairSummary {
+        guard (1...50).contains(limit) else {
+            throw OrderInventoryReservationQueryError.invalidLimit
+        }
+        let orderIds = try writer.read { db in
+            try String.fetchAll(
+                db,
+                sql: """
+                    SELECT order_id
+                    FROM order_inventory_reservation_repairs
+                    WHERE state IN (?, ?)
+                    ORDER BY
+                        CASE state WHEN ? THEN 0 ELSE 1 END,
+                        updated_at_unix_time,
+                        order_id
+                    LIMIT ?
+                    """,
+                arguments: [
+                    OrderInventoryReservationRepairState.pending.rawValue,
+                    OrderInventoryReservationRepairState.failed.rawValue,
+                    OrderInventoryReservationRepairState.pending.rawValue,
+                    limit
+                ]
+            )
+        }
+        var completedCount = 0
+        var failedCount = 0
+        for orderId in orderIds {
+            do {
+                let didRepair = try writer.write { db -> Bool in
+                    guard let order = try order(id: orderId, in: db) else {
+                        return false
+                    }
+                    try synchronizeOrderInventoryReservation(
+                        for: order,
+                        at: timestamp,
+                        reason: .migrationRepair,
+                        allowInventoryShortage: true,
+                        in: db
+                    )
+                    try db.execute(
+                        sql: """
+                            UPDATE order_inventory_reservation_repairs
+                            SET state = ?,
+                                attempt_count = attempt_count + 1,
+                                last_attempted_at_unix_time = ?,
+                                failure_code = NULL,
+                                updated_at_unix_time = ?
+                            WHERE order_id = ?
+                              AND state IN (?, ?)
+                            """,
+                        arguments: [
+                            OrderInventoryReservationRepairState.complete.rawValue,
+                            timestamp.timeIntervalSince1970,
+                            timestamp.timeIntervalSince1970,
+                            orderId,
+                            OrderInventoryReservationRepairState.pending.rawValue,
+                            OrderInventoryReservationRepairState.failed.rawValue
+                        ]
+                    )
+                    return db.changesCount > 0
+                }
+                if didRepair {
+                    completedCount += 1
+                }
+            } catch {
+                try recordReservationRepairFailure(
+                    orderId: orderId,
+                    error: error,
+                    at: timestamp
+                )
+                failedCount += 1
+            }
+        }
+        return OrderInventoryReservationRepairSummary(
+            completedCount: completedCount,
+            failedCount: failedCount
+        )
+    }
+
     func fetchOrder(id: String) throws -> Order? {
         try writer.read { db in
             guard let row = try Row.fetchOne(db, sql: "SELECT * FROM orders WHERE id = ?", arguments: [id]) else {
@@ -278,9 +361,15 @@ extension GRDBCoreDataRepository {
                 guard let reason = OrderInventoryReservationEventReason(rawValue: reasonValue) else {
                     throw OrderInventoryReservationPersistenceError.invalidEventReason(reasonValue)
                 }
-                let unitValue: String = row["unit"]
-                guard let unit = InventoryUnit(rawValue: unitValue) else {
-                    throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
+                let unitValue: String? = row["unit"]
+                let unit: InventoryUnit?
+                if let unitValue {
+                    guard let parsedUnit = InventoryUnit(rawValue: unitValue) else {
+                        throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
+                    }
+                    unit = parsedUnit
+                } else {
+                    unit = nil
                 }
                 return orderInventoryReservationEvent(
                     from: row,
@@ -744,6 +833,66 @@ private extension GRDBCoreDataRepository {
         }
         guard shortages.isEmpty else {
             throw OrderRecipeUsageError.insufficientStock(shortages)
+        }
+    }
+
+    func recordReservationRepairFailure(
+        orderId: String,
+        error: Error,
+        at timestamp: Date
+    ) throws {
+        let failureCode: OrderInventoryReservationRepairFailureCode
+        let inventoryItemId: String?
+        switch error as? OrderRecipeUsageError {
+        case .missingInventoryItem(let itemId):
+            failureCode = .missingInventoryItem
+            inventoryItemId = itemId
+        case .incompatibleIngredientUnit:
+            failureCode = .incompatibleUnit
+            inventoryItemId = nil
+        default:
+            failureCode = .invalidRequirements
+            inventoryItemId = nil
+        }
+        try writer.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE order_inventory_reservation_repairs
+                    SET state = ?,
+                        attempt_count = attempt_count + 1,
+                        last_attempted_at_unix_time = ?,
+                        failure_code = ?,
+                        updated_at_unix_time = ?
+                    WHERE order_id = ?
+                    """,
+                arguments: [
+                    OrderInventoryReservationRepairState.failed.rawValue,
+                    timestamp.timeIntervalSince1970,
+                    failureCode.rawValue,
+                    timestamp.timeIntervalSince1970,
+                    orderId
+                ]
+            )
+            guard db.changesCount > 0 else { return }
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: arguments([
+                    idProvider(),
+                    orderId,
+                    inventoryItemId,
+                    OrderInventoryReservationEventKind.repairFailed.rawValue,
+                    OrderInventoryReservationEventReason.migrationRepair.rawValue,
+                    0,
+                    0,
+                    nil,
+                    timestamp.timeIntervalSince1970
+                ])
+            )
         }
     }
 
