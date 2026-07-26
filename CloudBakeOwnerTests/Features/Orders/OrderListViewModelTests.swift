@@ -979,7 +979,10 @@ final class OrderListViewModelTests: XCTestCase {
         )
 
         XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
-        XCTAssertEqual(viewModel.errorMessage, "The selected inventory item could not be found.")
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "An inventory item required by this order could not be found."
+        )
         XCTAssertEqual(viewModel.draftExtraIngredientQuantity, "75")
         XCTAssertEqual(viewModel.draftExtraIngredientNote, "Extra crunch")
         XCTAssertTrue(repository.extraIngredients.isEmpty)

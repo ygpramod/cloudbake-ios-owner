@@ -1788,7 +1788,7 @@ final class OrderListViewModel: ObservableObject {
         case .recipeHasNoIngredients:
             return "The order has no ingredients to reserve."
         case .missingInventoryItem:
-            return "The selected inventory item could not be found."
+            return "An inventory item required by this order could not be found."
         case .incompatibleIngredientUnit(let itemName):
             return "\(itemName) has an incompatible unit for this order ingredient."
         case .invalidIngredientQuantity(let itemName):
