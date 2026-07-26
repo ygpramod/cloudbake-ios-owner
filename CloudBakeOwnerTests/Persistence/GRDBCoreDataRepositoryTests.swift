@@ -1012,6 +1012,48 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         )
     }
 
+    func testDirectOrderSaveCannotOverwriteDerivedPaidTotal() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        let order = pagedOrder(
+            id: "protected-paid-total",
+            status: .completed,
+            dueAt: timestamp,
+            quotedPrice: 100
+        )
+        try repository.save(order)
+        _ = try repository.recordPayment(
+            orderId: order.id,
+            amount: 25,
+            receivedAt: timestamp,
+            note: nil,
+            createdAt: timestamp
+        )
+
+        XCTAssertThrowsError(
+            try repository.save(
+                pagedOrder(
+                    id: order.id,
+                    status: .completed,
+                    dueAt: timestamp,
+                    quotedPrice: 100,
+                    depositPaid: 50
+                )
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? PaymentReceiptPersistenceError,
+                .directPaidTotalMutation
+            )
+        }
+        XCTAssertEqual(
+            try repository.fetchOrder(id: order.id)?.depositPaid,
+            25
+        )
+    }
+
     func testVoidingReceiptAppendsCorrectionAndReconcilesPaidTotal() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         try AppDatabaseMigrations.makeMigrator().migrate(queue)

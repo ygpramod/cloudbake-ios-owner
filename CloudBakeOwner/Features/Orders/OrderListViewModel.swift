@@ -699,7 +699,7 @@ final class OrderListViewModel: ObservableObject {
             cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
             cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
             quotedPrice: draft.quotedPrice,
-            depositPaid: draft.depositPaid,
+            depositPaid: editingOrder.depositPaid,
             paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
             completedAt: editingOrder.completedAt,
             createdAt: editingOrder.createdAt,
@@ -957,7 +957,8 @@ final class OrderListViewModel: ObservableObject {
             return "Payment received cannot be more than balance due."
         case .orderNotFound:
             return "Order could not be found."
-        case .receiptNotFound, .alreadyVoided, .invalidStoredAmount, .none:
+        case .receiptNotFound, .alreadyVoided, .invalidStoredAmount,
+             .directPaidTotalMutation, .none:
             return "Payment could not be updated."
         }
     }

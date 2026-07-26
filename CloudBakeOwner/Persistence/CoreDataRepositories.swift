@@ -426,6 +426,7 @@ enum PaymentReceiptPersistenceError: Error, Equatable {
     case receiptNotFound
     case alreadyVoided
     case invalidStoredAmount
+    case directPaidTotalMutation
 }
 
 protocol PaymentReceiptRepository {

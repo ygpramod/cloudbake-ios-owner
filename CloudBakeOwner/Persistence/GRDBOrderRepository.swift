@@ -2737,6 +2737,10 @@ private extension GRDBCoreDataRepository {
             }
         }
         let persistedOrder = try self.order(id: order.id, in: db)
+        if let persistedOrder,
+           persistedOrder.depositPaid != order.depositPaid {
+            throw PaymentReceiptPersistenceError.directPaidTotalMutation
+        }
         let completedAt = persistedOrder?.completedAt
             ?? (
                 persistedOrder?.status != .completed && order.status == .completed

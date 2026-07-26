@@ -337,6 +337,10 @@ final class FakeOrderRepository: OrderRepository,
     var paymentReceiptVoids: [PaymentReceiptVoid] = []
 
     func save(_ order: Order) throws {
+        if let persistedOrder = orders.first(where: { $0.id == order.id }),
+           persistedOrder.depositPaid != order.depositPaid {
+            throw PaymentReceiptPersistenceError.directPaidTotalMutation
+        }
         orders.removeAll { $0.id == order.id }
         orders.append(order)
     }

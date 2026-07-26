@@ -214,9 +214,20 @@ struct OrderForm: View {
                     .keyboardType(.decimalPad)
                     .accessibilityIdentifier("orders.form.quotedPrice")
 
-                TextField("Deposit Paid", text: $viewModel.draftDepositPaid)
-                    .keyboardType(.decimalPad)
-                    .accessibilityIdentifier("orders.form.depositPaid")
+                if viewModel.editingOrder == nil {
+                    TextField("Initial Payment", text: $viewModel.draftDepositPaid)
+                        .keyboardType(.decimalPad)
+                        .accessibilityIdentifier("orders.form.depositPaid")
+                } else {
+                    LabeledContent("Amount Paid") {
+                        Text(
+                            MoneyDisplay.formatted(
+                                viewModel.editingOrder?.depositPaid ?? 0
+                            )
+                        )
+                    }
+                    .accessibilityIdentifier("orders.form.amountPaid")
+                }
 
                 TextField("Payment Notes", text: $viewModel.draftPaymentNotes, axis: .vertical)
                     .lineLimit(2...5)
