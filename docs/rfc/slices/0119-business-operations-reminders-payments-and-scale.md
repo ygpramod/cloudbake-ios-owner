@@ -270,19 +270,22 @@ default to a rolling 12-month period ending today, grouped by Month. The owner c
 grouping or choose a custom date range. Order Profitability remains an order-by-order list with
 date filters rather than grouped totals and uses the same rolling 12-month default.
 
+All three reports filter and group by order due date. Payment Ledger does not expose a separate
+payment-received-date filter; received-payment rows participate in the period of their order's due
+date. This deliberately favors one simple, consistent business date over cash-flow-period
+reporting.
+
 Inventory usage and waste, upcoming workload, customer summary, and recipe/design popularity
 reports are outside this improvement point.
 
 The following also require owner confirmation before implementation:
 
-1. whether a date filter applies to payment received date, order due date, or both through separate
-   filters;
-2. whether payment method is required;
-3. whether correcting a mistaken receipt means a reversible void/correction entry or editable
+1. whether payment method is required;
+2. whether correcting a mistaken receipt means a reversible void/correction entry or editable
    history;
-4. whether pre-migration aggregate paid amounts should become one clearly labelled opening receipt
+3. whether pre-migration aggregate paid amounts should become one clearly labelled opening receipt
    or remain outside the receipt ledger with a migration note;
-5. whether CSV export is required in this slice.
+4. whether CSV export is required in this slice.
 
 Do not implement the report UI or destructive payment correction behavior until these decisions are
 recorded here.
