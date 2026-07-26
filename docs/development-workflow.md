@@ -55,10 +55,10 @@ Keep the acceptance lane focused on critical owner journeys. When a slice adds d
 behavior, prefer unit or integration tests for the detailed cases and update an existing journey only
 when the owner-facing workflow changes.
 
-GitHub Actions time-boxes the unit/integration job and feature-sharded acceptance UI jobs so stuck simulator
-automation fails clearly instead of blocking a pull request indefinitely. Acceptance UI tests run in
-six parallel shards: `core-recipes`, `orders-core`, `order-links`, `customers`, `inventory`, and
-`designs`.
+GitHub Actions time-boxes the unit/integration job and feature-sharded acceptance UI jobs so stuck
+simulator automation fails clearly instead of blocking a pull request indefinitely. Acceptance UI
+tests run in seven parallel shards: `core-recipes`, `settings`, `orders-core`, `order-links`,
+`customers`, `inventory`, and `designs`.
 Each pull request or branch has only one active CI generation. Pushing a newer commit automatically
 cancels any superseded workflow run for that same pull request or branch so its macOS runners are
 released for the new head commit.
