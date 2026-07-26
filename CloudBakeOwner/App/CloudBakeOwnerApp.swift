@@ -14,14 +14,14 @@ struct CloudBakeOwnerApp: App {
         self.database = database
 
         #if DEBUG
-        if ProcessInfo.processInfo.environment["CLOUDBAKE_TEST_CELLULAR_BACKUP_CATCH_UP"] == "1" {
+        if AcceptanceTestRuntime.usesAutomaticCellularBackupFixture {
             cloudBackupRuntime = CloudBackupRuntime.automaticCellularUITestFixture()
             return
         }
         #endif
 
-        guard ProcessInfo.processInfo.environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] != "1",
-              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+        guard !AcceptanceTestRuntime.isRunning,
+              !AcceptanceTestRuntime.isXCTestProcess,
               case .success(let appDatabase) = database else {
             cloudBackupRuntime = nil
             return
