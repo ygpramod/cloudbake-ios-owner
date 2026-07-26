@@ -3,6 +3,44 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class PhotoKitBackupAssetResolverTests: XCTestCase {
+    func testResolverRejectsMalformedReferenceInsteadOfTreatingItAsMissing() async {
+        do {
+            _ = try await PhotoKitBackupAssetResolver().resolve(
+                reference: "photos://"
+            )
+            XCTFail("Expected malformed reference to fail")
+        } catch let error as BackupExternalAssetResolverError {
+            XCTAssertEqual(error, .invalidReference)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testPhotoReferenceParserRejectsEmptyIdentifiers() {
+        XCTAssertNil(PhotoKitDesignPhotoLibrary.assetIdentifier(from: "photos://"))
+        XCTAssertNil(PhotoKitDesignPhotoLibrary.assetIdentifier(from: "photos://   "))
+        XCTAssertNil(PhotoKitDesignPhotoLibrary.assetIdentifier(from: "not-a-photo-reference"))
+        XCTAssertEqual(
+            PhotoKitDesignPhotoLibrary.assetIdentifier(from: "photos://valid-id"),
+            "valid-id"
+        )
+    }
+
+    func testNilPhotoKitImageIsRetryableRatherThanMissing() {
+        let result = PhotoKitBackupAssetResolver.terminalImageResult(
+            image: nil,
+            info: nil
+        )
+
+        guard case .failure(let error) = result else {
+            return XCTFail("Expected a terminal image failure")
+        }
+        XCTAssertEqual(
+            error as? BackupExternalAssetResolverError,
+            .imageUnavailable
+        )
+    }
+
     func testVersionDatePrefersModificationDate() throws {
         let creationDate = Date(timeIntervalSince1970: 100)
         let modificationDate = Date(timeIntervalSince1970: 200)

@@ -12,10 +12,12 @@ protocol BackupExternalAssetResolving: Sendable {
 }
 
 enum BackupExternalAssetResolverError: Error, Equatable {
+    case invalidReference
     case accessDenied
     case assetUnavailable
     case assetChangedDuringRead
     case missingVersionMetadata
+    case imageUnavailable
     case imageEncodingFailed
 }
 
@@ -24,7 +26,7 @@ struct PhotoKitBackupAssetResolver: BackupExternalAssetResolving {
 
     func resolve(reference: String) async throws -> BackupResolvedExternalAsset {
         guard let identifier = PhotoKitDesignPhotoLibrary.assetIdentifier(from: reference) else {
-            throw BackupExternalAssetResolverError.assetUnavailable
+            throw BackupExternalAssetResolverError.invalidReference
         }
         let authorization = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
         guard authorization == .authorized || authorization == .limited else {
@@ -47,7 +49,7 @@ struct PhotoKitBackupAssetResolver: BackupExternalAssetResolving {
             withLocalIdentifiers: [identifier],
             options: nil
         ).firstObject else {
-            throw BackupExternalAssetResolverError.assetUnavailable
+            throw BackupExternalAssetResolverError.assetChangedDuringRead
         }
         let finalVersionDate = try Self.versionDate(
             modificationDate: refreshedAsset.modificationDate,
@@ -70,6 +72,25 @@ struct PhotoKitBackupAssetResolver: BackupExternalAssetResolving {
             throw BackupExternalAssetResolverError.missingVersionMetadata
         }
         return versionDate
+    }
+
+    static func terminalImageResult(
+        image: UIImage?,
+        info: [AnyHashable: Any]?
+    ) -> Result<UIImage, Error>? {
+        guard (info?[PHImageResultIsDegradedKey] as? Bool) != true else {
+            return nil
+        }
+        if let error = info?[PHImageErrorKey] as? Error {
+            return .failure(error)
+        }
+        if (info?[PHImageCancelledKey] as? Bool) == true {
+            return .failure(CancellationError())
+        }
+        if let image {
+            return .success(image)
+        }
+        return .failure(BackupExternalAssetResolverError.imageUnavailable)
     }
 
     private func requestLightweightImage(for asset: PHAsset) async throws -> UIImage {
@@ -131,16 +152,11 @@ private final class PhotoImageRequest: @unchecked Sendable {
             contentMode: .aspectFit,
             options: options
         ) { [weak self] image, info in
-            guard (info?[PHImageResultIsDegradedKey] as? Bool) != true else { return }
-            if let error = info?[PHImageErrorKey] as? Error {
-                self?.finish(.failure(error))
-            } else if (info?[PHImageCancelledKey] as? Bool) == true {
-                self?.finish(.failure(CancellationError()))
-            } else if let image {
-                self?.finish(.success(image))
-            } else {
-                self?.finish(.failure(BackupExternalAssetResolverError.assetUnavailable))
-            }
+            guard let result = PhotoKitBackupAssetResolver.terminalImageResult(
+                image: image,
+                info: info
+            ) else { return }
+            self?.finish(result)
         }
 
         lock.lock()

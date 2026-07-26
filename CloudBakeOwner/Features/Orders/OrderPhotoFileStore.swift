@@ -62,7 +62,11 @@ final class PhotoKitDesignPhotoLibrary: DesignPhotoLibrary {
 
     static func assetIdentifier(from reference: String) -> String? {
         guard reference.hasPrefix(referencePrefix) else { return nil }
-        return String(reference.dropFirst(referencePrefix.count))
+        let identifier = String(reference.dropFirst(referencePrefix.count))
+        guard !identifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return identifier
     }
 
 
