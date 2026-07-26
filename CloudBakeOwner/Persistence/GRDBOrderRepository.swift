@@ -7,6 +7,10 @@ enum OrderReminderConfigurationPersistenceError: Error, Equatable {
     case invalidDayOffsets
 }
 
+enum ProjectedIngredientDemandPersistenceError: Error, Equatable {
+    case invalidOrderIds
+}
+
 extension GRDBCoreDataRepository {
     func saveRecipeIngredient(
         _ ingredient: RecipeIngredient,
@@ -1124,6 +1128,242 @@ extension GRDBCoreDataRepository {
                 stockBatchesByInventoryItemId: stockBatchesByInventoryItemId
             )
         }
+    }
+
+    func fetchProjectedIngredientDemandSummary(
+        at date: Date
+    ) throws -> ProjectedIngredientDemandSummary {
+        try writer.read { db in
+            let reservationQuantity = convertedQuantitySQL(
+                quantity: "reservations.required_quantity",
+                sourceUnit: "reservations.unit",
+                targetUnit: "inventory_items.unit"
+            )
+            let recipeQuantity = convertedQuantitySQL(
+                quantity: """
+                    recipe_ingredients.quantity
+                        * CAST(eligible_orders.recipe_scale_multiplier_decimal AS REAL)
+                    """,
+                sourceUnit: "recipe_ingredients.unit",
+                targetUnit: "inventory_items.unit"
+            )
+            let extraQuantity = convertedQuantitySQL(
+                quantity: "extra_ingredients.quantity",
+                sourceUnit: "extra_ingredients.unit",
+                targetUnit: "inventory_items.unit"
+            )
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    WITH eligible_orders AS (
+                        SELECT
+                            orders.id,
+                            orders.recipe_id,
+                            orders.recipe_scale_multiplier_decimal,
+                            CASE
+                                WHEN orders.status IN (?, ?)
+                                 AND EXISTS (
+                                     SELECT 1
+                                     FROM order_inventory_reservations
+                                     WHERE order_id = orders.id
+                                 )
+                                 AND (
+                                     repairs.state = 'complete'
+                                     OR repairs.order_id IS NULL
+                                 )
+                                THEN 1
+                                ELSE 0
+                            END AS uses_reservations
+                        FROM orders
+                        LEFT JOIN order_inventory_reservation_repairs AS repairs
+                          ON repairs.order_id = orders.id
+                        WHERE orders.status IN (?, ?, ?, ?)
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM order_recipe_usages
+                              WHERE order_id = orders.id
+                          )
+                    ),
+                    raw_demand AS (
+                        SELECT
+                            reservations.inventory_item_id,
+                            eligible_orders.id AS order_id,
+                            \(reservationQuantity) AS required_quantity
+                        FROM eligible_orders
+                        JOIN order_inventory_reservations AS reservations
+                          ON reservations.order_id = eligible_orders.id
+                        JOIN inventory_items
+                          ON inventory_items.id = reservations.inventory_item_id
+                        WHERE eligible_orders.uses_reservations = 1
+
+                        UNION ALL
+
+                        SELECT
+                            recipe_ingredients.inventory_item_id,
+                            eligible_orders.id AS order_id,
+                            \(recipeQuantity) AS required_quantity
+                        FROM eligible_orders
+                        JOIN recipe_components
+                          ON recipe_components.recipe_id = eligible_orders.recipe_id
+                        JOIN recipe_ingredients
+                          ON recipe_ingredients.component_id = recipe_components.id
+                        JOIN inventory_items
+                          ON inventory_items.id = recipe_ingredients.inventory_item_id
+                        WHERE eligible_orders.uses_reservations = 0
+
+                        UNION ALL
+
+                        SELECT
+                            extra_ingredients.inventory_item_id,
+                            eligible_orders.id AS order_id,
+                            \(extraQuantity) AS required_quantity
+                        FROM eligible_orders
+                        JOIN order_extra_ingredients AS extra_ingredients
+                          ON extra_ingredients.order_id = eligible_orders.id
+                        JOIN inventory_items
+                          ON inventory_items.id = extra_ingredients.inventory_item_id
+                        WHERE eligible_orders.uses_reservations = 0
+                    ),
+                    demand AS (
+                        SELECT
+                            inventory_item_id,
+                            SUM(required_quantity) AS required_quantity,
+                            json_group_array(DISTINCT order_id) AS order_ids_json
+                        FROM raw_demand
+                        WHERE required_quantity IS NOT NULL
+                          AND required_quantity > 0
+                        GROUP BY inventory_item_id
+                    ),
+                    availability AS (
+                        SELECT
+                            inventory_items.id AS inventory_item_id,
+                            CASE
+                                WHEN EXISTS (
+                                    SELECT 1
+                                    FROM inventory_stock_batches
+                                    WHERE inventory_item_id = inventory_items.id
+                                )
+                                THEN COALESCE(
+                                    SUM(
+                                        CASE
+                                            WHEN inventory_stock_batches.remaining_quantity > 0
+                                             AND (
+                                                 inventory_stock_batches.expires_at_unix_time IS NULL
+                                                 OR inventory_stock_batches.expires_at_unix_time >= ?
+                                             )
+                                            THEN inventory_stock_batches.remaining_quantity
+                                            ELSE 0
+                                        END
+                                    ),
+                                    0
+                                )
+                                ELSE inventory_items.current_quantity
+                            END AS available_quantity
+                        FROM inventory_items
+                        LEFT JOIN inventory_stock_batches
+                          ON inventory_stock_batches.inventory_item_id = inventory_items.id
+                        GROUP BY inventory_items.id
+                    )
+                    SELECT
+                        inventory_items.id,
+                        inventory_items.name,
+                        inventory_items.unit,
+                        demand.required_quantity,
+                        availability.available_quantity,
+                        demand.order_ids_json
+                    FROM demand
+                    JOIN inventory_items
+                      ON inventory_items.id = demand.inventory_item_id
+                    JOIN availability
+                      ON availability.inventory_item_id = demand.inventory_item_id
+                    WHERE inventory_items.archived_at_unix_time IS NULL
+                    ORDER BY lower(inventory_items.name), inventory_items.name
+                    """,
+                arguments: arguments([
+                    OrderStatus.confirmed.rawValue,
+                    OrderStatus.inProgress.rawValue,
+                    OrderStatus.draft.rawValue,
+                    OrderStatus.confirmed.rawValue,
+                    OrderStatus.inProgress.rawValue,
+                    OrderStatus.ready.rawValue,
+                    date.timeIntervalSince1970
+                ])
+            )
+
+            var shortages: [ProjectedIngredientShortage] = []
+            var neededInventoryItemIds = Set<String>()
+            for row in rows {
+                let inventoryItemId: String = row["id"]
+                let unitValue: String = row["unit"]
+                guard let unit = InventoryUnit(rawValue: unitValue) else {
+                    throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
+                }
+                let orderIdsJSON: String = row["order_ids_json"]
+                guard let orderIdsData = orderIdsJSON.data(using: .utf8),
+                      let orderIds = try? JSONDecoder().decode(
+                          Set<String>.self,
+                          from: orderIdsData
+                      ) else {
+                    throw ProjectedIngredientDemandPersistenceError.invalidOrderIds
+                }
+                let requiredQuantity: Double = row["required_quantity"]
+                let availableQuantity: Double = row["available_quantity"]
+                neededInventoryItemIds.insert(inventoryItemId)
+                guard requiredQuantity > availableQuantity else {
+                    continue
+                }
+                shortages.append(
+                    ProjectedIngredientShortage(
+                        inventoryItemId: inventoryItemId,
+                        inventoryItemName: row["name"],
+                        requiredQuantity: requiredQuantity,
+                        availableQuantity: availableQuantity,
+                        unit: unit,
+                        orderIds: orderIds
+                    )
+                )
+            }
+            return ProjectedIngredientDemandSummary(
+                shortages: shortages,
+                neededInventoryItemIds: neededInventoryItemIds
+            )
+        }
+    }
+
+    private func convertedQuantitySQL(
+        quantity: String,
+        sourceUnit: String,
+        targetUnit: String
+    ) -> String {
+        """
+        CASE
+            WHEN \(sourceUnit) = \(targetUnit)
+            THEN \(quantity)
+            WHEN \(sourceUnit) IN ('kilogram', 'gram')
+             AND \(targetUnit) IN ('kilogram', 'gram')
+            THEN \(quantity)
+                * CASE \(sourceUnit) WHEN 'kilogram' THEN 1000.0 ELSE 1.0 END
+                / CASE \(targetUnit) WHEN 'kilogram' THEN 1000.0 ELSE 1.0 END
+            WHEN \(sourceUnit) IN ('liter', 'milliliter', 'teaspoon', 'tablespoon', 'cup')
+             AND \(targetUnit) IN ('liter', 'milliliter', 'teaspoon', 'tablespoon', 'cup')
+            THEN \(quantity)
+                * CASE \(sourceUnit)
+                    WHEN 'liter' THEN 1000.0
+                    WHEN 'milliliter' THEN 1.0
+                    WHEN 'teaspoon' THEN 5.0
+                    WHEN 'tablespoon' THEN 15.0
+                    WHEN 'cup' THEN 240.0
+                  END
+                / CASE \(targetUnit)
+                    WHEN 'liter' THEN 1000.0
+                    WHEN 'milliliter' THEN 1.0
+                    WHEN 'teaspoon' THEN 5.0
+                    WHEN 'tablespoon' THEN 15.0
+                    WHEN 'cup' THEN 240.0
+                  END
+            ELSE NULL
+        END
+        """
     }
 
     func deleteOrderExtraIngredient(id: String) throws {

@@ -257,6 +257,7 @@ func makeIncrementingIdGenerator(prefix: String) -> () -> String {
 }
 
 final class FakeOrderRepository: OrderRepository,
+    ProjectedIngredientDemandRepository,
     OrderReminderConfigurationRepository,
     CustomerRepository,
     CustomerImportantDateRepository,

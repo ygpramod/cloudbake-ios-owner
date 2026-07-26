@@ -498,6 +498,136 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         }
     }
 
+    func testProjectedIngredientDemandAggregatesLiveAndReservedOrdersInSQL() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let flour = InventoryItem(
+            id: "inventory-flour",
+            name: "Flour",
+            unit: .gram,
+            currentQuantity: 1_100,
+            minimumQuantity: 200,
+            createdAt: now,
+            updatedAt: now
+        )
+        let milk = InventoryItem(
+            id: "inventory-milk",
+            name: "Milk",
+            unit: .milliliter,
+            currentQuantity: 1_000,
+            minimumQuantity: 100,
+            createdAt: now,
+            updatedAt: now
+        )
+        try repository.save(flour)
+        try repository.save(milk)
+        try repository.save(
+            InventoryStockBatch(
+                id: "batch-flour-usable",
+                inventoryItemId: flour.id,
+                remainingQuantity: 100,
+                expiresAt: nil,
+                createdAt: now,
+                updatedAt: now
+            )
+        )
+        try repository.save(
+            InventoryStockBatch(
+                id: "batch-flour-expired",
+                inventoryItemId: flour.id,
+                remainingQuantity: 1_000,
+                expiresAt: now.addingTimeInterval(-1),
+                createdAt: now,
+                updatedAt: now
+            )
+        )
+        let recipe = Recipe(
+            id: "recipe-cake",
+            name: "Cake",
+            notes: nil,
+            createdAt: now,
+            updatedAt: now
+        )
+        let component = RecipeComponent(
+            id: "component-batter",
+            recipeId: recipe.id,
+            name: "Batter",
+            sortOrder: 0,
+            createdAt: now,
+            updatedAt: now
+        )
+        try repository.save(recipe)
+        try repository.save(component)
+        try repository.save(
+            RecipeIngredient(
+                id: "ingredient-flour",
+                componentId: component.id,
+                inventoryItemId: flour.id,
+                quantity: 0.2,
+                unit: .kilogram,
+                note: nil,
+                createdAt: now,
+                updatedAt: now
+            )
+        )
+        let draftOrder = demandOrder(
+            id: "order-draft",
+            recipeId: recipe.id,
+            scale: 2,
+            status: .draft,
+            timestamp: now
+        )
+        try repository.saveOrder(
+            draftOrder,
+            replacingExtraIngredients: [
+                OrderExtraIngredient(
+                    id: "extra-milk",
+                    orderId: draftOrder.id,
+                    inventoryItemId: milk.id,
+                    quantity: 1,
+                    unit: .tablespoon,
+                    note: nil,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            ],
+            allowInventoryShortage: true
+        )
+        let confirmedOrder = demandOrder(
+            id: "order-confirmed",
+            recipeId: recipe.id,
+            scale: 1,
+            status: .confirmed,
+            timestamp: now
+        )
+        try repository.saveOrder(
+            confirmedOrder,
+            replacingExtraIngredients: [
+                OrderExtraIngredient(
+                    id: "extra-flour",
+                    orderId: confirmedOrder.id,
+                    inventoryItemId: flour.id,
+                    quantity: 100,
+                    unit: .gram,
+                    note: nil,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            ],
+            allowInventoryShortage: true
+        )
+
+        let summary = try repository.fetchProjectedIngredientDemandSummary(at: now)
+
+        XCTAssertEqual(summary.neededInventoryItemIds, [flour.id, milk.id])
+        let shortage = try XCTUnwrap(summary.shortages.first)
+        XCTAssertEqual(summary.shortages.count, 1)
+        XCTAssertEqual(shortage.inventoryItemId, flour.id)
+        XCTAssertEqual(shortage.requiredQuantity, 700, accuracy: 0.001)
+        XCTAssertEqual(shortage.availableQuantity, 100, accuracy: 0.001)
+        XCTAssertEqual(shortage.orderIds, [draftOrder.id, confirmedOrder.id])
+    }
+
     private func pagedOrder(
         id: String,
         customerId: String? = nil,
@@ -521,6 +651,31 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             depositPaid: depositPaid,
             createdAt: dueAt,
             updatedAt: dueAt
+        )
+    }
+
+    private func demandOrder(
+        id: String,
+        recipeId: String,
+        scale: Decimal,
+        status: OrderStatus,
+        timestamp: Date
+    ) -> Order {
+        Order(
+            id: id,
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: recipeId,
+            recipeScaleMultiplier: scale,
+            title: id,
+            customerName: "Customer",
+            status: status,
+            dueAt: timestamp.addingTimeInterval(3_600),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
         )
     }
 

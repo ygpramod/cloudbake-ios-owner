@@ -29,13 +29,13 @@ final class ReminderViewModel: ObservableObject {
     @Published private(set) var lowInventoryItems: [LowInventoryReminderItem] = []
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & OrderRecipeUsageRepository & OrderInventoryReservationRepository & InventoryItemRepository & InventoryStockBatchRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
+    private let repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository
     private let dateProvider: () -> Date
     private let calendar: Calendar
     private let onPaymentChanged: () -> Void
 
     init(
-        repository: any OrderRepository & OrderRecipeUsageRepository & OrderInventoryReservationRepository & InventoryItemRepository & InventoryStockBatchRepository & CustomerRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
+        repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository,
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current,
         onPaymentChanged: @escaping () -> Void = {}
@@ -52,16 +52,7 @@ final class ReminderViewModel: ObservableObject {
             let customers = try repository.fetchCustomers()
             let inventoryItems = try repository.fetchInventoryItems()
             let now = dateProvider()
-            let activeOrders = orders.filter(\.hasActiveReminderState)
-            let planningSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
-                orderIds: activeOrders.map(\.id)
-            )
-            let demandSummary = try ProjectedIngredientDemand.summary(
-                inventoryItems: inventoryItems,
-                orders: activeOrders,
-                at: now,
-                planningSnapshot: planningSnapshot
-            )
+            let demandSummary = try repository.fetchProjectedIngredientDemandSummary(at: now)
             let shortages = demandSummary.shortages
             let shortagesByItemId = Dictionary(uniqueKeysWithValues: shortages.map { ($0.id, $0) })
             let lowInventory = InventoryLowInventoryAlertRules.itemsForAlerts(

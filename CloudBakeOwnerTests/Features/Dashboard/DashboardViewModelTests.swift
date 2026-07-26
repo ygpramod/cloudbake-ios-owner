@@ -322,6 +322,7 @@ private func makeInventoryItem(
 private final class FakeDashboardInventoryItemRepository: InventoryItemRepository,
     InventoryStockBatchRepository,
     OrderRepository,
+    ProjectedIngredientDemandRepository,
     OrderRecipeUsageRepository,
     OrderInventoryReservationRepository,
     RecipeComponentRepository,

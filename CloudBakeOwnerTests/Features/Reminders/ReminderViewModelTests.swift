@@ -275,6 +275,7 @@ final class ReminderViewModelTests: XCTestCase {
 }
 
 private final class FakeReminderRepository: OrderRepository,
+    ProjectedIngredientDemandRepository,
     OrderRecipeUsageRepository,
     OrderInventoryReservationRepository,
     InventoryItemRepository,

@@ -34,11 +34,11 @@ final class DashboardViewModel: ObservableObject {
         return "\(item.currentQuantity.formatted()) / \(item.minimumQuantity.formatted()) \(item.unit.displayName)"
     }
 
-    private let repository: any InventoryItemRepository & InventoryStockBatchRepository & OrderRepository & OrderRecipeUsageRepository & OrderInventoryReservationRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
+    private let repository: any InventoryItemRepository & OrderRepository & ProjectedIngredientDemandRepository
     private let orderPresentation: OrderListPresentation
 
     init(
-        repository: any InventoryItemRepository & InventoryStockBatchRepository & OrderRepository & OrderRecipeUsageRepository & OrderInventoryReservationRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
+        repository: any InventoryItemRepository & OrderRepository & ProjectedIngredientDemandRepository,
         orderPresentation: OrderListPresentation = OrderListPresentation(
             dateProvider: Date.init,
             calendar: .current
@@ -53,16 +53,7 @@ final class DashboardViewModel: ObservableObject {
             let orders = try repository.fetchOrders()
             let inventoryItems = try repository.fetchInventoryItems()
             let now = orderPresentation.dateProvider()
-            let activeOrders = orders.filter(\.hasActiveReminderState)
-            let planningSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
-                orderIds: activeOrders.map(\.id)
-            )
-            let demandSummary = try ProjectedIngredientDemand.summary(
-                inventoryItems: inventoryItems,
-                orders: activeOrders,
-                at: now,
-                planningSnapshot: planningSnapshot
-            )
+            let demandSummary = try repository.fetchProjectedIngredientDemandSummary(at: now)
             let shortages = demandSummary.shortages
             projectedIngredientShortages = Dictionary(uniqueKeysWithValues: shortages.map { ($0.id, $0) })
             lowInventoryItems = InventoryLowInventoryAlertRules.itemsForAlerts(

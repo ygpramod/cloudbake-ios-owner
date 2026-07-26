@@ -323,6 +323,31 @@ protocol OrderInventoryReservationRepository {
     ) throws -> OrderInventoryReservationPlanningSnapshot
 }
 
+protocol ProjectedIngredientDemandRepository {
+    func fetchProjectedIngredientDemandSummary(
+        at date: Date
+    ) throws -> ProjectedIngredientDemandSummary
+}
+
+extension ProjectedIngredientDemandRepository
+where Self: InventoryItemRepository & OrderRepository & OrderInventoryReservationRepository {
+    func fetchProjectedIngredientDemandSummary(
+        at date: Date
+    ) throws -> ProjectedIngredientDemandSummary {
+        let inventoryItems = try fetchInventoryItems()
+        let activeOrders = try fetchOrders().filter(\.hasActiveReminderState)
+        let planningSnapshot = try fetchOrderInventoryReservationPlanningSnapshot(
+            orderIds: activeOrders.map(\.id)
+        )
+        return try ProjectedIngredientDemand.summary(
+            inventoryItems: inventoryItems,
+            orders: activeOrders,
+            at: date,
+            planningSnapshot: planningSnapshot
+        )
+    }
+}
+
 protocol OrderInventoryReservationMutationRepository {
     func saveOrder(
         _ order: Order,

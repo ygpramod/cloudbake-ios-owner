@@ -84,7 +84,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var canLoadMoreActiveOrders = false
     @Published private(set) var canLoadMoreCompletedOrders = false
 
-    private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository
     private let photoFileStore: OrderPhotoFileStore
     private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
@@ -97,7 +97,7 @@ final class OrderListViewModel: ObservableObject {
     private static let orderPageSize = 25
 
     init(
-        repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
+        repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
@@ -1776,7 +1776,7 @@ final class OrderListViewModel: ObservableObject {
                 )
             }
             availableInventoryItems = inventoryItems
-            loadSelectedOrderIngredientShortages(for: order, inventoryItems: inventoryItems)
+            loadSelectedOrderIngredientShortages(for: order)
             loadSelectedOrderIngredientCost(for: order, inventoryItems: inventoryItems)
         } catch {
             selectedOrderExtraIngredients = []
@@ -1841,21 +1841,11 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
-    private func loadSelectedOrderIngredientShortages(
-        for order: Order,
-        inventoryItems: [InventoryItem]
-    ) {
+    private func loadSelectedOrderIngredientShortages(for order: Order) {
         do {
-            let activeOrders = try repository.fetchOrders().filter(\.hasActiveReminderState)
-            let planningSnapshot = try repository.fetchOrderInventoryReservationPlanningSnapshot(
-                orderIds: activeOrders.map(\.id)
-            )
-            selectedOrderIngredientShortages = try ProjectedIngredientDemand.summary(
-                inventoryItems: inventoryItems,
-                orders: activeOrders,
-                at: dateProvider(),
-                planningSnapshot: planningSnapshot
-            ).shortages.filter { $0.orderIds.contains(order.id) }
+            selectedOrderIngredientShortages =
+                try repository.fetchProjectedIngredientDemandSummary(at: dateProvider())
+                .shortages.filter { $0.orderIds.contains(order.id) }
         } catch {
             selectedOrderIngredientShortages = []
             errorMessage = "Projected ingredient availability could not be loaded."

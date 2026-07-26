@@ -412,6 +412,7 @@ private struct DashboardDivider: View {
 private final class PreviewDashboardInventoryItemRepository: InventoryItemRepository,
     InventoryStockBatchRepository,
     OrderRepository,
+    ProjectedIngredientDemandRepository,
     OrderRecipeUsageRepository,
     OrderInventoryReservationRepository,
     RecipeComponentRepository,
