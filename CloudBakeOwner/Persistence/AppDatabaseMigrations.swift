@@ -757,6 +757,14 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0037_add_design_usage_query_index") { db in
+            try db.create(
+                index: "orders_on_design_due_id",
+                on: "orders",
+                columns: ["cake_design_id", "due_at_unix_time", "id"]
+            )
+        }
+
         return migrator
     }
 }

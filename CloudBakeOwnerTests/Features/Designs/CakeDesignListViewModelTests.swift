@@ -201,7 +201,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         ]
         let viewModel = CakeDesignListViewModel(
             repository: designRepository,
-            customerReferenceRepository: orderRepository
+            orderUsageRepository: orderRepository
         )
 
         viewModel.load()
@@ -486,7 +486,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         designRepository.designs = [reference]
         let viewModel = CakeDesignListViewModel(
             repository: designRepository,
-            customerReferenceRepository: orderRepository
+            orderUsageRepository: orderRepository
         )
         viewModel.load()
 
@@ -526,7 +526,7 @@ final class CakeDesignListViewModelTests: XCTestCase {
         orderRepository.orders = [earlier, sameDateAndTitle, unrelated, later]
         let viewModel = CakeDesignListViewModel(
             repository: designRepository,
-            customerReferenceRepository: orderRepository
+            orderUsageRepository: orderRepository
         )
 
         viewModel.load()

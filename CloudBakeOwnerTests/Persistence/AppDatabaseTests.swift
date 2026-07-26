@@ -22,6 +22,7 @@ final class AppDatabaseTests: XCTestCase {
         XCTAssertTrue(indexNames.contains("orders_on_status_due_id"))
         XCTAssertTrue(indexNames.contains("orders_on_customer_due_id"))
         XCTAssertTrue(indexNames.contains("orders_on_status_completed_at_id"))
+        XCTAssertTrue(indexNames.contains("orders_on_design_due_id"))
     }
 
     func testPaymentReminderConfigurationDefaultsToNineAndPersistsChanges() throws {

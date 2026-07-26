@@ -72,6 +72,7 @@ struct CakeDesignListView: View {
                     photoSource: viewModel.availablePhotoSource,
                     accessibilityLabel: viewModel.accessibilityLabel,
                     usageOrders: viewModel.usageOrders,
+                    usageCount: viewModel.usageCount,
                     onToggleFavorite: { viewModel.toggleFavorite($0) },
                     onUpdateTags: { viewModel.updateTags($0, for: $1) },
                     onDelete: { viewModel.delete($0) }
@@ -86,6 +87,7 @@ struct CakeDesignListView: View {
                     photoSource: viewModel.availablePhotoSource,
                     accessibilityLabel: viewModel.accessibilityLabel,
                     usageOrders: viewModel.usageOrders,
+                    usageCount: viewModel.usageCount,
                     onToggleFavorite: { viewModel.toggleFavorite($0) },
                     onUpdateTags: { viewModel.updateTags($0, for: $1) },
                     onDelete: { viewModel.delete($0) }
@@ -404,6 +406,7 @@ private struct CakeDesignPreviewView: View {
     let photoSource: (CakeDesign) -> CakeDesignPhotoSource?
     let accessibilityLabel: (CakeDesign) -> String
     let usageOrders: (CakeDesign) -> [Order]
+    let usageCount: (CakeDesign) -> Int
     let onToggleFavorite: (CakeDesign) -> CakeDesign?
     let onUpdateTags: (String, CakeDesign) -> CakeDesign?
     let onDelete: (CakeDesign) -> Bool
@@ -419,6 +422,7 @@ private struct CakeDesignPreviewView: View {
         photoSource: @escaping (CakeDesign) -> CakeDesignPhotoSource?,
         accessibilityLabel: @escaping (CakeDesign) -> String,
         usageOrders: @escaping (CakeDesign) -> [Order],
+        usageCount: @escaping (CakeDesign) -> Int,
         onToggleFavorite: @escaping (CakeDesign) -> CakeDesign?,
         onUpdateTags: @escaping (String, CakeDesign) -> CakeDesign?,
         onDelete: @escaping (CakeDesign) -> Bool
@@ -428,6 +432,7 @@ private struct CakeDesignPreviewView: View {
         self.photoSource = photoSource
         self.accessibilityLabel = accessibilityLabel
         self.usageOrders = usageOrders
+        self.usageCount = usageCount
         self.onToggleFavorite = onToggleFavorite
         self.onUpdateTags = onUpdateTags
         self.onDelete = onDelete
@@ -503,7 +508,15 @@ private struct CakeDesignPreviewView: View {
 
                 CloudBakeDetailCard {
                     CloudBakeDetailRow("Used In") {
-                        Text(currentUsageOrders.isEmpty ? "No linked orders" : "\(currentUsageOrders.count) order\(currentUsageOrders.count == 1 ? "" : "s")")
+                        Text(totalUsageCount == 0 ? "No linked orders" : "\(totalUsageCount) order\(totalUsageCount == 1 ? "" : "s")")
+                    }
+                    if totalUsageCount > currentUsageOrders.count {
+                        CloudBakeDetailDivider()
+                        Text("Showing \(currentUsageOrders.count) most recent orders")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 8)
                     }
                     ForEach(currentUsageOrders, id: \.id) { order in
                         CloudBakeDetailDivider()
@@ -587,6 +600,10 @@ private struct CakeDesignPreviewView: View {
 
     private var currentUsageOrders: [Order] {
         usageOrders(design)
+    }
+
+    private var totalUsageCount: Int {
+        usageCount(design)
     }
 
     private var adjacentDesignSwipe: some Gesture {

@@ -3,6 +3,68 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class GRDBOrderRecipeUsageRepositoryTests: XCTestCase {
+    func testCakeDesignUsageSummaryCountsAllAndBoundsRecentOrders() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let design = CakeDesign(
+            id: "design-scale-usage",
+            name: "Scale usage",
+            notes: nil,
+            photoReference: nil,
+            createdAt: now,
+            updatedAt: now
+        )
+        try repository.save(design)
+
+        for index in 0..<12 {
+            try repository.save(
+                Order(
+                    id: String(format: "order-design-%02d", index),
+                    customerId: nil,
+                    cakeDesignId: design.id,
+                    title: "Cake \(index)",
+                    customerName: "Amy",
+                    status: .confirmed,
+                    dueAt: now.addingTimeInterval(TimeInterval(index)),
+                    fulfillmentType: .pickup,
+                    deliveryAddress: nil,
+                    cakeNotes: nil,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            )
+        }
+        try repository.save(
+            Order(
+                id: "order-without-design",
+                customerId: nil,
+                cakeDesignId: nil,
+                title: "Unlinked",
+                customerName: "Amy",
+                status: .confirmed,
+                dueAt: now.addingTimeInterval(100),
+                fulfillmentType: .pickup,
+                deliveryAddress: nil,
+                cakeNotes: nil,
+                createdAt: now,
+                updatedAt: now
+            )
+        )
+
+        let summary = try repository.fetchCakeDesignOrderUsageSummary(
+            recentOrderLimitPerDesign: 10
+        )
+
+        XCTAssertEqual(summary.countsByDesignId, [design.id: 12])
+        XCTAssertEqual(
+            summary.recentOrdersByDesignId[design.id]?.map(\.id),
+            (2..<12).reversed().map {
+                String(format: "order-design-%02d", $0)
+            }
+        )
+        XCTAssertNil(summary.recentOrdersByDesignId[""])
+    }
+
     func testScheduledOrderReminderOccurrencesAreBoundedAndOrderedByTrigger() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let now = Date(timeIntervalSince1970: 1_800_000_000)

@@ -328,7 +328,7 @@ struct RootView: View {
             CakeDesignListView(
                 viewModel: CakeDesignListViewModel(
                     repository: repository,
-                    customerReferenceRepository: repository
+                    orderUsageRepository: repository
                 )
             )
         }

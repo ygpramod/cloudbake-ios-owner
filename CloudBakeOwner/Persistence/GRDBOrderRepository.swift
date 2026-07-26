@@ -283,6 +283,65 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchCakeDesignOrderUsageSummary(
+        recentOrderLimitPerDesign: Int
+    ) throws -> CakeDesignOrderUsageSummary {
+        guard (1...25).contains(recentOrderLimitPerDesign) else {
+            throw CakeDesignOrderUsageQueryError.invalidRecentOrderLimit
+        }
+        return try writer.read { db in
+            let counts = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT cake_design_id, COUNT(*) AS usage_count
+                    FROM orders
+                    WHERE cake_design_id IS NOT NULL
+                    GROUP BY cake_design_id
+                    """
+            )
+            let recentRows = try Row.fetchAll(
+                db,
+                sql: """
+                    WITH ranked_orders AS (
+                        SELECT
+                            orders.*,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY cake_design_id
+                                ORDER BY
+                                    due_at_unix_time DESC,
+                                    lower(title),
+                                    title,
+                                    id
+                            ) AS usage_rank
+                        FROM orders
+                        WHERE cake_design_id IS NOT NULL
+                    )
+                    SELECT *
+                    FROM ranked_orders
+                    WHERE usage_rank <= ?
+                    ORDER BY
+                        cake_design_id,
+                        due_at_unix_time DESC,
+                        lower(title),
+                        title,
+                        id
+                    """,
+                arguments: [recentOrderLimitPerDesign]
+            )
+            return CakeDesignOrderUsageSummary(
+                countsByDesignId: Dictionary(
+                    uniqueKeysWithValues: counts.map {
+                        ($0["cake_design_id"] as String, $0["usage_count"] as Int)
+                    }
+                ),
+                recentOrdersByDesignId: Dictionary(
+                    grouping: recentRows.map(order),
+                    by: { $0.cakeDesignId ?? "" }
+                )
+            )
+        }
+    }
+
     func fetchScheduledOrderReminderOccurrences(
         after cutoff: Date,
         limit: Int

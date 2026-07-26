@@ -119,6 +119,60 @@ protocol OrderRepository {
     func fetchOrderCount(query: OrderPageQuery) throws -> Int
 }
 
+struct CakeDesignOrderUsageSummary: Equatable {
+    static let empty = CakeDesignOrderUsageSummary(
+        countsByDesignId: [:],
+        recentOrdersByDesignId: [:]
+    )
+
+    let countsByDesignId: [String: Int]
+    let recentOrdersByDesignId: [String: [Order]]
+}
+
+enum CakeDesignOrderUsageQueryError: Error, Equatable {
+    case invalidRecentOrderLimit
+}
+
+protocol CakeDesignOrderUsageRepository {
+    func fetchCakeDesignOrderUsageSummary(
+        recentOrderLimitPerDesign: Int
+    ) throws -> CakeDesignOrderUsageSummary
+}
+
+extension CakeDesignOrderUsageRepository where Self: OrderRepository {
+    func fetchCakeDesignOrderUsageSummary(
+        recentOrderLimitPerDesign: Int
+    ) throws -> CakeDesignOrderUsageSummary {
+        guard (1...25).contains(recentOrderLimitPerDesign) else {
+            throw CakeDesignOrderUsageQueryError.invalidRecentOrderLimit
+        }
+        let linkedOrders = try fetchOrders().filter { $0.cakeDesignId != nil }
+        let grouped = Dictionary(grouping: linkedOrders) {
+            $0.cakeDesignId ?? ""
+        }
+        return CakeDesignOrderUsageSummary(
+            countsByDesignId: grouped.mapValues(\.count),
+            recentOrdersByDesignId: grouped.mapValues {
+                Array(
+                    $0.sorted { lhs, rhs in
+                        if lhs.dueAt != rhs.dueAt {
+                            return lhs.dueAt > rhs.dueAt
+                        }
+                        let titleOrder = lhs.title.localizedCaseInsensitiveCompare(
+                            rhs.title
+                        )
+                        if titleOrder != .orderedSame {
+                            return titleOrder == .orderedAscending
+                        }
+                        return lhs.id < rhs.id
+                    }
+                    .prefix(recentOrderLimitPerDesign)
+                )
+            }
+        )
+    }
+}
+
 enum OrderPageQuery: Equatable {
     case active(dueAtRange: ClosedRange<Date>?)
     case completed
