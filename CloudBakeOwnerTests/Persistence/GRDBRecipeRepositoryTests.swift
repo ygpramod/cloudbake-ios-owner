@@ -420,6 +420,7 @@ final class GRDBRecipeRepositoryTests: XCTestCase {
         XCTAssertThrowsError(
             try repository.saveRecipeIngredient(
                 editedIngredient,
+                component: component,
                 allowInventoryShortage: false
             )
         ) { error in
@@ -453,6 +454,7 @@ final class GRDBRecipeRepositoryTests: XCTestCase {
 
         try repository.saveRecipeIngredient(
             editedIngredient,
+            component: component,
             allowInventoryShortage: true
         )
 

@@ -40,6 +40,7 @@ protocol RecipeIngredientRepository {
 protocol RecipeIngredientReservationMutationRepository {
     func saveRecipeIngredient(
         _ ingredient: RecipeIngredient,
+        component: RecipeComponent,
         allowInventoryShortage: Bool
     ) throws
     func deleteRecipeIngredient(

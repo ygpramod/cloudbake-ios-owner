@@ -3,6 +3,7 @@ import SwiftUI
 struct RecipeIngredientForm: View {
     @ObservedObject var viewModel: RecipeListViewModel
     @Binding var isPresented: Bool
+    @State private var isConfirmingInventoryShortage = false
 
     var body: some View {
         Form {
@@ -49,6 +50,30 @@ struct RecipeIngredientForm: View {
                 }
             }
         }
+        .centeredOrderPopup(
+            isPresented: isConfirmingInventoryShortage,
+            title: "Inventory Shortage",
+            onCancel: {
+                isConfirmingInventoryShortage = false
+                viewModel.cancelInventoryShortageOverride()
+            }
+        ) {
+            Text(viewModel.inventoryShortageWarningMessage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("recipes.ingredient.inventoryShortage.message")
+
+            centeredPopupButton("Continue And Save", role: .destructive) {
+                if viewModel.saveIngredient(allowingInventoryShortage: true) {
+                    isConfirmingInventoryShortage = false
+                    isPresented = false
+                } else {
+                    isConfirmingInventoryShortage = false
+                }
+            }
+            .accessibilityIdentifier("recipes.ingredient.inventoryShortage.continue")
+        }
         .cloudBakeFormScreenStyle()
         .navigationTitle(viewModel.editingIngredient == nil ? "Add Ingredient" : "Edit Ingredient")
         .toolbar {
@@ -64,6 +89,8 @@ struct RecipeIngredientForm: View {
                 Button("Save") {
                     if viewModel.saveIngredient() {
                         isPresented = false
+                    } else if !viewModel.pendingInventoryShortages.isEmpty {
+                        isConfirmingInventoryShortage = true
                     }
                 }
                 .disabled(!viewModel.canSubmitIngredientDraft)

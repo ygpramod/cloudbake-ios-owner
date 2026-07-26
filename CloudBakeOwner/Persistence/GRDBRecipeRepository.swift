@@ -51,11 +51,11 @@ extension GRDBCoreDataRepository {
 
     func save(_ component: RecipeComponent) throws {
         try writer.write { db in
-            try save(component, in: db)
+            try persistRecipeComponent(component, in: db)
         }
     }
 
-    private func save(_ component: RecipeComponent, in db: Database) throws {
+    func persistRecipeComponent(_ component: RecipeComponent, in db: Database) throws {
         try db.execute(
                 sql: """
                     INSERT INTO recipe_components
@@ -132,10 +132,6 @@ extension GRDBCoreDataRepository {
         )
     }
 
-    func save(_ ingredient: RecipeIngredient) throws {
-        try saveRecipeIngredient(ingredient, allowInventoryShortage: false)
-    }
-
     func persistRecipeIngredient(_ ingredient: RecipeIngredient, in db: Database) throws {
         try db.execute(
                 sql: """
@@ -171,7 +167,7 @@ extension GRDBCoreDataRepository {
     ) throws {
         try writer.write { db in
             for recipe in recipes { try save(recipe, in: db) }
-            for component in components { try save(component, in: db) }
+            for component in components { try persistRecipeComponent(component, in: db) }
             for ingredient in ingredients { try persistRecipeIngredient(ingredient, in: db) }
         }
     }

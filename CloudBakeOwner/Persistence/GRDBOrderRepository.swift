@@ -4,36 +4,32 @@ import GRDB
 extension GRDBCoreDataRepository {
     func saveRecipeIngredient(
         _ ingredient: RecipeIngredient,
+        component: RecipeComponent,
         allowInventoryShortage: Bool
     ) throws {
         try writer.write { db in
-            guard let recipeId = try String.fetchOne(
+            try saveRecipeIngredient(
+                ingredient,
+                component: component,
+                allowInventoryShortage: allowInventoryShortage,
+                in: db
+            )
+        }
+    }
+
+    func save(_ ingredient: RecipeIngredient) throws {
+        try writer.write { db in
+            guard let row = try Row.fetchOne(
                 db,
-                sql: "SELECT recipe_id FROM recipe_components WHERE id = ?",
+                sql: "SELECT * FROM recipe_components WHERE id = ?",
                 arguments: [ingredient.componentId]
             ) else {
                 throw RecipeIngredientReservationMutationError.componentNotFound
             }
-            let existingRecipeId = try String.fetchOne(
-                db,
-                sql: """
-                    SELECT recipe_components.recipe_id
-                    FROM recipe_ingredients
-                    JOIN recipe_components
-                      ON recipe_components.id = recipe_ingredients.component_id
-                    WHERE recipe_ingredients.id = ?
-                    """,
-                arguments: [ingredient.id]
-            )
-            guard existingRecipeId == nil || existingRecipeId == recipeId else {
-                throw RecipeIngredientReservationMutationError.recipeReassignmentNotAllowed
-            }
-
-            try persistRecipeIngredient(ingredient, in: db)
-            try synchronizeReservationsAfterRecipeIngredientMutation(
-                recipeId: recipeId,
-                at: ingredient.updatedAt,
-                allowInventoryShortage: allowInventoryShortage,
+            try saveRecipeIngredient(
+                ingredient,
+                component: recipeComponent(from: row),
+                allowInventoryShortage: false,
                 in: db
             )
         }
@@ -748,6 +744,49 @@ private extension GRDBCoreDataRepository {
     struct PendingInventoryUsage {
         let item: InventoryItem
         var quantity: Double
+    }
+
+    func saveRecipeIngredient(
+        _ ingredient: RecipeIngredient,
+        component: RecipeComponent,
+        allowInventoryShortage: Bool,
+        in db: Database
+    ) throws {
+        let persistedComponentRecipeId = try String.fetchOne(
+            db,
+            sql: "SELECT recipe_id FROM recipe_components WHERE id = ?",
+            arguments: [component.id]
+        )
+        guard persistedComponentRecipeId == nil
+                || persistedComponentRecipeId == component.recipeId else {
+            throw RecipeIngredientReservationMutationError.recipeReassignmentNotAllowed
+        }
+        guard ingredient.componentId == component.id else {
+            throw RecipeIngredientReservationMutationError.componentNotFound
+        }
+        let existingRecipeId = try String.fetchOne(
+            db,
+            sql: """
+                SELECT recipe_components.recipe_id
+                FROM recipe_ingredients
+                JOIN recipe_components
+                  ON recipe_components.id = recipe_ingredients.component_id
+                WHERE recipe_ingredients.id = ?
+                """,
+            arguments: [ingredient.id]
+        )
+        guard existingRecipeId == nil || existingRecipeId == component.recipeId else {
+            throw RecipeIngredientReservationMutationError.recipeReassignmentNotAllowed
+        }
+
+        try persistRecipeComponent(component, in: db)
+        try persistRecipeIngredient(ingredient, in: db)
+        try synchronizeReservationsAfterRecipeIngredientMutation(
+            recipeId: component.recipeId,
+            at: ingredient.updatedAt,
+            allowInventoryShortage: allowInventoryShortage,
+            in: db
+        )
     }
 
     func reservationRows(

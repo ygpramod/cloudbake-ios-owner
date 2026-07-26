@@ -524,6 +524,131 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testSaveIngredientShortagePreservesDraftAndStableIdAcrossOverride() {
+        let repository = FakeRecipeRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla Sponge",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let flour = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake Flour",
+            unit: .gram,
+            currentQuantity: 100,
+            minimumQuantity: 50,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.recipes = [recipe]
+        repository.inventoryItems = [flour]
+        repository.recipeIngredientMutationError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: flour.id,
+                inventoryItemName: flour.name,
+                requiredQuantity: 300,
+                availableQuantity: 100,
+                unit: .gram
+            )
+        ])
+        let viewModel = RecipeListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "ingredient"),
+            dateProvider: { timestamp }
+        )
+        viewModel.beginViewingRecipe(recipe)
+        viewModel.beginAddingIngredient()
+        viewModel.draftIngredientQuantity = "300"
+        viewModel.draftIngredientNote = "Sift twice"
+
+        XCTAssertFalse(viewModel.saveIngredient())
+        XCTAssertEqual(
+            viewModel.inventoryShortageWarningMessage,
+            "Cake Flour: short by 200 g"
+        )
+        XCTAssertEqual(viewModel.draftIngredientQuantity, "300")
+        XCTAssertEqual(viewModel.draftIngredientNote, "Sift twice")
+        XCTAssertTrue(repository.components.isEmpty)
+        XCTAssertTrue(repository.ingredients.isEmpty)
+
+        viewModel.cancelInventoryShortageOverride()
+
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertEqual(viewModel.draftIngredientQuantity, "300")
+        XCTAssertFalse(viewModel.saveIngredient())
+        XCTAssertTrue(viewModel.saveIngredient(allowingInventoryShortage: true))
+
+        XCTAssertEqual(repository.components.map(\.id), ["ingredient-1"])
+        XCTAssertEqual(repository.ingredients.map(\.id), ["ingredient-2"])
+        XCTAssertEqual(repository.allowInventoryShortageRequests, [false, false, true])
+    }
+
+    func testSaveIngredientOverrideFailureRemainsEditable() {
+        let repository = FakeRecipeRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
+        let recipe = Recipe(
+            id: "recipe-vanilla-sponge",
+            name: "Vanilla Sponge",
+            notes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let component = RecipeComponent(
+            id: "component-ingredients",
+            recipeId: recipe.id,
+            name: "Ingredients",
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let flour = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake Flour",
+            unit: .gram,
+            currentQuantity: 100,
+            minimumQuantity: 50,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        repository.recipes = [recipe]
+        repository.components = [component]
+        repository.inventoryItems = [flour]
+        repository.recipeIngredientMutationError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: flour.id,
+                inventoryItemName: flour.name,
+                requiredQuantity: 300,
+                availableQuantity: 100,
+                unit: .gram
+            )
+        ])
+        let viewModel = RecipeListViewModel(
+            repository: repository,
+            idGenerator: { "ingredient-flour" },
+            dateProvider: { timestamp }
+        )
+        viewModel.beginViewingRecipe(recipe)
+        viewModel.beginAddingIngredient()
+        viewModel.draftIngredientQuantity = "300"
+
+        XCTAssertFalse(viewModel.saveIngredient())
+
+        repository.recipeIngredientMutationError =
+            OrderRecipeUsageError.missingInventoryItem(flour.id)
+        XCTAssertFalse(viewModel.saveIngredient(allowingInventoryShortage: true))
+
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "A recipe ingredient inventory item could not be found."
+        )
+        XCTAssertEqual(viewModel.draftIngredientQuantity, "300")
+        XCTAssertTrue(repository.ingredients.isEmpty)
+    }
+
     func testDeleteIngredientRemovesIngredientAndReloadsRows() {
         let repository = FakeRecipeRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_030_000)
