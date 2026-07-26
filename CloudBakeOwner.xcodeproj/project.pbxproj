@@ -170,6 +170,8 @@
 		A20000000000000000000003 /* ReportsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* ReportsViewModelTests.swift */; };
 		A20000000000000000000004 /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* ReportsView.swift */; };
 		41000000000000000000005C /* CloudBakeOwnerUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */; };
+		C1D000000000000000000001 /* CloudBakeOwnerUITestFormSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1E000000000000000000001 /* CloudBakeOwnerUITestFormSupport.swift */; };
+		C1D000000000000000000002 /* CloudBakeOwnerUITestInteractionSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1E000000000000000000002 /* CloudBakeOwnerUITestInteractionSupport.swift */; };
 		41000000000000000000005D /* CloudBakeOwnerInventoryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */; };
 		41000000000000000000005E /* InventoryListViewModelTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000066 /* InventoryListViewModelTestSupport.swift */; };
 		41000000000000000000005F /* PhotoPickerImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000067 /* PhotoPickerImageLoader.swift */; };
@@ -394,6 +396,8 @@
 		A10000000000000000000003 /* ReportsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsViewModelTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000004 /* ReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsView.swift; sourceTree = "<group>"; };
 		420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerUITestSupport.swift; sourceTree = "<group>"; };
+		C1E000000000000000000001 /* CloudBakeOwnerUITestFormSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerUITestFormSupport.swift; sourceTree = "<group>"; };
+		C1E000000000000000000002 /* CloudBakeOwnerUITestInteractionSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerUITestInteractionSupport.swift; sourceTree = "<group>"; };
 		420000000000000000000065 /* CloudBakeOwnerInventoryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerInventoryUITests.swift; sourceTree = "<group>"; };
 		420000000000000000000066 /* InventoryListViewModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListViewModelTestSupport.swift; sourceTree = "<group>"; };
 		420000000000000000000067 /* PhotoPickerImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPickerImageLoader.swift; sourceTree = "<group>"; };
@@ -922,6 +926,8 @@
 			children = (
 				420000000000000000000007 /* CloudBakeOwnerUITests.swift */,
 				C14000000000000000000001 /* CloudBakeOwnerAppSettingsUITests.swift */,
+				C1E000000000000000000001 /* CloudBakeOwnerUITestFormSupport.swift */,
+				C1E000000000000000000002 /* CloudBakeOwnerUITestInteractionSupport.swift */,
 				420000000000000000000064 /* CloudBakeOwnerUITestSupport.swift */,
 				420000000000000000000069 /* CloudBakeOwnerCustomerUITests.swift */,
 				C14000000000000000000002 /* CloudBakeOwnerDesignUITests.swift */,
@@ -1287,6 +1293,8 @@
 			files = (
 				410000000000000000000007 /* CloudBakeOwnerUITests.swift in Sources */,
 				C13000000000000000000001 /* CloudBakeOwnerAppSettingsUITests.swift in Sources */,
+				C1D000000000000000000001 /* CloudBakeOwnerUITestFormSupport.swift in Sources */,
+				C1D000000000000000000002 /* CloudBakeOwnerUITestInteractionSupport.swift in Sources */,
 				41000000000000000000005C /* CloudBakeOwnerUITestSupport.swift in Sources */,
 				410000000000000000000061 /* CloudBakeOwnerCustomerUITests.swift in Sources */,
 				C13000000000000000000002 /* CloudBakeOwnerDesignUITests.swift in Sources */,
