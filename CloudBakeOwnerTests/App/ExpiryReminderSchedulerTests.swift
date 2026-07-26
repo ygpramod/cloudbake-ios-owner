@@ -232,7 +232,10 @@ final class ExpiryReminderSchedulerTests: XCTestCase {
     }
 }
 
-private final class FakeExpiryReminderRepository: InventoryItemRepository, InventoryStockBatchRepository {
+private final class FakeExpiryReminderRepository:
+    InventoryItemRepository,
+    InventoryStockBatchRepository,
+    InventoryExpiryReminderRepository {
     var items: [InventoryItem] = []
     var batches: [InventoryStockBatch] = []
 

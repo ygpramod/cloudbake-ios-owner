@@ -2,6 +2,75 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class CoreModelsTests: XCTestCase {
+    func testOrderReminderConfigurationNormalizesEnabledOffsets() throws {
+        let configuration = try OrderReminderConfiguration(
+            mode: .custom,
+            dayOffsets: [1, 7, 3],
+            includesDueTime: true
+        )
+
+        XCTAssertEqual(configuration.dayOffsets, [7, 3, 1])
+        XCTAssertTrue(configuration.includesDueTime)
+        XCTAssertTrue(configuration.isEnabled)
+    }
+
+    func testOrderReminderConfigurationRejectsInvalidEnabledSchedules() {
+        XCTAssertThrowsError(
+            try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [3, 3],
+                includesDueTime: true
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderReminderConfigurationError,
+                .duplicateDayOffset(3)
+            )
+        }
+        XCTAssertThrowsError(
+            try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [31],
+                includesDueTime: false
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderReminderConfigurationError,
+                .invalidDayOffset(31)
+            )
+        }
+        XCTAssertThrowsError(
+            try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [],
+                includesDueTime: false
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderReminderConfigurationError,
+                .emptyEnabledSchedule
+            )
+        }
+    }
+
+    func testDisabledOrderReminderConfigurationHasNoSchedule() {
+        XCTAssertFalse(OrderReminderConfiguration.disabled.isEnabled)
+        XCTAssertTrue(OrderReminderConfiguration.disabled.dayOffsets.isEmpty)
+        XCTAssertFalse(OrderReminderConfiguration.disabled.includesDueTime)
+        XCTAssertThrowsError(
+            try OrderReminderConfiguration(
+                mode: .disabled,
+                dayOffsets: [1],
+                includesDueTime: false
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderReminderConfigurationError,
+                .invalidDisabledSchedule
+            )
+        }
+    }
+
     func testInventoryUnitsCoverOwnerRecipeMeasurements() {
         XCTAssertEqual(InventoryUnit.kilogram.rawValue, "kilogram")
         XCTAssertEqual(InventoryUnit.gram.rawValue, "gram")

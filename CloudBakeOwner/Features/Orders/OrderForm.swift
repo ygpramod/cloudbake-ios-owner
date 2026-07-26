@@ -117,6 +117,59 @@ struct OrderForm: View {
                 .accessibilityIdentifier("orders.form.status")
             }
 
+            Section("Reminders") {
+                Picker(
+                    "Reminder Plan",
+                    selection: Binding(
+                        get: { viewModel.draftReminderMode },
+                        set: viewModel.selectDraftReminderMode
+                    )
+                ) {
+                    ForEach(OrderReminderDraftMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("orders.form.reminderMode")
+
+                if viewModel.draftReminderMode == .custom {
+                    TextField(
+                        "Days Before",
+                        text: $viewModel.draftReminderDayOffsets
+                    )
+                    .keyboardType(.numbersAndPunctuation)
+                    .accessibilityIdentifier("orders.form.reminderDayOffsets")
+
+                    Toggle(
+                        "Remind at the order due time",
+                        isOn: $viewModel.draftReminderIncludesDueTime
+                    )
+                    .accessibilityIdentifier("orders.form.reminderDueTime")
+
+                    Text("Use unique whole days from 1 to 30, separated by commas.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                } else if viewModel.draftReminderMode == .useDefaults {
+                    LabeledContent(
+                        "Reminder Days",
+                        value: viewModel.draftReminderDayOffsets.isEmpty
+                            ? "Due time only"
+                            : viewModel.draftReminderDayOffsets
+                    )
+                    LabeledContent(
+                        "Due-time Reminder",
+                        value: viewModel.draftReminderIncludesDueTime ? "On" : "Off"
+                    )
+                    Text("This order keeps its own copy of the default plan.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Reminders are off for this order.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("Fulfillment") {
                 Picker("Type", selection: $viewModel.draftFulfillmentType) {
                     ForEach(OrderFulfillmentType.allCases, id: \.self) { fulfillmentType in
@@ -161,9 +214,20 @@ struct OrderForm: View {
                     .keyboardType(.decimalPad)
                     .accessibilityIdentifier("orders.form.quotedPrice")
 
-                TextField("Deposit Paid", text: $viewModel.draftDepositPaid)
-                    .keyboardType(.decimalPad)
-                    .accessibilityIdentifier("orders.form.depositPaid")
+                if viewModel.editingOrder == nil {
+                    TextField("Initial Payment", text: $viewModel.draftDepositPaid)
+                        .keyboardType(.decimalPad)
+                        .accessibilityIdentifier("orders.form.depositPaid")
+                } else {
+                    LabeledContent("Amount Paid") {
+                        Text(
+                            MoneyDisplay.formatted(
+                                viewModel.editingOrder?.depositPaid ?? 0
+                            )
+                        )
+                    }
+                    .accessibilityIdentifier("orders.form.amountPaid")
+                }
 
                 TextField("Payment Notes", text: $viewModel.draftPaymentNotes, axis: .vertical)
                     .lineLimit(2...5)

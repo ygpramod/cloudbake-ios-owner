@@ -29,6 +29,7 @@ private actor DesignPromotionCoordinator {
 @MainActor
 final class OrderListViewModel: ObservableObject {
     @Published private(set) var orders: [Order] = []
+    @Published private(set) var orderReminderConfigurations: [String: OrderReminderConfiguration] = [:]
     @Published private(set) var customers: [Customer] = []
     @Published private(set) var recipes: [Recipe] = []
     @Published private(set) var cakeDesigns: [CakeDesign] = []
@@ -42,9 +43,13 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var selectedOrderIngredientShortages: [ProjectedIngredientShortage] = []
     @Published private(set) var selectedOrderIngredientCost: OrderIngredientCostSummary?
     @Published private(set) var selectedOrderIngredientCostIsActual = false
+    @Published private(set) var selectedOrderInventoryReservationRepair: OrderInventoryReservationRepair?
+    @Published private(set) var selectedOrderInventoryReservations: [OrderInventoryReservationRow] = []
     @Published var isIngredientCostBreakdownExpanded = false
     @Published private(set) var selectedOrderChecklistItems: [OrderChecklistItem] = []
     @Published private(set) var selectedOrderPhotos: [OrderPhoto] = []
+    @Published private(set) var selectedOrderPaymentReceipts: [PaymentReceipt] = []
+    @Published private(set) var selectedOrderLegacyPaidAmount: Decimal = 0
     @Published private(set) var editingOrder: Order?
     @Published private(set) var availableInventoryItems: [InventoryItem] = []
     @Published var draftTitle = ""
@@ -64,6 +69,9 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftQuotedPrice = ""
     @Published var draftDepositPaid = ""
     @Published var draftPaymentNotes = ""
+    @Published var draftReminderMode: OrderReminderDraftMode = .useDefaults
+    @Published var draftReminderDayOffsets = "3, 2, 1"
+    @Published var draftReminderIncludesDueTime = true
     @Published var draftExtraIngredientInventoryItemId = ""
     @Published var draftExtraIngredientQuantity = ""
     @Published var draftExtraIngredientUnit: InventoryUnit = .gram
@@ -75,20 +83,28 @@ final class OrderListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published private(set) var isPromotingDesign = false
     @Published private(set) var pendingInventoryShortages: [OrderInventoryShortage] = []
+    @Published private(set) var canLoadMoreActiveOrders = false
+    @Published private(set) var canLoadMoreCompletedOrders = false
 
-    private let repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository
+    private let repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository & PaymentReceiptRepository
     private let photoFileStore: OrderPhotoFileStore
     private let designPhotoLibrary: DesignPhotoLibrary
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
+    private let onReminderDataChanged: () -> Void
     private let presentation: OrderListPresentation
+    private var pendingSelectedOrderExtraIngredientId: String?
+    private var activeOrderCursor: OrderPageCursor?
+    private var completedOrderCursor: OrderPageCursor?
+    private static let orderPageSize = 25
 
     init(
-        repository: any OrderRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderChecklistRepository & OrderPhotoRepository,
+        repository: any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & CakeDesignRepository & InventoryItemRepository & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository & OrderPhotoRepository & PaymentReceiptRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init,
+        onReminderDataChanged: @escaping () -> Void = {},
         calendar: Calendar = .current
     ) {
         self.repository = repository
@@ -96,6 +112,7 @@ final class OrderListViewModel: ObservableObject {
         self.designPhotoLibrary = designPhotoLibrary
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
+        self.onReminderDataChanged = onReminderDataChanged
         self.presentation = OrderListPresentation(
             dateProvider: dateProvider,
             calendar: calendar
@@ -143,7 +160,16 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func order(id: String) -> Order? {
-        orders.first { $0.id == id }
+        if let loadedOrder = orders.first(where: { $0.id == id }) {
+            return loadedOrder
+        }
+
+        do {
+            return try repository.fetchOrder(id: id)
+        } catch {
+            errorMessage = "The requested order could not be loaded."
+            return nil
+        }
     }
 
     private func filteredOrders(_ source: [Order]) -> [Order] {
@@ -203,25 +229,56 @@ final class OrderListViewModel: ObservableObject {
     }
 
     var dueReminderGroups: [OrderReminderDueGroup] {
-        presentation.dueReminderGroups(for: orders)
+        presentation.dueReminderGroups(
+            for: orders,
+            configurations: orderReminderConfigurations
+        )
     }
 
     func reminderPlan(for order: Order) -> [OrderReminderPlanItem] {
-        presentation.reminderPlan(for: order)
+        presentation.reminderPlan(
+            for: order,
+            configuration: orderReminderConfigurations[order.id] ?? .initialDefault
+        )
     }
 
     func nextReminder(for order: Order) -> OrderReminderPlanItem? {
-        presentation.nextReminder(for: order)
+        presentation.nextReminder(
+            for: order,
+            configuration: orderReminderConfigurations[order.id] ?? .initialDefault
+        )
     }
 
     func load() {
         do {
-            orders = try repository.fetchOrders()
-            customers = try repository.fetchCustomers()
-            recipes = try repository.fetchRecipes()
-            cakeDesigns = try repository.fetchCakeDesigns().filter {
+            let activePage = try repository.fetchOrderPage(
+                query: .active(dueAtRange: nil),
+                after: nil,
+                limit: Self.orderPageSize
+            )
+            let completedPage = try repository.fetchOrderPage(
+                query: .completed,
+                after: nil,
+                limit: Self.orderPageSize
+            )
+            let loadedOrders = activePage.orders + completedPage.orders
+            let loadedConfigurations =
+                try repository.fetchOrderReminderConfigurations(orderIds: loadedOrders.map(\.id))
+            let loadedCustomers = try repository.fetchCustomers()
+            let loadedRecipes = try repository.fetchRecipes()
+            let loadedCakeDesigns = try repository.fetchCakeDesigns().filter {
                 $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference
             }
+
+            orders = loadedOrders
+            activeOrderCursor = activePage.nextCursor
+            completedOrderCursor = completedPage.nextCursor
+            canLoadMoreActiveOrders = activePage.nextCursor != nil
+            canLoadMoreCompletedOrders = completedPage.nextCursor != nil
+            orderReminderConfigurations = loadedConfigurations
+            customers = loadedCustomers
+            recipes = loadedRecipes
+            cakeDesigns = loadedCakeDesigns
             errorMessage = retryPendingDesignPhotoCleanups()
                 ? nil
                 : "A previous design photo cleanup will be retried automatically."
@@ -230,12 +287,58 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    func loadMoreActiveOrders() {
+        loadMoreOrders(
+            query: .active(dueAtRange: nil),
+            cursor: activeOrderCursor,
+            updateCursor: { activeOrderCursor = $0 },
+            updateAvailability: { canLoadMoreActiveOrders = $0 }
+        )
+    }
+
+    func loadMoreCompletedOrders() {
+        loadMoreOrders(
+            query: .completed,
+            cursor: completedOrderCursor,
+            updateCursor: { completedOrderCursor = $0 },
+            updateAvailability: { canLoadMoreCompletedOrders = $0 }
+        )
+    }
+
     func makeCustomerListViewModel() -> CustomerListViewModel {
         CustomerListViewModel(
             repository: repository,
             idGenerator: idGenerator,
             dateProvider: dateProvider
         )
+    }
+
+    private func loadMoreOrders(
+        query: OrderPageQuery,
+        cursor: OrderPageCursor?,
+        updateCursor: (OrderPageCursor?) -> Void,
+        updateAvailability: (Bool) -> Void
+    ) {
+        guard let cursor else {
+            return
+        }
+
+        do {
+            let page = try repository.fetchOrderPage(
+                query: query,
+                after: cursor,
+                limit: Self.orderPageSize
+            )
+            let configurations =
+                try repository.fetchOrderReminderConfigurations(orderIds: page.orders.map(\.id))
+            orders.append(contentsOf: page.orders)
+            orderReminderConfigurations.merge(configurations) { _, latest in latest }
+            updateCursor(page.nextCursor)
+            updateAvailability(page.nextCursor != nil)
+            errorMessage = nil
+        } catch {
+            errorMessage = "More orders could not be loaded."
+        }
     }
 
     func reloadCustomers() {
@@ -249,23 +352,38 @@ final class OrderListViewModel: ObservableObject {
 
     func beginAddingOrder() {
         resetDraft()
+        loadDefaultReminderDraft()
         draftExtraIngredientRows = []
         pendingInventoryShortages = []
         errorMessage = nil
         loadFormReferences()
     }
 
+    func selectDraftReminderMode(_ mode: OrderReminderDraftMode) {
+        draftReminderMode = mode
+        if mode == .useDefaults {
+            loadDefaultReminderDraft()
+        }
+    }
+
     func beginViewingOrder(_ order: Order) {
         selectedOrder = order
         pendingInventoryShortages = []
         errorMessage = nil
+        if orderReminderConfigurations[order.id] == nil {
+            orderReminderConfigurations[order.id] =
+                try? repository.fetchOrderReminderConfiguration(orderId: order.id)
+        }
         loadSelectedOrderCustomer(for: order)
         loadSelectedOrderRecipe(for: order)
         loadSelectedOrderCakeDesign(for: order)
         loadSelectedOrderRecipeUsage(for: order)
+        loadSelectedOrderInventoryReservationRepair(for: order)
+        loadSelectedOrderInventoryReservations(for: order)
         loadSelectedOrderExtraIngredients(for: order)
         loadSelectedOrderChecklistItems(for: order)
         loadSelectedOrderPhotos(for: order)
+        loadSelectedOrderPayments(for: order)
     }
 
     func closeOrderDetail() {
@@ -275,6 +393,8 @@ final class OrderListViewModel: ObservableObject {
         selectedOrderCakeDesign = nil
         selectedOrderCustomerReferencePhoto = nil
         selectedOrderRecipeUsage = nil
+        selectedOrderInventoryReservationRepair = nil
+        selectedOrderInventoryReservations = []
         selectedOrderExtraIngredients = []
         selectedOrderIngredientShortages = []
         selectedOrderIngredientCost = nil
@@ -282,6 +402,8 @@ final class OrderListViewModel: ObservableObject {
         isIngredientCostBreakdownExpanded = false
         selectedOrderChecklistItems = []
         selectedOrderPhotos = []
+        selectedOrderPaymentReceipts = []
+        selectedOrderLegacyPaidAmount = 0
         draftChecklistItemTitle = ""
         resetExtraIngredientDraft()
         editingOrder = nil
@@ -422,7 +544,10 @@ final class OrderListViewModel: ObservableObject {
         return FileManager.default.fileExists(atPath: url.path) ? .legacyFile(url) : nil
     }
 
-    func addOrder() -> Bool {
+    func addOrder(allowingInventoryShortage: Bool = false) -> Bool {
+        if !allowingInventoryShortage {
+            pendingInventoryShortages = []
+        }
         guard let draft = validatedDraft() else {
             return false
         }
@@ -444,19 +569,43 @@ final class OrderListViewModel: ObservableObject {
             cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
             cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
             quotedPrice: draft.quotedPrice,
-            depositPaid: draft.depositPaid,
+            depositPaid: nil,
             paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
             createdAt: now,
             updatedAt: now
         )
 
         do {
-            try repository.save(order)
-            try saveDraftExtraIngredients(for: order, updatedAt: now)
+            let reminderConfiguration = try draftReminderConfiguration()
+            try repository.saveOrder(
+                order,
+                replacingExtraIngredients: draftExtraIngredients(for: order, updatedAt: now),
+                reminderConfiguration: reminderConfiguration,
+                openingPayment: draft.depositPaid.map {
+                    NewPaymentReceipt(
+                        amount: $0,
+                        receivedAt: now,
+                        note: draftPaymentNotes,
+                        createdAt: now
+                    )
+                },
+                allowInventoryShortage: allowingInventoryShortage
+            )
             resetDraft()
             draftExtraIngredientRows = []
             load()
+            pendingInventoryShortages = []
+            onReminderDataChanged()
             return true
+        } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
+            pendingInventoryShortages = shortages
+            errorMessage = nil
+            return false
+        } catch is OrderDraftValidationError {
+            return false
+        } catch let error as OrderRecipeUsageError {
+            errorMessage = recipeUsageErrorMessage(for: error)
+            return false
         } catch {
             errorMessage = "Order could not be saved."
             return false
@@ -466,6 +615,7 @@ final class OrderListViewModel: ObservableObject {
     func cancelAddOrder() {
         resetDraft()
         draftExtraIngredientRows = []
+        pendingInventoryShortages = []
         errorMessage = nil
     }
 
@@ -492,6 +642,9 @@ final class OrderListViewModel: ObservableObject {
         draftQuotedPrice = TextInputFormatting.decimalText(selectedOrder.quotedPrice)
         draftDepositPaid = TextInputFormatting.decimalText(selectedOrder.depositPaid)
         draftPaymentNotes = selectedOrder.paymentNotes ?? ""
+        applyReminderConfiguration(
+            orderReminderConfigurations[selectedOrder.id] ?? .initialDefault
+        )
         errorMessage = nil
         loadFormReferences()
         loadSelectedOrderExtraIngredients(for: selectedOrder)
@@ -551,13 +704,15 @@ final class OrderListViewModel: ObservableObject {
             cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
             cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
             quotedPrice: draft.quotedPrice,
-            depositPaid: draft.depositPaid,
+            depositPaid: editingOrder.depositPaid,
             paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
+            completedAt: editingOrder.completedAt,
             createdAt: editingOrder.createdAt,
             updatedAt: now
         )
 
         do {
+            let reminderConfiguration = try draftReminderConfiguration()
             let savedOrder: Order
             if shouldRecordRecipeUsage(from: editingOrder.status, to: order.status), order.recipeId != nil {
                 let orderBeforeStatusChange = Order(
@@ -578,6 +733,7 @@ final class OrderListViewModel: ObservableObject {
                     quotedPrice: order.quotedPrice,
                     depositPaid: order.depositPaid,
                     paymentNotes: order.paymentNotes,
+                    completedAt: editingOrder.completedAt,
                     createdAt: order.createdAt,
                     updatedAt: order.updatedAt
                 )
@@ -587,12 +743,17 @@ final class OrderListViewModel: ObservableObject {
                     updatedAt: now,
                     usageId: idGenerator(),
                     extraIngredients: draftExtraIngredients(for: orderBeforeStatusChange, updatedAt: now),
+                    reminderConfiguration: reminderConfiguration,
                     allowInventoryShortage: allowingInventoryShortage,
                     transactionIdProvider: idGenerator
                 )
             } else {
-                try repository.save(order)
-                try saveDraftExtraIngredients(for: order, updatedAt: now)
+                try repository.saveOrder(
+                    order,
+                    replacingExtraIngredients: draftExtraIngredients(for: order, updatedAt: now),
+                    reminderConfiguration: reminderConfiguration,
+                    allowInventoryShortage: allowingInventoryShortage
+                )
                 savedOrder = order
             }
             selectedOrder = savedOrder
@@ -604,14 +765,19 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderRecipe(for: savedOrder)
             loadSelectedOrderCakeDesign(for: savedOrder)
             loadSelectedOrderRecipeUsage(for: savedOrder)
+            loadSelectedOrderInventoryReservationRepair(for: savedOrder)
+            loadSelectedOrderInventoryReservations(for: savedOrder)
             loadSelectedOrderExtraIngredients(for: savedOrder)
             loadSelectedOrderChecklistItems(for: savedOrder)
             loadSelectedOrderPhotos(for: savedOrder)
             pendingInventoryShortages = []
+            onReminderDataChanged()
             return true
         } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
             pendingInventoryShortages = shortages
             errorMessage = nil
+            return false
+        } catch is OrderDraftValidationError {
             return false
         } catch let error as OrderRecipeUsageError {
             errorMessage = recipeUsageErrorMessage(for: error)
@@ -664,6 +830,7 @@ final class OrderListViewModel: ObservableObject {
             refreshAfterSavingOrder(updatedOrder)
             pendingInventoryShortages = []
             errorMessage = nil
+            onReminderDataChanged()
             return true
         } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
             pendingInventoryShortages = shortages
@@ -688,6 +855,27 @@ final class OrderListViewModel: ObservableObject {
         }.joined(separator: "\n")
     }
 
+    var selectedOrderInventoryReservationRepairWarning: String? {
+        guard let repair = selectedOrderInventoryReservationRepair else {
+            return nil
+        }
+        switch repair.state {
+        case .complete:
+            return nil
+        case .pending:
+            return "CloudBake is preparing this order’s inventory reservation. Availability may be incomplete until repair finishes."
+        case .failed:
+            switch repair.failureCode {
+            case .missingInventoryItem:
+                return "This order’s reservation needs attention because a recipe inventory item is missing."
+            case .incompatibleUnit:
+                return "This order’s reservation needs attention because an ingredient unit is incompatible."
+            case .invalidRequirements, nil:
+                return "This order’s reservation needs attention because its ingredient requirements are invalid."
+            }
+        }
+    }
+
     func requiresInventoryDeductionConfirmation(for order: Order, to status: OrderStatus) -> Bool {
         guard order.status.recordsRecipeUsage(whenChangingTo: status),
               order.recipeId != nil else {
@@ -702,11 +890,17 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func markOrderPaid(_ order: Order) -> Bool {
-        switch OrderPaymentUpdate.markingPaid(order, updatedAt: dateProvider()) {
-        case .success(let updatedOrder):
-            return savePaymentUpdate(updatedOrder)
-        case .failure(let error):
-            errorMessage = error.message
+        let now = dateProvider()
+        do {
+            _ = try repository.recordRemainingBalancePayment(
+                orderId: order.id,
+                receivedAt: now,
+                note: nil,
+                createdAt: now
+            )
+            return refreshAfterRecordingPayment(orderId: order.id)
+        } catch {
+            errorMessage = paymentErrorMessage(for: error)
             return false
         }
     }
@@ -720,44 +914,106 @@ final class OrderListViewModel: ObservableObject {
         return markOrderPaid(selectedOrder)
     }
 
-    func addPayment(to order: Order, amountText: String) -> Bool {
-        switch OrderPaymentUpdate.addingPayment(
-            amountText,
-            to: order,
-            updatedAt: dateProvider()
-        ) {
-        case .success(let updatedOrder):
-            return savePaymentUpdate(updatedOrder)
-        case .failure(let error):
-            errorMessage = error.message
+    func addPayment(
+        to order: Order,
+        amountText: String,
+        note: String = ""
+    ) -> Bool {
+        let trimmed = TextInputFormatting.trimmed(amountText)
+        guard let amount = Decimal(string: trimmed), amount > 0 else {
+            errorMessage = "Payment amount must be greater than zero."
+            return false
+        }
+        let now = dateProvider()
+        do {
+            _ = try repository.recordPayment(
+                orderId: order.id,
+                amount: amount,
+                receivedAt: now,
+                note: note,
+                createdAt: now
+            )
+            return refreshAfterRecordingPayment(orderId: order.id)
+        } catch {
+            errorMessage = paymentErrorMessage(for: error)
             return false
         }
     }
 
-    private func savePaymentUpdate(_ updatedOrder: Order) -> Bool {
+    private func refreshAfterRecordingPayment(orderId: String) -> Bool {
         do {
-            try repository.save(updatedOrder)
+            guard let updatedOrder = try repository.fetchOrder(id: orderId) else {
+                errorMessage = "Order could not be found."
+                return false
+            }
             refreshAfterSavingOrder(updatedOrder)
+            onReminderDataChanged()
             errorMessage = nil
             return true
         } catch {
-            errorMessage = "Payment could not be updated."
+            errorMessage = "Payment was recorded, but the order could not be refreshed."
             return false
         }
     }
 
-    func addPaymentToSelectedOrder(amountText: String) -> Bool {
+    private func paymentErrorMessage(for error: Error) -> String {
+        switch error as? PaymentReceiptPersistenceError {
+        case .quotedPriceMissing:
+            return "Add quoted price before recording payment."
+        case .invalidAmount:
+            return "Payment amount must be greater than zero."
+        case .exceedsBalance:
+            return "Payment received cannot be more than balance due."
+        case .orderNotFound:
+            return "Order could not be found."
+        case .receiptNotFound, .alreadyVoided, .invalidStoredAmount,
+             .directPaidTotalMutation, .none:
+            return "Payment could not be updated."
+        }
+    }
+
+    func addPaymentToSelectedOrder(
+        amountText: String,
+        note: String = ""
+    ) -> Bool {
         guard let selectedOrder else {
             errorMessage = "Order could not be found."
             return false
         }
 
-        return addPayment(to: selectedOrder, amountText: amountText)
+        return addPayment(
+            to: selectedOrder,
+            amountText: amountText,
+            note: note
+        )
+    }
+
+    func voidPaymentReceipt(_ receipt: PaymentReceipt, reason: String) -> Bool {
+        let now = dateProvider()
+        do {
+            _ = try repository.voidPaymentReceipt(
+                receiptId: receipt.id,
+                reason: reason,
+                voidedAt: now,
+                createdAt: now
+            )
+            return refreshAfterRecordingPayment(orderId: receipt.orderId)
+        } catch PaymentReceiptPersistenceError.alreadyVoided {
+            errorMessage = "This payment has already been voided."
+            return false
+        } catch PaymentReceiptPersistenceError.receiptNotFound {
+            errorMessage = "Payment could not be found."
+            return false
+        } catch {
+            errorMessage = "Payment correction could not be saved."
+            return false
+        }
     }
 
     func beginAddingExtraIngredient() {
         loadAvailableInventoryItems()
         resetExtraIngredientDraft(keepingInventoryItems: true)
+        pendingSelectedOrderExtraIngredientId = nil
         if let firstItem = availableInventoryItems.first {
             draftExtraIngredientInventoryItemId = firstItem.id
             draftExtraIngredientUnit = firstItem.unit
@@ -773,7 +1029,12 @@ final class OrderListViewModel: ObservableObject {
         draftExtraIngredientUnit = item.unit
     }
 
-    func addExtraIngredientToSelectedOrder() -> Bool {
+    func addExtraIngredientToSelectedOrder(
+        allowingInventoryShortage: Bool = false
+    ) -> Bool {
+        if !allowingInventoryShortage {
+            pendingInventoryShortages = []
+        }
         guard let selectedOrder else {
             errorMessage = "Order could not be found."
             return false
@@ -783,8 +1044,10 @@ final class OrderListViewModel: ObservableObject {
         }
 
         let now = dateProvider()
+        let ingredientId = pendingSelectedOrderExtraIngredientId ?? idGenerator()
+        pendingSelectedOrderExtraIngredientId = ingredientId
         let ingredient = OrderExtraIngredient(
-            id: idGenerator(),
+            id: ingredientId,
             orderId: selectedOrder.id,
             inventoryItemId: draft.inventoryItemId,
             quantity: draft.quantity,
@@ -793,14 +1056,31 @@ final class OrderListViewModel: ObservableObject {
             createdAt: now,
             updatedAt: now
         )
+        let updatedOrder = copy(selectedOrder, updatedAt: now)
+        let replacement = selectedOrderExtraIngredients.map(\.ingredient) + [ingredient]
 
         do {
-            try repository.save(ingredient)
+            try repository.saveOrder(
+                updatedOrder,
+                replacingExtraIngredients: replacement,
+                allowInventoryShortage: allowingInventoryShortage
+            )
+            pendingSelectedOrderExtraIngredientId = nil
             resetExtraIngredientDraft()
-            loadSelectedOrderExtraIngredients(for: selectedOrder)
+            refreshAfterSavingOrder(updatedOrder)
+            pendingInventoryShortages = []
             errorMessage = nil
             return true
+        } catch OrderRecipeUsageError.insufficientStock(let shortages) where !allowingInventoryShortage {
+            pendingInventoryShortages = shortages
+            errorMessage = nil
+            return false
+        } catch let error as OrderRecipeUsageError {
+            pendingInventoryShortages = []
+            errorMessage = extraIngredientErrorMessage(for: error)
+            return false
         } catch {
+            pendingInventoryShortages = []
             errorMessage = "Extra ingredient could not be saved."
             return false
         }
@@ -902,9 +1182,13 @@ final class OrderListViewModel: ObservableObject {
 
     func deleteExtraIngredient(_ row: OrderExtraIngredientRow) -> Bool {
         do {
-            try repository.deleteOrderExtraIngredient(id: row.ingredient.id)
+            try repository.deleteOrderExtraIngredient(
+                id: row.ingredient.id,
+                updatedAt: dateProvider()
+            )
             if let selectedOrder {
                 loadSelectedOrderExtraIngredients(for: selectedOrder)
+                loadSelectedOrderInventoryReservations(for: selectedOrder)
             }
             errorMessage = nil
             return true
@@ -915,7 +1199,9 @@ final class OrderListViewModel: ObservableObject {
     }
 
     func cancelExtraIngredientEdit() {
+        pendingSelectedOrderExtraIngredientId = nil
         resetExtraIngredientDraft()
+        pendingInventoryShortages = []
         errorMessage = nil
     }
 
@@ -926,12 +1212,30 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderRecipe(for: order)
             loadSelectedOrderCakeDesign(for: order)
             loadSelectedOrderRecipeUsage(for: order)
+            loadSelectedOrderInventoryReservationRepair(for: order)
+            loadSelectedOrderInventoryReservations(for: order)
             loadSelectedOrderExtraIngredients(for: order)
             loadSelectedOrderChecklistItems(for: order)
             loadSelectedOrderPhotos(for: order)
+            loadSelectedOrderPayments(for: order)
         }
 
         load()
+    }
+
+    private func loadSelectedOrderPayments(for order: Order) {
+        do {
+            selectedOrderPaymentReceipts = try repository.fetchPaymentReceipts(
+                orderId: order.id
+            )
+            selectedOrderLegacyPaidAmount = try repository.fetchLegacyPaidAmount(
+                orderId: order.id
+            )
+        } catch {
+            selectedOrderPaymentReceipts = []
+            selectedOrderLegacyPaidAmount = 0
+            errorMessage = "Payment history could not be loaded."
+        }
     }
 
     private func copy(
@@ -959,6 +1263,7 @@ final class OrderListViewModel: ObservableObject {
             quotedPrice: order.quotedPrice,
             depositPaid: depositPaid ?? order.depositPaid,
             paymentNotes: order.paymentNotes,
+            completedAt: order.completedAt,
             createdAt: order.createdAt,
             updatedAt: updatedAt
         )
@@ -1517,6 +1822,44 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    private func loadSelectedOrderInventoryReservationRepair(for order: Order) {
+        do {
+            selectedOrderInventoryReservationRepair =
+                try repository.fetchOrderInventoryReservationRepair(orderId: order.id)
+        } catch {
+            selectedOrderInventoryReservationRepair = nil
+            errorMessage = "Inventory reservation status could not be loaded."
+        }
+    }
+
+    private func loadSelectedOrderInventoryReservations(for order: Order) {
+        do {
+            let inventoryItems =
+                try repository.fetchInventoryItems()
+                + repository.fetchArchivedInventoryItems()
+            let itemNamesById = Dictionary(
+                uniqueKeysWithValues: inventoryItems.map { ($0.id, $0.name) }
+            )
+            selectedOrderInventoryReservations =
+                try repository.fetchOrderInventoryReservations(orderId: order.id)
+                .map { reservation in
+                    OrderInventoryReservationRow(
+                        reservation: reservation,
+                        inventoryItemName: itemNamesById[reservation.inventoryItemId]
+                            ?? "Missing inventory item"
+                    )
+                }
+                .sorted {
+                    $0.inventoryItemName.localizedCaseInsensitiveCompare(
+                        $1.inventoryItemName
+                    ) == .orderedAscending
+                }
+        } catch {
+            selectedOrderInventoryReservations = []
+            errorMessage = "Reserved inventory could not be loaded."
+        }
+    }
+
     private func loadSelectedOrderExtraIngredients(for order: Order) {
         do {
             let inventoryItems = try repository.fetchInventoryItems()
@@ -1528,7 +1871,7 @@ final class OrderListViewModel: ObservableObject {
                 )
             }
             availableInventoryItems = inventoryItems
-            loadSelectedOrderIngredientShortages(for: order, inventoryItems: inventoryItems)
+            loadSelectedOrderIngredientShortages(for: order)
             loadSelectedOrderIngredientCost(for: order, inventoryItems: inventoryItems)
         } catch {
             selectedOrderExtraIngredients = []
@@ -1593,43 +1936,14 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
-    private func loadSelectedOrderIngredientShortages(
-        for order: Order,
-        inventoryItems: [InventoryItem]
-    ) {
+    private func loadSelectedOrderIngredientShortages(for order: Order) {
         do {
-            selectedOrderIngredientShortages = try ProjectedIngredientDemand.shortages(
-                inventoryItems: inventoryItems,
-                orders: repository.fetchOrders(),
-                at: dateProvider(),
-                stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
-                recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
-                recipeComponents: repository.fetchRecipeComponents(recipeId:),
-                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
-                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
-            ).filter { $0.orderIds.contains(order.id) }
+            selectedOrderIngredientShortages =
+                try repository.fetchProjectedIngredientDemandSummary(at: dateProvider())
+                .shortages.filter { $0.orderIds.contains(order.id) }
         } catch {
             selectedOrderIngredientShortages = []
             errorMessage = "Projected ingredient availability could not be loaded."
-        }
-    }
-
-    private func saveDraftExtraIngredients(for order: Order, updatedAt: Date) throws {
-        let existingIngredients = try repository.fetchOrderExtraIngredients(orderId: order.id)
-        guard order.recipeId != nil else {
-            for ingredient in existingIngredients {
-                try repository.deleteOrderExtraIngredient(id: ingredient.id)
-            }
-            return
-        }
-
-        let keptExistingIds = Set(draftExtraIngredientRows.compactMap { $0.existingIngredient?.id })
-        for ingredient in existingIngredients where !keptExistingIds.contains(ingredient.id) {
-            try repository.deleteOrderExtraIngredient(id: ingredient.id)
-        }
-
-        for row in draftExtraIngredientRows where row.existingIngredient == nil {
-            try repository.save(draftExtraIngredient(from: row, order: order, updatedAt: updatedAt))
         }
     }
 
@@ -1685,16 +1999,46 @@ final class OrderListViewModel: ObservableObject {
 
     private func recipeUsageErrorMessage(for error: OrderRecipeUsageError) -> String {
         switch error {
+        case .orderNotFound:
+            return "Order could not be found."
         case .orderHasNoLinkedRecipe:
             return "Link a recipe before using it."
         case .alreadyRecorded:
             return "Recipe has already been used for this order."
+        case .inventoryConsumptionRequired:
+            return "Confirm inventory deduction before saving."
         case .recipeHasNoIngredients:
             return "Recipe has no ingredients to deduct."
         case .missingInventoryItem:
             return "Recipe ingredient inventory item could not be found."
         case .incompatibleIngredientUnit(let itemName):
             return "\(itemName) has an incompatible recipe unit."
+        case .invalidIngredientQuantity(let itemName):
+            return "\(itemName) has an invalid recipe quantity."
+        case .insufficientStock(let shortages):
+            let itemNames = shortages.map(\.inventoryItemName).joined(separator: ", ")
+            return "Not enough \(itemNames) in inventory."
+        }
+    }
+
+    private func extraIngredientErrorMessage(for error: OrderRecipeUsageError) -> String {
+        switch error {
+        case .orderNotFound:
+            return "Order could not be found."
+        case .orderHasNoLinkedRecipe:
+            return "Link a recipe before adding this ingredient."
+        case .alreadyRecorded:
+            return "Inventory has already been deducted for this order."
+        case .inventoryConsumptionRequired:
+            return "Confirm inventory deduction before adding this ingredient."
+        case .recipeHasNoIngredients:
+            return "The order has no ingredients to reserve."
+        case .missingInventoryItem:
+            return "An inventory item required by this order could not be found."
+        case .incompatibleIngredientUnit(let itemName):
+            return "\(itemName) has an incompatible unit for this order ingredient."
+        case .invalidIngredientQuantity(let itemName):
+            return "\(itemName) has an invalid quantity."
         case .insufficientStock(let shortages):
             let itemNames = shortages.map(\.inventoryItemName).joined(separator: ", ")
             return "Not enough \(itemNames) in inventory."
@@ -1718,6 +2062,9 @@ final class OrderListViewModel: ObservableObject {
         draftQuotedPrice = ""
         draftDepositPaid = ""
         draftPaymentNotes = ""
+        draftReminderMode = .useDefaults
+        draftReminderDayOffsets = "3, 2, 1"
+        draftReminderIncludesDueTime = true
         draftIngredientCost = nil
         draftIngredientCostIsActual = false
     }
@@ -1750,6 +2097,48 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    private func loadDefaultReminderDraft() {
+        do {
+            applyReminderConfiguration(
+                try repository.fetchDefaultOrderReminderConfiguration()
+            )
+            errorMessage = nil
+        } catch {
+            applyReminderConfiguration(.initialDefault)
+            errorMessage = "Order reminder defaults could not be loaded."
+        }
+    }
+
+    private func applyReminderConfiguration(
+        _ configuration: OrderReminderConfiguration
+    ) {
+        switch configuration.mode {
+        case .defaultSnapshot:
+            draftReminderMode = .useDefaults
+        case .custom:
+            draftReminderMode = .custom
+        case .disabled:
+            draftReminderMode = .disabled
+        }
+        draftReminderDayOffsets = configuration.dayOffsets
+            .map(String.init)
+            .joined(separator: ", ")
+        draftReminderIncludesDueTime = configuration.includesDueTime
+    }
+
+    private func draftReminderConfiguration() throws -> OrderReminderConfiguration {
+        do {
+            return try OrderReminderDraftValidation.configuration(
+                mode: draftReminderMode,
+                dayOffsetsText: draftReminderDayOffsets,
+                includesDueTime: draftReminderIncludesDueTime
+            )
+        } catch let error as OrderDraftValidationError {
+            errorMessage = error.message
+            throw error
+        }
+    }
+
     private func validatedExtraIngredientDraft() -> ValidatedOrderExtraIngredientDraft? {
         guard availableInventoryItems.contains(where: { $0.id == draftExtraIngredientInventoryItemId }) else {
             errorMessage = "Choose an inventory item."
@@ -1776,6 +2165,15 @@ struct OrderExtraIngredientRow: Identifiable, Equatable {
 
     var id: String {
         ingredient.id
+    }
+}
+
+struct OrderInventoryReservationRow: Identifiable, Equatable {
+    let reservation: OrderInventoryReservation
+    let inventoryItemName: String
+
+    var id: String {
+        reservation.id
     }
 }
 

@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class ReminderViewModelTests: XCTestCase {
-    func testLoadShowsPaymentDueForReadyAndCompletedOrdersWithBalanceDue() throws {
+    func testLoadShowsPaymentDueOnlyForOverdueCompletedOrdersWithBalanceDue() throws {
         let repository = FakeReminderRepository()
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Singapore") ?? .current
@@ -24,7 +24,7 @@ final class ReminderViewModelTests: XCTestCase {
                 id: "order-ready",
                 title: "Chocolate Truffle Cake",
                 customerId: "customer-amy",
-                status: .ready,
+                status: .completed,
                 dueAt: dueAt,
                 quotedPrice: decimal("150"),
                 depositPaid: decimal("50")
@@ -40,10 +40,18 @@ final class ReminderViewModelTests: XCTestCase {
             makeOrder(
                 id: "order-paid",
                 title: "Paid Cake",
-                status: .ready,
+                status: .completed,
                 dueAt: dueAt,
                 quotedPrice: decimal("75"),
                 depositPaid: decimal("75")
+            ),
+            makeOrder(
+                id: "order-ready-unpaid",
+                title: "Ready Cake",
+                status: .ready,
+                dueAt: dueAt,
+                quotedPrice: decimal("75"),
+                depositPaid: nil
             )
         ]
         let viewModel = ReminderViewModel(repository: repository, calendar: calendar)
@@ -51,18 +59,26 @@ final class ReminderViewModelTests: XCTestCase {
         viewModel.load()
 
         XCTAssertEqual(viewModel.paymentDueItems.count, 2)
-        XCTAssertEqual(viewModel.paymentDueItems[0].id, "order-ready")
-        XCTAssertEqual(viewModel.paymentDueItems[0].orderName, "Chocolate Truffle Cake")
-        XCTAssertEqual(viewModel.paymentDueItems[0].customerName, "Amy Rao")
-        XCTAssertEqual(viewModel.paymentDueItems[0].firstName, "Amy")
-        XCTAssertEqual(viewModel.paymentDueItems[0].balanceDueText, MoneyDisplay.formatted(decimal("100")))
         XCTAssertEqual(
-            viewModel.paymentDueItems[0].paymentMessage,
+            viewModel.paymentDueItems.map(\.id),
+            ["order-completed", "order-ready"]
+        )
+        let linkedPayment = try XCTUnwrap(
+            viewModel.paymentDueItems.first { $0.id == "order-ready" }
+        )
+        let unlinkedPayment = try XCTUnwrap(
+            viewModel.paymentDueItems.first { $0.id == "order-completed" }
+        )
+        XCTAssertEqual(linkedPayment.orderName, "Chocolate Truffle Cake")
+        XCTAssertEqual(linkedPayment.customerName, "Amy Rao")
+        XCTAssertEqual(linkedPayment.firstName, "Amy")
+        XCTAssertEqual(linkedPayment.balanceDueText, MoneyDisplay.formatted(decimal("100")))
+        XCTAssertEqual(
+            linkedPayment.paymentMessage,
             "Amy has \(MoneyDisplay.formatted(decimal("100"))) balance due for Chocolate Truffle Cake."
         )
-        XCTAssertEqual(viewModel.paymentDueItems[1].id, "order-completed")
-        XCTAssertEqual(viewModel.paymentDueItems[1].whatsappURL, nil)
-        let whatsappURL = try XCTUnwrap(viewModel.paymentDueItems.first?.whatsappURL)
+        XCTAssertNil(unlinkedPayment.whatsappURL)
+        let whatsappURL = try XCTUnwrap(linkedPayment.whatsappURL)
         let components = try XCTUnwrap(URLComponents(url: whatsappURL, resolvingAgainstBaseURL: false))
         XCTAssertEqual(components.scheme, "whatsapp")
         XCTAssertEqual(components.host, "send")
@@ -109,6 +125,51 @@ final class ReminderViewModelTests: XCTestCase {
                 TodayOrderReminderItem(id: "order-evening", orderName: "Evening Cake", customerName: "Amy")
             ]
         )
+    }
+
+    func testReminderListsLoadIndependentBoundedPages() {
+        let repository = FakeReminderRepository()
+        let calendar = utcCalendar()
+        let now = calendar.date(
+            from: DateComponents(year: 2027, month: 2, day: 10, hour: 12)
+        )!
+        let paymentOrders = (0..<26).map { index in
+            makeOrder(
+                id: String(format: "payment-%02d", index),
+                status: .completed,
+                dueAt: now.addingTimeInterval(TimeInterval(-3_600 - index)),
+                quotedPrice: decimal("100"),
+                depositPaid: decimal("25")
+            )
+        }
+        let todayOrders = (0..<26).map { index in
+            makeOrder(
+                id: String(format: "today-%02d", index),
+                status: .confirmed,
+                dueAt: now.addingTimeInterval(TimeInterval(index))
+            )
+        }
+        repository.orders = paymentOrders + todayOrders
+        let viewModel = ReminderViewModel(
+            repository: repository,
+            dateProvider: { now },
+            calendar: calendar
+        )
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.paymentDueItems.count, 25)
+        XCTAssertEqual(viewModel.todayOrderItems.count, 25)
+        XCTAssertTrue(viewModel.canLoadMorePaymentDueItems)
+        XCTAssertTrue(viewModel.canLoadMoreTodayOrderItems)
+
+        viewModel.loadMorePaymentDueItems()
+        viewModel.loadMoreTodayOrderItems()
+
+        XCTAssertEqual(viewModel.paymentDueItems.count, 26)
+        XCTAssertEqual(viewModel.todayOrderItems.count, 26)
+        XCTAssertFalse(viewModel.canLoadMorePaymentDueItems)
+        XCTAssertFalse(viewModel.canLoadMoreTodayOrderItems)
     }
 
     func testLoadShowsLowInventoryWithCurrentAndMinimumQuantity() {
@@ -233,39 +294,50 @@ final class ReminderViewModelTests: XCTestCase {
         viewModel.load()
 
         XCTAssertEqual(viewModel.lowInventoryItems.map(\.id), ["inventory-flour"])
+        XCTAssertEqual(repository.planningSnapshotFetchCount, 1)
+        XCTAssertEqual(Set(repository.lastPlanningOrderIds), ["order-one", "order-two"])
     }
 
     func testMarkPaidUpdatesOrderAndRemovesPaymentDueReminder() {
         let repository = FakeReminderRepository()
         let dueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        var paymentChangeCount = 0
         repository.orders = [
             makeOrder(
                 id: "order-ready",
                 title: "Chocolate Cake",
-                status: .ready,
+                status: .completed,
                 dueAt: dueAt,
                 quotedPrice: decimal("150"),
                 depositPaid: decimal("50")
             )
         ]
-        let viewModel = ReminderViewModel(repository: repository)
+        let viewModel = ReminderViewModel(
+            repository: repository,
+            dateProvider: { dueAt.addingTimeInterval(1) },
+            onPaymentChanged: { paymentChangeCount += 1 }
+        )
         viewModel.load()
 
         XCTAssertTrue(viewModel.markPaid(orderId: "order-ready"))
 
         XCTAssertEqual(repository.orders.first?.depositPaid, decimal("150"))
         XCTAssertEqual(viewModel.paymentDueItems, [])
+        XCTAssertEqual(paymentChangeCount, 1)
     }
 }
 
 private final class FakeReminderRepository: OrderRepository,
+    ProjectedIngredientDemandRepository,
     OrderRecipeUsageRepository,
+    OrderInventoryReservationRepository,
     InventoryItemRepository,
     InventoryStockBatchRepository,
     CustomerRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
-    OrderExtraIngredientRepository {
+    OrderExtraIngredientRepository,
+    PaymentReceiptRepository {
     var orders: [Order] = []
     var items: [InventoryItem] = []
     var customers: [Customer] = []
@@ -274,6 +346,10 @@ private final class FakeReminderRepository: OrderRepository,
     var extraIngredients: [OrderExtraIngredient] = []
     var batches: [InventoryStockBatch] = []
     var usages: [OrderRecipeUsage] = []
+    var reservations: [OrderInventoryReservation] = []
+    var reservationRepairs: [OrderInventoryReservationRepair] = []
+    var planningSnapshotFetchCount = 0
+    var lastPlanningOrderIds: [String] = []
 
     func save(_ order: Order) throws {
         if let existingIndex = orders.firstIndex(where: { $0.id == order.id }) {
@@ -281,6 +357,83 @@ private final class FakeReminderRepository: OrderRepository,
         } else {
             orders.append(order)
         }
+    }
+
+    func recordPayment(
+        orderId: String,
+        amount: Decimal,
+        receivedAt _: Date,
+        note _: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt {
+        guard let index = orders.firstIndex(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        guard let quotedPrice = orders[index].quotedPrice else {
+            throw PaymentReceiptPersistenceError.quotedPriceMissing
+        }
+        let paid = (orders[index].depositPaid ?? 0) + amount
+        guard amount > 0 else {
+            throw PaymentReceiptPersistenceError.invalidAmount
+        }
+        guard paid <= quotedPrice else {
+            throw PaymentReceiptPersistenceError.exceedsBalance
+        }
+        orders[index] = orderWithPayment(
+            orders[index],
+            depositPaid: paid,
+            updatedAt: createdAt
+        )
+        return PaymentReceipt(
+            id: "receipt-\(orderId)",
+            orderId: orderId,
+            amount: amount,
+            receivedAt: createdAt,
+            note: nil,
+            createdAt: createdAt,
+            void: nil
+        )
+    }
+
+    func recordRemainingBalancePayment(
+        orderId: String,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt {
+        guard let order = orders.first(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        guard let balance = order.balanceDue else {
+            throw PaymentReceiptPersistenceError.quotedPriceMissing
+        }
+        return try recordPayment(
+            orderId: orderId,
+            amount: balance,
+            receivedAt: receivedAt,
+            note: note,
+            createdAt: createdAt
+        )
+    }
+
+    func voidPaymentReceipt(
+        receiptId _: String,
+        reason _: String?,
+        voidedAt _: Date,
+        createdAt _: Date
+    ) throws -> PaymentReceiptVoid {
+        throw PaymentReceiptPersistenceError.receiptNotFound
+    }
+
+    func fetchPaymentReceipts(orderId _: String) throws -> [PaymentReceipt] {
+        []
+    }
+
+    func fetchLegacyPaidAmount(orderId: String) throws -> Decimal {
+        guard orders.contains(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        return 0
     }
 
     func fetchOrder(id: String) throws -> Order? {
@@ -301,6 +454,55 @@ private final class FakeReminderRepository: OrderRepository,
         usedAt: Date,
         transactionIdProvider: () -> String
     ) throws {}
+
+    func fetchOrderInventoryReservations(
+        orderId: String
+    ) throws -> [OrderInventoryReservation] {
+        reservations.filter { $0.orderId == orderId }
+    }
+
+    func fetchInventoryReservationTotal(
+        inventoryItemId: String,
+        excludingOrderId: String?
+    ) throws -> Double {
+        reservations
+            .filter {
+                $0.inventoryItemId == inventoryItemId
+                    && $0.orderId != excludingOrderId
+            }
+            .reduce(0) { $0 + $1.requiredQuantity }
+    }
+
+    func fetchOrderInventoryReservationEvents(
+        orderId _: String,
+        limit _: Int
+    ) throws -> [OrderInventoryReservationEvent] {
+        []
+    }
+
+    func fetchOrderInventoryReservationRepair(
+        orderId: String
+    ) throws -> OrderInventoryReservationRepair? {
+        reservationRepairs.first { $0.orderId == orderId }
+    }
+
+    func fetchOrderInventoryReservationPlanningSnapshot(
+        orderIds: [String]
+    ) throws -> OrderInventoryReservationPlanningSnapshot {
+        planningSnapshotFetchCount += 1
+        lastPlanningOrderIds = orderIds
+        return makeInventoryReservationPlanningSnapshot(
+            orderIds: orderIds,
+            orders: orders,
+            usages: usages,
+            reservations: reservations,
+            repairs: reservationRepairs,
+            components: components,
+            ingredients: ingredients,
+            extras: extraIngredients,
+            batches: batches
+        )
+    }
 
     func save(_ batch: InventoryStockBatch) throws {}
     func saveBatchCorrection(item: InventoryItem, batch: InventoryStockBatch) throws {}

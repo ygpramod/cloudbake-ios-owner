@@ -3,6 +3,337 @@ import GRDB
 @testable import CloudBakeOwner
 
 final class AppDatabaseTests: XCTestCase {
+    func testOrderQueryIndexesAreCreated() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let indexNames = try queue.read { db in
+            try String.fetchAll(
+                db,
+                sql: """
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type = 'index'
+                      AND name LIKE 'orders_on_%'
+                    ORDER BY name
+                    """
+            )
+        }
+
+        XCTAssertTrue(indexNames.contains("orders_on_status_due_id"))
+        XCTAssertTrue(indexNames.contains("orders_on_customer_due_id"))
+        XCTAssertTrue(indexNames.contains("orders_on_status_completed_at_id"))
+        XCTAssertTrue(indexNames.contains("orders_on_design_due_id"))
+        let inventoryIndexNames = try queue.read { db in
+            try String.fetchAll(
+                db,
+                sql: """
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type = 'index'
+                      AND name LIKE 'inventory_batches_on_%'
+                    """
+            )
+        }
+        XCTAssertTrue(
+            inventoryIndexNames.contains(
+                "inventory_batches_on_expiry_remaining_id"
+            )
+        )
+    }
+
+    func testPaymentReminderConfigurationDefaultsToNineAndPersistsChanges() throws {
+        let database = try AppDatabase.makeInMemory()
+        let repository = database.makeCoreDataRepository()
+        let updatedAt = Date(timeIntervalSince1970: 1_800_001_000)
+
+        XCTAssertEqual(
+            try repository.fetchPaymentReminderConfiguration(),
+            .initialDefault
+        )
+
+        let changed = try PaymentReminderConfiguration(hour: 14, minute: 30)
+        try repository.savePaymentReminderConfiguration(changed, updatedAt: updatedAt)
+
+        XCTAssertEqual(try repository.fetchPaymentReminderConfiguration(), changed)
+    }
+
+    func testPaymentReceiptMigrationPreservesLegacyPaidAmountAndCreatesLedger() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0038_add_inventory_expiry_query_index")
+        let timestamp = 1_800_001_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time, deposit_paid_decimal,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "legacy-payment-order",
+                    "Legacy payment cake",
+                    OrderStatus.completed.rawValue,
+                    timestamp,
+                    "125.50",
+                    timestamp,
+                    timestamp
+                ]
+            )
+        }
+
+        try migrator.migrate(queue)
+
+        try queue.read { db in
+            let row = try Row.fetchOne(
+                db,
+                sql: """
+                    SELECT deposit_paid_decimal, legacy_paid_amount_decimal
+                    FROM orders
+                    WHERE id = ?
+                    """,
+                arguments: ["legacy-payment-order"]
+            )
+            XCTAssertEqual(row?["deposit_paid_decimal"] as String?, "125.50")
+            XCTAssertEqual(row?["legacy_paid_amount_decimal"] as String?, "125.50")
+            XCTAssertTrue(try db.tableExists("payment_receipts"))
+            XCTAssertTrue(try db.tableExists("payment_receipt_voids"))
+
+            let indexes = try String.fetchAll(
+                db,
+                sql: """
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type = 'index'
+                      AND name LIKE 'payment_receipts_on_%'
+                    ORDER BY name
+                    """
+            )
+            XCTAssertEqual(
+                indexes,
+                [
+                    "payment_receipts_on_order_received_at_id",
+                    "payment_receipts_on_received_at_id"
+                ]
+            )
+        }
+    }
+
+    func testPaymentReceiptLedgerRejectsInvalidAmountsAndDuplicateVoids() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let timestamp = 1_800_001_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "receipt-constraints-order",
+                    "Receipt constraints",
+                    OrderStatus.completed.rawValue,
+                    timestamp,
+                    timestamp,
+                    timestamp
+                ]
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO payment_receipts
+                        (id, order_id, amount_decimal, received_at_unix_time,
+                         created_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "invalid-receipt",
+                        "receipt-constraints-order",
+                        "0",
+                        timestamp,
+                        timestamp
+                    ]
+                )
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO payment_receipts
+                    (id, order_id, amount_decimal, received_at_unix_time,
+                     created_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "valid-receipt",
+                    "receipt-constraints-order",
+                    "25",
+                    timestamp,
+                    timestamp
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO payment_receipt_voids
+                    (id, receipt_id, voided_at_unix_time, created_at_unix_time)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                arguments: ["void-1", "valid-receipt", timestamp, timestamp]
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO payment_receipt_voids
+                        (id, receipt_id, voided_at_unix_time, created_at_unix_time)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "void-2",
+                        "valid-receipt",
+                        timestamp + 1,
+                        timestamp + 1
+                    ]
+                )
+            )
+        }
+    }
+
+    func testOrderCompletedAtMigrationLeavesLegacyCompletionUnknown() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0033_add_order_reminder_configurations")
+        let timestamp = 1_800_001_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "legacy-completed-order",
+                    "Legacy completed cake",
+                    OrderStatus.completed.rawValue,
+                    timestamp,
+                    timestamp,
+                    timestamp
+                ]
+            )
+        }
+
+        try migrator.migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+
+        XCTAssertNil(try repository.fetchOrder(id: "legacy-completed-order")?.completedAt)
+    }
+
+    func testOrderCompletionTimestampIsRecordedOnceAndPreserved() throws {
+        let database = try AppDatabase.makeInMemory()
+        let repository = database.makeCoreDataRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let firstCompletion = Date(timeIntervalSince1970: 1_800_001_000)
+        let laterUpdate = Date(timeIntervalSince1970: 1_800_002_000)
+        let order = Order(
+            id: "completion-history",
+            customerId: nil,
+            cakeDesignId: nil,
+            title: "Completion history",
+            customerName: "Customer",
+            status: .draft,
+            dueAt: createdAt,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        try repository.save(order)
+
+        let completed = Order(
+            id: order.id,
+            customerId: order.customerId,
+            cakeDesignId: order.cakeDesignId,
+            title: order.title,
+            customerName: order.customerName,
+            status: .completed,
+            dueAt: order.dueAt,
+            fulfillmentType: order.fulfillmentType,
+            deliveryAddress: order.deliveryAddress,
+            cakeNotes: order.cakeNotes,
+            createdAt: order.createdAt,
+            updatedAt: firstCompletion
+        )
+        try repository.save(completed)
+
+        let reopened = Order(
+            id: completed.id,
+            customerId: completed.customerId,
+            cakeDesignId: completed.cakeDesignId,
+            title: completed.title,
+            customerName: completed.customerName,
+            status: .confirmed,
+            dueAt: completed.dueAt,
+            fulfillmentType: completed.fulfillmentType,
+            deliveryAddress: completed.deliveryAddress,
+            cakeNotes: completed.cakeNotes,
+            completedAt: firstCompletion,
+            createdAt: completed.createdAt,
+            updatedAt: laterUpdate
+        )
+        try repository.save(reopened)
+
+        XCTAssertEqual(try repository.fetchOrder(id: order.id)?.completedAt, firstCompletion)
+    }
+
+    func testOrderReminderConfigurationMigrationBackfillsExistingOrders() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0032_track_reservation_repair_activation")
+        let timestamp = 1_800_001_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "order-reminder-migration",
+                    "Reminder migration cake",
+                    OrderStatus.draft.rawValue,
+                    timestamp,
+                    timestamp,
+                    timestamp
+                ]
+            )
+        }
+
+        try migrator.migrate(queue)
+
+        try queue.read { db in
+            XCTAssertTrue(try db.tableExists("order_reminder_defaults"))
+            XCTAssertTrue(try db.tableExists("order_reminder_configurations"))
+            let row = try Row.fetchOne(
+                db,
+                sql: """
+                    SELECT mode, day_offsets_json, includes_due_time
+                    FROM order_reminder_configurations
+                    WHERE order_id = ?
+                    """,
+                arguments: ["order-reminder-migration"]
+            )
+            XCTAssertEqual(row?["mode"] as String?, "defaultSnapshot")
+            XCTAssertEqual(row?["day_offsets_json"] as String?, "[3,2,1]")
+            XCTAssertEqual(row?["includes_due_time"] as Bool?, true)
+        }
+    }
+
     @MainActor
     func testPersistedDesignLibrarySearchCompletesWithinBudget() throws {
         let database = try AppDatabase.makeInMemory()
@@ -346,6 +677,432 @@ final class AppDatabaseTests: XCTestCase {
             XCTAssertEqual(
                 error as? CakeDesignPersistenceError,
                 .invalidSourceKind("unexpected-source")
+            )
+        }
+    }
+
+    func testReservationMigrationQueuesOnlyEligibleUnconsumedOrders() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0029_add_order_ingredient_shortfall")
+        let timestamp = 1_800_060_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO recipes
+                    (id, name, created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                arguments: ["recipe-consumed", "Consumed recipe", timestamp, timestamp]
+            )
+            for (id, status) in [
+                ("order-confirmed", OrderStatus.confirmed),
+                ("order-in-progress", OrderStatus.inProgress),
+                ("order-draft", OrderStatus.draft),
+                ("order-consumed", OrderStatus.confirmed)
+            ] {
+                try db.execute(
+                    sql: """
+                        INSERT INTO orders
+                        (id, recipe_id, title, status, due_at_unix_time,
+                         created_at_unix_time, updated_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        id,
+                        id == "order-consumed" ? "recipe-consumed" : nil,
+                        id,
+                        status.rawValue,
+                        timestamp,
+                        timestamp,
+                        timestamp
+                    ]
+                )
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO order_recipe_usages
+                    (id, order_id, recipe_id, used_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "usage-consumed",
+                    "order-consumed",
+                    "recipe-consumed",
+                    timestamp,
+                    timestamp,
+                    timestamp
+                ]
+            )
+        }
+
+        try migrator.migrate(queue)
+
+        try queue.read { db in
+            XCTAssertTrue(try db.tableExists("order_inventory_reservations"))
+            XCTAssertTrue(try db.tableExists("order_inventory_reservation_events"))
+            XCTAssertTrue(try db.tableExists("order_inventory_reservation_repairs"))
+            XCTAssertTrue(
+                try db.columns(in: "order_inventory_reservation_repairs")
+                    .contains { $0.name == "last_activation_id" }
+            )
+            XCTAssertEqual(
+                try String.fetchAll(
+                    db,
+                    sql: """
+                        SELECT order_id
+                        FROM order_inventory_reservation_repairs
+                        ORDER BY order_id
+                        """
+                ),
+                ["order-confirmed", "order-in-progress"]
+            )
+            XCTAssertEqual(
+                try String.fetchAll(
+                    db,
+                    sql: """
+                        SELECT DISTINCT state
+                        FROM order_inventory_reservation_repairs
+                        """
+                ),
+                ["pending"]
+            )
+            XCTAssertEqual(
+                try Int.fetchOne(
+                    db,
+                    sql: """
+                        SELECT COUNT(*)
+                        FROM sqlite_master
+                        WHERE type = 'index'
+                          AND name IN (
+                            'order_inventory_reservations_on_inventory_item_id',
+                            'order_inventory_reservation_events_on_order_occurred_at',
+                            'order_inventory_reservation_repairs_on_state'
+                          )
+                        """
+                ),
+                3
+            )
+        }
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO inventory_items
+                    (id, name, unit, minimum_quantity, current_quantity,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "inventory-reservation-constraint",
+                    "Reservation constraint",
+                    InventoryUnit.gram.rawValue,
+                    10,
+                    100,
+                    timestamp,
+                    timestamp
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservations
+                    (id, order_id, inventory_item_id, required_quantity, unit,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "reservation-constraint",
+                    "order-confirmed",
+                    "inventory-reservation-constraint",
+                    25,
+                    InventoryUnit.gram.rawValue,
+                    timestamp,
+                    timestamp
+                ]
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservations
+                        (id, order_id, inventory_item_id, required_quantity, unit,
+                         created_at_unix_time, updated_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "reservation-duplicate",
+                        "order-confirmed",
+                        "inventory-reservation-constraint",
+                        10,
+                        InventoryUnit.gram.rawValue,
+                        timestamp,
+                        timestamp
+                    ]
+                )
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservations
+                        (id, order_id, inventory_item_id, required_quantity, unit,
+                         created_at_unix_time, updated_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "reservation-zero",
+                        "order-in-progress",
+                        "inventory-reservation-constraint",
+                        0,
+                        InventoryUnit.gram.rawValue,
+                        timestamp,
+                        timestamp
+                    ]
+                )
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "stable-reservation-event-id",
+                    "order-confirmed",
+                    "inventory-reservation-constraint",
+                    OrderInventoryReservationEventKind.created.rawValue,
+                    OrderInventoryReservationEventReason.orderConfirmed.rawValue,
+                    0,
+                    25,
+                    InventoryUnit.gram.rawValue,
+                    timestamp
+                ]
+            )
+            XCTAssertEqual(
+                try String.fetchOne(
+                    db,
+                    sql: """
+                        SELECT typeof(id)
+                        FROM order_inventory_reservation_events
+                        WHERE id = ?
+                        """,
+                    arguments: ["stable-reservation-event-id"]
+                ),
+                "text"
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "repair-failure-event-id",
+                    "order-confirmed",
+                    "missing-inventory-item",
+                    OrderInventoryReservationEventKind.repairFailed.rawValue,
+                    OrderInventoryReservationEventReason.migrationRepair.rawValue,
+                    0,
+                    0,
+                    nil,
+                    timestamp
+                ]
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservation_events
+                        (id, order_id, inventory_item_id, event_kind, reason,
+                         previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "invalid-created-event-id",
+                        "order-confirmed",
+                        nil,
+                        OrderInventoryReservationEventKind.created.rawValue,
+                        OrderInventoryReservationEventReason.orderConfirmed.rawValue,
+                        0,
+                        25,
+                        nil,
+                        timestamp
+                    ]
+                )
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: "DELETE FROM orders WHERE id = ?",
+                    arguments: ["order-confirmed"]
+                )
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservation_repairs
+                        (order_id, state, updated_at_unix_time)
+                        VALUES (?, ?, ?)
+                        """,
+                    arguments: ["order-draft", "unknown", timestamp]
+                )
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_repairs
+                    (order_id, state, updated_at_unix_time)
+                    VALUES (?, ?, ?)
+                    """,
+                arguments: [
+                    "order-draft",
+                    OrderInventoryReservationRepairState.pending.rawValue,
+                    timestamp
+                ]
+            )
+            XCTAssertEqual(
+                try Int.fetchOne(
+                    db,
+                    sql: """
+                        SELECT attempt_count
+                        FROM order_inventory_reservation_repairs
+                        WHERE order_id = ?
+                        """,
+                    arguments: ["order-draft"]
+                ),
+                0
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservation_repairs
+                        (order_id, state, updated_at_unix_time)
+                        VALUES (?, ?, ?)
+                        """,
+                    arguments: [
+                        "order-consumed",
+                        OrderInventoryReservationRepairState.failed.rawValue,
+                        timestamp
+                    ]
+                )
+            )
+        }
+    }
+
+    func testReservationFailureEventSchemaUpgradesAfterMigration0030WasApplied() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        let migrator = AppDatabaseMigrations.makeMigrator()
+        try migrator.migrate(queue, upTo: "0030_create_order_inventory_reservations")
+        let timestamp = 1_800_070_000.0
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO inventory_items
+                    (id, name, unit, minimum_quantity, current_quantity,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "inventory-upgrade-event",
+                    "Upgrade event flour",
+                    InventoryUnit.gram.rawValue,
+                    0,
+                    100,
+                    timestamp,
+                    timestamp
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO orders
+                    (id, title, status, due_at_unix_time,
+                     created_at_unix_time, updated_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "order-upgrade-event",
+                    "Upgrade event order",
+                    OrderStatus.confirmed.rawValue,
+                    timestamp,
+                    timestamp,
+                    timestamp
+                ]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "event-before-0031",
+                    "order-upgrade-event",
+                    "inventory-upgrade-event",
+                    OrderInventoryReservationEventKind.created.rawValue,
+                    OrderInventoryReservationEventReason.orderConfirmed.rawValue,
+                    0,
+                    25,
+                    InventoryUnit.gram.rawValue,
+                    timestamp
+                ]
+            )
+            XCTAssertThrowsError(
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_inventory_reservation_events
+                        (id, order_id, inventory_item_id, event_kind, reason,
+                         previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "repair-before-0031",
+                        "order-upgrade-event",
+                        nil,
+                        OrderInventoryReservationEventKind.repairFailed.rawValue,
+                        OrderInventoryReservationEventReason.migrationRepair.rawValue,
+                        0,
+                        0,
+                        nil,
+                        timestamp
+                    ]
+                )
+            )
+        }
+
+        try migrator.migrate(queue)
+
+        try queue.write { db in
+            XCTAssertEqual(
+                try String.fetchOne(
+                    db,
+                    sql: """
+                        SELECT id
+                        FROM order_inventory_reservation_events
+                        WHERE id = ?
+                        """,
+                    arguments: ["event-before-0031"]
+                ),
+                "event-before-0031"
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    "repair-after-0031",
+                    "order-upgrade-event",
+                    nil,
+                    OrderInventoryReservationEventKind.repairFailed.rawValue,
+                    OrderInventoryReservationEventReason.migrationRepair.rawValue,
+                    0,
+                    0,
+                    nil,
+                    timestamp
+                ]
             )
         }
     }

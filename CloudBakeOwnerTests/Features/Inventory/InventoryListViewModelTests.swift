@@ -216,10 +216,14 @@ final class InventoryListViewModelTests: XCTestCase {
     func testAddItemPersistsAndReloadsInventory() {
         let repository = FakeInventoryItemRepository()
         let now = Date(timeIntervalSince1970: 1_800_030_000)
+        var reminderDataChangeCount = 0
         let viewModel = InventoryListViewModel(
             repository: repository,
             idGenerator: { "inventory-butter" },
-            dateProvider: { now }
+            dateProvider: { now },
+            onReminderDataChanged: {
+                reminderDataChangeCount += 1
+            }
         )
         viewModel.draftName = " Butter "
         viewModel.draftUnit = .gram
@@ -247,6 +251,7 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftName, "")
         XCTAssertEqual(viewModel.draftCurrentQuantity, "")
         XCTAssertNil(viewModel.errorMessage)
+        XCTAssertEqual(reminderDataChangeCount, 1)
     }
 
     func testAddItemPersistsCleanedAliases() {

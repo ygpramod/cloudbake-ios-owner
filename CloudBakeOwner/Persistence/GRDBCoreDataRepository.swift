@@ -5,30 +5,63 @@ enum CakeDesignPersistenceError: Error, Equatable {
     case invalidSourceKind(String)
 }
 
+enum OrderInventoryReservationPersistenceError: Error, Equatable {
+    case invalidUnit(String)
+    case invalidEventKind(String)
+    case invalidEventReason(String)
+    case invalidRepairState(String)
+    case invalidRepairFailureCode(String)
+}
+
+enum OrderInventoryReservationQueryError: Error, Equatable {
+    case invalidLimit
+}
+
+enum PaymentReminderConfigurationPersistenceError: Error, Equatable {
+    case configurationMissing
+}
+
 final class GRDBCoreDataRepository: InventoryItemRepository,
     RecipeRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
+    RecipeIngredientReservationMutationRepository,
     RecipeCSVImportRepository,
     CakeDesignRepository,
     CustomerRepository,
     CustomerImportantDateRepository,
     OrderRepository,
+    CakeDesignOrderUsageRepository,
+    OrderReminderConfigurationRepository,
+    ScheduledOrderReminderRepository,
+    PaymentReminderConfigurationRepository,
+    PaymentPendingSummaryRepository,
+    PaymentReceiptRepository,
     OrderStatusChangeRepository,
     OrderRecipeUsageRepository,
     OrderIngredientCostRepository,
     OrderExtraIngredientRepository,
+    OrderInventoryReservationRepository,
+    ProjectedIngredientDemandRepository,
+    OrderInventoryReservationMutationRepository,
+    OrderReminderPlanOrderMutationRepository,
     OrderChecklistRepository,
     OrderPhotoRepository,
     InventoryTransactionRepository,
     InventoryStockBatchRepository,
+    InventoryExpiryReminderRepository,
     VoiceInventoryImportRepository,
     ExpiredStockDisposalRepository,
     PricingRuleRepository {
     let writer: any DatabaseWriter
+    let idProvider: () -> String
 
-    init(writer: any DatabaseWriter) {
+    init(
+        writer: any DatabaseWriter,
+        idProvider: @escaping () -> String = { UUID().uuidString }
+    ) {
         self.writer = writer
+        self.idProvider = idProvider
     }
 
     func arguments(_ values: [(any DatabaseValueConvertible)?]) -> StatementArguments {
@@ -195,6 +228,7 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             quotedPrice: optionalDecimal(row["quoted_price_decimal"]),
             depositPaid: optionalDecimal(row["deposit_paid_decimal"]),
             paymentNotes: row["payment_notes"],
+            completedAt: optionalDate(row["completed_at_unix_time"]),
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
         )
@@ -221,6 +255,52 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             unit: unit,
             note: row["note"],
             createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    func orderInventoryReservation(from row: Row, unit: InventoryUnit) -> OrderInventoryReservation {
+        OrderInventoryReservation(
+            id: row["id"],
+            orderId: row["order_id"],
+            inventoryItemId: row["inventory_item_id"],
+            requiredQuantity: row["required_quantity"],
+            unit: unit,
+            createdAt: date(row["created_at_unix_time"]),
+            updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    func orderInventoryReservationEvent(
+        from row: Row,
+        kind: OrderInventoryReservationEventKind,
+        reason: OrderInventoryReservationEventReason,
+        unit: InventoryUnit?
+    ) -> OrderInventoryReservationEvent {
+        OrderInventoryReservationEvent(
+            id: row["id"],
+            orderId: row["order_id"],
+            inventoryItemId: row["inventory_item_id"],
+            kind: kind,
+            reason: reason,
+            previousQuantity: row["previous_quantity"],
+            newQuantity: row["new_quantity"],
+            unit: unit,
+            occurredAt: date(row["occurred_at_unix_time"])
+        )
+    }
+
+    func orderInventoryReservationRepair(
+        from row: Row,
+        state: OrderInventoryReservationRepairState,
+        failureCode: OrderInventoryReservationRepairFailureCode?
+    ) -> OrderInventoryReservationRepair {
+        OrderInventoryReservationRepair(
+            orderId: row["order_id"],
+            state: state,
+            attemptCount: row["attempt_count"],
+            lastAttemptedAt: optionalDate(row["last_attempted_at_unix_time"]),
+            failureCode: failureCode,
             updatedAt: date(row["updated_at_unix_time"])
         )
     }

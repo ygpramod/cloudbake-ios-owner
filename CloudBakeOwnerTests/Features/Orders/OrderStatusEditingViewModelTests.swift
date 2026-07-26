@@ -226,12 +226,13 @@ final class OrderStatusEditingViewModelTests: XCTestCase {
             cakeNotes: "Add gold leaf",
             cakeMessage: "Happy 7th Birthday",
             quotedPrice: Decimal(175),
-            depositPaid: Decimal(75),
+            depositPaid: nil,
             paymentNotes: "Deposit paid by card",
             createdAt: createdAt,
             updatedAt: updatedAt
         )
         XCTAssertEqual(repository.orders, [expected])
+        XCTAssertEqual(repository.paymentReceipts, [])
         XCTAssertEqual(viewModel.selectedOrder, expected)
         XCTAssertEqual(viewModel.orders, [expected])
         XCTAssertEqual(viewModel.selectedOrderRecipeUsage?.recipeId, "recipe-chocolate")

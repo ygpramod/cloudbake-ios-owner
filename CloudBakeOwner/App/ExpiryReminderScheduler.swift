@@ -14,12 +14,12 @@ struct ExpiryReminderScheduler {
     private static let notificationPrefix = "inventory-expiry-"
     private static let calendar = Calendar(identifier: .gregorian)
 
-    private let repository: any InventoryItemRepository & InventoryStockBatchRepository
+    private let repository: any InventoryExpiryReminderRepository
     private let notificationCenter: LocalNotificationCenter
     private let dateProvider: () -> Date
 
     init(
-        repository: any InventoryItemRepository & InventoryStockBatchRepository,
+        repository: any InventoryExpiryReminderRepository,
         notificationCenter: LocalNotificationCenter = UNUserNotificationCenter.current(),
         dateProvider: @escaping () -> Date = Date.init
     ) {
@@ -50,41 +50,42 @@ struct ExpiryReminderScheduler {
         }
     }
 
-    func makeReminderRequests() throws -> [UNNotificationRequest] {
+    func makeReminderRequests(limit: Int = 60) throws -> [UNNotificationRequest] {
         let now = dateProvider()
         let threshold = Self.calendar.date(byAdding: .month, value: 1, to: now)
             ?? now.addingTimeInterval(30 * 24 * 60 * 60)
-        let items = try repository.fetchInventoryItems()
-        var requests: [UNNotificationRequest] = []
-
-        for item in items {
-            let batches = try repository.fetchInventoryStockBatches(inventoryItemId: item.id)
-            for batch in batches where batch.remainingQuantity > 0 {
-                guard let expiresAt = batch.expiresAt,
-                      expiresAt >= now,
-                      expiresAt <= threshold else {
-                    continue
-                }
-
-                if let request = makeReminderRequest(item: item, batch: batch, now: now, expiresAt: expiresAt) {
-                    requests.append(request)
-                }
-            }
+        guard let nextReminderDate = nextReminderDate(after: now) else {
+            return []
         }
-
-        return requests
+        return try repository.fetchInventoryExpiryReminderCandidates(
+            expiringFrom: nextReminderDate,
+            through: threshold,
+            limit: limit
+        ).compactMap { candidate in
+            guard let expiresAt = candidate.batch.expiresAt else {
+                return nil
+            }
+            return makeReminderRequest(
+                candidate: candidate,
+                now: now,
+                expiresAt: expiresAt
+            )
+        }
     }
 
     private func makeReminderRequest(
-        item: InventoryItem,
-        batch: InventoryStockBatch,
+        candidate: InventoryExpiryReminderCandidate,
         now: Date,
         expiresAt: Date
     ) -> UNNotificationRequest? {
         let content = UNMutableNotificationContent()
         content.title = "Inventory expiring soon"
-        content.body = "\(item.name) has \(batch.remainingQuantity.formatted()) \(item.unit.displayName) expiring on \(expiresAt.formatted(date: .abbreviated, time: .omitted))."
+        content.body = "\(candidate.itemName) has \(candidate.batch.remainingQuantity.formatted()) \(candidate.unit.displayName) expiring on \(expiresAt.formatted(date: .abbreviated, time: .omitted))."
         content.sound = .default
+        content.userInfo = [
+            CloudBakeNotificationCapacityPolicy.businessDateUserInfoKey:
+                expiresAt.timeIntervalSince1970
+        ]
 
         guard let triggerDate = scheduledReminderDate(for: expiresAt, now: now) else {
             return nil
@@ -94,7 +95,7 @@ struct ExpiryReminderScheduler {
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
 
         return UNNotificationRequest(
-            identifier: Self.notificationPrefix + batch.id,
+            identifier: Self.notificationPrefix + candidate.batch.id,
             content: content,
             trigger: trigger
         )
@@ -116,7 +117,7 @@ struct ExpiryReminderScheduler {
             )
         ) ?? reminderDay
 
-        if morning > now {
+        if morning > now, morning <= expiresAt {
             return morning
         }
 
@@ -126,5 +127,25 @@ struct ExpiryReminderScheduler {
         }
 
         return nextMorning
+    }
+
+    private func nextReminderDate(after date: Date) -> Date? {
+        let day = Self.calendar.dateComponents([.year, .month, .day], from: date)
+        guard let morning = Self.calendar.date(
+            from: DateComponents(
+                calendar: Self.calendar,
+                year: day.year,
+                month: day.month,
+                day: day.day,
+                hour: 9,
+                minute: 0
+            )
+        ) else {
+            return nil
+        }
+        if morning > date {
+            return morning
+        }
+        return Self.calendar.date(byAdding: .day, value: 1, to: morning)
     }
 }

@@ -7,7 +7,12 @@ extension CloudBakeOwnerUITests {
         app.launch()
 
         let item = app.buttons["inventory.item.view.inventory-ui-expired-cream"]
-        XCTAssertTrue(item.waitForExistence(timeout: 10))
+        scrollToHittable(
+            item,
+            in: app,
+            scrollContainer: app.scrollViews["screen.inventory"],
+            timeout: 10
+        )
         tapWhenReady(item)
         let detailScroll = app.scrollViews["inventory.detail.screen"]
         XCTAssertTrue(detailScroll.waitForExistence(timeout: 5))

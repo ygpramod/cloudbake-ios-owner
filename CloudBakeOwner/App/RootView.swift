@@ -1,4 +1,11 @@
 import SwiftUI
+import UIKit
+import os
+
+private let reservationRepairLogger = Logger(
+    subsystem: "com.cloudbake.owner",
+    category: "InventoryReservationRepair"
+)
 
 struct RootView: View {
     let database: AppDatabase
@@ -16,6 +23,7 @@ struct RootView: View {
     @State private var isPresentingIntroduction = false
     @StateObject private var emptyRestoreViewModel: CloudRestoreSettingsViewModel
     private let maximumSectionHistoryCount = 4
+    private let reservationRepairCoordinator = OrderInventoryReservationRepairCoordinator.shared
 
     init(database: AppDatabase, cloudBackupRuntime: CloudBackupRuntime? = nil) {
         self.database = database
@@ -101,6 +109,7 @@ struct RootView: View {
                 forcesPresentation: environment["CLOUDBAKE_TEST_INTRODUCTION"] == "1"
             )
             navigateToOrdersWhenNotificationIsPending()
+            navigateToPaymentReportWhenNotificationIsPending()
             navigateToOrdersWhenNewOrderIsPending()
             navigateToInventoryWhenItemIsPending()
         }
@@ -118,6 +127,13 @@ struct RootView: View {
 
             navigateToOrdersWhenNotificationIsPending()
         }
+        .onChange(of: orderNotificationRouter.isPaymentReportPending) { _, isPending in
+            guard isPending else {
+                return
+            }
+
+            navigateToPaymentReportWhenNotificationIsPending()
+        }
         .onChange(of: orderNavigationRouter.pendingNewOrderRequest) { _, request in
             guard request != nil else {
                 return
@@ -134,6 +150,7 @@ struct RootView: View {
         }
         .task {
             await prepareInitialRestoreOrBackup()
+            guard await repairInventoryReservations() else { return }
             navigateToInitialUITestDestination()
             await refreshLocalReminders()
         }
@@ -152,6 +169,15 @@ struct RootView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .cloudBakeRestoreRecoveryRequired)) { _ in
             isRestoreRecoveryRequired = true
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIApplication.significantTimeChangeNotification
+            )
+        ) { _ in
+            Task {
+                await refreshLocalReminders()
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else {
@@ -193,6 +219,15 @@ struct RootView: View {
         navigate(.orders)
     }
 
+    private func navigateToPaymentReportWhenNotificationIsPending() {
+        guard orderNotificationRouter.isPaymentReportPending else {
+            return
+        }
+
+        navigate(.reports)
+        orderNotificationRouter.clearPendingPaymentReport()
+    }
+
     private func navigateToOrdersWhenNewOrderIsPending() {
         guard orderNavigationRouter.pendingNewOrderRequest != nil else {
             return
@@ -232,7 +267,12 @@ struct RootView: View {
         case .inventory:
             InventoryListView(
                 viewModel: InventoryListViewModel(
-                    repository: database.makeCoreDataRepository()
+                    repository: database.makeCoreDataRepository(),
+                    onReminderDataChanged: {
+                        Task {
+                            await refreshLocalReminders()
+                        }
+                    }
                 )
             )
         case .more:
@@ -251,7 +291,7 @@ struct RootView: View {
             )
         case .orders:
             OrderListView(
-                viewModel: OrderListViewModel(
+                viewModel: makeOrderListViewModel(
                     repository: database.makeCoreDataRepository()
                 )
             )
@@ -259,13 +299,33 @@ struct RootView: View {
             let repository = database.makeCoreDataRepository()
             ReminderView(
                 viewModel: ReminderViewModel(
-                    repository: repository
+                    repository: repository,
+                    onPaymentChanged: {
+                        Task {
+                            await refreshLocalReminders()
+                        }
+                    }
                 ),
                 makeOrderViewModel: {
-                    OrderListViewModel(repository: repository)
+                    makeOrderListViewModel(repository: repository)
                 },
                 makeInventoryViewModel: {
-                    InventoryListViewModel(repository: repository)
+                    InventoryListViewModel(
+                        repository: repository,
+                        onReminderDataChanged: {
+                            Task {
+                                await refreshLocalReminders()
+                            }
+                        }
+                    )
+                }
+            )
+        case .reports:
+            let repository = database.makeCoreDataRepository()
+            ReportsView(
+                viewModel: ReportsViewModel(repository: repository),
+                makeOrderViewModel: {
+                    makeOrderListViewModel(repository: repository)
                 }
             )
         case .settings:
@@ -274,7 +334,21 @@ struct RootView: View {
                 viewModel: SettingsViewModel(
                     repository: repository,
                     recipeRepository: repository,
-                    manualBackupService: try? ManualBackupService.live(database: database)
+                    manualBackupService: try? ManualBackupService.live(database: database),
+                    refreshReminderSchedule: {
+                        await refreshLocalReminders()
+                    }
+                ),
+                orderReminderSettingsViewModel: OrderReminderSettingsViewModel(
+                    repository: repository
+                ),
+                paymentReminderSettingsViewModel: PaymentReminderSettingsViewModel(
+                    repository: repository,
+                    onSaved: {
+                        Task {
+                            await refreshLocalReminders()
+                        }
+                    }
                 ),
                 cloudBackupService: cloudBackupSettingsService,
                 cloudRestoreService: cloudRestoreSettingsService,
@@ -287,10 +361,23 @@ struct RootView: View {
             CakeDesignListView(
                 viewModel: CakeDesignListViewModel(
                     repository: repository,
-                    customerReferenceRepository: repository
+                    orderUsageRepository: repository
                 )
             )
         }
+    }
+
+    private func makeOrderListViewModel(
+        repository: GRDBCoreDataRepository
+    ) -> OrderListViewModel {
+        OrderListViewModel(
+            repository: repository,
+            onReminderDataChanged: {
+                Task {
+                    await refreshLocalReminders()
+                }
+            }
+        )
     }
 
     private func refreshLocalReminders() async {
@@ -298,14 +385,27 @@ struct RootView: View {
             return
         }
 
-        let repository = database.makeCoreDataRepository()
-        await ExpiryReminderScheduler(
-            repository: repository
-        ).refreshReminders()
-        await OrderReminderScheduler(
-            repository: repository
-        ).refreshReminders()
-        await ManualBackupReminderScheduler().refreshReminder()
+        await LocalReminderRefreshCoordinator.shared.refresh {
+            let repository = database.makeCoreDataRepository()
+            await LocalNotificationScheduleCoordinator(
+                repository: repository
+            ).refreshReminders()
+        }
+    }
+
+    private func repairInventoryReservations() async -> Bool {
+        do {
+            _ = try await reservationRepairCoordinator.repair(database: database)
+            try Task.checkCancellation()
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            reservationRepairLogger.error(
+                "Inventory reservation repair stopped after a persistence failure"
+            )
+            return true
+        }
     }
 
     private func prepareInitialRestoreOrBackup() async {
@@ -324,10 +424,130 @@ struct RootView: View {
     private func refreshAfterRestore() async {
         navigationPath.removeAll()
         restoredDataRevision += 1
+        guard await repairInventoryReservations() else { return }
         await RestoreCompletionReconciler(
             refreshReminders: refreshLocalReminders,
             resumeBackup: { cloudBackupRuntime?.startPostRestoreCatchUp() }
         ).reconcile()
+    }
+}
+
+struct OrderInventoryReservationRepairRunner {
+    let repository: any OrderInventoryReservationMutationRepository
+    var batchLimit = 50
+    var maximumBatchCount = 20
+    var dateProvider: () -> Date = Date.init
+    var activationIdProvider: () -> String = { UUID().uuidString }
+
+    func run() async throws -> OrderInventoryReservationRepairSummary {
+        guard batchLimit > 0, maximumBatchCount > 0 else {
+            return OrderInventoryReservationRepairSummary(
+                completedCount: 0,
+                failedCount: 0
+            )
+        }
+
+        var completedCount = 0
+        var failedCount = 0
+        var hasMore = false
+        let timestamp = dateProvider()
+        let activationId = activationIdProvider()
+        for _ in 0..<maximumBatchCount {
+            try Task.checkCancellation()
+            let summary = try repository.repairOrderInventoryReservations(
+                limit: batchLimit,
+                at: timestamp,
+                activationId: activationId
+            )
+            completedCount += summary.completedCount
+            failedCount += summary.failedCount
+            hasMore = summary.hasMore
+            guard summary.hasMore else {
+                break
+            }
+            await Task.yield()
+        }
+        return OrderInventoryReservationRepairSummary(
+            completedCount: completedCount,
+            failedCount: failedCount,
+            hasMore: hasMore
+        )
+    }
+}
+
+actor OrderInventoryReservationRepairCoordinator {
+    static let shared = OrderInventoryReservationRepairCoordinator()
+
+    private var isRepairing = false
+    private var waiters: [
+        CheckedContinuation<OrderInventoryReservationRepairSummary, Error>
+    ] = []
+
+    func repair(
+        database: AppDatabase,
+        dateProvider: () -> Date = Date.init,
+        activationIdProvider: () -> String = { UUID().uuidString }
+    ) async throws -> OrderInventoryReservationRepairSummary {
+        if isRepairing {
+            return try await withCheckedThrowingContinuation { continuation in
+                waiters.append(continuation)
+            }
+        }
+
+        isRepairing = true
+        do {
+            let summary = try await performRepair(
+                database: database,
+                dateProvider: dateProvider,
+                activationIdProvider: activationIdProvider
+            )
+            finishWaiters(with: .success(summary))
+            return summary
+        } catch {
+            finishWaiters(with: .failure(error))
+            throw error
+        }
+    }
+
+    private func performRepair(
+        database: AppDatabase,
+        dateProvider: () -> Date,
+        activationIdProvider: () -> String
+    ) async throws -> OrderInventoryReservationRepairSummary {
+        let repository = database.makeCoreDataRepository()
+        let timestamp = dateProvider()
+        let activationId = activationIdProvider()
+        var completedCount = 0
+        var failedCount = 0
+
+        while true {
+            try Task.checkCancellation()
+            let summary = try await OrderInventoryReservationRepairRunner(
+                repository: repository,
+                dateProvider: { timestamp },
+                activationIdProvider: { activationId }
+            ).run()
+            completedCount += summary.completedCount
+            failedCount += summary.failedCount
+            guard summary.hasMore else {
+                return OrderInventoryReservationRepairSummary(
+                    completedCount: completedCount,
+                    failedCount: failedCount
+                )
+            }
+            await Task.yield()
+        }
+    }
+
+    private func finishWaiters(
+        with result: Result<OrderInventoryReservationRepairSummary, Error>
+    ) {
+        isRepairing = false
+        let continuations = waiters
+        waiters = []
+        for continuation in continuations {
+            continuation.resume(with: result)
+        }
     }
 }
 
@@ -349,6 +569,10 @@ private struct MoreView: View {
         MoreSection(
             title: "Bakery Library",
             destinations: [.recipes, .designs, .customers]
+        ),
+        MoreSection(
+            title: "Business",
+            destinations: [.reminders, .reports]
         ),
         MoreSection(
             title: "App",
@@ -417,6 +641,10 @@ private struct MoreView: View {
             CloudBakeTheme.ColorToken.customerAccent
         case .designs:
             CloudBakeTheme.ColorToken.primaryAction
+        case .reminders:
+            CloudBakeTheme.ColorToken.secondaryAction
+        case .reports:
+            .cloudBakePurple
         case .settings:
             .gray
         default:
@@ -432,6 +660,10 @@ private struct MoreView: View {
             "Contacts, preferences, allergies, and order history"
         case .designs:
             "Cake photo references and design ideas"
+        case .reminders:
+            "Orders, payments, and inventory needing attention"
+        case .reports:
+            "Payments, ingredient margins, sales, and orders"
         case .settings:
             "Pricing, currency, and inventory data tools"
         default:

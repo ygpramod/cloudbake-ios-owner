@@ -25,6 +25,43 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testLoadPagesActiveAndCompletedOrdersIndependently() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let activeOrders = (0..<26).map { index in
+            makeOrder(
+                id: String(format: "active-%02d", index),
+                status: .confirmed,
+                dueAt: timestamp.addingTimeInterval(TimeInterval(index))
+            )
+        }
+        let completedOrders = (0..<26).map { index in
+            makeOrder(
+                id: String(format: "completed-%02d", index),
+                status: .completed,
+                dueAt: timestamp.addingTimeInterval(TimeInterval(index))
+            )
+        }
+        repository.orders = activeOrders + completedOrders
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.activeOrders.count, 25)
+        XCTAssertEqual(viewModel.completedOrders.count, 25)
+        XCTAssertTrue(viewModel.canLoadMoreActiveOrders)
+        XCTAssertTrue(viewModel.canLoadMoreCompletedOrders)
+        XCTAssertEqual(viewModel.order(id: "active-25"), activeOrders[25])
+
+        viewModel.loadMoreActiveOrders()
+        viewModel.loadMoreCompletedOrders()
+
+        XCTAssertEqual(viewModel.activeOrders.count, 26)
+        XCTAssertEqual(viewModel.completedOrders.count, 26)
+        XCTAssertFalse(viewModel.canLoadMoreActiveOrders)
+        XCTAssertFalse(viewModel.canLoadMoreCompletedOrders)
+    }
+
     func testCalendarDaysGroupsOrdersByDueDate() {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()
@@ -185,6 +222,131 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.canSubmitOrderDraft)
     }
 
+    func testNewOrderCopiesCurrentReminderDefaultsAndRefreshesNotifications() throws {
+        let repository = FakeOrderRepository()
+        repository.defaultOrderReminderConfiguration = try OrderReminderConfiguration(
+            mode: .defaultSnapshot,
+            dayOffsets: [7, 2],
+            includesDueTime: false
+        )
+        var refreshCount = 0
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: { "order-reminder-default" },
+            onReminderDataChanged: { refreshCount += 1 }
+        )
+
+        viewModel.beginAddingOrder()
+        viewModel.draftTitle = "Vanilla cake"
+        viewModel.draftCustomerName = "Amy"
+
+        XCTAssertEqual(viewModel.draftReminderMode, .useDefaults)
+        XCTAssertEqual(viewModel.draftReminderDayOffsets, "7, 2")
+        XCTAssertFalse(viewModel.draftReminderIncludesDueTime)
+        XCTAssertTrue(viewModel.addOrder())
+        XCTAssertEqual(
+            repository.orderReminderConfigurations["order-reminder-default"],
+            repository.defaultOrderReminderConfiguration
+        )
+        XCTAssertEqual(refreshCount, 1)
+    }
+
+    func testEditingOrderCanSaveCustomOrDisabledReminderPlan() throws {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-custom-reminder",
+            dueAt: Date(timeIntervalSince1970: 1_800_120_000)
+        )
+        repository.orders = [order]
+        repository.orderReminderConfigurations[order.id] = try OrderReminderConfiguration(
+            mode: .custom,
+            dayOffsets: [10, 1],
+            includesDueTime: true
+        )
+        var refreshCount = 0
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            onReminderDataChanged: { refreshCount += 1 }
+        )
+
+        viewModel.load()
+        viewModel.beginViewingOrder(order)
+        viewModel.beginEditingOrder()
+
+        XCTAssertEqual(viewModel.draftReminderMode, .custom)
+        XCTAssertEqual(viewModel.draftReminderDayOffsets, "10, 1")
+        XCTAssertTrue(viewModel.draftReminderIncludesDueTime)
+
+        viewModel.draftReminderMode = .disabled
+        XCTAssertTrue(viewModel.saveEditedOrder())
+        XCTAssertEqual(
+            repository.orderReminderConfigurations[order.id],
+            .disabled
+        )
+        XCTAssertEqual(refreshCount, 1)
+    }
+
+    func testEditingCompletedOrderPreservesFirstCompletionTime() {
+        let repository = FakeOrderRepository()
+        let completedAt = Date(timeIntervalSince1970: 1_800_070_000)
+        let order = makeOrder(
+            id: "order-completed-edit",
+            status: .completed,
+            dueAt: Date(timeIntervalSince1970: 1_800_120_000),
+            completedAt: completedAt
+        )
+        repository.orders = [order]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.load()
+        viewModel.beginViewingOrder(order)
+        viewModel.beginEditingOrder()
+        viewModel.draftCakeNotes = "Keep completion history"
+
+        XCTAssertTrue(viewModel.saveEditedOrder())
+        XCTAssertEqual(viewModel.selectedOrder?.completedAt, completedAt)
+        XCTAssertEqual(repository.orders.first?.completedAt, completedAt)
+    }
+
+    func testInvalidCustomReminderPlanKeepsOrderDraftOpen() {
+        let repository = FakeOrderRepository()
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: { "order-invalid-reminder" }
+        )
+        viewModel.beginAddingOrder()
+        viewModel.draftTitle = "Vanilla cake"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.draftReminderMode = .custom
+        viewModel.draftReminderDayOffsets = "3, 3"
+
+        XCTAssertFalse(viewModel.addOrder())
+        XCTAssertTrue(repository.orders.isEmpty)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "Enter each reminder day only once."
+        )
+    }
+
+    func testChoosingDefaultsReplacesCustomDraftWithCurrentDefaults() throws {
+        let repository = FakeOrderRepository()
+        repository.defaultOrderReminderConfiguration = try OrderReminderConfiguration(
+            mode: .defaultSnapshot,
+            dayOffsets: [6, 1],
+            includesDueTime: false
+        )
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.draftReminderMode = .custom
+        viewModel.draftReminderDayOffsets = "20"
+        viewModel.draftReminderIncludesDueTime = true
+
+        viewModel.selectDraftReminderMode(.useDefaults)
+
+        XCTAssertEqual(viewModel.draftReminderMode, .useDefaults)
+        XCTAssertEqual(viewModel.draftReminderDayOffsets, "6, 1")
+        XCTAssertFalse(viewModel.draftReminderIncludesDueTime)
+    }
+
     func testCalendarDaysUseFilteredActiveOrders() {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()
@@ -209,7 +371,7 @@ final class OrderListViewModelTests: XCTestCase {
         )
     }
 
-    func testReminderPlanUsesThreeTwoAndOneDaysBeforeDueDate() {
+    func testReminderPlanUsesSavedDefaultIncludingDueTime() {
         let repository = FakeOrderRepository()
         let calendar = utcCalendar()
         let dueAt = Date(timeIntervalSince1970: 1_800_144_000)
@@ -230,9 +392,49 @@ final class OrderListViewModelTests: XCTestCase {
                 OrderReminderPlanItem(
                     offsetDays: 1,
                     remindAt: date(byAddingDays: -1, to: dueAt, calendar: calendar)
+                ),
+                OrderReminderPlanItem(
+                    offsetDays: 0,
+                    remindAt: dueAt
                 )
             ]
         )
+    }
+
+    func testReminderPlanUsesCustomPlanAndCanBeDisabled() throws {
+        let repository = FakeOrderRepository()
+        let calendar = utcCalendar()
+        let dueAt = Date(timeIntervalSince1970: 1_800_144_000)
+        let customOrder = makeOrder(id: "order-custom-reminder", dueAt: dueAt)
+        let disabledOrder = makeOrder(id: "order-disabled-reminder", dueAt: dueAt)
+        repository.orders = [customOrder, disabledOrder]
+        repository.orderReminderConfigurations = [
+            customOrder.id: try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [10, 2],
+                includesDueTime: false
+            ),
+            disabledOrder.id: .disabled
+        ]
+        let viewModel = OrderListViewModel(repository: repository, calendar: calendar)
+
+        viewModel.load()
+
+        XCTAssertEqual(
+            viewModel.reminderPlan(for: customOrder),
+            [
+                OrderReminderPlanItem(
+                    offsetDays: 10,
+                    remindAt: date(byAddingDays: -10, to: dueAt, calendar: calendar)
+                ),
+                OrderReminderPlanItem(
+                    offsetDays: 2,
+                    remindAt: date(byAddingDays: -2, to: dueAt, calendar: calendar)
+                )
+            ]
+        )
+        XCTAssertTrue(viewModel.reminderPlan(for: disabledOrder).isEmpty)
+        XCTAssertNil(viewModel.nextReminder(for: disabledOrder))
     }
 
     func testDueReminderGroupsIncludeActiveOrdersWithReachedReminderDates() {
@@ -391,6 +593,9 @@ final class OrderListViewModelTests: XCTestCase {
                 )
             ]
         )
+        XCTAssertEqual(repository.paymentReceipts.map(\.amount), [decimal("25.50")])
+        XCTAssertEqual(repository.paymentReceipts.first?.receivedAt, now)
+        XCTAssertEqual(repository.paymentReceipts.first?.note, "Bank transfer received")
         XCTAssertEqual(viewModel.draftTitle, "")
         XCTAssertNil(viewModel.errorMessage)
     }
@@ -833,6 +1038,291 @@ final class OrderListViewModelTests: XCTestCase {
                 )
             ]
         )
+        XCTAssertEqual(
+            viewModel.selectedOrder?.updatedAt,
+            Date(timeIntervalSince1970: 1_800_150_000)
+        )
+    }
+
+    func testOrderDetailSurfacesFailedInventoryReservationRepair() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_150_000)
+        let order = makeOrder(
+            id: "order-repair-warning",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: timestamp.addingTimeInterval(86_400)
+        )
+        repository.orders = [order]
+        repository.inventoryReservationRepairs = [
+            OrderInventoryReservationRepair(
+                orderId: order.id,
+                state: .failed,
+                attemptCount: 1,
+                lastAttemptedAt: timestamp,
+                failureCode: .incompatibleUnit,
+                updatedAt: timestamp
+            )
+        ]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertEqual(
+            viewModel.selectedOrderInventoryReservationRepairWarning,
+            "This order’s reservation needs attention because an ingredient unit is incompatible."
+        )
+    }
+
+    func testOrderDetailShowsReservedInventoryWithNamesAndQuantities() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_150_000)
+        let order = makeOrder(
+            id: "order-reserved-inventory",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: timestamp.addingTimeInterval(86_400)
+        )
+        let sugar = makeInventoryItem(
+            id: "inventory-sugar",
+            name: "Sugar",
+            unit: .gram
+        )
+        let flour = makeInventoryItem(
+            id: "inventory-flour",
+            name: "Cake Flour",
+            unit: .gram
+        )
+        repository.orders = [order]
+        repository.inventoryItems = [sugar, flour]
+        repository.inventoryReservations = [
+            OrderInventoryReservation(
+                id: "\(order.id):\(sugar.id)",
+                orderId: order.id,
+                inventoryItemId: sugar.id,
+                requiredQuantity: 80,
+                unit: .gram,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            ),
+            OrderInventoryReservation(
+                id: "\(order.id):\(flour.id)",
+                orderId: order.id,
+                inventoryItemId: flour.id,
+                requiredQuantity: 250,
+                unit: .gram,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        ]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginViewingOrder(order)
+
+        XCTAssertEqual(
+            viewModel.selectedOrderInventoryReservations.map(\.inventoryItemName),
+            ["Cake Flour", "Sugar"]
+        )
+        XCTAssertEqual(
+            viewModel.selectedOrderInventoryReservations.map {
+                $0.reservation.requiredQuantity
+            },
+            [250, 80]
+        )
+
+        viewModel.closeOrderDetail()
+
+        XCTAssertTrue(viewModel.selectedOrderInventoryReservations.isEmpty)
+    }
+
+    func testAddingExtraIngredientRequiresReservationShortageOverride() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-short-extra",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        let almonds = makeInventoryItem(id: "inventory-almonds", name: "Almonds", unit: .gram)
+        let existingIngredient = OrderExtraIngredient(
+            id: "existing-extra",
+            orderId: order.id,
+            inventoryItemId: almonds.id,
+            quantity: 10,
+            unit: .gram,
+            note: "Existing garnish",
+            createdAt: Date(timeIntervalSince1970: 1_800_130_000),
+            updatedAt: Date(timeIntervalSince1970: 1_800_130_000)
+        )
+        repository.orders = [order]
+        repository.inventoryItems = [almonds]
+        repository.extraIngredients = [existingIngredient]
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: almonds.id,
+                inventoryItemName: almonds.name,
+                requiredQuantity: 75,
+                availableQuantity: 25,
+                unit: .gram
+            )
+        ])
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "extra"),
+            dateProvider: { Date(timeIntervalSince1970: 1_800_150_000) }
+        )
+        viewModel.beginViewingOrder(order)
+        viewModel.beginAddingExtraIngredient()
+        viewModel.draftExtraIngredientQuantity = "75"
+        viewModel.draftExtraIngredientNote = "Extra crunch"
+
+        XCTAssertFalse(viewModel.addExtraIngredientToSelectedOrder())
+
+        XCTAssertEqual(repository.extraIngredients, [existingIngredient])
+        XCTAssertEqual(viewModel.draftExtraIngredientQuantity, "75")
+        XCTAssertEqual(viewModel.draftExtraIngredientNote, "Extra crunch")
+        XCTAssertEqual(
+            viewModel.inventoryShortageWarningMessage,
+            "Almonds: short by 50 g"
+        )
+        XCTAssertEqual(repository.allowInventoryShortageRequests, [false])
+
+        viewModel.cancelInventoryShortageOverride()
+
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertEqual(viewModel.draftExtraIngredientQuantity, "75")
+        XCTAssertEqual(viewModel.draftExtraIngredientNote, "Extra crunch")
+        XCTAssertFalse(viewModel.addExtraIngredientToSelectedOrder())
+
+        XCTAssertTrue(
+            viewModel.addExtraIngredientToSelectedOrder(
+                allowingInventoryShortage: true
+            )
+        )
+
+        XCTAssertEqual(repository.extraIngredients.map(\.id), ["existing-extra", "extra-1"])
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertEqual(repository.allowInventoryShortageRequests, [false, false, true])
+    }
+
+    func testExtraIngredientOverrideFailurePreservesDraftAndCanBeRetried() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-short-extra-retry",
+            recipeId: "recipe-vanilla",
+            status: .confirmed,
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        let almonds = makeInventoryItem(id: "inventory-almonds", name: "Almonds", unit: .gram)
+        repository.orders = [order]
+        repository.inventoryItems = [almonds]
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: almonds.id,
+                inventoryItemName: almonds.name,
+                requiredQuantity: 75,
+                availableQuantity: 25,
+                unit: .gram
+            )
+        ])
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "extra"),
+            dateProvider: { Date(timeIntervalSince1970: 1_800_150_000) }
+        )
+        viewModel.beginViewingOrder(order)
+        viewModel.beginAddingExtraIngredient()
+        viewModel.draftExtraIngredientQuantity = "75"
+        viewModel.draftExtraIngredientNote = "Extra crunch"
+
+        XCTAssertFalse(viewModel.addExtraIngredientToSelectedOrder())
+
+        repository.saveOrderOverrideError = OrderRecipeUsageError.missingInventoryItem(almonds.id)
+        XCTAssertFalse(
+            viewModel.addExtraIngredientToSelectedOrder(
+                allowingInventoryShortage: true
+            )
+        )
+
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "An inventory item required by this order could not be found."
+        )
+        XCTAssertEqual(viewModel.draftExtraIngredientQuantity, "75")
+        XCTAssertEqual(viewModel.draftExtraIngredientNote, "Extra crunch")
+        XCTAssertTrue(repository.extraIngredients.isEmpty)
+
+        repository.saveOrderOverrideError = nil
+        XCTAssertTrue(
+            viewModel.addExtraIngredientToSelectedOrder(
+                allowingInventoryShortage: true
+            )
+        )
+        XCTAssertEqual(repository.extraIngredients.map(\.id), ["extra-1"])
+    }
+
+    func testAddConfirmedOrderRequiresExplicitReservationShortageOverride() {
+        let repository = FakeOrderRepository()
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: "inventory-flour",
+                inventoryItemName: "Cake flour",
+                requiredQuantity: 300,
+                availableQuantity: 200,
+                unit: .gram
+            )
+        ])
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: { "order-short-reservation" },
+            dateProvider: { Date(timeIntervalSince1970: 1_800_060_000) }
+        )
+        viewModel.draftTitle = "Short reservation cake"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.draftDueAt = Date(timeIntervalSince1970: 1_800_140_000)
+        viewModel.draftStatus = .confirmed
+        viewModel.draftRecipeId = "recipe-short-reservation"
+
+        XCTAssertFalse(viewModel.addOrder())
+
+        XCTAssertTrue(repository.orders.isEmpty)
+        XCTAssertEqual(
+            viewModel.inventoryShortageWarningMessage,
+            "Cake flour: short by 100 g"
+        )
+        XCTAssertEqual(repository.allowInventoryShortageRequests, [false])
+
+        XCTAssertTrue(viewModel.addOrder(allowingInventoryShortage: true))
+
+        XCTAssertEqual(repository.orders.map(\.id), ["order-short-reservation"])
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertEqual(repository.allowInventoryShortageRequests, [false, true])
+    }
+
+    func testCancellingAddOrderClearsPendingReservationShortage() {
+        let repository = FakeOrderRepository()
+        repository.changeOrderStatusError = OrderRecipeUsageError.insufficientStock([
+            OrderInventoryShortage(
+                inventoryItemId: "inventory-flour",
+                inventoryItemName: "Cake flour",
+                requiredQuantity: 300,
+                availableQuantity: 200,
+                unit: .gram
+            )
+        ])
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.draftTitle = "Short reservation cake"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.draftStatus = .confirmed
+        viewModel.draftRecipeId = "recipe-short-reservation"
+        XCTAssertFalse(viewModel.addOrder())
+
+        viewModel.cancelAddOrder()
+
+        XCTAssertTrue(viewModel.pendingInventoryShortages.isEmpty)
+        XCTAssertTrue(viewModel.draftTitle.isEmpty)
+        XCTAssertNil(viewModel.errorMessage)
     }
 
     func testOrderFormSavesDraftExtraIngredientsWithNewOrder() throws {

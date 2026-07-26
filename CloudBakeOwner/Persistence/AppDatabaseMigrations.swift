@@ -445,6 +445,386 @@ enum AppDatabaseMigrations {
             }
         }
 
+        migrator.registerMigration("0030_create_order_inventory_reservations") { db in
+            try db.create(table: "order_inventory_reservations") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .cascade)
+                table.column("inventory_item_id", .text)
+                    .notNull()
+                    .references("inventory_items", onDelete: .restrict)
+                table.column("required_quantity", .double)
+                    .notNull()
+                    .check { $0 > 0 }
+                table.column("unit", .text)
+                    .notNull()
+                    .check(
+                        sql: """
+                            unit IN (
+                                'kilogram', 'gram', 'liter', 'milliliter',
+                                'teaspoon', 'tablespoon', 'cup', 'each'
+                            )
+                            """
+                    )
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+                table.uniqueKey(["order_id", "inventory_item_id"])
+            }
+            try db.create(
+                index: "order_inventory_reservations_on_inventory_item_id",
+                on: "order_inventory_reservations",
+                columns: ["inventory_item_id"]
+            )
+
+            try db.create(table: "order_inventory_reservation_events") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .restrict)
+                table.column("inventory_item_id", .text)
+                    .notNull()
+                    .references("inventory_items", onDelete: .restrict)
+                table.column("event_kind", .text)
+                    .notNull()
+                    .check(sql: "event_kind IN ('created', 'quantityChanged', 'released', 'repairFailed')")
+                table.column("reason", .text)
+                    .notNull()
+                    .check(
+                        sql: """
+                            reason IN (
+                                'orderConfirmed',
+                                'orderEdited',
+                                'orderReopened',
+                                'orderCancelled',
+                                'inventoryConsumed',
+                                'recipeEdited',
+                                'migrationRepair'
+                            )
+                            """
+                    )
+                table.column("previous_quantity", .double)
+                    .notNull()
+                    .check { $0 >= 0 }
+                table.column("new_quantity", .double)
+                    .notNull()
+                    .check { $0 >= 0 }
+                table.column("unit", .text)
+                    .notNull()
+                    .check(
+                        sql: """
+                            unit IN (
+                                'kilogram', 'gram', 'liter', 'milliliter',
+                                'teaspoon', 'tablespoon', 'cup', 'each'
+                            )
+                            """
+                    )
+                table.column("occurred_at_unix_time", .double).notNull()
+            }
+            try db.create(
+                index: "order_inventory_reservation_events_on_order_occurred_at",
+                on: "order_inventory_reservation_events",
+                columns: ["order_id", "occurred_at_unix_time"]
+            )
+
+            try db.create(table: "order_inventory_reservation_repairs") { table in
+                table.column("order_id", .text)
+                    .primaryKey()
+                    .references("orders", onDelete: .cascade)
+                table.column("state", .text)
+                    .notNull()
+                    .check(sql: "state IN ('pending', 'complete', 'failed')")
+                table.column("attempt_count", .integer)
+                    .notNull()
+                    .defaults(to: 0)
+                    .check { $0 >= 0 }
+                table.column("last_attempted_at_unix_time", .double)
+                table.column("failure_code", .text)
+                    .check(
+                        sql: """
+                            failure_code IS NULL OR failure_code IN (
+                                'missingInventoryItem',
+                                'incompatibleUnit',
+                                'invalidRequirements'
+                            )
+                            """
+                    )
+                table.column("updated_at_unix_time", .double).notNull()
+                table.check(
+                    sql: """
+                        (state = 'failed' AND failure_code IS NOT NULL)
+                        OR (state != 'failed' AND failure_code IS NULL)
+                        """
+                )
+            }
+            try db.create(
+                index: "order_inventory_reservation_repairs_on_state",
+                on: "order_inventory_reservation_repairs",
+                columns: ["state"]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_repairs
+                    (order_id, state, attempt_count, updated_at_unix_time)
+                    SELECT orders.id, 'pending', 0, orders.updated_at_unix_time
+                    FROM orders
+                    WHERE orders.status IN (?, ?)
+                      AND NOT EXISTS (
+                        SELECT 1
+                        FROM order_recipe_usages
+                        WHERE order_recipe_usages.order_id = orders.id
+                      )
+                    """,
+                arguments: [
+                    OrderStatus.confirmed.rawValue,
+                    OrderStatus.inProgress.rawValue
+                ]
+            )
+        }
+
+        migrator.registerMigration("0031_allow_incomplete_reservation_repair_events") { db in
+            try db.drop(index: "order_inventory_reservation_events_on_order_occurred_at")
+            try db.rename(
+                table: "order_inventory_reservation_events",
+                to: "order_inventory_reservation_events_legacy"
+            )
+            try db.create(table: "order_inventory_reservation_events") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .restrict)
+                table.column("inventory_item_id", .text)
+                table.column("event_kind", .text)
+                    .notNull()
+                    .check(sql: "event_kind IN ('created', 'quantityChanged', 'released', 'repairFailed')")
+                table.column("reason", .text)
+                    .notNull()
+                    .check(
+                        sql: """
+                            reason IN (
+                                'orderConfirmed',
+                                'orderEdited',
+                                'orderReopened',
+                                'orderCancelled',
+                                'inventoryConsumed',
+                                'recipeEdited',
+                                'migrationRepair'
+                            )
+                            """
+                    )
+                table.column("previous_quantity", .double)
+                    .notNull()
+                    .check { $0 >= 0 }
+                table.column("new_quantity", .double)
+                    .notNull()
+                    .check { $0 >= 0 }
+                table.column("unit", .text)
+                    .check(
+                        sql: """
+                            unit IS NULL OR unit IN (
+                                'kilogram', 'gram', 'liter', 'milliliter',
+                                'teaspoon', 'tablespoon', 'cup', 'each'
+                            )
+                            """
+                    )
+                table.column("occurred_at_unix_time", .double).notNull()
+                table.check(
+                    sql: """
+                        event_kind = 'repairFailed'
+                        OR (inventory_item_id IS NOT NULL AND unit IS NOT NULL)
+                        """
+                )
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO order_inventory_reservation_events
+                    (id, order_id, inventory_item_id, event_kind, reason,
+                     previous_quantity, new_quantity, unit, occurred_at_unix_time)
+                    SELECT id, order_id, inventory_item_id, event_kind, reason,
+                           previous_quantity, new_quantity, unit, occurred_at_unix_time
+                    FROM order_inventory_reservation_events_legacy
+                    """
+            )
+            try db.drop(table: "order_inventory_reservation_events_legacy")
+            try db.create(
+                index: "order_inventory_reservation_events_on_order_occurred_at",
+                on: "order_inventory_reservation_events",
+                columns: ["order_id", "occurred_at_unix_time"]
+            )
+        }
+
+        migrator.registerMigration("0032_track_reservation_repair_activation") { db in
+            try db.alter(table: "order_inventory_reservation_repairs") { table in
+                table.add(column: "last_activation_id", .text)
+            }
+        }
+
+        migrator.registerMigration("0033_add_order_reminder_configurations") { db in
+            try db.create(table: "order_reminder_defaults") { table in
+                table.column("id", .integer)
+                    .primaryKey()
+                    .check { $0 == 1 }
+                table.column("day_offsets_json", .text).notNull()
+                table.column("includes_due_time", .boolean).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO order_reminder_defaults
+                    (id, day_offsets_json, includes_due_time, updated_at_unix_time)
+                    VALUES (1, '[3,2,1]', 1, 0)
+                    """
+            )
+
+            try db.create(table: "order_reminder_configurations") { table in
+                table.column("order_id", .text)
+                    .primaryKey()
+                    .references("orders", onDelete: .cascade)
+                table.column("mode", .text)
+                    .notNull()
+                    .check(sql: "mode IN ('defaultSnapshot', 'custom', 'disabled')")
+                table.column("day_offsets_json", .text).notNull()
+                table.column("includes_due_time", .boolean).notNull()
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO order_reminder_configurations
+                    (
+                        order_id,
+                        mode,
+                        day_offsets_json,
+                        includes_due_time,
+                        created_at_unix_time,
+                        updated_at_unix_time
+                    )
+                    SELECT
+                        id,
+                        'defaultSnapshot',
+                        '[3,2,1]',
+                        1,
+                        created_at_unix_time,
+                        updated_at_unix_time
+                    FROM orders
+                    """
+            )
+        }
+
+        migrator.registerMigration("0034_add_order_completed_at") { db in
+            try db.alter(table: "orders") { table in
+                table.add(column: "completed_at_unix_time", .double)
+            }
+        }
+
+        migrator.registerMigration("0035_add_payment_reminder_configuration") { db in
+            try db.create(table: "payment_reminder_configuration") { table in
+                table.column("id", .integer)
+                    .primaryKey()
+                    .check { $0 == 1 }
+                table.column("hour", .integer)
+                    .notNull()
+                    .check { (0...23).contains($0) }
+                table.column("minute", .integer)
+                    .notNull()
+                    .check { (0...59).contains($0) }
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+            try db.execute(
+                sql: """
+                    INSERT INTO payment_reminder_configuration
+                    (id, hour, minute, updated_at_unix_time)
+                    VALUES (1, 9, 0, 0)
+                    """
+            )
+        }
+
+        migrator.registerMigration("0036_add_order_query_indexes") { db in
+            try db.create(
+                index: "orders_on_status_due_id",
+                on: "orders",
+                columns: ["status", "due_at_unix_time", "id"]
+            )
+            try db.create(
+                index: "orders_on_customer_due_id",
+                on: "orders",
+                columns: ["customer_id", "due_at_unix_time", "id"]
+            )
+            try db.create(
+                index: "orders_on_status_completed_at_id",
+                on: "orders",
+                columns: ["status", "completed_at_unix_time", "id"]
+            )
+        }
+
+        migrator.registerMigration("0037_add_design_usage_query_index") { db in
+            try db.create(
+                index: "orders_on_design_due_id",
+                on: "orders",
+                columns: ["cake_design_id", "due_at_unix_time", "id"]
+            )
+        }
+
+        migrator.registerMigration("0038_add_inventory_expiry_query_index") { db in
+            try db.create(
+                index: "inventory_batches_on_expiry_remaining_id",
+                on: "inventory_stock_batches",
+                columns: [
+                    "expires_at_unix_time",
+                    "remaining_quantity",
+                    "id"
+                ]
+            )
+        }
+
+        migrator.registerMigration("0039_add_payment_receipt_ledger") { db in
+            try db.alter(table: "orders") { table in
+                table.add(column: "legacy_paid_amount_decimal", .text)
+                    .notNull()
+                    .defaults(to: "0")
+            }
+            try db.execute(
+                sql: """
+                    UPDATE orders
+                    SET legacy_paid_amount_decimal = COALESCE(deposit_paid_decimal, '0')
+                    """
+            )
+
+            try db.create(table: "payment_receipts") { table in
+                table.column("id", .text).primaryKey()
+                table.column("order_id", .text)
+                    .notNull()
+                    .references("orders", onDelete: .cascade)
+                table.column("amount_decimal", .text)
+                    .notNull()
+                    .check(sql: "CAST(amount_decimal AS REAL) > 0")
+                table.column("received_at_unix_time", .double).notNull()
+                table.column("note", .text)
+                table.column("created_at_unix_time", .double).notNull()
+            }
+            try db.create(
+                index: "payment_receipts_on_received_at_id",
+                on: "payment_receipts",
+                columns: ["received_at_unix_time", "id"]
+            )
+            try db.create(
+                index: "payment_receipts_on_order_received_at_id",
+                on: "payment_receipts",
+                columns: ["order_id", "received_at_unix_time", "id"]
+            )
+
+            try db.create(table: "payment_receipt_voids") { table in
+                table.column("id", .text).primaryKey()
+                table.column("receipt_id", .text)
+                    .notNull()
+                    .unique()
+                    .references("payment_receipts", onDelete: .cascade)
+                table.column("reason", .text)
+                table.column("voided_at_unix_time", .double).notNull()
+                table.column("created_at_unix_time", .double).notNull()
+            }
+        }
+
         return migrator
     }
 }

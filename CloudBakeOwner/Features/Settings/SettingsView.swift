@@ -23,7 +23,7 @@ final class SettingsViewModel: ObservableObject {
     private let logoStore: AppLogoStore
     private let manualBackupService: (any ManualBackupPreparing)?
     private let manualBackupPreferences: ManualBackupPreferences
-    private let manualBackupReminderScheduler: ManualBackupReminderScheduler
+    private let refreshReminderSchedule: () async -> Void
 
     init(
         repository: any InventoryItemRepository & InventoryStockBatchRepository,
@@ -33,7 +33,8 @@ final class SettingsViewModel: ObservableObject {
         logoStore: AppLogoStore = AppLogoStore(),
         manualBackupService: (any ManualBackupPreparing)? = nil,
         manualBackupPreferences: ManualBackupPreferences = ManualBackupPreferences(),
-        manualBackupReminderScheduler: ManualBackupReminderScheduler? = nil
+        manualBackupReminderScheduler: ManualBackupReminderScheduler? = nil,
+        refreshReminderSchedule: (() async -> Void)? = nil
     ) {
         self.repository = repository
         self.csvService = csvService
@@ -42,8 +43,11 @@ final class SettingsViewModel: ObservableObject {
         self.logoStore = logoStore
         self.manualBackupService = manualBackupService
         self.manualBackupPreferences = manualBackupPreferences
-        self.manualBackupReminderScheduler = manualBackupReminderScheduler
+        let fallbackScheduler = manualBackupReminderScheduler
             ?? ManualBackupReminderScheduler(preferences: manualBackupPreferences)
+        self.refreshReminderSchedule = refreshReminderSchedule ?? {
+            _ = await fallbackScheduler.refreshReminder()
+        }
         lastManualBackupDate = manualBackupPreferences.lastSuccessfulExport
         lastManualBackupOmittedAssetCount =
             manualBackupPreferences.lastSuccessfulOmittedAssetCount
@@ -147,7 +151,8 @@ final class SettingsViewModel: ObservableObject {
             statusMessage = "CloudBake backup saved successfully."
         }
         errorMessage = nil
-        manualBackupReminderStatus = await manualBackupReminderScheduler.refreshReminder()
+        await refreshReminderSchedule()
+        manualBackupReminderStatus = manualBackupPreferences.reminderDeliveryStatus
         nextManualBackupReminderDate = manualBackupPreferences.nextReminderDate
     }
 
@@ -160,7 +165,8 @@ final class SettingsViewModel: ObservableObject {
         manualBackupPreferences.isReminderEnabled = isEnabled
         isWeeklyBackupReminderEnabled = isEnabled
         Task {
-            manualBackupReminderStatus = await manualBackupReminderScheduler.refreshReminder()
+            await refreshReminderSchedule()
+            manualBackupReminderStatus = manualBackupPreferences.reminderDeliveryStatus
             nextManualBackupReminderDate = manualBackupPreferences.nextReminderDate
         }
     }
@@ -306,6 +312,8 @@ final class SettingsViewModel: ObservableObject {
 
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
+    @StateObject private var orderReminderSettingsViewModel: OrderReminderSettingsViewModel
+    @StateObject private var paymentReminderSettingsViewModel: PaymentReminderSettingsViewModel
     @StateObject private var cloudBackupViewModel: CloudBackupSettingsViewModel
     @StateObject private var cloudRestoreViewModel: CloudRestoreSettingsViewModel
     @AppStorage(AppSettings.currencySymbolKey) private var selectedCurrencySymbol = AppCurrency.defaultCurrency.symbol
@@ -322,12 +330,20 @@ struct SettingsView: View {
 
     init(
         viewModel: SettingsViewModel,
+        orderReminderSettingsViewModel: OrderReminderSettingsViewModel,
+        paymentReminderSettingsViewModel: PaymentReminderSettingsViewModel,
         cloudBackupService: (any CloudBackupSettingsServing)? = nil,
         cloudRestoreService: (any CloudRestoreSettingsServing)? = nil,
         onShowIntroduction: @escaping () -> Void = {}
     ) {
         self.onShowIntroduction = onShowIntroduction
         _viewModel = StateObject(wrappedValue: viewModel)
+        _orderReminderSettingsViewModel = StateObject(
+            wrappedValue: orderReminderSettingsViewModel
+        )
+        _paymentReminderSettingsViewModel = StateObject(
+            wrappedValue: paymentReminderSettingsViewModel
+        )
         _cloudBackupViewModel = StateObject(
             wrappedValue: CloudBackupSettingsViewModel(
                 service: cloudBackupService ?? UnavailableCloudBackupSettingsService()
@@ -401,6 +417,38 @@ struct SettingsView: View {
                         .padding(.vertical, 12)
                         .accessibilityIdentifier("settings.logo.restoreDefault")
                     }
+                }
+            }
+
+            CloudBakeSection("Reminders") {
+                CloudBakeDetailCard {
+                    NavigationLink {
+                        OrderReminderSettingsView(
+                            viewModel: orderReminderSettingsViewModel,
+                            paymentViewModel: paymentReminderSettingsViewModel
+                        )
+                    } label: {
+                        HStack(spacing: 16) {
+                            CloudBakeRowIcon(
+                                systemImage: "bell.badge",
+                                tint: .cloudBakePink
+                            )
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("Order Reminders")
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text("Choose the default schedule copied to new orders.")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.orderReminders")
                 }
             }
 
@@ -608,6 +656,7 @@ struct SettingsView: View {
             }
         }
         .accessibilityIdentifier(AppDestination.settings.screenAccessibilityIdentifier)
+        .cloudBackupPrompts(viewModel: cloudBackupViewModel)
         .cloudRestorePrompts(viewModel: cloudRestoreViewModel)
         .cloudBakeCenteredPopup(
             isPresented: cloudBackupViewModel.isConfirmingDeletion,

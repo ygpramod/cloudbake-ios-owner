@@ -4,6 +4,7 @@ import Foundation
 final class DashboardViewModel: ObservableObject {
     @Published private(set) var lowInventoryItems: [InventoryItem] = []
     @Published private(set) var upcomingOrders: [Order] = []
+    @Published private(set) var upcomingOrderCount = 0
     @Published private(set) var overdueOrderAlert: OrderOverdueAlert?
     @Published private(set) var projectedIngredientShortages: [String: ProjectedIngredientShortage] = [:]
     @Published var errorMessage: String?
@@ -14,10 +15,6 @@ final class DashboardViewModel: ObservableObject {
 
     var additionalLowInventoryCount: Int {
         max(lowInventoryItems.count - displayedLowInventoryItems.count, 0)
-    }
-
-    var upcomingOrderCount: Int {
-        upcomingOrders.count
     }
 
     var nextUpcomingOrder: Order? {
@@ -34,11 +31,11 @@ final class DashboardViewModel: ObservableObject {
         return "\(item.currentQuantity.formatted()) / \(item.minimumQuantity.formatted()) \(item.unit.displayName)"
     }
 
-    private let repository: any InventoryItemRepository & InventoryStockBatchRepository & OrderRepository & OrderRecipeUsageRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository
+    private let repository: any InventoryItemRepository & OrderRepository & ProjectedIngredientDemandRepository
     private let orderPresentation: OrderListPresentation
 
     init(
-        repository: any InventoryItemRepository & InventoryStockBatchRepository & OrderRepository & OrderRecipeUsageRepository & RecipeComponentRepository & RecipeIngredientRepository & OrderExtraIngredientRepository,
+        repository: any InventoryItemRepository & OrderRepository & ProjectedIngredientDemandRepository,
         orderPresentation: OrderListPresentation = OrderListPresentation(
             dateProvider: Date.init,
             calendar: .current
@@ -50,36 +47,49 @@ final class DashboardViewModel: ObservableObject {
 
     func load() {
         do {
-            let orders = try repository.fetchOrders()
             let inventoryItems = try repository.fetchInventoryItems()
             let now = orderPresentation.dateProvider()
-            let shortages = try ProjectedIngredientDemand.shortages(
-                inventoryItems: inventoryItems,
-                orders: orders,
-                at: now,
-                stockBatches: repository.fetchInventoryStockBatches(inventoryItemId:),
-                recipeUsage: repository.fetchOrderRecipeUsage(orderId:),
-                recipeComponents: repository.fetchRecipeComponents(recipeId:),
-                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
-                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
+            let upcomingPage: OrderPage
+            let upcomingCount: Int
+            if let range = orderPresentation.upcomingDateRange() {
+                let query = OrderPageQuery.upcoming(
+                    from: range.lowerBound,
+                    through: range.upperBound
+                )
+                upcomingPage = try repository.fetchOrderPage(
+                    query: query,
+                    after: nil,
+                    limit: 25
+                )
+                upcomingCount = try repository.fetchOrderCount(query: query)
+            } else {
+                upcomingPage = OrderPage(orders: [], nextCursor: nil)
+                upcomingCount = 0
+            }
+            let earliestActivePage = try repository.fetchOrderPage(
+                query: .active(dueAtRange: nil),
+                after: nil,
+                limit: 1
             )
+            let demandSummary = try repository.fetchProjectedIngredientDemandSummary(at: now)
+            let shortages = demandSummary.shortages
             projectedIngredientShortages = Dictionary(uniqueKeysWithValues: shortages.map { ($0.id, $0) })
-            lowInventoryItems = try InventoryLowInventoryAlertRules.itemsForAlerts(
+            lowInventoryItems = InventoryLowInventoryAlertRules.itemsForAlerts(
                 inventoryItems: inventoryItems,
-                activeOrders: orders,
-                orderRecipeUsage: repository.fetchOrderRecipeUsage(orderId:),
-                projectedShortageIds: Set(shortages.map(\.inventoryItemId)),
-                recipeComponents: repository.fetchRecipeComponents(recipeId:),
-                recipeIngredients: repository.fetchRecipeIngredients(componentId:),
-                orderExtraIngredients: repository.fetchOrderExtraIngredients(orderId:)
+                neededInventoryItemIds: demandSummary.neededInventoryItemIds,
+                projectedShortageIds: Set(shortages.map(\.inventoryItemId))
             )
-            upcomingOrders = orderPresentation.upcomingOrders(from: orders)
-            overdueOrderAlert = orderPresentation.primaryOverdueAlert(from: orders)
+            upcomingOrders = upcomingPage.orders
+            upcomingOrderCount = upcomingCount
+            overdueOrderAlert = orderPresentation.primaryOverdueAlert(
+                from: earliestActivePage.orders
+            )
             errorMessage = nil
         } catch {
             lowInventoryItems = []
             projectedIngredientShortages = [:]
             upcomingOrders = []
+            upcomingOrderCount = 0
             overdueOrderAlert = nil
             errorMessage = "Low inventory could not be loaded."
         }

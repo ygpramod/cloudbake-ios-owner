@@ -358,6 +358,11 @@ pricing, and recipe links.
   can also mark an order Paid or add a partial payment without opening full edit.
 - Orders now schedule local owner notifications for future three-day, two-day, one-day, and due-time
   reminders when the order is Confirmed, In Progress, or Ready.
+- Completed orders whose due time has passed and whose derived balance remains positive appear in
+  Payment Due and contribute to at most one aggregate local notification per calendar day. The
+  owner chooses the daily time in Reminder Settings. CloudBake maintains a rolling 14-day local
+  schedule and refreshes it on launch, foreground, payment, and order changes; recording full
+  payment, reopening, or cancelling removes the order from the next refresh.
 - Active overdue orders now show an Overdue pill and an in-app update-status banner.
 - Orders now have a customer-safe preview projection for future consumer surfaces. It maps owner
   statuses into consumer language and deliberately excludes private owner/customer operational
@@ -367,8 +372,7 @@ pricing, and recipe links.
 
 The following Orders RFC items are intentionally deferred until after other MVP areas are stronger:
 
-- reminder snooze, configurable reminder offsets, preparation-start reminders, and calendar
-  integration,
+- reminder snooze, preparation-start reminders, and calendar integration,
 - checklist reordering, checklist templates, and checklist-driven status suggestions,
 - partial recipe usage, multi-recipe orders, inventory reservation, and serving/yield modeling,
 - pricing calculator and recipe-cost suggestions,

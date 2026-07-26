@@ -10,7 +10,10 @@ struct OrderReminderPlanItem: Equatable {
     let remindAt: Date
 
     var title: String {
-        "\(offsetDays) \(offsetDays == 1 ? "Day" : "Days") Before"
+        if offsetDays == 0 {
+            return "Due Time"
+        }
+        return "\(offsetDays) \(offsetDays == 1 ? "Day" : "Days") Before"
     }
 }
 
@@ -52,14 +55,25 @@ struct OrderListPresentation {
     }
 
     func upcomingOrders(from orders: [Order], throughDays: Int = 30) -> [Order] {
-        let today = calendar.startOfDay(for: dateProvider())
-        guard let end = calendar.date(byAdding: .day, value: throughDays + 1, to: today) else {
+        guard let range = upcomingDateRange(throughDays: throughDays) else {
             return []
         }
 
         return activeOrders(from: orders).filter { order in
-            order.dueAt >= today && order.dueAt < end
+            range.contains(order.dueAt)
         }
+    }
+
+    func upcomingDateRange(throughDays: Int = 30) -> ClosedRange<Date>? {
+        let today = calendar.startOfDay(for: dateProvider())
+        guard let exclusiveEnd = calendar.date(
+            byAdding: .day,
+            value: throughDays + 1,
+            to: today
+        ) else {
+            return nil
+        }
+        return today...exclusiveEnd.addingTimeInterval(-0.001)
     }
 
     func completedOrders(from orders: [Order]) -> [Order] {
@@ -97,12 +111,18 @@ struct OrderListPresentation {
         photos.filter { $0.kind == .finalCake }
     }
 
-    func dueReminderGroups(for orders: [Order]) -> [OrderReminderDueGroup] {
+    func dueReminderGroups(
+        for orders: [Order],
+        configurations: [String: OrderReminderConfiguration]
+    ) -> [OrderReminderDueGroup] {
         let now = dateProvider()
         return orders
             .filter(\.hasActiveReminderState)
             .compactMap { order in
-                let dueReminders = reminderPlan(for: order)
+                let dueReminders = reminderPlan(
+                    for: order,
+                    configuration: configurations[order.id] ?? .initialDefault
+                )
                     .filter { $0.remindAt <= now }
 
                 guard !dueReminders.isEmpty else {
@@ -128,8 +148,16 @@ struct OrderListPresentation {
             }
     }
 
-    func reminderPlan(for order: Order) -> [OrderReminderPlanItem] {
-        [3, 2, 1].compactMap { offsetDays in
+    func reminderPlan(
+        for order: Order,
+        configuration: OrderReminderConfiguration
+    ) -> [OrderReminderPlanItem] {
+        guard configuration.isEnabled else {
+            return []
+        }
+        let offsets = configuration.dayOffsets
+            + (configuration.includesDueTime ? [0] : [])
+        return offsets.compactMap { offsetDays in
             guard let remindAt = calendar.date(byAdding: .day, value: -offsetDays, to: order.dueAt) else {
                 return nil
             }
@@ -138,9 +166,12 @@ struct OrderListPresentation {
         }
     }
 
-    func nextReminder(for order: Order) -> OrderReminderPlanItem? {
+    func nextReminder(
+        for order: Order,
+        configuration: OrderReminderConfiguration
+    ) -> OrderReminderPlanItem? {
         let now = dateProvider()
-        let reminders = reminderPlan(for: order)
+        let reminders = reminderPlan(for: order, configuration: configuration)
         return reminders.first { $0.remindAt > now } ?? reminders.last
     }
 
@@ -165,17 +196,9 @@ struct OrderListPresentation {
         return lhs.sortOrder < rhs.sortOrder
     }
 
-    private static func orderWasEnteredBefore(_ lhs: Order, _ rhs: Order) -> Bool {
-        if lhs.createdAt == rhs.createdAt {
-            return lhs.id < rhs.id
-        }
-
-        return lhs.createdAt < rhs.createdAt
-    }
-
     private static func orderIsDueBefore(_ lhs: Order, _ rhs: Order) -> Bool {
         if lhs.dueAt == rhs.dueAt {
-            return orderWasEnteredBefore(lhs, rhs)
+            return lhs.id < rhs.id
         }
 
         return lhs.dueAt < rhs.dueAt
@@ -183,11 +206,7 @@ struct OrderListPresentation {
 
     private static func orderWasDueAfter(_ lhs: Order, _ rhs: Order) -> Bool {
         if lhs.dueAt == rhs.dueAt {
-            if lhs.createdAt == rhs.createdAt {
-                return lhs.id < rhs.id
-            }
-
-            return lhs.createdAt > rhs.createdAt
+            return lhs.id > rhs.id
         }
 
         return lhs.dueAt > rhs.dueAt

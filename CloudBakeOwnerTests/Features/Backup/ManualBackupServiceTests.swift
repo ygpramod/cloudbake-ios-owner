@@ -376,6 +376,31 @@ final class ManualBackupServiceTests: XCTestCase {
     }
 
     @MainActor
+    func testSettingsRefreshesSharedReminderScheduleAfterSuccessfulExport() async throws {
+        let database = try AppDatabase.makeInMemory()
+        let suiteName = "SettingsSharedReminderRefresh-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let preferences = ManualBackupPreferences(defaults: defaults)
+        var refreshCount = 0
+        let viewModel = SettingsViewModel(
+            repository: database.makeCoreDataRepository(),
+            manualBackupPreferences: preferences,
+            refreshReminderSchedule: {
+                refreshCount += 1
+                preferences.reminderDeliveryStatus = .scheduled
+            }
+        )
+
+        await viewModel.markManualBackupExported(
+            at: Date(timeIntervalSince1970: 1_800_000_000)
+        )
+
+        XCTAssertEqual(refreshCount, 1)
+        XCTAssertEqual(viewModel.manualBackupReminderStatus, .scheduled)
+    }
+
+    @MainActor
     func testSettingsPreparationFailureCannotClaimBackupSuccess() async throws {
         let database = try AppDatabase.makeInMemory()
         let viewModel = SettingsViewModel(

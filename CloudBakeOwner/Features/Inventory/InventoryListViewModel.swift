@@ -74,16 +74,19 @@ final class InventoryListViewModel: ObservableObject {
     private let repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & VoiceInventoryImportRepository & ExpiredStockDisposalRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
+    private let onReminderDataChanged: () -> Void
     private var acknowledgedDuplicateNameKey: String?
 
     init(
         repository: any InventoryItemRepository & InventoryTransactionRepository & InventoryStockBatchRepository & VoiceInventoryImportRepository & ExpiredStockDisposalRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
-        dateProvider: @escaping () -> Date = Date.init
+        dateProvider: @escaping () -> Date = Date.init,
+        onReminderDataChanged: @escaping () -> Void = {}
     ) {
         self.repository = repository
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
+        self.onReminderDataChanged = onReminderDataChanged
         self.draftExpiryDate = defaultExpiryDate(for: .standard)
         self.draftBatchExpiryDate = Date()
         self.draftAdjustmentExpiryDate = defaultExpiryDate(for: .standard)
@@ -269,6 +272,7 @@ final class InventoryListViewModel: ObservableObject {
             }
             resetDraft()
             load()
+            onReminderDataChanged()
             return true
         } catch {
             errorMessage = "Inventory item could not be saved."
@@ -349,6 +353,7 @@ final class InventoryListViewModel: ObservableObject {
             }
             resetDraft()
             load()
+            onReminderDataChanged()
             return true
         } catch {
             errorMessage = "Inventory item could not be saved."
@@ -457,6 +462,7 @@ final class InventoryListViewModel: ObservableObject {
             resetBatchDraft()
             loadSelectedItemBatches()
             load()
+            onReminderDataChanged()
             return true
         } catch {
             errorMessage = "Stock batch could not be saved."
@@ -500,6 +506,7 @@ final class InventoryListViewModel: ObservableObject {
             try repository.deleteBatchCorrection(item: updatedItem, batch: batch)
             loadSelectedItemBatches()
             load()
+            onReminderDataChanged()
         } catch {
             errorMessage = "Stock batch could not be deleted."
         }
@@ -528,6 +535,7 @@ final class InventoryListViewModel: ObservableObject {
         do {
             try repository.save(archivedItem)
             load()
+            onReminderDataChanged()
         } catch {
             errorMessage = "Inventory item could not be archived."
         }
@@ -554,6 +562,7 @@ final class InventoryListViewModel: ObservableObject {
             try repository.save(restoredItem)
             load()
             loadArchivedItems()
+            onReminderDataChanged()
         } catch {
             errorMessage = "Inventory item could not be restored."
         }
@@ -565,6 +574,7 @@ final class InventoryListViewModel: ObservableObject {
             try repository.deleteInventoryItem(id: item.id)
             load()
             loadArchivedItems()
+            onReminderDataChanged()
             return true
         } catch InventoryItemDeletionError.inUse {
             errorMessage = "This inventory item is used by stock history, a recipe, or an order. Archive it instead to preserve those records."
@@ -615,6 +625,7 @@ final class InventoryListViewModel: ObservableObject {
             resetAdjustmentDraft()
             load()
             refreshSelectedItemIfNeeded(plan.updatedItem)
+            onReminderDataChanged()
             return true
         } catch {
             errorMessage = "Stock adjustment could not be saved."
@@ -671,6 +682,7 @@ final class InventoryListViewModel: ObservableObject {
             resetConsumptionDraft()
             load()
             refreshSelectedItemIfNeeded(plan.updatedItem)
+            onReminderDataChanged()
             return true
         } catch {
             errorMessage = "Stock consumption could not be saved."
@@ -745,6 +757,7 @@ final class InventoryListViewModel: ObservableObject {
             )
             load()
             beginViewingItem(updatedItem)
+            onReminderDataChanged()
             return true
         } catch {
             errorMessage = "Expired stock could not be disposed."
@@ -909,6 +922,7 @@ final class InventoryListViewModel: ObservableObject {
             }
             errorMessage = nil
             load()
+            onReminderDataChanged()
             return true
         } catch {
             errorMessage = "Purchase bill drafts could not be saved."
@@ -1079,6 +1093,7 @@ final class InventoryListViewModel: ObservableObject {
             try repository.saveVoiceInventoryImport(items: itemsToSave, batches: batchesToSave)
             errorMessage = nil
             load()
+            onReminderDataChanged()
             return true
         } catch {
             errorMessage = "Voice inventory drafts could not be saved."

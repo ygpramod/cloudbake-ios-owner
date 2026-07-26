@@ -1,5 +1,12 @@
 import CoreGraphics
+import Foundation
 @testable import CloudBakeOwner
+
+struct RecipeIngredientMutationRequest: Equatable {
+    let ingredient: RecipeIngredient
+    let component: RecipeComponent
+    let allowsInventoryShortage: Bool
+}
 
 func placeholderCGImage() -> CGImage? {
     let colorSpace = CGColorSpaceCreateDeviceRGB()
@@ -21,6 +28,7 @@ func placeholderCGImage() -> CGImage? {
 final class FakeRecipeRepository: RecipeRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
+    RecipeIngredientReservationMutationRepository,
     RecipeCSVImportRepository,
     InventoryItemRepository {
     var recipes: [Recipe] = []
@@ -29,6 +37,9 @@ final class FakeRecipeRepository: RecipeRepository,
     var inventoryItems: [InventoryItem] = []
     var archivedInventoryItems: [InventoryItem] = []
     var recipeCSVImportError: Error?
+    var recipeIngredientMutationError: Error?
+    var allowInventoryShortageRequests: [Bool] = []
+    var recipeIngredientMutationRequests: [RecipeIngredientMutationRequest] = []
 
     func saveRecipeCSVImport(
         recipes: [Recipe],
@@ -72,6 +83,32 @@ final class FakeRecipeRepository: RecipeRepository,
         ingredients.append(ingredient)
     }
 
+    func saveRecipeIngredient(
+        _ ingredient: RecipeIngredient,
+        component: RecipeComponent,
+        allowInventoryShortage: Bool
+    ) throws {
+        allowInventoryShortageRequests.append(allowInventoryShortage)
+        recipeIngredientMutationRequests.append(
+            RecipeIngredientMutationRequest(
+                ingredient: ingredient,
+                component: component,
+                allowsInventoryShortage: allowInventoryShortage
+            )
+        )
+        if let recipeIngredientMutationError {
+            if case .insufficientStock = recipeIngredientMutationError as? OrderRecipeUsageError,
+               allowInventoryShortage {
+                try save(component)
+                try save(ingredient)
+                return
+            }
+            throw recipeIngredientMutationError
+        }
+        try save(component)
+        try save(ingredient)
+    }
+
     func fetchRecipeIngredient(id: String) throws -> RecipeIngredient? {
         ingredients.first { $0.id == id }
     }
@@ -82,6 +119,18 @@ final class FakeRecipeRepository: RecipeRepository,
 
     func deleteRecipeIngredient(id: String) throws {
         ingredients.removeAll { $0.id == id }
+    }
+
+    func deleteRecipeIngredient(
+        id: String,
+        updatedAt _: Date,
+        allowInventoryShortage: Bool
+    ) throws {
+        allowInventoryShortageRequests.append(allowInventoryShortage)
+        if let recipeIngredientMutationError {
+            throw recipeIngredientMutationError
+        }
+        try deleteRecipeIngredient(id: id)
     }
 
     func save(_ item: InventoryItem) throws {

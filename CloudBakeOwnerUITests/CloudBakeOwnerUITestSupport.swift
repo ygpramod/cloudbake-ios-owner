@@ -41,17 +41,53 @@ extension CloudBakeOwnerUITests {
         case "Settings":
             identifier = "navigation.settings"
             screenIdentifier = "screen.settings"
+        case "Reminders":
+            identifier = "navigation.reminders"
+            screenIdentifier = "screen.reminders"
+        case "Reports":
+            identifier = "navigation.reports"
+            screenIdentifier = "screen.reports"
         default:
             XCTFail("Unsupported dashboard destination: \(title)", file: file, line: line)
             return
         }
 
         let destinationButton: XCUIElement
-        if title == "Recipes" || title == "Customers" || title == "Designs" || title == "Settings" {
+        if title == "Recipes"
+            || title == "Customers"
+            || title == "Designs"
+            || title == "Reminders"
+            || title == "Reports"
+            || title == "Settings" {
             let moreTab = app.buttons["bottom.navigation.more"]
             tapWhenReady(moreTab, timeout: timeout, file: file, line: line)
             assertScreenVisible("screen.more", in: app, timeout: timeout, file: file, line: line)
             destinationButton = app.buttons[identifier]
+            let moreScroll = app.scrollViews["screen.more"]
+            XCTAssertTrue(
+                moreScroll.waitForExistence(timeout: timeout),
+                "More screen scroll view was not available.",
+                file: file,
+                line: line
+            )
+            scrollToHittable(
+                destinationButton,
+                in: app,
+                scrollContainer: moreScroll,
+                timeout: timeout,
+                file: file,
+                line: line
+            )
+            tapScrollableAction(
+                destinationButton,
+                in: moreScroll,
+                waitingFor: app.descendants(matching: .any)[screenIdentifier],
+                in: app,
+                timeout: timeout,
+                file: file,
+                line: line
+            )
+            return
         } else {
             destinationButton = app.buttons[identifier]
         }
@@ -72,6 +108,34 @@ extension CloudBakeOwnerUITests {
         } while Date() < navigationDeadline
 
         assertScreenVisible(screenIdentifier, in: app, timeout: 1, file: file, line: line)
+    }
+
+    @discardableResult
+    func expandSettingsSection(
+        _ disclosureIdentifier: String,
+        revealing destination: XCUIElement,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> XCUIElement {
+        let settingsScroll = app.scrollViews["screen.settings"]
+        XCTAssertTrue(
+            settingsScroll.waitForExistence(timeout: timeout),
+            "Settings scroll view was not available.",
+            file: file,
+            line: line
+        )
+        tapScrollableAction(
+            app.buttons[disclosureIdentifier],
+            in: settingsScroll,
+            waitingFor: destination,
+            in: app,
+            timeout: timeout,
+            file: file,
+            line: line
+        )
+        return settingsScroll
     }
 
     func assertDashboardVisible(
@@ -378,12 +442,12 @@ extension CloudBakeOwnerUITests {
         line: UInt = #line
     ) {
         XCTAssertTrue(element.waitForExistence(timeout: timeout), "Element did not exist before tap.", file: file, line: line)
-        let hittable = NSPredicate(format: "isHittable == true")
-        let expectation = XCTNSPredicateExpectation(predicate: hittable, object: element)
+        let ready = NSPredicate(format: "isHittable == true AND isEnabled == true")
+        let expectation = XCTNSPredicateExpectation(predicate: ready, object: element)
         XCTAssertEqual(
             XCTWaiter.wait(for: [expectation], timeout: timeout),
             .completed,
-            "Element was not hittable before tap.",
+            "Element was not enabled and hittable before tap.",
             file: file,
             line: line
         )
@@ -412,6 +476,32 @@ extension CloudBakeOwnerUITests {
         in scrollContainer: XCUIElement,
         waitingFor destination: XCUIElement,
         in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        positionScrollableElementForInteraction(
+            element,
+            in: scrollContainer,
+            app: app,
+            timeout: timeout,
+            file: file,
+            line: line
+        )
+        tapWhenReady(
+            element,
+            waitingFor: destination,
+            in: app,
+            timeout: timeout,
+            file: file,
+            line: line
+        )
+    }
+
+    func positionScrollableElementForInteraction(
+        _ element: XCUIElement,
+        in scrollContainer: XCUIElement,
+        app: XCUIApplication,
         timeout: TimeInterval = 10,
         file: StaticString = #filePath,
         line: UInt = #line
@@ -456,14 +546,6 @@ extension CloudBakeOwnerUITests {
                 && element.frame.midY >= reliableTop
                 && element.frame.midY <= reliableBottom,
             "Element was not positioned safely between navigation overlays.",
-            file: file,
-            line: line
-        )
-        tapWhenReady(
-            element,
-            waitingFor: destination,
-            in: app,
-            timeout: timeout,
             file: file,
             line: line
         )
@@ -568,7 +650,7 @@ extension CloudBakeOwnerUITests {
         let deadline = Date().addingTimeInterval(timeout)
         while !element.exists && Date() < deadline {
             swipeUpInPrimaryScrollableArea(in: app, preferred: scrollContainer)
-            _ = element.waitForExistence(timeout: 1)
+            _ = element.waitForExistence(timeout: 0.25)
         }
         XCTAssertTrue(element.exists, "Element did not exist after scrolling.", file: file, line: line)
     }
@@ -622,13 +704,13 @@ extension CloudBakeOwnerUITests {
             return
         }
 
-        let collectionView = app.collectionViews.firstMatch
+        let collectionView = visibleElement(in: app.collectionViews)
         if collectionView.exists {
             collectionView.swipeUp()
             return
         }
 
-        let scrollView = app.scrollViews.firstMatch
+        let scrollView = visibleElement(in: app.scrollViews)
         if scrollView.exists {
             scrollView.swipeUp()
             return
@@ -672,13 +754,13 @@ extension CloudBakeOwnerUITests {
     }
 
     private func swipeDownInPrimaryScrollableArea(in app: XCUIApplication) {
-        let collectionView = app.collectionViews.firstMatch
+        let collectionView = visibleElement(in: app.collectionViews)
         if collectionView.exists {
             collectionView.swipeDown()
             return
         }
 
-        let scrollView = app.scrollViews.firstMatch
+        let scrollView = visibleElement(in: app.scrollViews)
         if scrollView.exists {
             scrollView.swipeDown()
             return
@@ -697,9 +779,10 @@ extension CloudBakeOwnerUITests {
         if let scrollView, scrollView.exists {
             scrollable = scrollView
         } else {
-            scrollable = app.collectionViews.firstMatch.exists
-                ? app.collectionViews.firstMatch
-                : app.scrollViews.firstMatch
+            let collectionView = visibleElement(in: app.collectionViews)
+            scrollable = collectionView.exists
+                ? collectionView
+                : visibleElement(in: app.scrollViews)
         }
         guard scrollable.exists else {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: fromY))
@@ -710,5 +793,15 @@ extension CloudBakeOwnerUITests {
         let start = scrollable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: fromY))
         let end = scrollable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: toY))
         start.press(forDuration: 0.05, thenDragTo: end)
+    }
+
+    private func visibleElement(in query: XCUIElementQuery) -> XCUIElement {
+        for index in 0..<query.count {
+            let candidate = query.element(boundBy: index)
+            if candidate.exists, candidate.isHittable {
+                return candidate
+            }
+        }
+        return query.firstMatch
     }
 }

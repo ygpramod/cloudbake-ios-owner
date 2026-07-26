@@ -1,6 +1,75 @@
 import XCTest
 @testable import CloudBakeOwner
 
+func makeInventoryReservationPlanningSnapshot(
+    orderIds: [String],
+    orders: [Order],
+    usages: [OrderRecipeUsage],
+    reservations: [OrderInventoryReservation],
+    repairs: [OrderInventoryReservationRepair],
+    components: [RecipeComponent],
+    ingredients: [RecipeIngredient],
+    extras: [OrderExtraIngredient],
+    batches: [InventoryStockBatch]
+) -> OrderInventoryReservationPlanningSnapshot {
+    let orderIdSet = Set(orderIds)
+    let componentsByRecipeId = Dictionary(grouping: components, by: \.recipeId)
+    let ingredientsByComponentId = Dictionary(grouping: ingredients, by: \.componentId)
+    var liveRequirementsByOrderId: [String: [OrderInventoryRequirement]] = [:]
+
+    for order in orders where orderIdSet.contains(order.id) {
+        let scale = NSDecimalNumber(decimal: order.recipeScaleMultiplier).doubleValue
+        if let recipeId = order.recipeId {
+            for component in componentsByRecipeId[recipeId] ?? [] {
+                for ingredient in ingredientsByComponentId[component.id] ?? [] {
+                    liveRequirementsByOrderId[order.id, default: []].append(
+                        OrderInventoryRequirement(
+                            inventoryItemId: ingredient.inventoryItemId,
+                            quantity: ingredient.quantity * scale,
+                            unit: ingredient.unit
+                        )
+                    )
+                }
+            }
+        }
+        for extra in extras where extra.orderId == order.id {
+            liveRequirementsByOrderId[order.id, default: []].append(
+                OrderInventoryRequirement(
+                    inventoryItemId: extra.inventoryItemId,
+                    quantity: extra.quantity,
+                    unit: extra.unit
+                )
+            )
+        }
+    }
+
+    let scopedReservations = reservations.filter { orderIdSet.contains($0.orderId) }
+    let requiredInventoryItemIds = Set(
+        scopedReservations.map(\.inventoryItemId)
+            + liveRequirementsByOrderId.values.flatMap { $0.map(\.inventoryItemId) }
+    )
+    return OrderInventoryReservationPlanningSnapshot(
+        consumedOrderIds: Set(
+            usages.lazy.filter { orderIdSet.contains($0.orderId) }.map(\.orderId)
+        ),
+        reservationsByOrderId: Dictionary(grouping: scopedReservations, by: \.orderId),
+        repairsByOrderId: Dictionary(
+            uniqueKeysWithValues: repairs
+                .filter { orderIdSet.contains($0.orderId) }
+                .map { ($0.orderId, $0) }
+        ),
+        invalidOrderIds: [],
+        invalidLiveRequirementOrderIds: [],
+        liveRequirementsByOrderId: liveRequirementsByOrderId,
+        stockBatchesByInventoryItemId: Dictionary(
+            grouping: batches.filter {
+                requiredInventoryItemIds.contains($0.inventoryItemId)
+            },
+            by: \.inventoryItemId
+        )
+    )
+}
+
 func makeOrder(
     id: String,
     title: String = "Vanilla Birthday",
@@ -12,7 +81,8 @@ func makeOrder(
     dueAt: Date,
     createdAt: Date = Date(timeIntervalSince1970: 1_800_060_000),
     quotedPrice: Decimal? = nil,
-    depositPaid: Decimal? = nil
+    depositPaid: Decimal? = nil,
+    completedAt: Date? = nil
 ) -> Order {
     return Order(
         id: id,
@@ -29,8 +99,63 @@ func makeOrder(
         cakeNotes: nil,
         quotedPrice: quotedPrice,
         depositPaid: depositPaid,
+        completedAt: completedAt,
         createdAt: createdAt,
         updatedAt: createdAt
+    )
+}
+
+func orderWithPayment(
+    _ order: Order,
+    depositPaid: Decimal,
+    updatedAt: Date
+) -> Order {
+    Order(
+        id: order.id,
+        customerId: order.customerId,
+        cakeDesignId: order.cakeDesignId,
+        customerReferencePhotoId: order.customerReferencePhotoId,
+        recipeId: order.recipeId,
+        recipeScaleMultiplier: order.recipeScaleMultiplier,
+        title: order.title,
+        customerName: order.customerName,
+        status: order.status,
+        dueAt: order.dueAt,
+        fulfillmentType: order.fulfillmentType,
+        deliveryAddress: order.deliveryAddress,
+        cakeNotes: order.cakeNotes,
+        cakeMessage: order.cakeMessage,
+        quotedPrice: order.quotedPrice,
+        depositPaid: depositPaid,
+        paymentNotes: order.paymentNotes,
+        completedAt: order.completedAt,
+        createdAt: order.createdAt,
+        updatedAt: updatedAt
+    )
+}
+
+func orderWithoutRecordedPayment(_ order: Order) -> Order {
+    Order(
+        id: order.id,
+        customerId: order.customerId,
+        cakeDesignId: order.cakeDesignId,
+        customerReferencePhotoId: order.customerReferencePhotoId,
+        recipeId: order.recipeId,
+        recipeScaleMultiplier: order.recipeScaleMultiplier,
+        title: order.title,
+        customerName: order.customerName,
+        status: order.status,
+        dueAt: order.dueAt,
+        fulfillmentType: order.fulfillmentType,
+        deliveryAddress: order.deliveryAddress,
+        cakeNotes: order.cakeNotes,
+        cakeMessage: order.cakeMessage,
+        quotedPrice: order.quotedPrice,
+        depositPaid: nil,
+        paymentNotes: order.paymentNotes,
+        completedAt: order.completedAt,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt
     )
 }
 
@@ -186,6 +311,9 @@ func makeIncrementingIdGenerator(prefix: String) -> () -> String {
 }
 
 final class FakeOrderRepository: OrderRepository,
+    CakeDesignOrderUsageRepository,
+    ProjectedIngredientDemandRepository,
+    OrderReminderConfigurationRepository,
     CustomerRepository,
     CustomerImportantDateRepository,
     RecipeRepository,
@@ -198,9 +326,15 @@ final class FakeOrderRepository: OrderRepository,
     OrderIngredientCostRepository,
     OrderStatusChangeRepository,
     OrderExtraIngredientRepository,
+    OrderInventoryReservationRepository,
+    OrderInventoryReservationMutationRepository,
+    OrderReminderPlanOrderMutationRepository,
     OrderChecklistRepository,
-    OrderPhotoRepository {
+    OrderPhotoRepository,
+    PaymentReceiptRepository {
     var orders: [Order] = []
+    var defaultOrderReminderConfiguration = OrderReminderConfiguration.initialDefault
+    var orderReminderConfigurations: [String: OrderReminderConfiguration] = [:]
     var customers: [Customer] = []
     var customerImportantDates: [CustomerImportantDate] = []
     var recipes: [Recipe] = []
@@ -214,16 +348,258 @@ final class FakeOrderRepository: OrderRepository,
     var extraIngredients: [OrderExtraIngredient] = []
     var checklistItems: [OrderChecklistItem] = []
     var orderPhotos: [OrderPhoto] = []
+    var inventoryReservations: [OrderInventoryReservation] = []
+    var inventoryReservationEvents: [OrderInventoryReservationEvent] = []
+    var inventoryReservationRepairs: [OrderInventoryReservationRepair] = []
     var recordedTransactionIds: [String] = []
     var recordRecipeUsageError: Error?
     var changeOrderStatusError: Error?
+    var saveOrderOverrideError: Error?
     var allowInventoryShortageRequests: [Bool] = []
     var savePromotedDesignError: Error?
     var pendingDesignPhotoCleanupPaths: [String] = []
+    var paymentReceipts: [PaymentReceipt] = []
+    var paymentReceiptVoids: [PaymentReceiptVoid] = []
+    var legacyPaidAmounts: [String: Decimal] = [:]
 
     func save(_ order: Order) throws {
+        if let persistedOrder = orders.first(where: { $0.id == order.id }),
+           persistedOrder.depositPaid != order.depositPaid {
+            throw PaymentReceiptPersistenceError.directPaidTotalMutation
+        }
         orders.removeAll { $0.id == order.id }
         orders.append(order)
+    }
+
+    func recordPayment(
+        orderId: String,
+        amount: Decimal,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt {
+        guard amount > 0 else {
+            throw PaymentReceiptPersistenceError.invalidAmount
+        }
+        guard let index = orders.firstIndex(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        guard let quotedPrice = orders[index].quotedPrice else {
+            throw PaymentReceiptPersistenceError.quotedPriceMissing
+        }
+        let updatedPaid = (orders[index].depositPaid ?? 0) + amount
+        guard updatedPaid <= quotedPrice else {
+            throw PaymentReceiptPersistenceError.exceedsBalance
+        }
+        let receipt = PaymentReceipt(
+            id: "receipt-\(paymentReceipts.count + 1)",
+            orderId: orderId,
+            amount: amount,
+            receivedAt: receivedAt,
+            note: TextInputFormatting.optionalText(note ?? ""),
+            createdAt: createdAt,
+            void: nil
+        )
+        paymentReceipts.append(receipt)
+        orders[index] = orderWithPayment(
+            orders[index],
+            depositPaid: updatedPaid,
+            updatedAt: createdAt
+        )
+        return receipt
+    }
+
+    func recordRemainingBalancePayment(
+        orderId: String,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt {
+        guard let order = orders.first(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        guard let balance = order.balanceDue else {
+            throw PaymentReceiptPersistenceError.quotedPriceMissing
+        }
+        return try recordPayment(
+            orderId: orderId,
+            amount: balance,
+            receivedAt: receivedAt,
+            note: note,
+            createdAt: createdAt
+        )
+    }
+
+    func voidPaymentReceipt(
+        receiptId: String,
+        reason: String?,
+        voidedAt: Date,
+        createdAt: Date
+    ) throws -> PaymentReceiptVoid {
+        guard let receiptIndex = paymentReceipts.firstIndex(where: { $0.id == receiptId }) else {
+            throw PaymentReceiptPersistenceError.receiptNotFound
+        }
+        guard paymentReceipts[receiptIndex].void == nil else {
+            throw PaymentReceiptPersistenceError.alreadyVoided
+        }
+        let receipt = paymentReceipts[receiptIndex]
+        guard let orderIndex = orders.firstIndex(where: { $0.id == receipt.orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        let correction = PaymentReceiptVoid(
+            id: "void-\(paymentReceiptVoids.count + 1)",
+            receiptId: receiptId,
+            reason: TextInputFormatting.optionalText(reason ?? ""),
+            voidedAt: voidedAt,
+            createdAt: createdAt
+        )
+        paymentReceiptVoids.append(correction)
+        paymentReceipts[receiptIndex] = PaymentReceipt(
+            id: receipt.id,
+            orderId: receipt.orderId,
+            amount: receipt.amount,
+            receivedAt: receipt.receivedAt,
+            note: receipt.note,
+            createdAt: receipt.createdAt,
+            void: correction
+        )
+        orders[orderIndex] = orderWithPayment(
+            orders[orderIndex],
+            depositPaid: (orders[orderIndex].depositPaid ?? 0) - receipt.amount,
+            updatedAt: voidedAt
+        )
+        return correction
+    }
+
+    func fetchPaymentReceipts(orderId: String) throws -> [PaymentReceipt] {
+        paymentReceipts.filter { $0.orderId == orderId }
+    }
+
+    func fetchLegacyPaidAmount(orderId: String) throws -> Decimal {
+        guard orders.contains(where: { $0.id == orderId }) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        return legacyPaidAmounts[orderId] ?? 0
+    }
+
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients replacement: [OrderExtraIngredient],
+        allowInventoryShortage: Bool
+    ) throws {
+        if allowInventoryShortage, let saveOrderOverrideError {
+            throw saveOrderOverrideError
+        }
+        if let changeOrderStatusError {
+            if case .insufficientStock = changeOrderStatusError as? OrderRecipeUsageError {
+                allowInventoryShortageRequests.append(allowInventoryShortage)
+                if !allowInventoryShortage {
+                    throw changeOrderStatusError
+                }
+            } else {
+                throw changeOrderStatusError
+            }
+        }
+        try save(order)
+        extraIngredients.removeAll { $0.orderId == order.id }
+        extraIngredients.append(contentsOf: replacement)
+    }
+
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients replacement: [OrderExtraIngredient],
+        reminderConfiguration: OrderReminderConfiguration,
+        allowInventoryShortage: Bool
+    ) throws {
+        try saveOrder(
+            order,
+            replacingExtraIngredients: replacement,
+            allowInventoryShortage: allowInventoryShortage
+        )
+        orderReminderConfigurations[order.id] = reminderConfiguration
+    }
+
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients replacement: [OrderExtraIngredient],
+        reminderConfiguration: OrderReminderConfiguration,
+        openingPayment: NewPaymentReceipt?,
+        allowInventoryShortage: Bool
+    ) throws {
+        try saveOrder(
+            order,
+            replacingExtraIngredients: replacement,
+            reminderConfiguration: reminderConfiguration,
+            allowInventoryShortage: allowInventoryShortage
+        )
+        if let openingPayment {
+            _ = try recordPayment(
+                orderId: order.id,
+                amount: openingPayment.amount,
+                receivedAt: openingPayment.receivedAt,
+                note: openingPayment.note,
+                createdAt: openingPayment.createdAt
+            )
+        }
+    }
+
+    func repairOrderInventoryReservations(
+        limit _: Int,
+        at _: Date,
+        activationId _: String
+    ) throws -> OrderInventoryReservationRepairSummary {
+        OrderInventoryReservationRepairSummary(completedCount: 0, failedCount: 0)
+    }
+
+    func fetchOrderInventoryReservations(
+        orderId: String
+    ) throws -> [OrderInventoryReservation] {
+        inventoryReservations.filter { $0.orderId == orderId }
+    }
+
+    func fetchInventoryReservationTotal(
+        inventoryItemId: String,
+        excludingOrderId: String?
+    ) throws -> Double {
+        inventoryReservations
+            .filter {
+                $0.inventoryItemId == inventoryItemId
+                    && $0.orderId != excludingOrderId
+            }
+            .reduce(0) { $0 + $1.requiredQuantity }
+    }
+
+    func fetchOrderInventoryReservationEvents(
+        orderId: String,
+        limit: Int
+    ) throws -> [OrderInventoryReservationEvent] {
+        Array(
+            inventoryReservationEvents
+                .filter { $0.orderId == orderId }
+                .prefix(limit)
+        )
+    }
+
+    func fetchOrderInventoryReservationRepair(
+        orderId: String
+    ) throws -> OrderInventoryReservationRepair? {
+        inventoryReservationRepairs.first { $0.orderId == orderId }
+    }
+
+    func fetchOrderInventoryReservationPlanningSnapshot(
+        orderIds: [String]
+    ) throws -> OrderInventoryReservationPlanningSnapshot {
+        makeInventoryReservationPlanningSnapshot(
+            orderIds: orderIds,
+            orders: orders,
+            usages: usages,
+            reservations: inventoryReservations,
+            repairs: inventoryReservationRepairs,
+            components: recipeComponents,
+            ingredients: recipeIngredients,
+            extras: extraIngredients,
+            batches: inventoryStockBatches
+        )
     }
 
     func fetchOrder(id: String) throws -> Order? {
@@ -234,6 +610,37 @@ final class FakeOrderRepository: OrderRepository,
         orders.sorted { lhs, rhs in
             lhs.dueAt == rhs.dueAt ? lhs.title < rhs.title : lhs.dueAt < rhs.dueAt
         }
+    }
+
+    func fetchDefaultOrderReminderConfiguration() throws -> OrderReminderConfiguration {
+        defaultOrderReminderConfiguration
+    }
+
+    func saveDefaultOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        updatedAt _: Date
+    ) throws {
+        defaultOrderReminderConfiguration = try configuration.snapshotAsDefault()
+    }
+
+    func fetchOrderReminderConfiguration(
+        orderId: String
+    ) throws -> OrderReminderConfiguration? {
+        orderReminderConfigurations[orderId]
+    }
+
+    func fetchOrderReminderConfigurations(
+        orderIds: [String]
+    ) throws -> [String: OrderReminderConfiguration] {
+        orderReminderConfigurations.filter { orderIds.contains($0.key) }
+    }
+
+    func saveOrderReminderConfiguration(
+        _ configuration: OrderReminderConfiguration,
+        orderId: String,
+        updatedAt _: Date
+    ) throws {
+        orderReminderConfigurations[orderId] = configuration
     }
 
     func save(_ customer: Customer) throws {
@@ -607,6 +1014,29 @@ final class FakeOrderRepository: OrderRepository,
             )
         }
 
+        return updatedOrder
+    }
+
+    func changeOrderStatus(
+        order: Order,
+        status: OrderStatus,
+        updatedAt: Date,
+        usageId: String,
+        extraIngredients: [OrderExtraIngredient]?,
+        reminderConfiguration: OrderReminderConfiguration,
+        allowInventoryShortage: Bool,
+        transactionIdProvider: () -> String
+    ) throws -> Order {
+        let updatedOrder = try changeOrderStatus(
+            order: order,
+            status: status,
+            updatedAt: updatedAt,
+            usageId: usageId,
+            extraIngredients: extraIngredients,
+            allowInventoryShortage: allowInventoryShortage,
+            transactionIdProvider: transactionIdProvider
+        )
+        orderReminderConfigurations[order.id] = reminderConfiguration
         return updatedOrder
     }
 

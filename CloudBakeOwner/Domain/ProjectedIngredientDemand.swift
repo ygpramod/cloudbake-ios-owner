@@ -15,40 +15,88 @@ struct ProjectedIngredientShortage: Equatable, Identifiable {
     }
 }
 
+struct ProjectedIngredientDemandSummary: Equatable {
+    let shortages: [ProjectedIngredientShortage]
+    let neededInventoryItemIds: Set<String>
+}
+
+enum ProjectedIngredientDemandError: Error, Equatable {
+    case invalidLiveRequirements(orderId: String)
+}
+
 enum ProjectedIngredientDemand {
-    static func shortages(
+    static func summary(
         inventoryItems: [InventoryItem],
         orders: [Order],
         at date: Date,
-        stockBatches: (String) throws -> [InventoryStockBatch],
-        recipeUsage: (String) throws -> OrderRecipeUsage?,
-        recipeComponents: (String) throws -> [RecipeComponent],
-        recipeIngredients: (String) throws -> [RecipeIngredient],
-        orderExtraIngredients: (String) throws -> [OrderExtraIngredient]
-    ) throws -> [ProjectedIngredientShortage] {
+        planningSnapshot: OrderInventoryReservationPlanningSnapshot
+    ) throws -> ProjectedIngredientDemandSummary {
         let itemsById = Dictionary(uniqueKeysWithValues: inventoryItems.map { ($0.id, $0) })
         var demandByItemId: [String: Demand] = [:]
 
         for order in orders where order.hasActiveReminderState {
-            guard try recipeUsage(order.id) == nil else { continue }
-            let requirements = try OrderIngredientRequirements.requirements(
-                for: order,
-                inventoryItems: inventoryItems,
-                recipeComponents: recipeComponents,
-                recipeIngredients: recipeIngredients,
-                orderExtraIngredients: orderExtraIngredients
-            )
+            guard !planningSnapshot.consumedOrderIds.contains(order.id) else {
+                continue
+            }
+            if order.status == .confirmed || order.status == .inProgress {
+                let reservations = planningSnapshot.reservationsByOrderId[order.id] ?? []
+                let repair = planningSnapshot.repairsByOrderId[order.id]
+                let shouldUseReservations =
+                    !planningSnapshot.invalidOrderIds.contains(order.id)
+                    && (
+                        repair?.state == .complete
+                            || (repair == nil && !reservations.isEmpty)
+                    )
+                if shouldUseReservations,
+                   let committedDemand = committedDemand(
+                       reservations: reservations,
+                       itemsById: itemsById
+                   ) {
+                    for (item, quantity) in committedDemand {
+                        var demand = demandByItemId[item.id] ?? Demand()
+                        let aggregate = demand.quantity + quantity
+                        guard aggregate.isFinite else {
+                            continue
+                        }
+                        demand.quantity = aggregate
+                        demand.orderIds.insert(order.id)
+                        demandByItemId[item.id] = demand
+                    }
+                    continue
+                }
+            }
+            guard !planningSnapshot.invalidLiveRequirementOrderIds.contains(order.id) else {
+                throw ProjectedIngredientDemandError.invalidLiveRequirements(orderId: order.id)
+            }
+            let requirements = planningSnapshot.liveRequirementsByOrderId[order.id] ?? []
             for requirement in requirements {
-                var demand = demandByItemId[requirement.item.id] ?? Demand()
-                demand.quantity += requirement.quantity
+                guard requirement.quantity.isFinite,
+                      requirement.quantity > 0,
+                      let item = itemsById[requirement.inventoryItemId],
+                      let quantity = requirement.unit.convertedQuantity(
+                          requirement.quantity,
+                          to: item.unit
+                      ),
+                      quantity.isFinite,
+                      quantity > 0 else {
+                    continue
+                }
+                var demand = demandByItemId[item.id] ?? Demand()
+                let aggregate = demand.quantity + quantity
+                guard aggregate.isFinite else {
+                    continue
+                }
+                demand.quantity = aggregate
                 demand.orderIds.insert(order.id)
-                demandByItemId[requirement.item.id] = demand
+                demandByItemId[item.id] = demand
             }
         }
 
-        return try demandByItemId.compactMap { inventoryItemId, demand in
+        let shortages: [ProjectedIngredientShortage] = demandByItemId.compactMap {
+            inventoryItemId,
+            demand -> ProjectedIngredientShortage? in
             guard let item = itemsById[inventoryItemId] else { return nil }
-            let batches = try stockBatches(inventoryItemId)
+            let batches = planningSnapshot.stockBatchesByInventoryItemId[inventoryItemId] ?? []
             let availableQuantity = batches.isEmpty
                 ? item.currentQuantity
                 : batches.filter { $0.isUsable(at: date) }.reduce(0) { $0 + $1.remainingQuantity }
@@ -65,6 +113,40 @@ enum ProjectedIngredientDemand {
         }
         .sorted {
             $0.inventoryItemName.localizedCaseInsensitiveCompare($1.inventoryItemName) == .orderedAscending
+        }
+        return ProjectedIngredientDemandSummary(
+            shortages: shortages,
+            neededInventoryItemIds: Set(demandByItemId.keys)
+        )
+    }
+
+    private static func committedDemand(
+        reservations: [OrderInventoryReservation],
+        itemsById: [String: InventoryItem]
+    ) -> [(item: InventoryItem, quantity: Double)]? {
+        var quantitiesByItemId: [String: Double] = [:]
+
+        for reservation in reservations {
+            guard reservation.requiredQuantity.isFinite,
+                  reservation.requiredQuantity > 0,
+                  let item = itemsById[reservation.inventoryItemId],
+                  let quantity = reservation.unit.convertedQuantity(
+                      reservation.requiredQuantity,
+                      to: item.unit
+                  ),
+                  quantity.isFinite,
+                  quantity > 0 else {
+                return nil
+            }
+            let aggregate = quantitiesByItemId[item.id, default: 0] + quantity
+            guard aggregate.isFinite else {
+                return nil
+            }
+            quantitiesByItemId[item.id] = aggregate
+        }
+
+        return quantitiesByItemId.compactMap { itemId, quantity in
+            itemsById[itemId].map { ($0, quantity) }
         }
     }
 

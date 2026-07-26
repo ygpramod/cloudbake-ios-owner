@@ -51,11 +51,11 @@ extension GRDBCoreDataRepository {
 
     func save(_ component: RecipeComponent) throws {
         try writer.write { db in
-            try save(component, in: db)
+            try persistRecipeComponent(component, in: db)
         }
     }
 
-    private func save(_ component: RecipeComponent, in db: Database) throws {
+    func persistRecipeComponent(_ component: RecipeComponent, in db: Database) throws {
         try db.execute(
                 sql: """
                     INSERT INTO recipe_components
@@ -113,9 +113,10 @@ extension GRDBCoreDataRepository {
                     ORDER BY created_at_unix_time ASC, id
                     """,
                 arguments: [componentId]
-            ).compactMap { row in
-                guard let unit = InventoryUnit(rawValue: row["unit"]) else {
-                    return nil
+            ).map { row in
+                let unitValue: String = row["unit"]
+                guard let unit = InventoryUnit(rawValue: unitValue) else {
+                    throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
                 }
 
                 return recipeIngredient(from: row, unit: unit)
@@ -124,21 +125,14 @@ extension GRDBCoreDataRepository {
     }
 
     func deleteRecipeIngredient(id: String) throws {
-        try writer.write { db in
-            try db.execute(
-                sql: "DELETE FROM recipe_ingredients WHERE id = ?",
-                arguments: [id]
-            )
-        }
+        try deleteRecipeIngredient(
+            id: id,
+            updatedAt: Date(),
+            allowInventoryShortage: false
+        )
     }
 
-    func save(_ ingredient: RecipeIngredient) throws {
-        try writer.write { db in
-            try save(ingredient, in: db)
-        }
-    }
-
-    private func save(_ ingredient: RecipeIngredient, in db: Database) throws {
+    func persistRecipeIngredient(_ ingredient: RecipeIngredient, in db: Database) throws {
         try db.execute(
                 sql: """
                     INSERT INTO recipe_ingredients
@@ -173,8 +167,8 @@ extension GRDBCoreDataRepository {
     ) throws {
         try writer.write { db in
             for recipe in recipes { try save(recipe, in: db) }
-            for component in components { try save(component, in: db) }
-            for ingredient in ingredients { try save(ingredient, in: db) }
+            for component in components { try persistRecipeComponent(component, in: db) }
+            for ingredient in ingredients { try persistRecipeIngredient(ingredient, in: db) }
         }
     }
 
@@ -305,9 +299,10 @@ extension GRDBCoreDataRepository {
                          recipe_ingredients.id
                 """,
             arguments: [recipeId]
-        ).compactMap { row in
-            guard let unit = InventoryUnit(rawValue: row["unit"]) else {
-                return nil
+        ).map { row in
+            let unitValue: String = row["unit"]
+            guard let unit = InventoryUnit(rawValue: unitValue) else {
+                throw OrderInventoryReservationPersistenceError.invalidUnit(unitValue)
             }
 
             return recipeIngredient(from: row, unit: unit)

@@ -19,9 +19,13 @@ struct OrderDetailView: View {
     @State private var previewingPhoto: OrderPhoto?
     @State private var isPreviewingLinkedDesign = false
     @State private var isAddingExtraIngredient = false
+    @State private var isConfirmingExtraIngredientInventoryShortage = false
     @State private var editingChecklistItem: OrderChecklistItem?
     @State private var editedChecklistItemTitle = ""
     @State private var partialPaymentAmount = ""
+    @State private var partialPaymentNote = ""
+    @State private var receiptPendingVoid: PaymentReceipt?
+    @State private var paymentVoidReason = ""
     @FocusState private var isChecklistTitleFocused: Bool
 
     init(
@@ -186,6 +190,53 @@ struct OrderDetailView: View {
                     }
                 }
 
+                if let warning = viewModel.selectedOrderInventoryReservationRepairWarning {
+                    CloudBakeDetailCard {
+                        Label(warning, systemImage: "exclamationmark.triangle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 14)
+                    }
+                    .accessibilityIdentifier("orders.detail.inventoryReservationRepairWarning")
+                }
+
+                if !viewModel.selectedOrderInventoryReservations.isEmpty {
+                    CloudBakeSection("Reserved Inventory") {
+                        CloudBakeDetailCard {
+                            ForEach(
+                                Array(viewModel.selectedOrderInventoryReservations.enumerated()),
+                                id: \.element.id
+                            ) { index, row in
+                                if index > 0 {
+                                    CloudBakeDetailDivider()
+                                }
+                                HStack(spacing: 12) {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .foregroundStyle(Color.cloudBakeMint)
+                                        .accessibilityHidden(true)
+                                    Text(row.inventoryItemName)
+                                        .font(.subheadline.weight(.semibold))
+                                    Spacer(minLength: 12)
+                                    Text(
+                                        "\(row.reservation.requiredQuantity.formatted()) \(row.reservation.unit.displayName)"
+                                    )
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                }
+                                .padding(.vertical, 14)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel(
+                                    "\(row.inventoryItemName), \(row.reservation.requiredQuantity.formatted()) \(row.reservation.unit.displayName) reserved"
+                                )
+                                .accessibilityIdentifier(
+                                    "orders.detail.inventoryReservation.\(row.reservation.inventoryItemId)"
+                                )
+                            }
+                        }
+                    }
+                }
+
                 customerSection(order: order)
                 recipeSection(order: order)
                 designSection(order: order)
@@ -213,14 +264,40 @@ struct OrderDetailView: View {
         }
         .sheet(
             isPresented: $isAddingExtraIngredient,
-            onDismiss: viewModel.cancelExtraIngredientEdit
+            onDismiss: cancelExtraIngredientEdit
         ) {
             NavigationStack {
                 OrderExtraIngredientForm(
                     viewModel: viewModel,
                     isPresented: $isAddingExtraIngredient,
-                    onSave: viewModel.addExtraIngredientToSelectedOrder
+                    onSave: saveExtraIngredient
                 )
+                .centeredOrderPopup(
+                    isPresented: isConfirmingExtraIngredientInventoryShortage,
+                    title: "Inventory Shortage",
+                    onCancel: {
+                        isConfirmingExtraIngredientInventoryShortage = false
+                        viewModel.cancelInventoryShortageOverride()
+                    }
+                ) {
+                    Text(viewModel.inventoryShortageWarningMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("orders.extraIngredient.inventoryShortage.message")
+
+                    centeredPopupButton("Continue And Save", role: .destructive) {
+                        if viewModel.addExtraIngredientToSelectedOrder(
+                            allowingInventoryShortage: true
+                        ) {
+                            isConfirmingExtraIngredientInventoryShortage = false
+                            isAddingExtraIngredient = false
+                        } else {
+                            isConfirmingExtraIngredientInventoryShortage = false
+                        }
+                    }
+                    .accessibilityIdentifier("orders.extraIngredient.inventoryShortage.continue")
+                }
             }
         }
         .sheet(
@@ -353,6 +430,37 @@ struct OrderDetailView: View {
             }
         }
         .centeredOrderPopup(
+            isPresented: receiptPendingVoid != nil,
+            title: "Void Payment",
+            cancelAccessibilityIdentifier: "orders.detail.payment.void.cancel",
+            onCancel: {
+                receiptPendingVoid = nil
+                paymentVoidReason = ""
+            }
+        ) {
+            Text("The original payment stays in history and is excluded from totals.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("orders.detail.payment.void.message")
+
+            TextField("Reason (optional)", text: $paymentVoidReason)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("orders.detail.payment.void.reason")
+
+            centeredPopupButton("Void Payment", role: .destructive) {
+                if let receiptPendingVoid {
+                    _ = viewModel.voidPaymentReceipt(
+                        receiptPendingVoid,
+                        reason: paymentVoidReason
+                    )
+                }
+                self.receiptPendingVoid = nil
+                paymentVoidReason = ""
+            }
+            .accessibilityIdentifier("orders.detail.payment.void.confirm")
+        }
+        .centeredOrderPopup(
             isPresented: statusPendingInventoryShortage != nil,
             title: "Inventory Shortage",
             onCancel: {
@@ -408,6 +516,7 @@ struct OrderDetailView: View {
             onCancel: {
                 isAddingPartialPayment = false
                 partialPaymentAmount = ""
+                partialPaymentNote = ""
             }
         ) {
             TextField("Amount", text: $partialPaymentAmount)
@@ -415,23 +524,32 @@ struct OrderDetailView: View {
                 .textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("orders.detail.payment.partial.amount")
 
+            TextField("Note (optional)", text: $partialPaymentNote)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("orders.detail.payment.partial.note")
+
             HStack(spacing: 16) {
                 centeredPopupPillButton("Cancel") {
                     isAddingPartialPayment = false
                     partialPaymentAmount = ""
+                    partialPaymentNote = ""
                 }
                 .accessibilityIdentifier("orders.detail.payment.partial.cancel")
 
                 centeredPopupPillButton("Save") {
-                    if viewModel.addPaymentToSelectedOrder(amountText: partialPaymentAmount) {
+                    if viewModel.addPaymentToSelectedOrder(
+                        amountText: partialPaymentAmount,
+                        note: partialPaymentNote
+                    ) {
                         isAddingPartialPayment = false
                         partialPaymentAmount = ""
+                        partialPaymentNote = ""
                     }
                 }
                 .accessibilityIdentifier("orders.detail.payment.partial.save")
             }
         }
-        .sheet(isPresented: $isEditingOrder, onDismiss: viewModel.cancelEditingOrder) {
+        .sheet(isPresented: $isEditingOrder, onDismiss: cancelEditingOrder) {
             NavigationStack {
                 OrderForm(
                     title: "Edit Order",
@@ -772,6 +890,7 @@ struct OrderDetailView: View {
 
                             Button("Add Partial Payment") {
                                 partialPaymentAmount = ""
+                                partialPaymentNote = ""
                                 isAddingPartialPayment = true
                             }
                             .accessibilityIdentifier("orders.detail.payment.partial")
@@ -837,8 +956,90 @@ struct OrderDetailView: View {
                             .accessibilityIdentifier("orders.detail.balanceDue")
                     }
                 }
+
+                if viewModel.selectedOrderLegacyPaidAmount > 0 {
+                    CloudBakeDetailDivider()
+                    paymentHistoryRow(
+                        title: "Legacy payment — date unknown",
+                        amount: viewModel.selectedOrderLegacyPaidAmount,
+                        detail: nil,
+                        isVoided: false,
+                        receipt: nil
+                    )
+                    .accessibilityIdentifier("orders.detail.payment.legacy")
+                }
+
+                ForEach(viewModel.selectedOrderPaymentReceipts, id: \.id) { receipt in
+                    CloudBakeDetailDivider()
+                    paymentHistoryRow(
+                        title: receipt.receivedAt.formatted(
+                            date: .abbreviated,
+                            time: .shortened
+                        ),
+                        amount: receipt.amount,
+                        detail: paymentReceiptDetail(receipt),
+                        isVoided: receipt.isVoided,
+                        receipt: receipt
+                    )
+                    .accessibilityIdentifier("orders.detail.payment.receipt.\(receipt.id)")
+                }
             }
         }
+    }
+
+    private func paymentHistoryRow(
+        title: String,
+        amount: Decimal,
+        detail: String?,
+        isVoided: Bool,
+        receipt: PaymentReceipt?
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(isVoided ? .secondary : .primary)
+                if let detail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(isVoided ? .red : .secondary)
+                }
+            }
+            Spacer()
+            Text(formattedMoney(amount))
+                .font(.subheadline.weight(.semibold))
+                .strikethrough(isVoided)
+                .foregroundStyle(isVoided ? .secondary : .primary)
+            if let receipt, !receipt.isVoided {
+                Menu {
+                    Button("Void Payment", role: .destructive) {
+                        paymentVoidReason = ""
+                        receiptPendingVoid = receipt
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Payment Actions")
+            }
+        }
+        .padding(.vertical, 12)
+    }
+
+    private func paymentReceiptDetail(_ receipt: PaymentReceipt) -> String? {
+        var details = [String]()
+        if let note = receipt.note {
+            details.append(note)
+        }
+        if let correction = receipt.void {
+            var correctionText = "Voided \(correction.voidedAt.formatted(date: .abbreviated, time: .shortened))"
+            if let reason = correction.reason {
+                correctionText += " — \(reason)"
+            }
+            details.append(correctionText)
+        }
+        return details.isEmpty ? nil : details.joined(separator: "\n")
     }
 
     private var checklistSection: some View {
@@ -894,7 +1095,30 @@ struct OrderDetailView: View {
             return false
         }
 
-        return viewModel.saveEditedOrder()
+        let didSave = viewModel.saveEditedOrder()
+        if !didSave, !viewModel.pendingInventoryShortages.isEmpty {
+            isConfirmingEditedOrderInventoryShortage = true
+        }
+        return didSave
+    }
+
+    private func saveExtraIngredient() -> Bool {
+        let didSave = viewModel.addExtraIngredientToSelectedOrder()
+        if !didSave, !viewModel.pendingInventoryShortages.isEmpty {
+            isConfirmingExtraIngredientInventoryShortage = true
+        }
+        return didSave
+    }
+
+    private func cancelExtraIngredientEdit() {
+        isConfirmingExtraIngredientInventoryShortage = false
+        viewModel.cancelExtraIngredientEdit()
+    }
+
+    private func cancelEditingOrder() {
+        isConfirmingEditedOrderInventoryDeduction = false
+        isConfirmingEditedOrderInventoryShortage = false
+        viewModel.cancelEditingOrder()
     }
 
     private func cancelChecklistEdit() {

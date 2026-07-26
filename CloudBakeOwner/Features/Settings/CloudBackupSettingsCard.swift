@@ -85,70 +85,6 @@ struct CloudBackupSettingsCard: View {
                     .accessibilityIdentifier("settings.cloudBackup.actionMessage")
             }
         }
-        .cloudBakeCenteredPopup(
-            isPresented: viewModel.pendingAccountProposal != nil,
-            title: "Use This iCloud Account?",
-            subtitle: "CloudBake will publish a complete recovery backup to the private iCloud account currently signed in on this iPhone. Confirm only if this is the intended account.",
-            systemImage: "person.crop.circle.badge.checkmark",
-            cancelAccessibilityIdentifier: "settings.cloudBackup.account.cancel",
-            onCancel: {
-                Task { await viewModel.cancelAccountBackup() }
-            }
-        ) {
-            centeredPopupButton("Confirm iCloud Account") {
-                Task { await viewModel.confirmAccountBackup() }
-            }
-            .accessibilityIdentifier("settings.cloudBackup.account.confirm")
-        }
-        .cloudBakeCenteredPopup(
-            isPresented: viewModel.pendingCellularProposal != nil,
-            title: "Use Cellular Data?",
-            subtitle: cellularConfirmationDescription,
-            systemImage: "antenna.radiowaves.left.and.right",
-            cancelAccessibilityIdentifier: "settings.cloudBackup.cellular.cancel",
-            onCancel: {
-                Task { await viewModel.cancelCellularBackup() }
-            }
-        ) {
-            centeredPopupButton("Back Up Using Cellular") {
-                Task { await viewModel.confirmCellularBackup() }
-            }
-            .accessibilityIdentifier("settings.cloudBackup.cellular.confirm")
-        }
-        .cloudBakeCenteredPopup(
-            isPresented: viewModel.pendingUnavailablePhotoProposal != nil
-                && !viewModel.isConfirmingUnavailablePhotoRemoval,
-            title: "Unavailable Photos",
-            subtitle: unavailablePhotoDescription,
-            systemImage: "photo.badge.exclamationmark",
-            cancelAccessibilityIdentifier: "settings.cloudBackup.photos.cancel",
-            onCancel: {
-                Task { await viewModel.cancelUnavailablePhotoDecision() }
-            }
-        ) {
-            centeredPopupButton("Back Up Without Photos") {
-                Task { await viewModel.approveUnavailablePhotoOmissions() }
-            }
-            .accessibilityIdentifier("settings.cloudBackup.photos.omit")
-
-            centeredPopupButton("Remove From CloudBake And Back Up", role: .destructive) {
-                viewModel.requestUnavailablePhotoRemoval()
-            }
-            .accessibilityIdentifier("settings.cloudBackup.photos.remove")
-        }
-        .cloudBakeCenteredPopup(
-            isPresented: viewModel.isConfirmingUnavailablePhotoRemoval,
-            title: "Remove Broken References?",
-            subtitle: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
-            systemImage: "trash",
-            cancelAccessibilityIdentifier: "settings.cloudBackup.photos.remove.cancel",
-            onCancel: { viewModel.cancelUnavailablePhotoRemoval() }
-        ) {
-            centeredPopupButton("Remove And Back Up", role: .destructive) {
-                Task { await viewModel.confirmUnavailablePhotoRemoval() }
-            }
-            .accessibilityIdentifier("settings.cloudBackup.photos.remove.confirm")
-        }
     }
 
     private var backupAction: some View {
@@ -181,8 +117,81 @@ struct CloudBackupSettingsCard: View {
         .disabled(!viewModel.canBackUpNow)
         .accessibilityIdentifier("settings.cloudBackup.backUpNow")
     }
+}
 
-    private var cellularConfirmationDescription: String {
+extension View {
+    func cloudBackupPrompts(
+        viewModel: CloudBackupSettingsViewModel
+    ) -> some View {
+        cloudBakeCenteredPopup(
+            isPresented: viewModel.pendingAccountProposal != nil,
+            title: "Use This iCloud Account?",
+            subtitle: "CloudBake will publish a complete recovery backup to the private iCloud account currently signed in on this iPhone. Confirm only if this is the intended account.",
+            systemImage: "person.crop.circle.badge.checkmark",
+            cancelAccessibilityIdentifier: "settings.cloudBackup.account.cancel",
+            onCancel: {
+                Task { await viewModel.cancelAccountBackup() }
+            }
+        ) {
+            centeredPopupButton("Confirm iCloud Account") {
+                Task { await viewModel.confirmAccountBackup() }
+            }
+            .accessibilityIdentifier("settings.cloudBackup.account.confirm")
+        }
+        .cloudBakeCenteredPopup(
+            isPresented: viewModel.pendingCellularProposal != nil,
+            title: "Use Cellular Data?",
+            subtitle: cellularConfirmationDescription(for: viewModel),
+            systemImage: "antenna.radiowaves.left.and.right",
+            cancelAccessibilityIdentifier: "settings.cloudBackup.cellular.cancel",
+            onCancel: {
+                Task { await viewModel.cancelCellularBackup() }
+            }
+        ) {
+            centeredPopupButton("Back Up Using Cellular") {
+                Task { await viewModel.confirmCellularBackup() }
+            }
+            .accessibilityIdentifier("settings.cloudBackup.cellular.confirm")
+        }
+        .cloudBakeCenteredPopup(
+            isPresented: viewModel.pendingUnavailablePhotoProposal != nil
+                && !viewModel.isConfirmingUnavailablePhotoRemoval,
+            title: "Unavailable Photos",
+            subtitle: unavailablePhotoDescription(for: viewModel),
+            systemImage: "photo.badge.exclamationmark",
+            cancelAccessibilityIdentifier: "settings.cloudBackup.photos.cancel",
+            onCancel: {
+                Task { await viewModel.cancelUnavailablePhotoDecision() }
+            }
+        ) {
+            centeredPopupButton("Back Up Without Photos") {
+                Task { await viewModel.approveUnavailablePhotoOmissions() }
+            }
+            .accessibilityIdentifier("settings.cloudBackup.photos.omit")
+
+            centeredPopupButton("Remove From CloudBake And Back Up", role: .destructive) {
+                viewModel.requestUnavailablePhotoRemoval()
+            }
+            .accessibilityIdentifier("settings.cloudBackup.photos.remove")
+        }
+        .cloudBakeCenteredPopup(
+            isPresented: viewModel.isConfirmingUnavailablePhotoRemoval,
+            title: "Remove Broken References?",
+            subtitle: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
+            systemImage: "trash",
+            cancelAccessibilityIdentifier: "settings.cloudBackup.photos.remove.cancel",
+            onCancel: { viewModel.cancelUnavailablePhotoRemoval() }
+        ) {
+            centeredPopupButton("Remove And Back Up", role: .destructive) {
+                Task { await viewModel.confirmUnavailablePhotoRemoval() }
+            }
+            .accessibilityIdentifier("settings.cloudBackup.photos.remove.confirm")
+        }
+    }
+
+    private func cellularConfirmationDescription(
+        for viewModel: CloudBackupSettingsViewModel
+    ) -> String {
         guard let proposal = viewModel.pendingCellularProposal else {
             return "CloudBake needs your confirmation before using cellular data."
         }
@@ -193,7 +202,9 @@ struct CloudBackupSettingsCard: View {
         return "This backup is approximately \(size). Cellular charges may apply."
     }
 
-    private var unavailablePhotoDescription: String {
+    private func unavailablePhotoDescription(
+        for viewModel: CloudBackupSettingsViewModel
+    ) -> String {
         let count = viewModel.pendingUnavailablePhotoProposal?.unavailablePhotoCount ?? 0
         return "CloudBake found \(count) linked photo\(count == 1 ? "" : "s") that no longer exist\(count == 1 ? "s" : "") in Photos. Continue without \(count == 1 ? "it" : "them"), remove the broken CloudBake references, or cancel. Your previous backup is unchanged."
     }

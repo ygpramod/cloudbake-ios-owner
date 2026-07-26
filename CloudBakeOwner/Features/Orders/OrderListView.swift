@@ -14,6 +14,7 @@ struct OrderListView: View {
     @State private var orderAddingPartialPayment: Order?
     @State private var partialPaymentAmount = ""
     @State private var canOpenWhatsApp = false
+    @State private var isConfirmingAddedOrderInventoryShortage = false
     @FocusState private var isSearchFocused: Bool
 
     init(viewModel: OrderListViewModel) {
@@ -22,14 +23,36 @@ struct OrderListView: View {
 
     var body: some View {
         orderList
-        .sheet(isPresented: $isAddingOrder, onDismiss: viewModel.cancelAddOrder) {
+        .sheet(isPresented: $isAddingOrder, onDismiss: cancelAddingOrder) {
             NavigationStack {
                 OrderForm(
                     viewModel: viewModel,
                     isPresented: $isAddingOrder,
                     onCancel: viewModel.cancelAddOrder,
-                    onSave: viewModel.addOrder
+                    onSave: saveAddedOrder
                 )
+                .centeredOrderPopup(
+                    isPresented: isConfirmingAddedOrderInventoryShortage,
+                    title: "Inventory Shortage",
+                    onCancel: {
+                        isConfirmingAddedOrderInventoryShortage = false
+                        viewModel.cancelInventoryShortageOverride()
+                    }
+                ) {
+                    Text(viewModel.inventoryShortageWarningMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("orders.form.inventoryShortage.message")
+
+                    centeredPopupButton("Continue And Save", role: .destructive) {
+                        if viewModel.addOrder(allowingInventoryShortage: true) {
+                            isConfirmingAddedOrderInventoryShortage = false
+                            isAddingOrder = false
+                        }
+                    }
+                    .accessibilityIdentifier("orders.form.inventoryShortage.continue")
+                }
             }
         }
         .sheet(isPresented: $isViewingOrder, onDismiss: viewModel.closeOrderDetail) {
@@ -53,6 +76,19 @@ struct OrderListView: View {
             openPendingNewOrder()
         }
         .accessibilityIdentifier(AppDestination.orders.screenAccessibilityIdentifier)
+    }
+
+    private func saveAddedOrder() -> Bool {
+        let didSave = viewModel.addOrder()
+        if !didSave, !viewModel.pendingInventoryShortages.isEmpty {
+            isConfirmingAddedOrderInventoryShortage = true
+        }
+        return didSave
+    }
+
+    private func cancelAddingOrder() {
+        isConfirmingAddedOrderInventoryShortage = false
+        viewModel.cancelAddOrder()
     }
 
     private var orderList: some View {
@@ -232,6 +268,20 @@ struct OrderListView: View {
                 }
             }
 
+            if orderScope == .active, viewModel.canLoadMoreActiveOrders {
+                loadMoreOrdersButton(
+                    title: "Load More Active Orders",
+                    accessibilityIdentifier: "orders.active.loadMore",
+                    action: viewModel.loadMoreActiveOrders
+                )
+            } else if orderScope == .completed, viewModel.canLoadMoreCompletedOrders {
+                loadMoreOrdersButton(
+                    title: "Load More Completed Orders",
+                    accessibilityIdentifier: "orders.completed.loadMore",
+                    action: viewModel.loadMoreCompletedOrders
+                )
+            }
+
             if let errorMessage = viewModel.errorMessage {
                 CloudBakeErrorBanner(
                     message: errorMessage,
@@ -239,6 +289,22 @@ struct OrderListView: View {
                 )
             }
         }
+    }
+
+    private func loadMoreOrdersButton(
+        title: String,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.cloudBakePink)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 
     private func orderRow(

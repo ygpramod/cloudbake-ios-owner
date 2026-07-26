@@ -422,6 +422,7 @@ struct Order: Equatable {
     let quotedPrice: Decimal?
     let depositPaid: Decimal?
     let paymentNotes: String?
+    let completedAt: Date?
     let createdAt: Date
     let updatedAt: Date
 
@@ -450,6 +451,12 @@ struct Order: Equatable {
         return "Part Paid"
     }
 
+    func hasPaymentPending(at date: Date) -> Bool {
+        status == .completed
+            && dueAt <= date
+            && (balanceDue ?? 0) > 0
+    }
+
     init(
         id: String,
         customerId: String?,
@@ -468,6 +475,7 @@ struct Order: Equatable {
         quotedPrice: Decimal? = nil,
         depositPaid: Decimal? = nil,
         paymentNotes: String? = nil,
+        completedAt: Date? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -488,6 +496,7 @@ struct Order: Equatable {
         self.quotedPrice = quotedPrice
         self.depositPaid = depositPaid
         self.paymentNotes = paymentNotes
+        self.completedAt = completedAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -566,6 +575,225 @@ struct OrderExtraIngredient: Equatable {
     let updatedAt: Date
 }
 
+struct OrderInventoryReservation: Equatable {
+    let id: String
+    let orderId: String
+    let inventoryItemId: String
+    let requiredQuantity: Double
+    let unit: InventoryUnit
+    let createdAt: Date
+    let updatedAt: Date
+}
+
+enum OrderInventoryReservationEventKind: String, Equatable {
+    case created
+    case quantityChanged
+    case released
+    case repairFailed
+}
+
+enum OrderInventoryReservationEventReason: String, Equatable {
+    case orderConfirmed
+    case orderEdited
+    case orderReopened
+    case orderCancelled
+    case inventoryConsumed
+    case recipeEdited
+    case migrationRepair
+}
+
+struct OrderInventoryReservationEvent: Equatable {
+    let id: String
+    let orderId: String
+    let inventoryItemId: String?
+    let kind: OrderInventoryReservationEventKind
+    let reason: OrderInventoryReservationEventReason
+    let previousQuantity: Double
+    let newQuantity: Double
+    let unit: InventoryUnit?
+    let occurredAt: Date
+}
+
+enum OrderInventoryReservationRepairState: String, Equatable {
+    case pending
+    case complete
+    case failed
+}
+
+enum OrderInventoryReservationRepairFailureCode: String, Equatable {
+    case missingInventoryItem
+    case incompatibleUnit
+    case invalidRequirements
+}
+
+struct OrderInventoryReservationRepair: Equatable {
+    let orderId: String
+    let state: OrderInventoryReservationRepairState
+    let attemptCount: Int
+    let lastAttemptedAt: Date?
+    let failureCode: OrderInventoryReservationRepairFailureCode?
+    let updatedAt: Date
+}
+
+struct OrderInventoryReservationRepairSummary: Equatable {
+    let completedCount: Int
+    let failedCount: Int
+    let hasMore: Bool
+
+    init(
+        completedCount: Int,
+        failedCount: Int,
+        hasMore: Bool = false
+    ) {
+        self.completedCount = completedCount
+        self.failedCount = failedCount
+        self.hasMore = hasMore
+    }
+}
+
+struct OrderInventoryReservationPlanningSnapshot: Equatable {
+    let consumedOrderIds: Set<String>
+    let reservationsByOrderId: [String: [OrderInventoryReservation]]
+    let repairsByOrderId: [String: OrderInventoryReservationRepair]
+    let invalidOrderIds: Set<String>
+    let invalidLiveRequirementOrderIds: Set<String>
+    let liveRequirementsByOrderId: [String: [OrderInventoryRequirement]]
+    let stockBatchesByInventoryItemId: [String: [InventoryStockBatch]]
+
+    static let empty = OrderInventoryReservationPlanningSnapshot(
+        consumedOrderIds: [],
+        reservationsByOrderId: [:],
+        repairsByOrderId: [:],
+        invalidOrderIds: [],
+        invalidLiveRequirementOrderIds: [],
+        liveRequirementsByOrderId: [:],
+        stockBatchesByInventoryItemId: [:]
+    )
+}
+
+struct OrderInventoryRequirement: Equatable {
+    let inventoryItemId: String
+    let quantity: Double
+    let unit: InventoryUnit
+}
+
+enum OrderReminderConfigurationMode: String, Equatable {
+    case defaultSnapshot
+    case custom
+    case disabled
+}
+
+enum OrderReminderConfigurationError: Error, Equatable {
+    case invalidDayOffset(Int)
+    case duplicateDayOffset(Int)
+    case emptyEnabledSchedule
+    case invalidDisabledSchedule
+}
+
+struct OrderReminderConfiguration: Equatable {
+    static let initialDefault = OrderReminderConfiguration(
+        validatedMode: .defaultSnapshot,
+        dayOffsets: [3, 2, 1],
+        includesDueTime: true
+    )
+
+    static let disabled = OrderReminderConfiguration(
+        validatedMode: .disabled,
+        dayOffsets: [],
+        includesDueTime: false
+    )
+
+    let mode: OrderReminderConfigurationMode
+    let dayOffsets: [Int]
+    let includesDueTime: Bool
+
+    init(
+        mode: OrderReminderConfigurationMode,
+        dayOffsets: [Int],
+        includesDueTime: Bool
+    ) throws {
+        if mode == .disabled {
+            guard dayOffsets.isEmpty, !includesDueTime else {
+                throw OrderReminderConfigurationError.invalidDisabledSchedule
+            }
+            self.mode = mode
+            self.dayOffsets = []
+            self.includesDueTime = false
+            return
+        }
+
+        var seenOffsets = Set<Int>()
+        for offset in dayOffsets {
+            guard (1...30).contains(offset) else {
+                throw OrderReminderConfigurationError.invalidDayOffset(offset)
+            }
+            guard seenOffsets.insert(offset).inserted else {
+                throw OrderReminderConfigurationError.duplicateDayOffset(offset)
+            }
+        }
+        guard !dayOffsets.isEmpty || includesDueTime else {
+            throw OrderReminderConfigurationError.emptyEnabledSchedule
+        }
+
+        self.mode = mode
+        self.dayOffsets = dayOffsets.sorted(by: >)
+        self.includesDueTime = includesDueTime
+    }
+
+    private init(
+        validatedMode mode: OrderReminderConfigurationMode,
+        dayOffsets: [Int],
+        includesDueTime: Bool
+    ) {
+        self.mode = mode
+        self.dayOffsets = dayOffsets
+        self.includesDueTime = includesDueTime
+    }
+
+    var isEnabled: Bool {
+        mode != .disabled
+    }
+
+    func snapshotAsDefault() throws -> OrderReminderConfiguration {
+        try OrderReminderConfiguration(
+            mode: .defaultSnapshot,
+            dayOffsets: dayOffsets,
+            includesDueTime: includesDueTime
+        )
+    }
+}
+
+enum PaymentReminderConfigurationError: Error, Equatable {
+    case invalidHour(Int)
+    case invalidMinute(Int)
+}
+
+struct PaymentReminderConfiguration: Equatable {
+    static let initialDefault = PaymentReminderConfiguration(
+        validatedHour: 9,
+        minute: 0
+    )
+
+    let hour: Int
+    let minute: Int
+
+    init(hour: Int, minute: Int) throws {
+        guard (0...23).contains(hour) else {
+            throw PaymentReminderConfigurationError.invalidHour(hour)
+        }
+        guard (0...59).contains(minute) else {
+            throw PaymentReminderConfigurationError.invalidMinute(minute)
+        }
+        self.hour = hour
+        self.minute = minute
+    }
+
+    private init(validatedHour hour: Int, minute: Int) {
+        self.hour = hour
+        self.minute = minute
+    }
+}
+
 struct OrderChecklistItem: Equatable {
     let id: String
     let orderId: String
@@ -616,12 +844,19 @@ struct OrderPhoto: Equatable {
 }
 
 enum OrderRecipeUsageError: Error, Equatable {
+    case orderNotFound
     case orderHasNoLinkedRecipe
     case alreadyRecorded
+    case inventoryConsumptionRequired
     case recipeHasNoIngredients
     case missingInventoryItem(String)
     case incompatibleIngredientUnit(itemName: String)
+    case invalidIngredientQuantity(itemName: String)
     case insufficientStock([OrderInventoryShortage])
+}
+
+enum OrderExtraIngredientError: Error, Equatable {
+    case orderReassignmentNotAllowed
 }
 
 struct OrderInventoryShortage: Equatable, Identifiable {

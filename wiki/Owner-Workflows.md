@@ -169,8 +169,8 @@ catch-up notifications when the app is opened after the 9 AM reminder time.
 Open Reminders from the dashboard to review the owner's operational reminder list in one place.
 The screen shows:
 
-1. payment due Ready or Completed orders with a reminder message, WhatsApp action, and Mark as Paid
-   action,
+1. payment due orders that are Completed, past their due time, and still have a balance, with a
+   reminder message, WhatsApp action, and Mark as Paid action,
 2. orders due today with order name and customer name,
 3. low inventory with item name and current/minimum quantity.
 
@@ -181,20 +181,29 @@ For Payment Due, WhatsApp Reminder appears only when WhatsApp is installed. It o
 prefilled customer payment reminder using the linked customer phone number. Mark as Paid asks for
 confirmation, then sets the order paid and removes the payment reminder.
 
+CloudBake also schedules at most one aggregate Payment Pending notification per day while any order
+meets the same rule. It shows the number of outstanding completed orders and their combined balance
+rather than consuming one notification slot per order. CloudBake maintains a rolling 14-day local
+schedule and refreshes it whenever the app opens or returns to the foreground. Open Settings →
+Order Reminders to choose the daily time; the default is 9:00 AM. Tapping the notification opens
+Reports on the Outstanding Payment Ledger.
+
 Reminder order and inventory rows open their detail screens in place so the owner stays in the
 Reminders workflow.
 
-Order detail shows the next relevant reminder from the three-day, two-day, and one-day reminder
-plan.
+Order detail shows the next relevant reminder from the order's saved reminder plan.
 
 When notification permission is granted, CloudBake schedules local owner notifications for
-Confirmed, In Progress, and Ready orders at future three-day, two-day, one-day, and due-time
-reminder times. The due-time notification says the order was due and asks the owner to update
-status. Tapping an order notification opens the matching order.
+Confirmed, In Progress, and Ready orders at future times in each order's saved plan. The default
+plan is three days, two days, one day, and due time. Settings can change the defaults copied to new
+orders. Add/Edit Order can retain that order's saved default plan, use custom day offsets and an
+optional due-time reminder, or turn reminders off. Existing orders keep their saved plan when the
+global defaults change. The due-time notification says the order was due and asks the owner to
+update status. Tapping an order notification opens the matching order.
 
 Draft, Completed, Cancelled, past-due, and already-missed reminders are not scheduled.
 
-Reminder snooze, configurable offsets, and calendar integration remain future work.
+Reminder snooze and calendar integration remain future work.
 
 ## Switch Order Tabs
 
@@ -468,10 +477,10 @@ focused sheet on supported iPhones.
 
 The Orders screen no longer has a standalone Reminders Due section. Order detail shows the next
 reminder for that cake. Completed and cancelled orders do not appear in due reminder calculations.
-Confirmed, In Progress, and Ready orders also schedule local owner notifications for future
-three-day, two-day, one-day, and due-time reminder times. If an active order has passed its due
-time, CloudBake shows an Overdue pill on the order row and an update-status banner for the earliest
-overdue order. Snooze, configurable reminder offsets, and calendar integration are future work.
+Confirmed, In Progress, and Ready orders also schedule local owner notifications using the order's
+saved default or custom reminder plan. If an active order has passed its due time, CloudBake shows
+an Overdue pill on the order row and an update-status banner for the earliest overdue order. Snooze
+and calendar integration are future work.
 
 Customer record selection opens from the order form. The owner can search customers by name, phone,
 email, or address, select a saved customer, or clear the link and keep manually entered order text.
@@ -531,12 +540,17 @@ Extra ingredients show as a simple quantity list, can be deleted before recipe u
 and are deducted with the linked recipe as exact order quantities. Stock batches are consumed
 oldest-expiry-first. Before deduction, CloudBake compares usable non-expired inventory with the
 combined scaled recipe and extra-ingredient demand from every active order. A shortage appears on
-each contributing order and in Dashboard and Reminders. This projection does not reserve or deduct
-stock and disappears after usage is recorded or the order is Completed or Cancelled.
+each contributing order and in Dashboard and Reminders.
+
+Confirmed and In Progress orders persist that full demand as an inventory reservation. Order detail
+shows the reserved item names and quantities in a compact Reserved Inventory section. Draft demand
+remains forecast-only. Editing a reserved order or one of its recipe ingredients replaces every
+affected reservation atomically; a shortage requires explicit confirmation but does not block the
+owner. Cancelling or returning to Draft releases the claim. Ready or Completed consumes inventory
+once and releases it, and reopening a consumed order never reserves or deducts it again.
 
 The usage can be recorded only once for the order to prevent accidental double deduction. Partial
-recipe usage, multi-recipe orders, inventory reservation, and
-serving/yield modeling remain future work.
+recipe usage, multi-recipe orders, and serving/yield modeling remain future work.
 
 Order detail includes a Checklist section for owner preparation tasks such as crumb coat, topper
 pickup, box ready, or final photo. The owner can add checklist items, edit item titles, and tap any
@@ -544,11 +558,35 @@ checklist row to mark it complete or incomplete. Checklist items stay in entry o
 deleted from order detail. Checklist reordering, templates, and checklist-driven status changes are
 future work.
 
-Order add/edit includes a Pricing And Payment section for the owner-entered quoted price, deposit
-paid, and payment notes. Order detail shows payment status, quoted price, deposit paid, and derived
-balance due. From order detail, the owner can mark the order Paid or add a partial payment without
-opening full edit. Marking Paid sets the paid amount to the quoted price and makes balance due zero.
-Adding a partial payment asks for the newly received amount and adds it to the existing paid amount.
+Add Order includes quoted price, an optional initial payment, and payment notes. The initial payment
+is saved atomically with the order as its opening receipt. Amount Paid is read-only in Edit Order.
+Order detail shows payment status, quoted price, amount paid, balance due, legacy payment when
+applicable, and dated receipt history. Mark Paid records only the remaining balance; Add Partial
+Payment records exactly the newly received amount.
+
+To correct a payment, open its actions in order detail and choose Void Payment. An optional reason
+can be entered. CloudBake keeps the original receipt and correction visible, removes the voided
+amount from totals, and allows the correct amount to be recorded as a new receipt.
+
+## Review Business Reports
+
+Open More → Reports. The default is Payment Ledger → Outstanding for the rolling year ending today,
+grouped by month. Choose Day, Week, or Month, adjust the date range up to 366 days, and include or
+exclude order statuses.
+
+Payment Ledger has:
+
+1. Outstanding, grouped by order due date, with balance and overdue days;
+2. Received, grouped by each receipt's received date, with its early/on-time/late difference from
+   the order due date.
+
+Order Profitability shows order-by-order quoted price, ingredient cost, ingredient margin, amount
+paid, and balance due. Active orders use estimated ingredient cost; Completed orders use actual
+consumption cost. Partial cost remains visible with a missing-price warning.
+
+Sales & Orders shows each selected period's order count, quoted total, average quoted value,
+received, outstanding, and status breakdown. Tap a period for its bounded order drill-down. Tap
+payment or profitability rows to open the order.
 
 When a linked recipe has inventory-backed ingredients, the order form shows Estimated Ingredient
 Cost beside the quoted-price input so the owner can use it while preparing a quote. The estimate
@@ -569,9 +607,9 @@ status transitions that deduct recipe inventory retain explicit centered confirm
 suggestions,
 discounts, refunds, and online payment processing remain future work.
 
-Future order slices should add reminder snooze, configurable reminders, partial recipe usage,
-multi-recipe orders, inventory reservation, checklist reordering/templates, pricing calculation,
-and richer order photo/design library workflows.
+Future order slices should add reminder snooze, partial recipe usage,
+multi-recipe orders, checklist reordering/templates, pricing calculation, and richer order
+photo/design library workflows.
 
 ## Customer Workflow
 

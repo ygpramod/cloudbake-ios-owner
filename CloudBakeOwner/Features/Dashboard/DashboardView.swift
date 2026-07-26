@@ -412,7 +412,9 @@ private struct DashboardDivider: View {
 private final class PreviewDashboardInventoryItemRepository: InventoryItemRepository,
     InventoryStockBatchRepository,
     OrderRepository,
+    ProjectedIngredientDemandRepository,
     OrderRecipeUsageRepository,
+    OrderInventoryReservationRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
     OrderExtraIngredientRepository {
@@ -458,6 +460,38 @@ private final class PreviewDashboardInventoryItemRepository: InventoryItemReposi
         usedAt: Date,
         transactionIdProvider: () -> String
     ) throws {}
+
+    func fetchOrderInventoryReservations(
+        orderId _: String
+    ) throws -> [OrderInventoryReservation] {
+        []
+    }
+
+    func fetchInventoryReservationTotal(
+        inventoryItemId _: String,
+        excludingOrderId _: String?
+    ) throws -> Double {
+        0
+    }
+
+    func fetchOrderInventoryReservationEvents(
+        orderId _: String,
+        limit _: Int
+    ) throws -> [OrderInventoryReservationEvent] {
+        []
+    }
+
+    func fetchOrderInventoryReservationRepair(
+        orderId _: String
+    ) throws -> OrderInventoryReservationRepair? {
+        nil
+    }
+
+    func fetchOrderInventoryReservationPlanningSnapshot(
+        orderIds _: [String]
+    ) throws -> OrderInventoryReservationPlanningSnapshot {
+        .empty
+    }
 
     func save(_ batch: InventoryStockBatch) throws {}
 

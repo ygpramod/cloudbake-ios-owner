@@ -63,53 +63,272 @@ final class ProjectedIngredientDemandTests: XCTestCase {
         XCTAssertEqual(shortages[0].missingQuantity, 50, accuracy: 0.001)
     }
 
+    func testUsesCommittedReservationOnceAndAddsDraftForecast() throws {
+        let item = makeItem(quantity: 400)
+        let confirmed = makeDemandOrder(
+            id: "confirmed",
+            status: .confirmed,
+            scale: 1
+        )
+        let draft = makeDemandOrder(
+            id: "draft",
+            status: .draft,
+            scale: 1
+        )
+        let reservation = OrderInventoryReservation(
+            id: "confirmed:flour",
+            orderId: confirmed.id,
+            inventoryItemId: item.id,
+            requiredQuantity: 300,
+            unit: .gram,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        let shortages = try shortages(
+            item: item,
+            orders: [confirmed, draft],
+            recipeQuantity: 150,
+            reservations: [confirmed.id: [reservation]]
+        )
+
+        XCTAssertEqual(shortages.count, 1)
+        XCTAssertEqual(shortages[0].requiredQuantity, 450, accuracy: 0.001)
+        XCTAssertEqual(shortages[0].orderIds, ["confirmed", "draft"])
+    }
+
+    func testFallsBackToLiveDemandWhileReservationRepairIsPending() throws {
+        let item = makeItem(quantity: 100)
+        let order = makeDemandOrder(id: "pending-repair", scale: 1)
+        let repair = OrderInventoryReservationRepair(
+            orderId: order.id,
+            state: .pending,
+            attemptCount: 0,
+            lastAttemptedAt: nil,
+            failureCode: nil,
+            updatedAt: now
+        )
+
+        let shortages = try shortages(
+            item: item,
+            orders: [order],
+            recipeQuantity: 150,
+            repairs: [order.id: repair]
+        )
+
+        XCTAssertEqual(shortages.count, 1)
+        XCTAssertEqual(shortages[0].requiredQuantity, 150, accuracy: 0.001)
+        XCTAssertEqual(shortages[0].orderIds, [order.id])
+    }
+
+    func testPendingAndFailedRepairsIgnoreStaleReservationRows() throws {
+        let item = makeItem(quantity: 100)
+
+        for state in [
+            OrderInventoryReservationRepairState.pending,
+            .failed
+        ] {
+            let order = makeDemandOrder(id: "\(state.rawValue)-repair", scale: 1)
+            let reservation = OrderInventoryReservation(
+                id: "\(order.id):flour",
+                orderId: order.id,
+                inventoryItemId: item.id,
+                requiredQuantity: 25,
+                unit: .gram,
+                createdAt: now,
+                updatedAt: now
+            )
+            let repair = OrderInventoryReservationRepair(
+                orderId: order.id,
+                state: state,
+                attemptCount: state == .failed ? 1 : 0,
+                lastAttemptedAt: state == .failed ? now : nil,
+                failureCode: state == .failed ? .invalidRequirements : nil,
+                updatedAt: now
+            )
+
+            let shortages = try shortages(
+                item: item,
+                orders: [order],
+                recipeQuantity: 150,
+                reservations: [order.id: [reservation]],
+                repairs: [order.id: repair]
+            )
+
+            XCTAssertEqual(shortages.first?.requiredQuantity ?? -1, 150, accuracy: 0.001)
+        }
+    }
+
+    func testCorruptCompleteReservationFallsBackToLiveDemand() throws {
+        let item = makeItem(quantity: 100)
+        let order = makeDemandOrder(id: "corrupt-complete", scale: 1)
+        let reservation = OrderInventoryReservation(
+            id: "\(order.id):missing",
+            orderId: order.id,
+            inventoryItemId: "missing-item",
+            requiredQuantity: 25,
+            unit: .gram,
+            createdAt: now,
+            updatedAt: now
+        )
+        let repair = OrderInventoryReservationRepair(
+            orderId: order.id,
+            state: .complete,
+            attemptCount: 1,
+            lastAttemptedAt: now,
+            failureCode: nil,
+            updatedAt: now
+        )
+
+        let shortages = try shortages(
+            item: item,
+            orders: [order],
+            recipeQuantity: 150,
+            reservations: [order.id: [reservation]],
+            repairs: [order.id: repair]
+        )
+
+        XCTAssertEqual(shortages.first?.requiredQuantity ?? -1, 150, accuracy: 0.001)
+    }
+
+    func testCompleteRepairCanRepresentIntentionallyEmptyDemand() throws {
+        let item = makeItem(quantity: 100)
+        let order = makeDemandOrder(id: "empty-complete", scale: 1)
+        let repair = OrderInventoryReservationRepair(
+            orderId: order.id,
+            state: .complete,
+            attemptCount: 1,
+            lastAttemptedAt: now,
+            failureCode: nil,
+            updatedAt: now
+        )
+
+        let shortages = try shortages(
+            item: item,
+            orders: [order],
+            recipeQuantity: 150,
+            repairs: [order.id: repair]
+        )
+
+        XCTAssertTrue(shortages.isEmpty)
+    }
+
+    func testPersistedCorruptionMarkerForcesLiveDemandFallback() throws {
+        let item = makeItem(quantity: 100)
+        let order = makeDemandOrder(id: "persisted-corruption", scale: 1)
+        let reservation = OrderInventoryReservation(
+            id: "\(order.id):flour",
+            orderId: order.id,
+            inventoryItemId: item.id,
+            requiredQuantity: 25,
+            unit: .gram,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        let shortages = try shortages(
+            item: item,
+            orders: [order],
+            recipeQuantity: 150,
+            reservations: [order.id: [reservation]],
+            invalidOrderIds: [order.id]
+        )
+
+        XCTAssertEqual(shortages.first?.requiredQuantity ?? -1, 150, accuracy: 0.001)
+    }
+
+    func testValidCommittedReservationIgnoresCorruptLiveRequirements() throws {
+        let item = makeItem(quantity: 100)
+        let order = makeDemandOrder(id: "valid-reservation-corrupt-live", scale: 1)
+        let reservation = OrderInventoryReservation(
+            id: "\(order.id):flour",
+            orderId: order.id,
+            inventoryItemId: item.id,
+            requiredQuantity: 150,
+            unit: .gram,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        let shortages = try shortages(
+            item: item,
+            orders: [order],
+            recipeQuantity: 25,
+            reservations: [order.id: [reservation]],
+            invalidLiveRequirementOrderIds: [order.id]
+        )
+
+        XCTAssertEqual(shortages.first?.requiredQuantity ?? -1, 150, accuracy: 0.001)
+    }
+
+    func testDraftWithCorruptLiveRequirementsFailsInsteadOfUnderstatingDemand() {
+        let item = makeItem(quantity: 100)
+        let order = makeDemandOrder(id: "draft-corrupt-live", status: .draft, scale: 1)
+
+        XCTAssertThrowsError(
+            try shortages(
+                item: item,
+                orders: [order],
+                recipeQuantity: 25,
+                invalidLiveRequirementOrderIds: [order.id]
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? ProjectedIngredientDemandError,
+                .invalidLiveRequirements(orderId: order.id)
+            )
+        }
+    }
+
     private func shortages(
         item: InventoryItem,
         orders: [Order],
         consumedOrderIds: Set<String> = [],
         batches: [InventoryStockBatch] = [],
         recipeQuantity: Double,
-        extras: [String: [OrderExtraIngredient]] = [:]
+        extras: [String: [OrderExtraIngredient]] = [:],
+        reservations: [String: [OrderInventoryReservation]] = [:],
+        repairs: [String: OrderInventoryReservationRepair] = [:],
+        invalidOrderIds: Set<String> = [],
+        invalidLiveRequirementOrderIds: Set<String> = []
     ) throws -> [ProjectedIngredientShortage] {
-        let component = RecipeComponent(
-            id: "component",
-            recipeId: "recipe",
-            name: "Cake",
-            sortOrder: 0,
-            createdAt: now,
-            updatedAt: now
-        )
-        let ingredient = RecipeIngredient(
-            id: "ingredient",
-            componentId: component.id,
-            inventoryItemId: item.id,
-            quantity: recipeQuantity,
-            unit: .gram,
-            note: nil,
-            createdAt: now,
-            updatedAt: now
-        )
+        var liveRequirementsByOrderId: [String: [OrderInventoryRequirement]] = [:]
+        for order in orders {
+            let scale = NSDecimalNumber(decimal: order.recipeScaleMultiplier).doubleValue
+            liveRequirementsByOrderId[order.id, default: []].append(
+                OrderInventoryRequirement(
+                    inventoryItemId: item.id,
+                    quantity: recipeQuantity * scale,
+                    unit: .gram
+                )
+            )
+            for extra in extras[order.id] ?? [] {
+                liveRequirementsByOrderId[order.id, default: []].append(
+                    OrderInventoryRequirement(
+                        inventoryItemId: extra.inventoryItemId,
+                        quantity: extra.quantity,
+                        unit: extra.unit
+                    )
+                )
+            }
+        }
 
-        return try ProjectedIngredientDemand.shortages(
+        return try ProjectedIngredientDemand.summary(
             inventoryItems: [item],
             orders: orders,
             at: now,
-            stockBatches: { _ in batches },
-            recipeUsage: { orderId in
-                guard consumedOrderIds.contains(orderId) else { return nil }
-                return OrderRecipeUsage(
-                    id: "usage-\(orderId)",
-                    orderId: orderId,
-                    recipeId: "recipe",
-                    usedAt: now,
-                    createdAt: now,
-                    updatedAt: now
-                )
-            },
-            recipeComponents: { _ in [component] },
-            recipeIngredients: { _ in [ingredient] },
-            orderExtraIngredients: { extras[$0] ?? [] }
-        )
+            planningSnapshot: OrderInventoryReservationPlanningSnapshot(
+                consumedOrderIds: consumedOrderIds,
+                reservationsByOrderId: reservations,
+                repairsByOrderId: repairs,
+                invalidOrderIds: invalidOrderIds,
+                invalidLiveRequirementOrderIds: invalidLiveRequirementOrderIds,
+                liveRequirementsByOrderId: liveRequirementsByOrderId,
+                stockBatchesByInventoryItemId: batches.isEmpty
+                    ? [:]
+                    : [item.id: batches]
+            )
+        ).shortages
     }
 
     private func makeItem(quantity: Double) -> InventoryItem {

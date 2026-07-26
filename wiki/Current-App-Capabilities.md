@@ -90,8 +90,8 @@ The app currently supports:
 70. manual order status changes,
 71. orders Active tab grouped by due day with delivery or pickup time ordering,
 72. linked customer allergies, dietary restrictions, preferences, and notes in order detail,
-73. in-app order reminder planning for three, two, and one day before due date with one next
-    relevant reminder shown in the UI,
+73. customizable in-app order reminder planning, with owner defaults copied to new orders and
+    per-order default, custom, or disabled plans,
 74. optional saved recipe link from order add/edit,
 75. linked recipe name in order detail,
 76. status changes from order detail without opening the full edit form,
@@ -115,7 +115,8 @@ The app currently supports:
     notes,
 87. visible order row actions with native menus for quick status changes and payment recording,
 88. order detail payment status actions for marking Paid or adding a partial payment,
-89. scheduled local owner notifications for Confirmed, In Progress, and Ready order reminders,
+89. scheduled local owner notifications for Confirmed, In Progress, and Ready orders using each
+    order's saved reminder plan,
 90. due-time order notifications that route back to the matching order,
 91. overdue order row pills and an in-app update-status banner for the earliest overdue order,
 92. local order photo metadata and app-owned local photo file storage,
@@ -206,6 +207,21 @@ The app currently supports:
     aggregated decision; opaque persisted omission approvals; second confirmation and immediate
     revalidation before exact CloudBake-reference removal; last-good cloud generation preservation;
     and durable omitted-photo counts without exposing raw Photos identifiers.
+135. persisted full-order inventory reservations for Confirmed and In Progress work, including
+    shortage confirmation, atomic replacement and release, immutable audit events, migrated-order
+    repair, aggregate planning reads, and compact reserved quantities in order detail.
+136. at most one aggregate Payment Pending notification per calendar day for overdue Completed
+    orders with a remaining balance, using a rolling 14-day local schedule, the same eligibility as
+    the in-app Payment Due list, an owner-selected reminder time, immediate refresh after
+    payment/order/settings changes, and first-completion timestamps that preserve unknown legacy
+    history.
+137. immutable dated payment receipts for opening, partial, and remaining-balance payments, with
+    atomic paid-total reconciliation, append-only void corrections, and explicit legacy payments
+    whose dates are unknown.
+138. a Reports screen with Payment Ledger, Order Profitability, and Sales & Orders; a rolling
+    one-year default ending today; custom date ranges up to 366 days; status filters; Day, Week, and
+    Month grouping where applicable; bounded row and sales-bucket drill-down; payment delay from
+    order due date; partial ingredient-cost warnings; and exact receipt/sales totals.
 
 ## Partially Prepared
 
@@ -215,7 +231,7 @@ The app has domain foundations or partial workflows for:
 2. cake designs,
 3. customer-safe order preview projection for future consumer-facing surfaces,
 4. customer-safe profile projection for future consumer-facing surfaces,
-5. order reminder snooze and configurable reminder offsets,
+5. order reminder snooze,
 6. inventory transactions,
 7. purchase bill filtering by baking catalog,
 8. purchase bill draft inventory parsing,
@@ -234,9 +250,9 @@ Planned product areas include:
 1. stronger OCR cleanup and page correction for scanned recipes,
 2. optional LLM-assisted recipe interpretation,
 3. partial recipe usage,
-4. multi-recipe orders and inventory reservation,
+4. multi-recipe orders,
 5. order checklist reordering and templates,
-6. reminder snooze and configurable reminder offsets,
+6. reminder snooze,
 7. pricing calculator,
 8. customer-facing cake browsing,
 9. sync through iCloud or backend when needed.

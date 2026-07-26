@@ -69,7 +69,7 @@ enum CakeDesignPresentation {
 final class CakeDesignListViewModel: ObservableObject {
     @Published private(set) var designs: [CakeDesign] = []
     @Published private(set) var references: [CakeDesign] = []
-    @Published private(set) var orders: [Order] = []
+    @Published private(set) var orderUsageSummary = CakeDesignOrderUsageSummary.empty
     @Published var searchText = ""
     @Published var selectedFilter: DesignLibraryFilter = .all
     @Published var errorMessage: String?
@@ -77,7 +77,7 @@ final class CakeDesignListViewModel: ObservableObject {
     private let repository: any CakeDesignRepository
     private let photoFileStore: OrderPhotoFileStore
     private let designPhotoLibrary: DesignPhotoLibrary
-    private let customerReferenceRepository: (any OrderPhotoRepository & OrderRepository)?
+    private let orderUsageRepository: (any CakeDesignOrderUsageRepository)?
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
 
@@ -85,14 +85,14 @@ final class CakeDesignListViewModel: ObservableObject {
         repository: any CakeDesignRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary = PhotoKitDesignPhotoLibrary(),
-        customerReferenceRepository: (any OrderPhotoRepository & OrderRepository)? = nil,
+        orderUsageRepository: (any CakeDesignOrderUsageRepository)? = nil,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init
     ) {
         self.repository = repository
         self.photoFileStore = photoFileStore
         self.designPhotoLibrary = designPhotoLibrary
-        self.customerReferenceRepository = customerReferenceRepository
+        self.orderUsageRepository = orderUsageRepository
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
     }
@@ -101,10 +101,13 @@ final class CakeDesignListViewModel: ObservableObject {
         do {
             designs = try repository.fetchCakeDesigns(sourceKind: .ownerMade)
             references = try repository.fetchCakeDesigns(sourceKind: .customerReference)
-            if let customerReferenceRepository {
-                orders = try customerReferenceRepository.fetchOrders()
+            if let orderUsageRepository {
+                orderUsageSummary = try orderUsageRepository
+                    .fetchCakeDesignOrderUsageSummary(
+                        recentOrderLimitPerDesign: 10
+                    )
             } else {
-                orders = []
+                orderUsageSummary = .empty
             }
             if !availableFilters.contains(selectedFilter) {
                 selectedFilter = .all
@@ -115,7 +118,7 @@ final class CakeDesignListViewModel: ObservableObject {
         } catch {
             designs = []
             references = []
-            orders = []
+            orderUsageSummary = .empty
             errorMessage = "Designs could not be loaded."
         }
     }
@@ -166,24 +169,15 @@ final class CakeDesignListViewModel: ObservableObject {
     }
 
     func usageOrders(for design: CakeDesign) -> [Order] {
-        orders
-            .filter { $0.cakeDesignId == design.id }
-            .sorted(by: usageOrderSort)
+        orderUsageSummary.recentOrdersByDesignId[design.id] ?? []
     }
 
     func usageCount(for design: CakeDesign) -> Int {
-        usageOrders(for: design).count
+        orderUsageSummary.countsByDesignId[design.id] ?? 0
     }
 
     var hasEffectiveSearchQuery: Bool {
         !searchTerms.isEmpty
-    }
-
-    private func usageOrderSort(_ lhs: Order, _ rhs: Order) -> Bool {
-        guard lhs.dueAt == rhs.dueAt else { return lhs.dueAt > rhs.dueAt }
-        let titleOrder = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
-        guard titleOrder == .orderedSame else { return titleOrder == .orderedAscending }
-        return lhs.id < rhs.id
     }
 
     var availableFilters: [DesignLibraryFilter] {
