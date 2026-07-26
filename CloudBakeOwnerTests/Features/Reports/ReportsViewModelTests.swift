@@ -115,6 +115,90 @@ final class ReportsViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.canLoadMoreSalesDrillDown)
     }
 
+    func testProfitabilityUsesEstimatesUntilOrderIsCompleted() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let readyOrder = makeOrder(
+            id: "ready-with-consumption",
+            status: .ready,
+            dueAt: now,
+            quotedPrice: 100
+        )
+        let completedOrder = makeOrder(
+            id: "completed-with-consumption",
+            status: .completed,
+            dueAt: now,
+            quotedPrice: 100
+        )
+        let legacyCompletedOrder = makeOrder(
+            id: "completed-without-consumption",
+            status: .completed,
+            dueAt: now,
+            quotedPrice: 100
+        )
+        let inventoryItem = InventoryItem(
+            id: "report-flour",
+            name: "Flour",
+            aliases: [],
+            type: .perishable,
+            unit: .gram,
+            currentQuantity: 0,
+            minimumQuantity: 0,
+            createdAt: now,
+            updatedAt: now
+        )
+        try repository.save(inventoryItem)
+        try repository.save(readyOrder)
+        try repository.save(completedOrder)
+        try repository.save(legacyCompletedOrder)
+        try queue.write { db in
+            for orderId in [readyOrder.id, completedOrder.id] {
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_ingredient_costs
+                        (
+                            id, order_id, inventory_item_id, quantity, unit,
+                            known_cost_decimal, missing_price_quantity,
+                            shortfall_quantity, recorded_at_unix_time
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "cost-\(orderId)",
+                        orderId,
+                        inventoryItem.id,
+                        100,
+                        InventoryUnit.gram.rawValue,
+                        "42",
+                        0,
+                        0,
+                        now.timeIntervalSince1970
+                    ]
+                )
+            }
+        }
+        let viewModel = ReportsViewModel(
+            repository: repository,
+            dateProvider: { now },
+            calendar: utcCalendar()
+        )
+        viewModel.selectedReport = .orderProfitability
+
+        viewModel.load()
+
+        let rows = Dictionary(uniqueKeysWithValues: viewModel.profitabilityRows.map {
+            ($0.id, $0)
+        })
+        XCTAssertEqual(rows[readyOrder.id]?.ingredientCost, 0)
+        XCTAssertFalse(try XCTUnwrap(rows[readyOrder.id]).hasIncompleteCost)
+        XCTAssertEqual(rows[completedOrder.id]?.ingredientCost, 42)
+        XCTAssertFalse(try XCTUnwrap(rows[completedOrder.id]).hasIncompleteCost)
+        XCTAssertNil(rows[legacyCompletedOrder.id]?.ingredientCost)
+        XCTAssertTrue(try XCTUnwrap(rows[legacyCompletedOrder.id]).hasIncompleteCost)
+    }
+
     private func makeRepository() throws -> GRDBCoreDataRepository {
         let queue = try DatabaseQueue(path: ":memory:")
         try AppDatabaseMigrations.makeMigrator().migrate(queue)

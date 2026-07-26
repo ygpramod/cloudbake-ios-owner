@@ -405,22 +405,21 @@ final class ReportsViewModel: ObservableObject {
     }
 
     private func profitabilityRow(for order: Order) throws -> OrderProfitabilityRow {
-        let actualCosts = try repository.fetchOrderIngredientCosts(orderId: order.id)
-        if !actualCosts.isEmpty {
+        if order.status == .completed {
+            let actualCosts = try repository.fetchOrderIngredientCosts(orderId: order.id)
+            guard !actualCosts.isEmpty else {
+                return OrderProfitabilityRow(
+                    order: order,
+                    ingredientCost: nil,
+                    hasIncompleteCost: true
+                )
+            }
             return OrderProfitabilityRow(
                 order: order,
                 ingredientCost: actualCosts.reduce(0) { $0 + $1.knownCost },
                 hasIncompleteCost: actualCosts.contains {
                     $0.missingPriceQuantity > 0
                 }
-            )
-        }
-        if order.status == .completed,
-           try repository.fetchOrderRecipeUsage(orderId: order.id) != nil {
-            return OrderProfitabilityRow(
-                order: order,
-                ingredientCost: nil,
-                hasIncompleteCost: true
             )
         }
         let inventoryItems = try repository.fetchInventoryItems()
