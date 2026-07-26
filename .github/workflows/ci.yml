@@ -36,6 +36,9 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Verify Release composition
+        run: ./scripts/verify_release_composition.sh
+
       - name: Run unit and integration tests
         run: |
           select_simulator() {
