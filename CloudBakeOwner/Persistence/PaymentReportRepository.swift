@@ -6,7 +6,7 @@ struct ReportDateRange: Equatable {
     let end: Date
 
     func validate() throws {
-        guard start <= end else {
+        guard start < end else {
             throw PaymentReportQueryError.invalidDateRange
         }
         guard end.timeIntervalSince(start) <= 366 * 86_400 else {
@@ -68,6 +68,7 @@ enum PaymentReportQueryError: Error, Equatable {
 protocol PaymentReportRepository {
     func fetchReceivedPaymentPage(
         dateRange: ReportDateRange,
+        statuses: Set<OrderStatus>,
         after cursor: PaymentReceiptPageCursor?,
         limit: Int
     ) throws -> PaymentReceiptReportPage
@@ -96,11 +97,18 @@ protocol PaymentReportRepository {
 extension GRDBCoreDataRepository: PaymentReportRepository {
     func fetchReceivedPaymentPage(
         dateRange: ReportDateRange,
+        statuses: Set<OrderStatus>,
         after cursor: PaymentReceiptPageCursor?,
         limit: Int
     ) throws -> PaymentReceiptReportPage {
         try validateReportQuery(dateRange: dateRange, limit: limit)
+        guard !statuses.isEmpty else {
+            throw PaymentReportQueryError.noStatuses
+        }
         return try writer.read { db in
+            let statusValues = statuses.map(\.rawValue).sorted()
+            let placeholders = Array(repeating: "?", count: statusValues.count)
+                .joined(separator: ", ")
             var sql = """
                 SELECT
                     orders.*,
@@ -116,12 +124,14 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
                   ON payment_receipt_voids.receipt_id = payment_receipts.id
                 WHERE payment_receipt_voids.id IS NULL
                   AND payment_receipts.received_at_unix_time >= ?
-                  AND payment_receipts.received_at_unix_time <= ?
+                  AND payment_receipts.received_at_unix_time < ?
+                  AND orders.status IN (\(placeholders))
                 """
             var values: [(any DatabaseValueConvertible)?] = [
                 dateRange.start.timeIntervalSince1970,
                 dateRange.end.timeIntervalSince1970
             ]
+            values.append(contentsOf: statusValues)
             if let cursor {
                 sql += """
 
@@ -204,25 +214,29 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
             throw PaymentReportQueryError.noStatuses
         }
         return try writer.read { db in
+            let statusValues = statuses.map(\.rawValue).sorted()
+            let placeholders = Array(repeating: "?", count: statusValues.count)
+                .joined(separator: ", ")
+            var receivedArguments: [(any DatabaseValueConvertible)?] = [
+                dateRange.start.timeIntervalSince1970,
+                dateRange.end.timeIntervalSince1970
+            ]
+            receivedArguments.append(contentsOf: statusValues)
             let receivedRows = try Row.fetchAll(
                 db,
                 sql: """
                     SELECT payment_receipts.amount_decimal
                     FROM payment_receipts
+                    JOIN orders ON orders.id = payment_receipts.order_id
                     LEFT JOIN payment_receipt_voids
                       ON payment_receipt_voids.receipt_id = payment_receipts.id
                     WHERE payment_receipt_voids.id IS NULL
                       AND payment_receipts.received_at_unix_time >= ?
-                      AND payment_receipts.received_at_unix_time <= ?
+                      AND payment_receipts.received_at_unix_time < ?
+                      AND orders.status IN (\(placeholders))
                     """,
-                arguments: [
-                    dateRange.start.timeIntervalSince1970,
-                    dateRange.end.timeIntervalSince1970
-                ]
+                arguments: arguments(receivedArguments)
             )
-            let statusValues = statuses.map(\.rawValue).sorted()
-            let placeholders = Array(repeating: "?", count: statusValues.count)
-                .joined(separator: ", ")
             var outstandingArguments: [(any DatabaseValueConvertible)?] = [
                 dateRange.start.timeIntervalSince1970,
                 dateRange.end.timeIntervalSince1970
@@ -236,7 +250,7 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
                         orders.deposit_paid_decimal
                     FROM orders
                     WHERE orders.due_at_unix_time >= ?
-                      AND orders.due_at_unix_time <= ?
+                      AND orders.due_at_unix_time < ?
                       AND orders.status IN (\(placeholders))
                       AND orders.quoted_price_decimal IS NOT NULL
                     """,
@@ -247,7 +261,9 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
             }
             let outstandingBalances = try outstandingRows.compactMap { row -> Decimal? in
                 let quotedPrice = try reportDecimal(row["quoted_price_decimal"])
-                let paid = try reportDecimal(row["deposit_paid_decimal"])
+                let paid = try optionalReportDecimal(
+                    row["deposit_paid_decimal"]
+                ) ?? 0
                 let balance = quotedPrice - paid
                 return balance > 0 ? balance : nil
             }
@@ -286,7 +302,7 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
                         orders.deposit_paid_decimal
                     FROM orders
                     WHERE orders.due_at_unix_time >= ?
-                      AND orders.due_at_unix_time <= ?
+                      AND orders.due_at_unix_time < ?
                       AND orders.status IN (\(placeholders))
                     """,
                 arguments: arguments(values)
@@ -337,7 +353,7 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
                 SELECT orders.*
                 FROM orders
                 WHERE orders.due_at_unix_time >= ?
-                  AND orders.due_at_unix_time <= ?
+                  AND orders.due_at_unix_time < ?
                   AND orders.status IN (\(placeholders))
                 """
             var values: [(any DatabaseValueConvertible)?] = [
@@ -351,7 +367,10 @@ extension GRDBCoreDataRepository: PaymentReportRepository {
                       AND orders.quoted_price_decimal IS NOT NULL
                       AND (
                         CAST(orders.quoted_price_decimal AS REAL)
-                        - CAST(orders.deposit_paid_decimal AS REAL)
+                        - COALESCE(
+                            CAST(orders.deposit_paid_decimal AS REAL),
+                            0
+                        )
                       ) > 0
                     """
             }

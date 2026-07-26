@@ -73,6 +73,50 @@ final class ReportsViewModelTests: XCTestCase {
         )
     }
 
+    func testDateOnlyFilterIncludesTheWholeSelectedEndDay() throws {
+        let calendar = utcCalendar()
+        let selectedDay = try XCTUnwrap(
+            calendar.date(
+                from: DateComponents(
+                    year: 2027,
+                    month: 1,
+                    day: 15,
+                    hour: 9
+                )
+            )
+        )
+        let lateOnSelectedDay = try XCTUnwrap(
+            calendar.date(
+                from: DateComponents(
+                    year: 2027,
+                    month: 1,
+                    day: 15,
+                    hour: 23,
+                    minute: 45
+                )
+            )
+        )
+        let repository = try makeRepository()
+        let order = makeOrder(
+            id: "late-on-end-day",
+            status: .confirmed,
+            dueAt: lateOnSelectedDay,
+            quotedPrice: 100
+        )
+        try repository.save(order)
+        let viewModel = ReportsViewModel(
+            repository: repository,
+            dateProvider: { selectedDay },
+            calendar: calendar
+        )
+        viewModel.rangeStart = selectedDay
+        viewModel.rangeEnd = selectedDay
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.outstandingOrders.map(\.id), [order.id])
+    }
+
     func testProfitabilityAndSalesUseOrderDueDate() throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let repository = try makeRepository()

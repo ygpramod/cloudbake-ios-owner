@@ -1131,6 +1131,22 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 )
             )
         }
+        try repository.save(
+            pagedOrder(
+                id: "report-order-draft",
+                status: .draft,
+                dueAt: start,
+                quotedPrice: 100
+            )
+        )
+        try repository.save(
+            pagedOrder(
+                id: "report-order-boundary",
+                status: .completed,
+                dueAt: start,
+                quotedPrice: 100
+            )
+        )
         let first = try repository.recordPayment(
             orderId: "report-order-1",
             amount: decimal("0.10"),
@@ -1158,6 +1174,20 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             voidedAt: start.addingTimeInterval(40),
             createdAt: start.addingTimeInterval(40)
         )
+        _ = try repository.recordPayment(
+            orderId: "report-order-draft",
+            amount: 5,
+            receivedAt: start.addingTimeInterval(15),
+            note: nil,
+            createdAt: start.addingTimeInterval(15)
+        )
+        _ = try repository.recordPayment(
+            orderId: "report-order-boundary",
+            amount: 10,
+            receivedAt: start.addingTimeInterval(60),
+            note: nil,
+            createdAt: start.addingTimeInterval(60)
+        )
         let range = ReportDateRange(
             start: start,
             end: start.addingTimeInterval(60)
@@ -1165,11 +1195,13 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
 
         let firstPage = try repository.fetchReceivedPaymentPage(
             dateRange: range,
+            statuses: [.confirmed, .inProgress, .ready, .completed],
             after: nil,
             limit: 1
         )
         let secondPage = try repository.fetchReceivedPaymentPage(
             dateRange: range,
+            statuses: [.confirmed, .inProgress, .ready, .completed],
             after: firstPage.nextCursor,
             limit: 1
         )

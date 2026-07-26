@@ -172,6 +172,7 @@ final class ReportsViewModel: ObservableObject {
                 guard let paymentCursor else { return }
                 let page = try repository.fetchReceivedPaymentPage(
                     dateRange: range,
+                    statuses: selectedStatuses,
                     after: paymentCursor,
                     limit: Self.pageSize
                 )
@@ -333,7 +334,15 @@ final class ReportsViewModel: ObservableObject {
     }
 
     private func selectedDateRange() throws -> ReportDateRange {
-        let range = ReportDateRange(start: rangeStart, end: rangeEnd)
+        let start = calendar.startOfDay(for: rangeStart)
+        guard let end = calendar.date(
+            byAdding: .day,
+            value: 1,
+            to: calendar.startOfDay(for: rangeEnd)
+        ) else {
+            throw PaymentReportQueryError.invalidDateRange
+        }
+        let range = ReportDateRange(start: start, end: end)
         try range.validate()
         guard !selectedStatuses.isEmpty else {
             throw PaymentReportQueryError.noStatuses
@@ -364,6 +373,7 @@ final class ReportsViewModel: ObservableObject {
             outstandingOrders = []
             let page = try repository.fetchReceivedPaymentPage(
                 dateRange: dateRange,
+                statuses: selectedStatuses,
                 after: nil,
                 limit: Self.pageSize
             )
@@ -445,13 +455,13 @@ final class ReportsViewModel: ObservableObject {
     private func bucketRanges(in range: ReportDateRange) -> [ReportDateRange] {
         var buckets = [ReportDateRange]()
         var cursor = bucketStart(containing: range.start)
-        while cursor <= range.end {
+        while cursor < range.end {
             guard let next = nextBucketStart(after: cursor) else {
                 break
             }
             let start = max(cursor, range.start)
-            let end = min(next.addingTimeInterval(-0.001), range.end)
-            if start <= end {
+            let end = min(next, range.end)
+            if start < end {
                 buckets.append(ReportDateRange(start: start, end: end))
             }
             cursor = next
