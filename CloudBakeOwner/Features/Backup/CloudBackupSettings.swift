@@ -443,6 +443,9 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
     private let requiresAccountConfirmation = ProcessInfo.processInfo.environment[
         "CLOUDBAKE_TEST_CLOUD_BACKUP_ACCOUNT_CONFIRMATION"
     ] == "1"
+    private let requiresUnavailablePhotoDecision = ProcessInfo.processInfo.environment[
+        "CLOUDBAKE_TEST_CLOUD_BACKUP_PHOTO_DECISION"
+    ] == "1"
     private let deletionFails = ProcessInfo.processInfo.environment[
         "CLOUDBAKE_TEST_CLOUD_BACKUP_DELETE_FAILURE"
     ] == "1"
@@ -467,6 +470,15 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
                 ManualAccountBackupProposal(
                     id: "ui-test-account-proposal",
                     accountFingerprint: "ui-test-account"
+                )
+            )
+        }
+        if requiresUnavailablePhotoDecision {
+            snapshot.state = .awaitingUnavailablePhotoDecision
+            return .requiresUnavailablePhotoDecision(
+                ManualUnavailablePhotoBackupProposal(
+                    id: "ui-test-photo-proposal",
+                    unavailablePhotoCount: 2
                 )
             )
         }
@@ -509,6 +521,42 @@ actor CloudBackupSettingsUITestService: CloudBackupSettingsServing {
     }
 
     func cancelCellularBackup(_ proposal: ManualCellularBackupProposal) async {
+        snapshot.state = .enabled
+    }
+
+    func approveUnavailablePhotoOmissions(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult {
+        snapshot.state = .successful
+        snapshot.omittedAssetCount = proposal.unavailablePhotoCount
+        return .published(
+            CloudBackupPublicationResult(
+                generationID: "ui-test-generation",
+                replacedGenerationID: nil,
+                wasAlreadyCurrent: false,
+                cleanupPending: false
+            )
+        )
+    }
+
+    func removeUnavailablePhotos(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async -> ManualBackupResult {
+        snapshot.state = .successful
+        snapshot.omittedAssetCount = 0
+        return .published(
+            CloudBackupPublicationResult(
+                generationID: "ui-test-generation",
+                replacedGenerationID: nil,
+                wasAlreadyCurrent: false,
+                cleanupPending: false
+            )
+        )
+    }
+
+    func cancelUnavailablePhotoDecision(
+        _ proposal: ManualUnavailablePhotoBackupProposal
+    ) async {
         snapshot.state = .enabled
     }
 
