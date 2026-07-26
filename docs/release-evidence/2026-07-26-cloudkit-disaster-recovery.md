@@ -41,6 +41,16 @@ The subsequent branch commits are documentation-only and do not change the teste
   recorded backup-attempt window
 - Previous local data: unchanged after inspection was cancelled
 
+## Local verification
+
+On 26 July 2026, the exact Point 1 head passed:
+
+- 189 selected backup/restore unit and integration tests, with 1 intentional CloudKit-account
+  smoke-test skip and 0 failures;
+- 6 targeted acceptance tests with 0 failures, covering unavailable-photo decisions, backup
+  deletion failure, destructive/cellular/broken-asset restore decisions, rollback-required
+  blocking, successful rollback reporting, and the manual destination picker.
+
 ## Restore phase
 
 The installed TestFlight build retained an existing populated CloudBake database. The drill stopped
