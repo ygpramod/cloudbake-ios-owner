@@ -12,6 +12,256 @@ enum ProjectedIngredientDemandPersistenceError: Error, Equatable {
 }
 
 extension GRDBCoreDataRepository {
+    func recordPayment(
+        orderId: String,
+        amount: Decimal,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt {
+        try writer.write { db in
+            try recordPayment(
+                orderId: orderId,
+                amount: amount,
+                receivedAt: receivedAt,
+                note: note,
+                createdAt: createdAt,
+                in: db
+            )
+        }
+    }
+
+    func recordRemainingBalancePayment(
+        orderId: String,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt {
+        try writer.write { db in
+            guard let order = try self.order(id: orderId, in: db) else {
+                throw PaymentReceiptPersistenceError.orderNotFound
+            }
+            guard let balance = order.balanceDue else {
+                throw PaymentReceiptPersistenceError.quotedPriceMissing
+            }
+            return try recordPayment(
+                orderId: orderId,
+                amount: balance,
+                receivedAt: receivedAt,
+                note: note,
+                createdAt: createdAt,
+                in: db
+            )
+        }
+    }
+
+    func voidPaymentReceipt(
+        receiptId: String,
+        reason: String?,
+        voidedAt: Date,
+        createdAt: Date
+    ) throws -> PaymentReceiptVoid {
+        try writer.write { db in
+            guard let receiptRow = try Row.fetchOne(
+                db,
+                sql: "SELECT * FROM payment_receipts WHERE id = ?",
+                arguments: [receiptId]
+            ) else {
+                throw PaymentReceiptPersistenceError.receiptNotFound
+            }
+            guard try String.fetchOne(
+                db,
+                sql: "SELECT id FROM payment_receipt_voids WHERE receipt_id = ?",
+                arguments: [receiptId]
+            ) == nil else {
+                throw PaymentReceiptPersistenceError.alreadyVoided
+            }
+            guard let amount = optionalDecimal(receiptRow["amount_decimal"]) else {
+                throw PaymentReceiptPersistenceError.invalidStoredAmount
+            }
+            let orderId: String = receiptRow["order_id"]
+            guard let order = try self.order(id: orderId, in: db) else {
+                throw PaymentReceiptPersistenceError.orderNotFound
+            }
+            let existingPaid = order.depositPaid ?? 0
+            guard existingPaid >= amount else {
+                throw PaymentReceiptPersistenceError.invalidStoredAmount
+            }
+            let void = PaymentReceiptVoid(
+                id: idProvider(),
+                receiptId: receiptId,
+                reason: TextInputFormatting.optionalText(reason ?? ""),
+                voidedAt: voidedAt,
+                createdAt: createdAt
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO payment_receipt_voids
+                    (id, receipt_id, reason, voided_at_unix_time, created_at_unix_time)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                arguments: [
+                    void.id,
+                    void.receiptId,
+                    void.reason,
+                    void.voidedAt.timeIntervalSince1970,
+                    void.createdAt.timeIntervalSince1970
+                ]
+            )
+            try updateDerivedPaidTotal(
+                existingPaid - amount,
+                orderId: orderId,
+                updatedAt: voidedAt,
+                in: db
+            )
+            return void
+        }
+    }
+
+    func fetchPaymentReceipts(orderId: String) throws -> [PaymentReceipt] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT
+                        payment_receipts.*,
+                        payment_receipt_voids.id AS void_id,
+                        payment_receipt_voids.reason AS void_reason,
+                        payment_receipt_voids.voided_at_unix_time,
+                        payment_receipt_voids.created_at_unix_time AS void_created_at_unix_time
+                    FROM payment_receipts
+                    LEFT JOIN payment_receipt_voids
+                      ON payment_receipt_voids.receipt_id = payment_receipts.id
+                    WHERE payment_receipts.order_id = ?
+                    ORDER BY payment_receipts.received_at_unix_time DESC,
+                             payment_receipts.id DESC
+                    """,
+                arguments: [orderId]
+            ).map(paymentReceipt(from:))
+        }
+    }
+
+    func fetchLegacyPaidAmount(orderId: String) throws -> Decimal {
+        try writer.read { db in
+            guard let value = try String.fetchOne(
+                db,
+                sql: """
+                    SELECT legacy_paid_amount_decimal
+                    FROM orders
+                    WHERE id = ?
+                    """,
+                arguments: [orderId]
+            ) else {
+                throw PaymentReceiptPersistenceError.orderNotFound
+            }
+            guard let amount = Decimal(string: value) else {
+                throw PaymentReceiptPersistenceError.invalidStoredAmount
+            }
+            return amount
+        }
+    }
+
+    private func recordPayment(
+        orderId: String,
+        amount: Decimal,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date,
+        in db: Database
+    ) throws -> PaymentReceipt {
+        guard amount > 0 else {
+            throw PaymentReceiptPersistenceError.invalidAmount
+        }
+        guard let order = try self.order(id: orderId, in: db) else {
+            throw PaymentReceiptPersistenceError.orderNotFound
+        }
+        guard let quotedPrice = order.quotedPrice else {
+            throw PaymentReceiptPersistenceError.quotedPriceMissing
+        }
+        let existingPaid = order.depositPaid ?? 0
+        guard existingPaid + amount <= quotedPrice else {
+            throw PaymentReceiptPersistenceError.exceedsBalance
+        }
+        let receipt = PaymentReceipt(
+            id: idProvider(),
+            orderId: orderId,
+            amount: amount,
+            receivedAt: receivedAt,
+            note: TextInputFormatting.optionalText(note ?? ""),
+            createdAt: createdAt,
+            void: nil
+        )
+        try db.execute(
+            sql: """
+                INSERT INTO payment_receipts
+                (id, order_id, amount_decimal, received_at_unix_time, note,
+                 created_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+            arguments: [
+                receipt.id,
+                receipt.orderId,
+                decimalString(receipt.amount),
+                receipt.receivedAt.timeIntervalSince1970,
+                receipt.note,
+                receipt.createdAt.timeIntervalSince1970
+            ]
+        )
+        try updateDerivedPaidTotal(
+            existingPaid + amount,
+            orderId: orderId,
+            updatedAt: createdAt,
+            in: db
+        )
+        return receipt
+    }
+
+    private func paymentReceipt(from row: Row) throws -> PaymentReceipt {
+        let receiptId: String = row["id"]
+        let voidId: String? = row["void_id"]
+        guard let amount = optionalDecimal(row["amount_decimal"]) else {
+            throw PaymentReceiptPersistenceError.invalidStoredAmount
+        }
+        return PaymentReceipt(
+            id: receiptId,
+            orderId: row["order_id"],
+            amount: amount,
+            receivedAt: date(row["received_at_unix_time"]),
+            note: row["note"],
+            createdAt: date(row["created_at_unix_time"]),
+            void: voidId.map {
+                PaymentReceiptVoid(
+                    id: $0,
+                    receiptId: receiptId,
+                    reason: row["void_reason"],
+                    voidedAt: date(row["voided_at_unix_time"]),
+                    createdAt: date(row["void_created_at_unix_time"])
+                )
+            }
+        )
+    }
+
+    private func updateDerivedPaidTotal(
+        _ amount: Decimal,
+        orderId: String,
+        updatedAt: Date,
+        in db: Database
+    ) throws {
+        try db.execute(
+            sql: """
+                UPDATE orders
+                SET deposit_paid_decimal = ?,
+                    updated_at_unix_time = ?
+                WHERE id = ?
+                """,
+            arguments: [
+                decimalString(amount),
+                updatedAt.timeIntervalSince1970,
+                orderId
+            ]
+        )
+    }
+
     func saveRecipeIngredient(
         _ ingredient: RecipeIngredient,
         component: RecipeComponent,

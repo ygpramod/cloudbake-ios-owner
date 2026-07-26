@@ -848,6 +848,211 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         return page
     }
 
+    func testPaymentReceiptsAtomicallyUpdateDerivedPaidTotal() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        var nextID = 0
+        let repository = GRDBCoreDataRepository(
+            writer: queue,
+            idProvider: {
+                nextID += 1
+                return "payment-entry-\(nextID)"
+            }
+        )
+        let dueAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let firstReceivedAt = dueAt.addingTimeInterval(86_400)
+        let secondReceivedAt = dueAt.addingTimeInterval(172_800)
+        try repository.save(
+            pagedOrder(
+                id: "receipt-order",
+                status: .completed,
+                dueAt: dueAt,
+                quotedPrice: 100
+            )
+        )
+
+        let partial = try repository.recordPayment(
+            orderId: "receipt-order",
+            amount: 25,
+            receivedAt: firstReceivedAt,
+            note: " Deposit ",
+            createdAt: firstReceivedAt
+        )
+        let remaining = try repository.recordRemainingBalancePayment(
+            orderId: "receipt-order",
+            receivedAt: secondReceivedAt,
+            note: nil,
+            createdAt: secondReceivedAt
+        )
+
+        XCTAssertEqual(partial.amount, 25)
+        XCTAssertEqual(partial.note, "Deposit")
+        XCTAssertEqual(remaining.amount, 75)
+        XCTAssertEqual(
+            try repository.fetchPaymentReceipts(orderId: "receipt-order"),
+            [remaining, partial]
+        )
+        XCTAssertEqual(try repository.fetchOrder(id: "receipt-order")?.depositPaid, 100)
+        XCTAssertEqual(try repository.fetchLegacyPaidAmount(orderId: "receipt-order"), 0)
+    }
+
+    func testFailedPaymentInsertRollsBackDerivedPaidTotal() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(
+            writer: queue,
+            idProvider: { "duplicate-receipt" }
+        )
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        try repository.save(
+            pagedOrder(
+                id: "payment-rollback",
+                status: .completed,
+                dueAt: timestamp,
+                quotedPrice: 100
+            )
+        )
+        _ = try repository.recordPayment(
+            orderId: "payment-rollback",
+            amount: 25,
+            receivedAt: timestamp,
+            note: nil,
+            createdAt: timestamp
+        )
+
+        XCTAssertThrowsError(
+            try repository.recordPayment(
+                orderId: "payment-rollback",
+                amount: 10,
+                receivedAt: timestamp,
+                note: nil,
+                createdAt: timestamp
+            )
+        )
+        XCTAssertEqual(try repository.fetchOrder(id: "payment-rollback")?.depositPaid, 25)
+        XCTAssertEqual(
+            try repository.fetchPaymentReceipts(orderId: "payment-rollback").map(\.amount),
+            [25]
+        )
+    }
+
+    func testVoidingReceiptAppendsCorrectionAndReconcilesPaidTotal() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        var nextID = 0
+        let repository = GRDBCoreDataRepository(
+            writer: queue,
+            idProvider: {
+                nextID += 1
+                return "payment-entry-\(nextID)"
+            }
+        )
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        try repository.save(
+            pagedOrder(
+                id: "void-payment",
+                status: .completed,
+                dueAt: timestamp,
+                quotedPrice: 100
+            )
+        )
+        let receipt = try repository.recordPayment(
+            orderId: "void-payment",
+            amount: 40,
+            receivedAt: timestamp,
+            note: nil,
+            createdAt: timestamp
+        )
+
+        let correction = try repository.voidPaymentReceipt(
+            receiptId: receipt.id,
+            reason: " Wrong amount ",
+            voidedAt: timestamp.addingTimeInterval(60),
+            createdAt: timestamp.addingTimeInterval(60)
+        )
+
+        XCTAssertEqual(correction.reason, "Wrong amount")
+        XCTAssertEqual(try repository.fetchOrder(id: "void-payment")?.depositPaid, 0)
+        XCTAssertEqual(
+            try repository.fetchPaymentReceipts(orderId: "void-payment").first?.void,
+            correction
+        )
+        XCTAssertThrowsError(
+            try repository.voidPaymentReceipt(
+                receiptId: receipt.id,
+                reason: nil,
+                voidedAt: timestamp.addingTimeInterval(120),
+                createdAt: timestamp.addingTimeInterval(120)
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? PaymentReceiptPersistenceError,
+                .alreadyVoided
+            )
+        }
+    }
+
+    func testVoidingReceiptRejectsInconsistentPaidTotalWithoutCorrection() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        var nextID = 0
+        let repository = GRDBCoreDataRepository(
+            writer: queue,
+            idProvider: {
+                nextID += 1
+                return "payment-entry-\(nextID)"
+            }
+        )
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        try repository.save(
+            pagedOrder(
+                id: "corrupt-payment-total",
+                status: .completed,
+                dueAt: timestamp,
+                quotedPrice: 100
+            )
+        )
+        let receipt = try repository.recordPayment(
+            orderId: "corrupt-payment-total",
+            amount: 40,
+            receivedAt: timestamp,
+            note: nil,
+            createdAt: timestamp
+        )
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE orders
+                    SET deposit_paid_decimal = '10'
+                    WHERE id = 'corrupt-payment-total'
+                    """
+            )
+        }
+
+        XCTAssertThrowsError(
+            try repository.voidPaymentReceipt(
+                receiptId: receipt.id,
+                reason: "Should roll back",
+                voidedAt: timestamp.addingTimeInterval(60),
+                createdAt: timestamp.addingTimeInterval(60)
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? PaymentReceiptPersistenceError,
+                .invalidStoredAmount
+            )
+        }
+        XCTAssertNil(
+            try repository.fetchPaymentReceipts(
+                orderId: "corrupt-payment-total"
+            ).first?.void
+        )
+        XCTAssertEqual(
+            try repository.fetchOrder(id: "corrupt-payment-total")?.depositPaid,
+            10
+        )
+    }
+
     private func orderQueryPlan(
         repository: GRDBCoreDataRepository,
         indexName: String,

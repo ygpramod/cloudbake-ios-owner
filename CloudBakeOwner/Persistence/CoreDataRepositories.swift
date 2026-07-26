@@ -389,6 +389,62 @@ protocol PaymentPendingSummaryRepository {
     func fetchPaymentPendingSummary(at date: Date) throws -> PaymentPendingSummary
 }
 
+struct PaymentReceiptVoid: Equatable {
+    let id: String
+    let receiptId: String
+    let reason: String?
+    let voidedAt: Date
+    let createdAt: Date
+}
+
+struct PaymentReceipt: Equatable {
+    let id: String
+    let orderId: String
+    let amount: Decimal
+    let receivedAt: Date
+    let note: String?
+    let createdAt: Date
+    let void: PaymentReceiptVoid?
+
+    var isVoided: Bool {
+        void != nil
+    }
+}
+
+enum PaymentReceiptPersistenceError: Error, Equatable {
+    case orderNotFound
+    case quotedPriceMissing
+    case invalidAmount
+    case exceedsBalance
+    case receiptNotFound
+    case alreadyVoided
+    case invalidStoredAmount
+}
+
+protocol PaymentReceiptRepository {
+    func recordPayment(
+        orderId: String,
+        amount: Decimal,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt
+    func recordRemainingBalancePayment(
+        orderId: String,
+        receivedAt: Date,
+        note: String?,
+        createdAt: Date
+    ) throws -> PaymentReceipt
+    func voidPaymentReceipt(
+        receiptId: String,
+        reason: String?,
+        voidedAt: Date,
+        createdAt: Date
+    ) throws -> PaymentReceiptVoid
+    func fetchPaymentReceipts(orderId: String) throws -> [PaymentReceipt]
+    func fetchLegacyPaidAmount(orderId: String) throws -> Decimal
+}
+
 extension PaymentPendingSummaryRepository where Self: OrderRepository {
     func fetchPaymentPendingSummary(at date: Date) throws -> PaymentPendingSummary {
         let eligibleOrders = try fetchOrders().filter {
