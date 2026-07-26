@@ -124,6 +124,7 @@ initial owner release; iPad is deferred until a future RFC explicitly reintroduc
 - Slice RFC-0116: App Store Privacy Readiness
 - Slice RFC-0117: Order Inventory Shortage Override
 - Slice RFC-0118: Backup Asset Recovery And Release Readiness
+- Slice RFC-0119: Business Operations, Reminders, Payments, And Scale
 
 ## Base RFCs
 
