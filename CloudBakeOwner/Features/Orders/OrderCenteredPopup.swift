@@ -78,6 +78,7 @@ private struct CloudBakeCenteredPopup<Content: View>: View {
                         .popupCardBackground()
                 }
                 .frame(maxWidth: 360)
+                .frame(maxHeight: max(proxy.size.height - 32, 240))
                 .padding(.horizontal, 24)
                 .shadow(color: .black.opacity(0.20), radius: 24, y: 14)
                 .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
