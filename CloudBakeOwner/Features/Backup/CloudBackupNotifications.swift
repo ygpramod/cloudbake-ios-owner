@@ -53,6 +53,7 @@ struct CloudBackupNotificationPolicy: Sendable {
         case .failed(let category) where Self.isActionable(category):
             return .failed(category)
         case .failed, .requiresAccountConfirmation, .requiresCellularConfirmation,
+             .requiresUnavailablePhotoDecision,
              .busy, .deferred, .invalidCellularApproval:
             return nil
         }
@@ -60,7 +61,8 @@ struct CloudBackupNotificationPolicy: Sendable {
 
     private static func isActionable(_ category: CloudBackupErrorCategory) -> Bool {
         switch category {
-        case .quotaExceeded, .authenticationRequired, .permissionDenied, .corruptRemoteData:
+        case .quotaExceeded, .authenticationRequired, .permissionDenied, .corruptRemoteData,
+             .photoUnavailable:
             true
         case .iCloudUnavailable, .networkUnavailable, .conflict, .cancelled,
              .temporarilyUnavailable, .unknown:
