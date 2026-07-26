@@ -249,6 +249,28 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(refreshCount, 1)
     }
 
+    func testEditingCompletedOrderPreservesFirstCompletionTime() {
+        let repository = FakeOrderRepository()
+        let completedAt = Date(timeIntervalSince1970: 1_800_070_000)
+        let order = makeOrder(
+            id: "order-completed-edit",
+            status: .completed,
+            dueAt: Date(timeIntervalSince1970: 1_800_120_000),
+            completedAt: completedAt
+        )
+        repository.orders = [order]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.load()
+        viewModel.beginViewingOrder(order)
+        viewModel.beginEditingOrder()
+        viewModel.draftCakeNotes = "Keep completion history"
+
+        XCTAssertTrue(viewModel.saveEditedOrder())
+        XCTAssertEqual(viewModel.selectedOrder?.completedAt, completedAt)
+        XCTAssertEqual(repository.orders.first?.completedAt, completedAt)
+    }
+
     func testInvalidCustomReminderPlanKeepsOrderDraftOpen() {
         let repository = FakeOrderRepository()
         let viewModel = OrderListViewModel(

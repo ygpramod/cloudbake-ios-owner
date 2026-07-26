@@ -81,7 +81,8 @@ func makeOrder(
     dueAt: Date,
     createdAt: Date = Date(timeIntervalSince1970: 1_800_060_000),
     quotedPrice: Decimal? = nil,
-    depositPaid: Decimal? = nil
+    depositPaid: Decimal? = nil,
+    completedAt: Date? = nil
 ) -> Order {
     return Order(
         id: id,
@@ -98,6 +99,7 @@ func makeOrder(
         cakeNotes: nil,
         quotedPrice: quotedPrice,
         depositPaid: depositPaid,
+        completedAt: completedAt,
         createdAt: createdAt,
         updatedAt: createdAt
     )

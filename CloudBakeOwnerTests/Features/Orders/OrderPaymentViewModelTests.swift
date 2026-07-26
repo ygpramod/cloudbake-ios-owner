@@ -6,11 +6,14 @@ final class OrderPaymentViewModelTests: XCTestCase {
     func testMarkSelectedOrderPaidSetsDepositToQuotedPrice() {
         let repository = FakeOrderRepository()
         let updatedAt = Date(timeIntervalSince1970: 1_800_080_000)
+        let completedAt = Date(timeIntervalSince1970: 1_800_070_000)
         let order = makeOrder(
             id: "order-vanilla",
+            status: .completed,
             dueAt: Date(timeIntervalSince1970: 1_800_150_000),
             quotedPrice: Decimal(200),
-            depositPaid: Decimal(50)
+            depositPaid: Decimal(50),
+            completedAt: completedAt
         )
         repository.orders = [order]
         var reminderRefreshCount = 0
@@ -28,6 +31,8 @@ final class OrderPaymentViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedOrder?.paymentStatus, "Paid")
         XCTAssertEqual(repository.orders.first?.depositPaid, Decimal(200))
         XCTAssertEqual(repository.orders.first?.updatedAt, updatedAt)
+        XCTAssertEqual(viewModel.selectedOrder?.completedAt, completedAt)
+        XCTAssertEqual(repository.orders.first?.completedAt, completedAt)
         XCTAssertEqual(reminderRefreshCount, 1)
     }
 

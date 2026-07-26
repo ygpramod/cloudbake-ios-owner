@@ -71,6 +71,7 @@ enum OrderPaymentUpdate {
             quotedPrice: order.quotedPrice,
             depositPaid: depositPaid,
             paymentNotes: order.paymentNotes,
+            completedAt: order.completedAt,
             createdAt: order.createdAt,
             updatedAt: updatedAt
         )

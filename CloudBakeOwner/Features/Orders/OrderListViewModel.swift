@@ -609,6 +609,7 @@ final class OrderListViewModel: ObservableObject {
             quotedPrice: draft.quotedPrice,
             depositPaid: draft.depositPaid,
             paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
+            completedAt: editingOrder.completedAt,
             createdAt: editingOrder.createdAt,
             updatedAt: now
         )
@@ -635,6 +636,7 @@ final class OrderListViewModel: ObservableObject {
                     quotedPrice: order.quotedPrice,
                     depositPaid: order.depositPaid,
                     paymentNotes: order.paymentNotes,
+                    completedAt: editingOrder.completedAt,
                     createdAt: order.createdAt,
                     updatedAt: order.updatedAt
                 )
@@ -1082,6 +1084,7 @@ final class OrderListViewModel: ObservableObject {
             quotedPrice: order.quotedPrice,
             depositPaid: depositPaid ?? order.depositPaid,
             paymentNotes: order.paymentNotes,
+            completedAt: order.completedAt,
             createdAt: order.createdAt,
             updatedAt: updatedAt
         )
