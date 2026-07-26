@@ -656,6 +656,7 @@ struct SettingsView: View {
             }
         }
         .accessibilityIdentifier(AppDestination.settings.screenAccessibilityIdentifier)
+        .cloudBackupPrompts(viewModel: cloudBackupViewModel)
         .cloudRestorePrompts(viewModel: cloudRestoreViewModel)
         .cloudBakeCenteredPopup(
             isPresented: cloudBackupViewModel.isConfirmingDeletion,
