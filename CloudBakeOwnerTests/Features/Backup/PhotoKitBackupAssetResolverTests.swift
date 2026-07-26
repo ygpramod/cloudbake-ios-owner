@@ -1,4 +1,5 @@
 import Foundation
+import Photos
 import XCTest
 @testable import CloudBakeOwner
 
@@ -38,6 +39,27 @@ final class PhotoKitBackupAssetResolverTests: XCTestCase {
         XCTAssertEqual(
             error as? BackupExternalAssetResolverError,
             .imageUnavailable
+        )
+    }
+
+    func testLimitedPhotoAccessIsNotTreatedAsProofOfDeletion() {
+        for status in [
+            PHAuthorizationStatus.limited,
+            .denied,
+            .restricted,
+            .notDetermined
+        ] {
+            XCTAssertThrowsError(
+                try PhotoKitBackupAssetResolver.requireFullAuthorization(status)
+            ) { error in
+                XCTAssertEqual(
+                    error as? BackupExternalAssetResolverError,
+                    .accessDenied
+                )
+            }
+        }
+        XCTAssertNoThrow(
+            try PhotoKitBackupAssetResolver.requireFullAuthorization(.authorized)
         )
     }
 

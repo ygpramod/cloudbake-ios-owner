@@ -29,13 +29,15 @@ struct PhotoKitBackupAssetResolver: BackupExternalAssetResolving {
             throw BackupExternalAssetResolverError.invalidReference
         }
         let authorization = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
-        guard authorization == .authorized || authorization == .limited else {
-            throw BackupExternalAssetResolverError.accessDenied
-        }
-        guard let asset = PHAsset.fetchAssets(
+        try Self.requireFullAuthorization(authorization)
+        let fetchedAsset = PHAsset.fetchAssets(
             withLocalIdentifiers: [identifier],
             options: nil
-        ).firstObject else {
+        ).firstObject
+        guard let asset = fetchedAsset else {
+            try Self.requireFullAuthorization(
+                PHPhotoLibrary.authorizationStatus(for: .readWrite)
+            )
             throw BackupExternalAssetResolverError.assetUnavailable
         }
 
@@ -72,6 +74,12 @@ struct PhotoKitBackupAssetResolver: BackupExternalAssetResolving {
             throw BackupExternalAssetResolverError.missingVersionMetadata
         }
         return versionDate
+    }
+
+    static func requireFullAuthorization(_ status: PHAuthorizationStatus) throws {
+        guard status == .authorized else {
+            throw BackupExternalAssetResolverError.accessDenied
+        }
     }
 
     static func terminalImageResult(
