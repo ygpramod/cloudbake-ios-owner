@@ -19,7 +19,9 @@ Replace the custom popup system across the owner app with native iOS presentatio
 5. preserve destructive button roles, explicit cancel paths, concise explanatory messages, and
    stable accessibility identifiers,
 6. remove the custom dimmed overlay, rounded popup card, custom action rows, and popup-specific
-   icon/color logic.
+   icon/color logic,
+7. route system-driven interactive dismissal through the same cancellation cleanup exactly once,
+   without treating a selected dialog action as cancellation.
 
 The scope includes order status and payment decisions, inventory archive/delete/disposal,
 customer and recipe deletion, design tags/removal, reminder payment confirmation, voice-import

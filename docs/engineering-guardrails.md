@@ -67,6 +67,8 @@ A slice is done only when:
 - Use a native sheet when a workflow needs richer controls that an alert cannot safely host.
   Preserve destructive roles, explicit cancel behavior, concise copy, and accessibility
   identifiers for acceptance-testable actions.
+- Native dialog cancellation must run the same cleanup exactly once whether the owner chooses
+  Cancel, uses the accessibility escape action, or dismisses a system popover by tapping outside.
 - Do not introduce custom popup overlays, one-off dialog styling, nested cards inside system
   dialogs, or custom action-button treatments.
 - If a new UI pattern is truly needed, document the reason in the slice RFC or PR, update these
