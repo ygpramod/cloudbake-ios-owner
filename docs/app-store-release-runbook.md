@@ -129,7 +129,8 @@ In Xcode:
 
 A paid Apple Developer Program membership and a usable local signing identity are separate from
 publishing an app record. App Store Connect membership alone does not make the Mac able to sign an
-archive.
+archive. The reverse is also true: Xcode can show a valid Developer Program team and role while the
+same Apple Account is not authorized in App Store Connect. Confirm both systems independently.
 
 ## Phase 2: Build and Inspect the Archive
 
@@ -526,6 +527,45 @@ Official reference:
 
 ## Complications Observed and Recovery Guidance
 
+### Developer Program access did not establish App Store Connect upload access
+
+A later release-candidate archive succeeded with the correct team, bundle identifier, and CloudKit
+entitlements, and Xcode displayed the signed-in account as a Developer Program team Admin. Export
+still stopped before signing or upload with:
+
+```text
+Failed to Use Accounts
+App Store Connect access for “4H787CNDS2” is required.
+```
+
+The distribution log reported that Xcode could not find an account with App Store Connect access
+for the team. This is an account-mapping failure, not evidence of an archive, entitlement, or app
+code failure. Apple treats Developer Program membership and App Store Connect user access as
+distinct account surfaces. Apple currently permits build uploads for the Account Holder, Admin,
+App Manager, and Developer App Store Connect roles.
+
+Recovery:
+
+1. In **Xcode > Settings > Apple Accounts**, record the exact Apple Account and selected team
+   without storing credentials in release evidence.
+2. In **App Store Connect > Users and Access**, confirm that exact account is present, has a role
+   permitted to upload builds, and has access to the CloudBake app when app-level access is limited.
+3. If another account is the Account Holder, have that holder or an App Store Connect Admin correct
+   the user or app access. Developer Program role labels visible in Xcode are not sufficient proof.
+4. After server-side access is confirmed, refresh or reauthenticate the account in Xcode and retry
+   the unchanged archive export. Do not increment the build number merely because export failed
+   before Apple received a binary.
+5. Only after the account step succeeds, confirm an Apple Distribution identity is available.
+   Apple limits distribution-certificate creation to the Account Holder or Admin.
+6. Preserve the `.xcdistributionlogs` bundle and verify that a retry advances beyond
+   `IDEDistributionUploadAccountStep`.
+
+Official references:
+
+- [Upload builds and required roles](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds)
+- [App Store Connect accounts and roles](https://developer.apple.com/help/app-store-connect/manage-your-team/overview-of-accounts-and-roles)
+- [Apple certificate roles and types](https://developer.apple.com/help/account/create-certificates/certificates-overview)
+
 ### App Store Connect session and browser state
 
 The in-app browser session expired and the expected browser view was no longer available. The work
@@ -649,7 +689,8 @@ Use this abbreviated checklist only after reading the detailed sections above.
 - [ ] Clean, synchronized `main`; release SHA recorded.
 - [ ] Version/build values correct; build number incremented.
 - [ ] Privacy, permissions, export compliance, and CloudKit entitlements re-audited.
-- [ ] Local Apple account and signing certificates valid.
+- [ ] Exact Xcode Apple Account has both Developer Program and App Store Connect access.
+- [ ] Local Apple Distribution signing certificate valid.
 - [ ] CloudKit production schema compatible with the build.
 - [ ] SHA-labelled archive succeeds and metadata is inspected.
 - [ ] App Store Connect export/upload succeeds.
