@@ -304,4 +304,199 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.fetchCustomers(), [amy, zoe])
     }
 
+    func testOrderPagesUseStableBoundedKeysetPagination() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let orders = [
+            pagedOrder(id: "active-a", status: .confirmed, dueAt: start),
+            pagedOrder(id: "active-b", status: .ready, dueAt: start),
+            pagedOrder(
+                id: "active-c",
+                status: .inProgress,
+                dueAt: start.addingTimeInterval(60)
+            ),
+            pagedOrder(
+                id: "completed-a",
+                status: .completed,
+                dueAt: start.addingTimeInterval(120)
+            ),
+            pagedOrder(
+                id: "cancelled-a",
+                status: .cancelled,
+                dueAt: start.addingTimeInterval(180)
+            )
+        ]
+        try orders.forEach(repository.save)
+
+        let first = try repository.fetchOrderPage(
+            query: .active(dueAtRange: nil),
+            after: nil,
+            limit: 2
+        )
+        let second = try repository.fetchOrderPage(
+            query: .active(dueAtRange: nil),
+            after: try XCTUnwrap(first.nextCursor),
+            limit: 2
+        )
+        let completed = try repository.fetchOrderPage(
+            query: .completed,
+            after: nil,
+            limit: 2
+        )
+
+        XCTAssertEqual(first.orders.map(\.id), ["active-a", "active-b"])
+        XCTAssertEqual(second.orders.map(\.id), ["active-c"])
+        XCTAssertNil(second.nextCursor)
+        XCTAssertEqual(
+            completed.orders.map(\.id),
+            ["cancelled-a", "completed-a"]
+        )
+    }
+
+    func testOrderPagesApplyUpcomingCustomerAndPaymentFiltersInSQL() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let customerId = "customer-amy"
+        try repository.save(
+            Customer(
+                id: customerId,
+                name: "Amy",
+                phone: "5550101",
+                email: nil,
+                address: nil,
+                likes: nil,
+                dislikes: nil,
+                allergies: nil,
+                dietaryRestrictions: nil,
+                notes: nil,
+                createdAt: now,
+                updatedAt: now
+            )
+        )
+        try repository.save(
+            Customer(
+                id: "customer-other",
+                name: "Other",
+                phone: "5550102",
+                email: nil,
+                address: nil,
+                likes: nil,
+                dislikes: nil,
+                allergies: nil,
+                dietaryRestrictions: nil,
+                notes: nil,
+                createdAt: now,
+                updatedAt: now
+            )
+        )
+        let orders = [
+            pagedOrder(
+                id: "upcoming",
+                customerId: customerId,
+                status: .confirmed,
+                dueAt: now.addingTimeInterval(60)
+            ),
+            pagedOrder(
+                id: "outside-window",
+                customerId: "customer-other",
+                status: .ready,
+                dueAt: now.addingTimeInterval(3_600)
+            ),
+            pagedOrder(
+                id: "payment-pending",
+                customerId: customerId,
+                status: .completed,
+                dueAt: now.addingTimeInterval(-60),
+                quotedPrice: 100,
+                depositPaid: 25
+            ),
+            pagedOrder(
+                id: "payment-paid",
+                customerId: customerId,
+                status: .completed,
+                dueAt: now.addingTimeInterval(-120),
+                quotedPrice: 100,
+                depositPaid: 100
+            )
+        ]
+        try orders.forEach(repository.save)
+
+        let upcoming = try repository.fetchOrderPage(
+            query: .upcoming(
+                from: now,
+                through: now.addingTimeInterval(300)
+            ),
+            after: nil,
+            limit: 25
+        )
+        let customer = try repository.fetchOrderPage(
+            query: .customer(id: customerId),
+            after: nil,
+            limit: 25
+        )
+        let paymentPending = try repository.fetchOrderPage(
+            query: .paymentPending(asOf: now),
+            after: nil,
+            limit: 25
+        )
+
+        XCTAssertEqual(upcoming.orders.map(\.id), ["upcoming"])
+        XCTAssertEqual(
+            customer.orders.map(\.id),
+            ["payment-paid", "payment-pending", "upcoming"]
+        )
+        XCTAssertEqual(paymentPending.orders.map(\.id), ["payment-pending"])
+    }
+
+    func testOrderPagesRejectInvalidBounds() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        XCTAssertThrowsError(
+            try repository.fetchOrderPage(
+                query: .active(dueAtRange: nil),
+                after: nil,
+                limit: 0
+            )
+        ) { error in
+            XCTAssertEqual(error as? OrderPageQueryError, .invalidLimit)
+        }
+        XCTAssertThrowsError(
+            try repository.fetchOrderPage(
+                query: .upcoming(
+                    from: Date(timeIntervalSince1970: 2),
+                    through: Date(timeIntervalSince1970: 1)
+                ),
+                after: nil,
+                limit: 25
+            )
+        ) { error in
+            XCTAssertEqual(error as? OrderPageQueryError, .invalidDateRange)
+        }
+    }
+
+    private func pagedOrder(
+        id: String,
+        customerId: String? = nil,
+        status: OrderStatus,
+        dueAt: Date,
+        quotedPrice: Decimal? = nil,
+        depositPaid: Decimal? = nil
+    ) -> Order {
+        Order(
+            id: id,
+            customerId: customerId,
+            cakeDesignId: nil,
+            title: id,
+            customerName: "Customer",
+            status: status,
+            dueAt: dueAt,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            quotedPrice: quotedPrice,
+            depositPaid: depositPaid,
+            createdAt: dueAt,
+            updatedAt: dueAt
+        )
+    }
+
 }

@@ -279,6 +279,107 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchOrderPage(
+        query: OrderPageQuery,
+        after cursor: OrderPageCursor?,
+        limit: Int
+    ) throws -> OrderPage {
+        guard (1...50).contains(limit) else {
+            throw OrderPageQueryError.invalidLimit
+        }
+
+        return try writer.read { db in
+            var predicates: [String] = []
+            var values: [(any DatabaseValueConvertible)?] = []
+
+            switch query {
+            case .active(let dueAtRange):
+                predicates.append("status IN (?, ?, ?, ?)")
+                values.append(contentsOf: [
+                    OrderStatus.draft.rawValue,
+                    OrderStatus.confirmed.rawValue,
+                    OrderStatus.inProgress.rawValue,
+                    OrderStatus.ready.rawValue
+                ])
+                if let dueAtRange {
+                    predicates.append("due_at_unix_time BETWEEN ? AND ?")
+                    values.append(dueAtRange.lowerBound.timeIntervalSince1970)
+                    values.append(dueAtRange.upperBound.timeIntervalSince1970)
+                }
+            case .completed:
+                predicates.append("status IN (?, ?)")
+                values.append(OrderStatus.completed.rawValue)
+                values.append(OrderStatus.cancelled.rawValue)
+            case .upcoming(let from, let through):
+                guard from <= through else {
+                    throw OrderPageQueryError.invalidDateRange
+                }
+                predicates.append("status IN (?, ?, ?, ?)")
+                values.append(contentsOf: [
+                    OrderStatus.draft.rawValue,
+                    OrderStatus.confirmed.rawValue,
+                    OrderStatus.inProgress.rawValue,
+                    OrderStatus.ready.rawValue
+                ])
+                predicates.append("due_at_unix_time BETWEEN ? AND ?")
+                values.append(from.timeIntervalSince1970)
+                values.append(through.timeIntervalSince1970)
+            case .customer(let customerId):
+                predicates.append("customer_id = ?")
+                values.append(customerId)
+            case .paymentPending(let date):
+                predicates.append("status = ?")
+                values.append(OrderStatus.completed.rawValue)
+                predicates.append("due_at_unix_time <= ?")
+                values.append(date.timeIntervalSince1970)
+                predicates.append("quoted_price_decimal IS NOT NULL")
+                predicates.append(
+                    """
+                    CAST(quoted_price_decimal AS NUMERIC)
+                        > COALESCE(CAST(deposit_paid_decimal AS NUMERIC), 0)
+                    """
+                )
+            }
+
+            let direction = query.isDescending ? "DESC" : "ASC"
+            if let cursor {
+                let comparison = query.isDescending ? "<" : ">"
+                predicates.append(
+                    """
+                    (
+                        due_at_unix_time \(comparison) ?
+                        OR (due_at_unix_time = ? AND id \(comparison) ?)
+                    )
+                    """
+                )
+                values.append(cursor.dueAt.timeIntervalSince1970)
+                values.append(cursor.dueAt.timeIntervalSince1970)
+                values.append(cursor.orderId)
+            }
+
+            values.append(limit + 1)
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT *
+                    FROM orders
+                    WHERE \(predicates.joined(separator: " AND "))
+                    ORDER BY due_at_unix_time \(direction), id \(direction)
+                    LIMIT ?
+                    """,
+                arguments: arguments(values)
+            )
+            let candidates = rows.map(order)
+            let pageOrders = Array(candidates.prefix(limit))
+            let nextCursor = candidates.count > limit
+                ? pageOrders.last.map {
+                    OrderPageCursor(dueAt: $0.dueAt, orderId: $0.id)
+                }
+                : nil
+            return OrderPage(orders: pageOrders, nextCursor: nextCursor)
+        }
+    }
+
     func fetchDefaultOrderReminderConfiguration() throws -> OrderReminderConfiguration {
         try writer.read { db in
             guard let row = try Row.fetchOne(
