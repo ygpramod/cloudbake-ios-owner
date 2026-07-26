@@ -586,8 +586,8 @@ paid, and balance due. Active orders use estimated ingredient cost; Completed or
 consumption cost. Partial cost remains visible with a missing-price warning.
 
 Sales & Orders shows each selected period's order count, quoted total, average quoted value,
-received, outstanding, and status breakdown. Tap a period for its bounded order drill-down. Tap
-payment or profitability rows to open the order.
+received, outstanding, and status breakdown. Periods with no matching orders are omitted. Tap a
+period for its bounded order drill-down. Tap payment or profitability rows to open the order.
 
 When a linked recipe has inventory-backed ingredients, the order form shows Estimated Ingredient
 Cost beside the quoted-price input so the owner can use it while preparing a quote. The estimate

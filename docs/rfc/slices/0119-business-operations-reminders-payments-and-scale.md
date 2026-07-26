@@ -311,9 +311,10 @@ reports are outside this improvement point.
 2. Draft and Cancelled orders are excluded by default but remain available through a status filter.
 3. For each selected Day, Week, or Month bucket, show order count, quoted total, average quoted
    order value, amount received, and outstanding balance.
-4. Show the status breakdown without loading every contributing order.
-5. Received and outstanding totals reconcile with legacy paid amounts and non-void payment receipts.
-6. Selecting a bucket opens a bounded, paged order drill-down using the same filters.
+4. Omit buckets whose order count is zero after applying the selected date range and status filters.
+5. Show the status breakdown without loading every contributing order.
+6. Received and outstanding totals reconcile with legacy paid amounts and non-void payment receipts.
+7. Selecting a bucket opens a bounded, paged order drill-down using the same filters.
 
 CSV export is deferred. This improvement point first delivers reliable on-screen reports; export
 can follow in a separate slice after the owner validates the final columns and filters.
