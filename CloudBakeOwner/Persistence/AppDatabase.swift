@@ -180,7 +180,7 @@ final class AppDatabase: @unchecked Sendable {
         let timestamp = Date()
         let dueAt = Calendar(identifier: .gregorian).date(
             byAdding: .day,
-            value: 1,
+            value: 2,
             to: timestamp
         ) ?? timestamp
         let order = Order(

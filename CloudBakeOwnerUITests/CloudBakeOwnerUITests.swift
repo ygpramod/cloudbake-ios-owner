@@ -373,10 +373,18 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["settings.currency"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["settings.logo.choose"].waitForExistence(timeout: 5))
-        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
+        let settingsScroll = expandSettingsSection(
+            "settings.dataManagement.disclosure",
+            revealing: app.buttons["settings.inventory.import"],
+            in: app
+        )
         XCTAssertTrue(app.buttons["settings.inventory.import"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["settings.inventory.export"].waitForExistence(timeout: 5))
-        scrollToHittable(app.buttons["settings.recipes.import"], in: app)
+        scrollToHittable(
+            app.buttons["settings.recipes.import"],
+            in: app,
+            scrollContainer: settingsScroll
+        )
         XCTAssertTrue(app.buttons["settings.recipes.export"].exists)
     }
 
@@ -385,10 +393,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Settings", in: app)
-        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
-        app.swipeUp()
+        let settingsScroll = expandSettingsSection(
+            "settings.dataManagement.disclosure",
+            revealing: app.buttons["settings.inventory.export"],
+            in: app
+        )
         let exportButton = app.buttons["settings.inventory.export"]
-        scrollToVisible(exportButton, in: app)
+        scrollToVisible(exportButton, in: app, scrollContainer: settingsScroll)
         tapWhenReady(exportButton)
         let continueButton = app.buttons["settings.inventory.export.continue"]
         if !continueButton.waitForExistence(timeout: 10) {
@@ -407,11 +418,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Settings", in: app)
-        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
-        let settingsScroll = app.scrollViews["screen.settings"]
-        XCTAssertTrue(settingsScroll.waitForExistence(timeout: 5))
         let importButton = app.buttons["settings.inventory.import"]
         let continueButton = app.buttons["settings.inventory.import.continue"]
+        let settingsScroll = expandSettingsSection(
+            "settings.dataManagement.disclosure",
+            revealing: importButton,
+            in: app
+        )
         tapScrollableAction(
             importButton,
             in: settingsScroll,
@@ -431,10 +444,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         openDashboardDestination("Settings", in: app)
-        tapWhenReady(app.buttons["settings.backup.disclosure"])
+        let settingsScroll = expandSettingsSection(
+            "settings.backup.disclosure",
+            revealing: app.switches["settings.backup.weeklyReminder"],
+            in: app
+        )
         XCTAssertTrue(app.switches["settings.backup.weeklyReminder"].waitForExistence(timeout: 5))
-        scrollToHittable(app.buttons["settings.backup.create"], in: app)
-        app.swipeUp()
+        scrollToHittable(
+            app.buttons["settings.backup.create"],
+            in: app,
+            scrollContainer: settingsScroll
+        )
         tapWhenReady(app.buttons["settings.backup.create"])
         tapWhenReady(app.buttons["settings.backup.create.continue"])
 
@@ -450,21 +470,22 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         XCTAssertFalse(app.switches["settings.cloudBackup.enabled"].exists)
-        tapWhenReady(app.buttons["settings.backup.disclosure"])
-
         let enabledSwitch = app.switches["settings.cloudBackup.enabled"]
-        XCTAssertTrue(enabledSwitch.waitForExistence(timeout: 5))
+        let settingsScroll = expandSettingsSection(
+            "settings.backup.disclosure",
+            revealing: enabledSwitch,
+            in: app
+        )
         XCTAssertTrue(app.staticTexts["settings.cloudBackup.status"].exists)
 
         let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
-        scrollToHittable(backUpNowButton, in: app)
-        app.swipeUp()
-        tapWhenReady(backUpNowButton)
-
         let confirmButton = app.buttons["settings.cloudBackup.cellular.confirm"]
-        if !confirmButton.waitForExistence(timeout: 5) {
-            XCTFail("Cellular confirmation did not appear. Hierarchy: \(app.debugDescription)")
-        }
+        tapScrollableAction(
+            backUpNowButton,
+            in: settingsScroll,
+            waitingFor: confirmButton,
+            in: app
+        )
         XCTAssertTrue(app.staticTexts["Use Cellular Data?"].exists)
         tapWhenReady(app.buttons["settings.cloudBackup.cellular.cancel"])
     }
@@ -474,12 +495,17 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
         app.launch()
 
-        tapWhenReady(app.buttons["settings.backup.disclosure"])
         let notificationsSwitch = app.switches["settings.cloudBackup.notifications"]
-        scrollToHittable(notificationsSwitch, in: app)
-        let settingsScroll = app.scrollViews["screen.settings"]
-        XCTAssertTrue(settingsScroll.waitForExistence(timeout: 5))
-        settingsScroll.swipeUp()
+        let settingsScroll = expandSettingsSection(
+            "settings.backup.disclosure",
+            revealing: notificationsSwitch,
+            in: app
+        )
+        scrollToHittable(
+            notificationsSwitch,
+            in: app,
+            scrollContainer: settingsScroll
+        )
         tapWhenReady(notificationsSwitch)
 
         expectation(
@@ -495,19 +521,24 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_PHOTO_DECISION"] = "1"
         app.launch()
 
-        tapWhenReady(app.buttons["settings.backup.disclosure"])
         let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
-        scrollToHittable(backUpNowButton, in: app)
-        app.swipeUp()
+        let settingsScroll = expandSettingsSection(
+            "settings.backup.disclosure",
+            revealing: backUpNowButton,
+            in: app
+        )
         let lastSuccess = app.descendants(matching: .any)[
             "settings.cloudBackup.lastSuccess"
         ]
         XCTAssertTrue(lastSuccess.waitForExistence(timeout: 5))
         let lastSuccessBeforeCancellation = lastSuccess.label
-        tapWhenReady(backUpNowButton)
-
         let omitButton = app.buttons["settings.cloudBackup.photos.omit"]
-        XCTAssertTrue(omitButton.waitForExistence(timeout: 5))
+        tapScrollableAction(
+            backUpNowButton,
+            in: settingsScroll,
+            waitingFor: omitButton,
+            in: app
+        )
         XCTAssertTrue(app.staticTexts["Unavailable Photos"].exists)
 
         tapWhenReady(app.buttons["settings.cloudBackup.photos.remove"])
@@ -549,7 +580,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
 
         let backupDisclosure = app.buttons["settings.backup.disclosure"]
-        scrollToHittable(backupDisclosure, in: app)
+        scrollToHittable(
+            backupDisclosure,
+            in: app,
+            scrollContainer: settingsScroll
+        )
         tapWhenReady(backupDisclosure)
         XCTAssertFalse(omittedStatus.exists)
         tapWhenReady(backupDisclosure)
@@ -567,16 +602,21 @@ final class CloudBakeOwnerUITests: XCTestCase {
         ] = "1"
         app.launch()
 
-        tapWhenReady(app.buttons["settings.backup.disclosure"])
         let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
-        scrollToHittable(backUpNowButton, in: app)
-        app.swipeUp()
-        tapWhenReady(backUpNowButton)
-
+        let settingsScroll = expandSettingsSection(
+            "settings.backup.disclosure",
+            revealing: backUpNowButton,
+            in: app
+        )
         let actionMessage = app.staticTexts[
             "settings.cloudBackup.actionMessage"
         ]
-        XCTAssertTrue(actionMessage.waitForExistence(timeout: 5))
+        tapScrollableAction(
+            backUpNowButton,
+            in: settingsScroll,
+            waitingFor: actionMessage,
+            in: app
+        )
         XCTAssertEqual(
             actionMessage.label,
             "Allow CloudBake full access to Photos in iPhone Settings, then try again."
@@ -592,16 +632,19 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_ACCOUNT_CONFIRMATION"] = "1"
         app.launch()
 
-        tapWhenReady(app.buttons["settings.backup.disclosure"])
         let backUpNowButton = app.buttons["settings.cloudBackup.backUpNow"]
-        scrollToHittable(backUpNowButton, in: app)
-        app.swipeUp()
-        tapWhenReady(backUpNowButton)
-
+        let settingsScroll = expandSettingsSection(
+            "settings.backup.disclosure",
+            revealing: backUpNowButton,
+            in: app
+        )
         let confirmButton = app.buttons["settings.cloudBackup.account.confirm"]
-        if !confirmButton.waitForExistence(timeout: 5) {
-            XCTFail("Account confirmation did not appear. Hierarchy: \(app.debugDescription)")
-        }
+        tapScrollableAction(
+            backUpNowButton,
+            in: settingsScroll,
+            waitingFor: confirmButton,
+            in: app
+        )
         tapWhenReady(app.buttons["settings.cloudBackup.account.cancel"])
         tapWhenReady(backUpNowButton)
         XCTAssertTrue(confirmButton.waitForExistence(timeout: 5))
@@ -614,11 +657,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launchEnvironment["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS"] = "1"
         app.launch()
 
-        tapWhenReady(app.buttons["settings.dataManagement.disclosure"])
-        let settingsScroll = app.scrollViews["screen.settings"]
-        XCTAssertTrue(settingsScroll.waitForExistence(timeout: 5))
         let deleteButton = app.buttons["settings.cloudBackup.delete"]
         let confirmButton = app.buttons["settings.cloudBackup.delete.confirm"]
+        let settingsScroll = expandSettingsSection(
+            "settings.dataManagement.disclosure",
+            revealing: deleteButton,
+            in: app
+        )
         tapScrollableAction(
             deleteButton,
             in: settingsScroll,
