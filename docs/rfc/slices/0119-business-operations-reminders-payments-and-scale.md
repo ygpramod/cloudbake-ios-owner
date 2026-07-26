@@ -88,6 +88,8 @@ For an inventory item:
 - `reservedAll` is the total of current Confirmed/In Progress reservations without recorded usage;
 - `reservedOther(order)` is `reservedAll` minus that order's existing reservation;
 - `proposed(order)` is the order's newly calculated complete requirement;
+- `affectedOld(set)` is the total current reservation for every order affected by one recipe edit;
+- `affectedProposed(set)` is the total newly calculated requirement for that same set;
 - `forecastOnly` is the live requirement of Draft orders and unconsumed Ready orders.
 
 The owner-facing calculations are:
@@ -95,13 +97,17 @@ The owner-facing calculations are:
 1. General available-to-promise: `usable - reservedAll`.
 2. Initial confirmation or reservation replacement shortfall:
    `max(proposed(order) - max(usable - reservedOther(order), 0), 0)`.
-3. Aggregate projected shortage:
+3. Multi-order recipe replacement shortfall:
+   `max(affectedProposed(set) - max(usable - (reservedAll - affectedOld(set)), 0), 0)`.
+4. Aggregate projected shortage:
    `max(reservedAll + forecastOnly - usable, 0)`.
 
 Confirmed/In Progress demand is read from its reservation and never also recalculated as forecast
 demand. A repair-pending order contributes its live requirement exactly once until its reservation
-is repaired. These equations preserve RFC-0098's Draft warning while preventing a reservation from
-being subtracted or counted twice.
+is repaired. A recipe edit validates all affected proposed requirements as one set before writing
+any recipe or reservation row; it does not validate each order independently. These equations
+preserve RFC-0098's Draft warning while preventing a reservation from being subtracted or counted
+twice.
 
 ### Persistence
 
@@ -266,7 +272,7 @@ aggregate queries may return counts and totals without loading their contributin
 2. Completed history:
    - Completed and Cancelled only;
    - reverse due-date ordering;
-   - keyset or limit/offset paging with a fixed page size.
+   - keyset paging with the fixed page size and stable tiebreaker.
 3. Home upcoming orders:
    - active orders from the start of today through the existing 30-day window;
    - paged with the same hard limit.
@@ -293,12 +299,15 @@ explicit export boundary; production screens must move to bounded queries in thi
 ### Shared Notification Budget
 
 CloudBake owns one notification-budget allocator with a maximum of 60 app-scheduled pending
-requests, retaining four system slots below iOS's documented 64-request limit. The single payment
-summary request and backup reminder are allocated first. Remaining slots go to operational order
-reminders by nearest trigger time, then order due time and id. The scheduler reconciles on launch,
-foreground, reminder-setting changes, order changes, payment changes, restore activation, and
-significant date changes. In-app Reminders remains complete even when a later local notification is
-outside the current scheduling window.
+requests, retaining four system slots below iOS's documented 64-request limit. Every producer,
+including operational orders, inventory-expiry batches, the payment summary, and backup reminders,
+must submit candidates to this allocator rather than scheduling independently. The single payment
+summary request and backup reminder are allocated first. Remaining order and inventory-expiry
+candidates are merged by nearest trigger time, then business due/expiry time, category, and stable
+id. Each producer queries no more candidates than the remaining capacity. The scheduler reconciles
+on launch, foreground, reminder-setting changes, order changes, inventory/batch changes, payment
+changes, restore activation, and significant date changes. In-app Reminders remains complete even
+when a later local notification is outside the current scheduling window.
 
 ### Indexes And Performance
 
