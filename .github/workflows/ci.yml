@@ -97,6 +97,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreRequiresDestructiveCellularAndBrokenAssetChoices
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreExplainsWhenAppUpdateIsRequired
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreReportsSuccessfulRollbackAfterActivationFailure
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreKeepsPromptAvailableAfterInvalidApproval
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCloudRestoreBlocksAppWhenRollbackCannotBeGuaranteed
           - feature: orders-core
             only_testing: |
