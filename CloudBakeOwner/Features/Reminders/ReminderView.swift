@@ -30,8 +30,11 @@ struct ReminderView: View {
         }
         .onAppear {
             viewModel.load()
-            canOpenWhatsApp = URL(string: "whatsapp://send")
-                .map { UIApplication.shared.canOpenURL($0) } ?? false
+            let whatsappURL = URL(string: "whatsapp://send")
+            canOpenWhatsApp =
+                whatsappURL.map {
+                    UIApplication.shared.canOpenURL($0)
+                } ?? false
         }
         .sheet(item: $orderDetailRequest, onDismiss: closeOrderDetail) { request in
             NavigationStack {
@@ -159,15 +162,11 @@ struct ReminderView: View {
         accessibilityIdentifier: String,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.cloudBakePink)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(accessibilityIdentifier)
+        CloudBakeFullWidthTextButton(
+            title: title,
+            accessibilityIdentifier: accessibilityIdentifier,
+            action: action
+        )
     }
 
     private func reminderSection<Item: Identifiable, Row: View>(

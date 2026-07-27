@@ -24,11 +24,11 @@ struct ReportsView: View {
                 filterCard
                 reportContent
                 if viewModel.canLoadMore {
-                    Button("Load More", action: viewModel.loadMore)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.cloudBakePink)
-                        .frame(maxWidth: .infinity)
-                        .accessibilityIdentifier("reports.loadMore")
+                    CloudBakeFullWidthTextButton(
+                        title: "Load More",
+                        accessibilityIdentifier: "reports.loadMore",
+                        action: viewModel.loadMore
+                    )
                 }
                 if let errorMessage = viewModel.errorMessage {
                     CloudBakeErrorBanner(
@@ -304,9 +304,11 @@ struct ReportsView: View {
                                 }
                                     ?? "Unavailable"
                             )
-                            Text("\(row.order.customerName) • \(row.order.status.displayName) • Due \(row.order.dueAt.formatted(date: .abbreviated, time: .omitted))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            Text(
+                                "\(row.order.customerName) • \(row.order.status.displayName) • Due \(row.order.dueAt.formatted(date: .abbreviated, time: .omitted))"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                             HStack {
                                 Text("Quoted \(MoneyDisplay.formatted(row.order.quotedPrice ?? 0))")
                                 Text("Cost \(row.ingredientCost.map { MoneyDisplay.formatted($0) } ?? "Unavailable")")
@@ -518,8 +520,11 @@ private struct SalesOrderDrillDownView: View {
                 .buttonStyle(.plain)
             }
             if canLoadMore {
-                Button("Load More", action: onLoadMore)
-                    .frame(maxWidth: .infinity)
+                CloudBakeFullWidthTextButton(
+                    title: "Load More",
+                    accessibilityIdentifier: "reports.drillDown.loadMore",
+                    action: onLoadMore
+                )
             }
         }
         .navigationTitle(title)
