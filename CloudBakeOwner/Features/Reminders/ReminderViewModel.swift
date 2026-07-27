@@ -8,6 +8,10 @@ struct PaymentDueReminderItem: Equatable, Identifiable {
     let balanceDueText: String
     let paymentMessage: String
     let whatsappURL: URL?
+
+    var paymentConfirmationMessage: String {
+        "Record the remaining balance of \(balanceDueText) as paid?"
+    }
 }
 
 struct TodayOrderReminderItem: Equatable, Identifiable {

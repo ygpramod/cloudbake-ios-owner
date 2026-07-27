@@ -51,13 +51,13 @@ struct ReminderView: View {
         }
         .cloudBakeConfirmationDialog(
             isPresented: optionalPresentationBinding($pendingPaidItem),
-            title: "Mark As Paid?",
-            message: "Confirm payment received for this order.",
+            title: "Mark as paid?",
+            message: pendingPaidItem?.paymentConfirmationMessage ?? "",
             cancelAccessibilityIdentifier: "reminders.paymentDue.markPaid.cancel",
             onCancel: { pendingPaidItem = nil }
         ) {
             if let pendingPaidItem {
-                nativeDialogButton("Mark \(pendingPaidItem.orderName) Paid") {
+                nativeDialogButton("Mark Paid") {
                     if viewModel.markPaid(orderId: pendingPaidItem.id) {
                         self.pendingPaidItem = nil
                     }
