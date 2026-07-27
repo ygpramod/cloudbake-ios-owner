@@ -54,11 +54,17 @@ extension CloudBakeOwnerUITests {
             file: file,
             line: line
         )
-        tapWhenReady(
-            element,
-            waitingFor: destination,
-            in: app,
-            timeout: timeout,
+        for attempt in 0..<2 {
+            tapWhenReady(element, timeout: timeout, file: file, line: line)
+            if destination.waitForExistence(timeout: timeout) {
+                return
+            }
+            if attempt == 0 {
+                app.activate()
+            }
+        }
+        XCTFail(
+            "Tap did not reach the expected destination. Hierarchy: \(app.debugDescription)",
             file: file,
             line: line
         )
