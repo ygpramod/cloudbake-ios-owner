@@ -67,6 +67,10 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(
             app.descendants(matching: .any)["reports.filters"].exists
         )
+        XCTAssertEqual(
+            app.buttons["reports.kind"].value as? String,
+            "Payment Ledger"
+        )
         XCTAssertTrue(app.buttons["Outstanding"].isSelected)
     }
 }

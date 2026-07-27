@@ -77,13 +77,39 @@ struct ReportsView: View {
     }
 
     private var reportPicker: some View {
-        Picker("Report", selection: $viewModel.selectedReport) {
+        Menu {
             ForEach(ReportKind.allCases) { report in
-                Text(report.title).tag(report)
+                Button {
+                    viewModel.selectedReport = report
+                } label: {
+                    if viewModel.selectedReport == report {
+                        Label(report.title, systemImage: "checkmark")
+                    } else {
+                        Text(report.title)
+                    }
+                }
             }
+        } label: {
+            HStack(spacing: 12) {
+                Text(viewModel.selectedReport.title)
+                    .font(CloudBakeTheme.Typography.reportTitle)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+
+                Spacer(minLength: 12)
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.cloudBakePink)
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .contentShape(Rectangle())
         }
-        .pickerStyle(.menu)
+        .buttonStyle(.plain)
         .tint(Color.cloudBakePink)
+        .accessibilityLabel("Report")
+        .accessibilityValue(viewModel.selectedReport.title)
         .accessibilityIdentifier("reports.kind")
     }
 
