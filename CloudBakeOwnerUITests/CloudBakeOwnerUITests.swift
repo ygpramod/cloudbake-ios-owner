@@ -79,7 +79,9 @@ final class CloudBakeOwnerUITests: XCTestCase {
         app.launch()
 
         assertScreenVisible("screen.reminders", in: app, timeout: 10)
-        tapWhenReady(app.buttons["bottom.navigation.more"])
+        let moreTab = app.buttons["bottom.navigation.more"]
+        XCTAssertTrue(moreTab.isSelected)
+        tapWhenReady(moreTab)
 
         assertScreenVisible("screen.more", in: app, timeout: 5)
     }
