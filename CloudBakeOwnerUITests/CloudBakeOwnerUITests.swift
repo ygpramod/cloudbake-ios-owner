@@ -222,7 +222,12 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         let reference = app.buttons["designs.reference.design-ui-fixture-reference"]
         XCTAssertTrue(reference.waitForExistence(timeout: 10))
-        scrollToHittable(reference, in: app, timeout: 10)
+        scrollToHittable(
+            reference,
+            in: app,
+            scrollContainer: app.scrollViews["screen.designs"],
+            timeout: 10
+        )
         tapWhenReady(reference)
         XCTAssertTrue(app.staticTexts["References"].waitForExistence(timeout: 5))
         let useForNewOrder = app.buttons["designs.preview.useForNewOrder"]
