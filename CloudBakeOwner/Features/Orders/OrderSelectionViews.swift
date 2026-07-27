@@ -301,7 +301,12 @@ struct CustomerSelectionView: View {
         List {
             Section {
                 Button {
-                    isChoosingAddMode = true
+                    if AcceptanceTestRuntime.opensManualOrderCustomerEntryDirectly {
+                        customerViewModel.beginAddingCustomer()
+                        isAddingCustomer = true
+                    } else {
+                        isChoosingAddMode = true
+                    }
                 } label: {
                     Label("New Customer", systemImage: "person.badge.plus")
                 }

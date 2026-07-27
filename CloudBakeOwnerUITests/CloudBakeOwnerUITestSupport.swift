@@ -687,6 +687,43 @@ extension CloudBakeOwnerUITests {
         return matches.element(boundBy: max(0, matchCount - 1))
     }
 
+    func tapVisibleElementAtCenter(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertTrue(
+            element.waitForExistence(timeout: timeout),
+            "Element did not exist before coordinate tap.",
+            file: file,
+            line: line
+        )
+        XCTAssertTrue(
+            element.isEnabled,
+            "Element was not enabled before coordinate tap.",
+            file: file,
+            line: line
+        )
+
+        let appFrame = app.frame
+        let elementFrame = element.frame
+        XCTAssertTrue(
+            !elementFrame.isEmpty && appFrame.intersects(elementFrame),
+            "Element was not visible before coordinate tap.",
+            file: file,
+            line: line
+        )
+
+        app.coordinate(
+            withNormalizedOffset: CGVector(
+                dx: (elementFrame.midX - appFrame.minX) / appFrame.width,
+                dy: (elementFrame.midY - appFrame.minY) / appFrame.height
+            )
+        ).tap()
+    }
+
     func nativeDialogAction(
         labeled label: String,
         in app: XCUIApplication,

@@ -39,6 +39,13 @@ enum AcceptanceTestRuntime {
         isEnabled("CLOUDBAKE_TEST_INTRODUCTION", environment: environment)
     }
 
+    static var opensManualOrderCustomerEntryDirectly: Bool {
+        isEnabled(
+            "CLOUDBAKE_TEST_DIRECT_ORDER_CUSTOMER_ENTRY",
+            environment: environment
+        )
+    }
+
     static var initialDestination: AppDestination? {
         guard isRunning,
               let rawDestination = environment["CLOUDBAKE_INITIAL_DESTINATION"],
@@ -59,5 +66,6 @@ enum AcceptanceTestRuntime {
     #else
     static let isRunning = false
     static let isXCTestProcess = false
+    static let opensManualOrderCustomerEntryDirectly = false
     #endif
 }
