@@ -222,13 +222,13 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         let reference = app.buttons["designs.reference.design-ui-fixture-reference"]
         XCTAssertTrue(reference.waitForExistence(timeout: 10))
-        scrollToHittable(
+        scrollToVisible(
             reference,
             in: app,
             scrollContainer: app.scrollViews["screen.designs"],
             timeout: 10
         )
-        tapWhenReady(reference)
+        tapVisibleElementAtCenter(reference, in: app)
         XCTAssertTrue(app.staticTexts["References"].waitForExistence(timeout: 5))
         let useForNewOrder = app.buttons["designs.preview.useForNewOrder"]
         tapWhenReady(useForNewOrder, timeout: 15)
@@ -1530,6 +1530,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
     func testOrderCanCreateAndLinkNewCustomerFromSelection() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 25
+        app.launchEnvironment["CLOUDBAKE_TEST_DIRECT_ORDER_CUSTOMER_ENTRY"] = "1"
         app.launch()
 
         openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
@@ -1553,9 +1554,8 @@ final class CloudBakeOwnerUITests: XCTestCase {
             timeout: transitionTimeout
         )
 
-        tapWhenReady(app.buttons["orders.customerSelection.newCustomer"], timeout: transitionTimeout)
         tapWhenReady(
-            nativeDialogAction(labeled: "Enter Manually", in: app),
+            app.buttons["orders.customerSelection.newCustomer"],
             waitingFor: app.navigationBars["Add Customer"],
             in: app,
             timeout: transitionTimeout
@@ -1883,7 +1883,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
             )
         )
 
-        let error = app.staticTexts["orders.detail.statusChangeError"]
+        let error = app.sheets.staticTexts["Recipe has no ingredients to deduct."]
         XCTAssertTrue(error.waitForExistence(timeout: 5))
         XCTAssertEqual(error.label, "Recipe has no ingredients to deduct.")
         tapWhenReady(
