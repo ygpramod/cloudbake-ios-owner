@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import CloudBakeOwner
 
 @MainActor
@@ -52,7 +53,7 @@ final class ReminderViewModelTests: XCTestCase {
                 dueAt: dueAt,
                 quotedPrice: decimal("75"),
                 depositPaid: nil
-            )
+            ),
         ]
         let viewModel = ReminderViewModel(repository: repository, calendar: calendar)
 
@@ -112,7 +113,7 @@ final class ReminderViewModelTests: XCTestCase {
             makeOrder(id: "order-evening", title: "Evening Cake", status: .ready, dueAt: todayEvening),
             makeOrder(id: "order-tomorrow", title: "Tomorrow Cake", status: .confirmed, dueAt: tomorrow),
             makeOrder(id: "order-morning", title: "Morning Cake", status: .confirmed, dueAt: todayMorning),
-            makeOrder(id: "order-cancelled", title: "Cancelled Cake", status: .cancelled, dueAt: todayMorning)
+            makeOrder(id: "order-cancelled", title: "Cancelled Cake", status: .cancelled, dueAt: todayMorning),
         ]
         let viewModel = ReminderViewModel(
             repository: repository,
@@ -126,7 +127,7 @@ final class ReminderViewModelTests: XCTestCase {
             viewModel.todayOrderItems,
             [
                 TodayOrderReminderItem(id: "order-morning", orderName: "Morning Cake", customerName: "Amy"),
-                TodayOrderReminderItem(id: "order-evening", orderName: "Evening Cake", customerName: "Amy")
+                TodayOrderReminderItem(id: "order-evening", orderName: "Evening Cake", customerName: "Amy"),
             ]
         )
     }
@@ -190,7 +191,7 @@ final class ReminderViewModelTests: XCTestCase {
                 name: "Sugar",
                 currentQuantity: 1000,
                 minimumQuantity: 500
-            )
+            ),
         ]
         let viewModel = ReminderViewModel(repository: repository)
 
@@ -277,7 +278,7 @@ final class ReminderViewModelTests: XCTestCase {
         ]
         repository.orders = [
             makeOrder(id: "order-one", status: .confirmed, dueAt: dueAt),
-            makeOrder(id: "order-two", status: .confirmed, dueAt: dueAt)
+            makeOrder(id: "order-two", status: .confirmed, dueAt: dueAt),
         ]
         repository.extraIngredients = [
             makeOrderExtraIngredient(
@@ -291,7 +292,7 @@ final class ReminderViewModelTests: XCTestCase {
                 orderId: "order-two",
                 inventoryItemId: "inventory-flour",
                 quantity: 6
-            )
+            ),
         ]
 
         let viewModel = ReminderViewModel(repository: repository)
@@ -341,7 +342,8 @@ private final class FakeReminderRepository: OrderRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
     OrderExtraIngredientRepository,
-    PaymentReceiptRepository {
+    PaymentReceiptRepository
+{
     var orders: [Order] = []
     var items: [InventoryItem] = []
     var customers: [Customer] = []
