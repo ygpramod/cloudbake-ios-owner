@@ -51,6 +51,7 @@ private struct CloudBakeBottomNavigationItem: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(destination.bottomNavigationTitle)
                 .accessibilityIdentifier(destination.bottomNavigationAccessibilityIdentifier)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
                 .frame(maxWidth: .infinity)
         } else {
             Button {
@@ -68,6 +69,7 @@ private struct CloudBakeBottomNavigationItem: View {
             .buttonStyle(.plain)
             .accessibilityLabel(destination.bottomNavigationTitle)
             .accessibilityIdentifier(destination.bottomNavigationAccessibilityIdentifier)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
     }
 
