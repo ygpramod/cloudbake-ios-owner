@@ -236,10 +236,17 @@ extension CloudBakeOwnerUITests {
     func nativeDialogAction(
         identifiedBy identifier: String,
         in app: XCUIApplication,
+        timeout: TimeInterval = 5,
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> XCUIElement {
         let matches = app.sheets.buttons.matching(identifier: identifier)
+        XCTAssertTrue(
+            matches.firstMatch.waitForExistence(timeout: timeout),
+            "Native dialog action \(identifier) did not appear.",
+            file: file,
+            line: line
+        )
         let matchCount = matches.count
         XCTAssertGreaterThan(
             matchCount,
@@ -254,11 +261,18 @@ extension CloudBakeOwnerUITests {
     func nativeDialogAction(
         labeled label: String,
         in app: XCUIApplication,
+        timeout: TimeInterval = 5,
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> XCUIElement {
         let matches = app.sheets.buttons.matching(
             NSPredicate(format: "label == %@", label)
+        )
+        XCTAssertTrue(
+            matches.firstMatch.waitForExistence(timeout: timeout),
+            "Native dialog action \(label) did not appear.",
+            file: file,
+            line: line
         )
         let matchCount = matches.count
         XCTAssertGreaterThan(
