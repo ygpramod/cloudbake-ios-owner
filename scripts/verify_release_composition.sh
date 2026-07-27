@@ -36,23 +36,25 @@ if [[ ! -d "$app_bundle" ]]; then
   exit 1
 fi
 
-forbidden_keys=(
+forbidden_markers=(
   "CLOUDBAKE_TEST"
   "CLOUDBAKE_SEED"
   "CLOUDBAKE_USE_IN_MEMORY_DATABASE"
   "CLOUDBAKE_INITIAL_DESTINATION"
+  "AcceptanceTestDesignPhotoLibrary"
+  "acceptance-photo-"
 )
 
-found_forbidden_key=false
-for key in "${forbidden_keys[@]}"; do
-  if LC_ALL=C grep -R -a -F -l -- "$key" "$app_bundle" >/dev/null; then
-    echo "Release verification failed: $key is present in the Release app bundle." >&2
-    found_forbidden_key=true
+found_forbidden_marker=false
+for marker in "${forbidden_markers[@]}"; do
+  if LC_ALL=C grep -R -a -F -l -- "$marker" "$app_bundle" >/dev/null; then
+    echo "Release verification failed: $marker is present in the Release app bundle." >&2
+    found_forbidden_marker=true
   fi
 done
 
-if [[ "$found_forbidden_key" == true ]]; then
+if [[ "$found_forbidden_marker" == true ]]; then
   exit 1
 fi
 
-echo "Release composition is clean: no acceptance environment keys are present."
+echo "Release composition is clean: no acceptance-only markers are present."
