@@ -2,6 +2,30 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class CoreModelsTests: XCTestCase {
+    func testMoneyDisplayRoundsToTwoPlacesWithoutUnnecessaryZeros() throws {
+        let wholeAmount = try XCTUnwrap(Decimal(string: "125"))
+        let singleDecimalAmount = try XCTUnwrap(Decimal(string: "125.5"))
+        let roundedAmount = try XCTUnwrap(Decimal(string: "125.567"))
+        let roundedWholeAmount = try XCTUnwrap(Decimal(string: "125.004"))
+
+        XCTAssertEqual(
+            MoneyDisplay.formatted(wholeAmount, currency: .usDollar),
+            "$125"
+        )
+        XCTAssertEqual(
+            MoneyDisplay.formatted(singleDecimalAmount, currency: .usDollar),
+            "$125.5"
+        )
+        XCTAssertEqual(
+            MoneyDisplay.formatted(roundedAmount, currency: .usDollar),
+            "$125.57"
+        )
+        XCTAssertEqual(
+            MoneyDisplay.formatted(roundedWholeAmount, currency: .singaporeDollar),
+            "S$125"
+        )
+    }
+
     func testOrderReminderConfigurationNormalizesEnabledOffsets() throws {
         let configuration = try OrderReminderConfiguration(
             mode: .custom,

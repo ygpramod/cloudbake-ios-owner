@@ -42,7 +42,10 @@ enum AppSettings {
 
 enum MoneyDisplay {
     static func formatted(_ amount: Decimal, currency: AppCurrency = AppSettings.currency) -> String {
-        "\(currency.symbol)\(NSDecimalNumber(decimal: amount).stringValue)"
+        var source = amount
+        var rounded = Decimal()
+        NSDecimalRound(&rounded, &source, 2, .plain)
+        return "\(currency.symbol)\(NSDecimalNumber(decimal: rounded).stringValue)"
     }
 }
 
