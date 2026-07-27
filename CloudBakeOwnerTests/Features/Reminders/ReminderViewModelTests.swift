@@ -74,6 +74,10 @@ final class ReminderViewModelTests: XCTestCase {
         XCTAssertEqual(linkedPayment.firstName, "Amy")
         XCTAssertEqual(linkedPayment.balanceDueText, MoneyDisplay.formatted(decimal("100")))
         XCTAssertEqual(
+            linkedPayment.paymentConfirmationMessage,
+            "Record the remaining balance of \(MoneyDisplay.formatted(decimal("100"))) as paid?"
+        )
+        XCTAssertEqual(
             linkedPayment.paymentMessage,
             "Amy has \(MoneyDisplay.formatted(decimal("100"))) balance due for Chocolate Truffle Cake."
         )
