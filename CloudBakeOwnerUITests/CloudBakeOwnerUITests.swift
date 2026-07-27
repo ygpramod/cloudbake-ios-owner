@@ -993,7 +993,14 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(
             app.staticTexts["Reopen CloudBake to Finish Recovery"].waitForExistence(timeout: 5)
         )
-        XCTAssertTrue(app.staticTexts["restore.recoveryRequired.message"].exists)
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(
+                    format: "label CONTAINS %@",
+                    "stopped access to your data"
+                )
+            ).firstMatch.exists
+        )
         XCTAssertFalse(app.buttons["bottom.navigation.dashboard"].isEnabled)
     }
 
