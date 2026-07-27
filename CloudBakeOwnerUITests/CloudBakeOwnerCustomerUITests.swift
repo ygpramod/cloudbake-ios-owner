@@ -51,7 +51,7 @@ extension CloudBakeOwnerUITests {
 
         XCTAssertTrue(
             nativeDialogAction(
-                identifiedBy: "customers.add.importContacts",
+                labeled: "Import From Contacts",
                 in: app
             ).waitForExistence(timeout: transitionTimeout)
         )

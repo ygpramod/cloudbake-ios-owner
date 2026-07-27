@@ -374,7 +374,7 @@ extension CloudBakeOwnerUITests {
     ) {
         tapWhenReady(
             nativeDialogAction(
-                identifiedBy: "customers.add.manual",
+                labeled: "Enter Manually",
                 in: app
             ),
             waitingFor: app.navigationBars["Add Customer"],
