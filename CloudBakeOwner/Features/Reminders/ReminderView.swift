@@ -369,7 +369,7 @@ private struct PaymentDueReminderRow: View {
                 CloudBakeInlineActionButton(
                     title: "Mark as Paid",
                     systemImage: "checkmark.circle",
-                    tint: .cloudBakePurple,
+                    tint: .cloudBakePink,
                     accessibilityIdentifier: "reminders.paymentDue.markPaid.\(item.id)",
                     action: onMarkPaid
                 )
