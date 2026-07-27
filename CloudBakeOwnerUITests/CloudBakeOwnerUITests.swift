@@ -73,4 +73,14 @@ final class CloudBakeOwnerUITests: XCTestCase {
         )
         XCTAssertTrue(app.buttons["Outstanding"].isSelected)
     }
+
+    func testMoreTabReturnsFromGroupedDestinationToMore() {
+        let app = makeApp(initialDestination: "reminders")
+        app.launch()
+
+        assertScreenVisible("screen.reminders", in: app, timeout: 10)
+        tapWhenReady(app.buttons["bottom.navigation.more"])
+
+        assertScreenVisible("screen.more", in: app, timeout: 5)
+    }
 }

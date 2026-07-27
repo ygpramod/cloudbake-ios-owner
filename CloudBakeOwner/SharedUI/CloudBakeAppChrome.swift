@@ -18,6 +18,7 @@ struct CloudBakeBottomNavigation: View {
                     destination: destination,
                     isSelected: destination == selectedDestination
                         || (destination == .more && selectedDestination.isGroupedUnderMore),
+                    isCurrentDestination: destination == selectedDestination,
                     onSelect: onSelect
                 )
             }
@@ -40,10 +41,11 @@ struct CloudBakeBottomNavigation: View {
 private struct CloudBakeBottomNavigationItem: View {
     let destination: AppDestination
     let isSelected: Bool
+    let isCurrentDestination: Bool
     let onSelect: (AppDestination) -> Void
 
     var body: some View {
-        if isSelected {
+        if isCurrentDestination {
             itemContent
                 .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
                 .accessibilityElement(children: .ignore)
@@ -55,7 +57,11 @@ private struct CloudBakeBottomNavigationItem: View {
                 onSelect(destination)
             } label: {
                 itemContent
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(
+                        isSelected
+                            ? CloudBakeTheme.ColorToken.primaryAction
+                            : .secondary
+                    )
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .contentShape(Rectangle())
             }
