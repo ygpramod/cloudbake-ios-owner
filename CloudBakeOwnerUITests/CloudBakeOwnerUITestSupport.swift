@@ -709,8 +709,9 @@ extension CloudBakeOwnerUITests {
 
         let appFrame = app.frame
         let elementFrame = element.frame
+        let visibleFrame = appFrame.intersection(elementFrame)
         XCTAssertTrue(
-            !elementFrame.isEmpty && appFrame.intersects(elementFrame),
+            !visibleFrame.isEmpty,
             "Element was not visible before coordinate tap.",
             file: file,
             line: line
@@ -718,8 +719,8 @@ extension CloudBakeOwnerUITests {
 
         app.coordinate(
             withNormalizedOffset: CGVector(
-                dx: (elementFrame.midX - appFrame.minX) / appFrame.width,
-                dy: (elementFrame.midY - appFrame.minY) / appFrame.height
+                dx: (visibleFrame.midX - appFrame.minX) / appFrame.width,
+                dy: (visibleFrame.midY - appFrame.minY) / appFrame.height
             )
         ).tap()
     }
