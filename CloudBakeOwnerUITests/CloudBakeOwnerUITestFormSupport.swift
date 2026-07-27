@@ -177,11 +177,14 @@ extension CloudBakeOwnerUITests {
         in app: XCUIApplication,
         timeout: TimeInterval = 10
     ) {
-        tapWhenReady(
+        tapVisibleElementAtCenter(
             app.buttons["customers.add"],
-            waitingFor: app.staticTexts["Add Customer"],
             in: app,
             timeout: timeout
+        )
+        XCTAssertTrue(
+            app.staticTexts["Add Customer"].waitForExistence(timeout: timeout),
+            "Customer add action did not present its entry choices."
         )
     }
 
