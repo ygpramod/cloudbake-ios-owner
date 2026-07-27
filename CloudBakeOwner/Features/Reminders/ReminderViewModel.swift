@@ -35,7 +35,8 @@ final class ReminderViewModel: ObservableObject {
     @Published private(set) var canLoadMoreTodayOrderItems = false
     @Published var errorMessage: String?
 
-    private let repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository & PaymentReceiptRepository
+    private let repository:
+        any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository & PaymentReceiptRepository
     private let dateProvider: () -> Date
     private let calendar: Calendar
     private let onPaymentChanged: () -> Void
@@ -47,7 +48,8 @@ final class ReminderViewModel: ObservableObject {
     private static let orderPageSize = 25
 
     init(
-        repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository & PaymentReceiptRepository,
+        repository: any OrderRepository & InventoryItemRepository & CustomerRepository & ProjectedIngredientDemandRepository
+            & PaymentReceiptRepository,
         dateProvider: @escaping () -> Date = Date.init,
         calendar: Calendar = .current,
         onPaymentChanged: @escaping () -> Void = {}
@@ -214,7 +216,8 @@ final class ReminderViewModel: ObservableObject {
     }
 
     private func todayOrderItems(from orders: [Order]) -> [TodayOrderReminderItem] {
-        return orders
+        return
+            orders
             .filter(\.hasActiveReminderState)
             .map {
                 TodayOrderReminderItem(
@@ -227,7 +230,8 @@ final class ReminderViewModel: ObservableObject {
 
     private func todayOrderRange(at date: Date) -> ClosedRange<Date> {
         let start = calendar.startOfDay(for: date)
-        let exclusiveEnd = calendar.date(byAdding: .day, value: 1, to: start)
+        let exclusiveEnd =
+            calendar.date(byAdding: .day, value: 1, to: start)
             ?? start.addingTimeInterval(86_400)
         return start...exclusiveEnd.addingTimeInterval(-0.001)
     }
@@ -271,7 +275,8 @@ final class ReminderViewModel: ObservableObject {
 
     private static func whatsappURL(phone: String?, message: String) -> URL? {
         guard let phone,
-              !TextInputFormatting.trimmed(phone).isEmpty else {
+            !TextInputFormatting.trimmed(phone).isEmpty
+        else {
             return nil
         }
 
@@ -280,7 +285,7 @@ final class ReminderViewModel: ObservableObject {
         components.host = "send"
         components.queryItems = [
             URLQueryItem(name: "phone", value: normalizedPhoneNumber(phone)),
-            URLQueryItem(name: "text", value: message)
+            URLQueryItem(name: "text", value: message),
         ]
         return components.url
     }

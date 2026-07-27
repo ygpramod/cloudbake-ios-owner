@@ -83,7 +83,8 @@ enum InventoryUnit: String, Equatable {
             return quantity * sourceGrams / targetGrams
         case .volume:
             guard let sourceMilliliters = millilitersPerUnit,
-                  let targetMilliliters = targetUnit.millilitersPerUnit else {
+                let targetMilliliters = targetUnit.millilitersPerUnit
+            else {
                 return nil
             }
             return quantity * sourceMilliliters / targetMilliliters
