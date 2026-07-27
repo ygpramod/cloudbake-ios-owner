@@ -283,19 +283,29 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Remove Favorite"].exists)
 
         tapWhenReady(app.buttons["Tags"])
-        let tagsField = app.textFields["designs.preview.tags.field"]
+        let tagsField = app.textFields["Comma-separated tags"]
         XCTAssertTrue(tagsField.waitForExistence(timeout: 5))
         tagsField.tap()
         tagsField.typeText(", Wedding")
-        tapWhenReady(app.buttons["designs.preview.tags.save"])
+        let saveActions = app.buttons.matching(
+            NSPredicate(format: "label == %@", "Save")
+        )
+        tapWhenReady(
+            saveActions.element(boundBy: max(0, saveActions.count - 1))
+        )
         tapWhenReady(app.buttons["Next Design"])
         tapWhenReady(app.buttons["Previous Design"])
         tapWhenReady(app.buttons["Tags"])
         XCTAssertTrue(
-            String(describing: app.textFields["designs.preview.tags.field"].value)
+            String(describing: app.textFields["Comma-separated tags"].value)
                 .contains("Wedding")
         )
-        tapWhenReady(app.buttons["designs.tags.cancel"])
+        let cancelActions = app.buttons.matching(
+            NSPredicate(format: "label == %@", "Cancel")
+        )
+        tapWhenReady(
+            cancelActions.element(boundBy: max(0, cancelActions.count - 1))
+        )
     }
 
     func testDesignLandingCanScrollFromBottomBackToTop() throws {
