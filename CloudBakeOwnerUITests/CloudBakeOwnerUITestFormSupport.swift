@@ -177,15 +177,29 @@ extension CloudBakeOwnerUITests {
         in app: XCUIApplication,
         timeout: TimeInterval = 10
     ) {
-        tapVisibleElementAtCenter(
-            app.buttons["customers.add"],
-            in: app,
-            timeout: timeout
-        )
+        let addButton = app.buttons["customers.add"]
         XCTAssertTrue(
-            app.staticTexts["Add Customer"].waitForExistence(timeout: timeout),
-            "Customer add action did not present its entry choices."
+            addButton.waitForExistence(timeout: timeout),
+            "Customer add action was not available."
         )
+
+        let addModeDialog = app.sheets.firstMatch
+        for attempt in 0..<2 {
+            addButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            if addModeDialog.waitForExistence(timeout: min(5, timeout)) {
+                XCTAssertTrue(
+                    app.staticTexts["Add Customer"].waitForExistence(timeout: timeout),
+                    "Customer add choices did not include their title."
+                )
+                return
+            }
+
+            if attempt == 0 {
+                app.activate()
+            }
+        }
+
+        XCTFail("Customer add action did not present its entry choices.")
     }
 
     func selectManualCustomerEntry(
