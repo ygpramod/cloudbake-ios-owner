@@ -73,7 +73,15 @@ extension CloudBakeOwnerUITests {
             app.switches["settings.orderReminders.dueTime"].value as? String,
             "1"
         )
-        tapWhenReady(app.buttons["settings.orderReminders.save"])
+        let reminderSave = app.buttons["settings.orderReminders.save"]
+        scrollToHittable(
+            reminderSave,
+            in: app,
+            scrollContainer: app.scrollViews["screen.settings.orderReminders"]
+        )
+        reminderSave.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.12, dy: 0.5)
+        ).tap()
         XCTAssertTrue(
             app.staticTexts["settings.orderReminders.status"]
                 .waitForExistence(timeout: 5)
@@ -84,12 +92,14 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(paymentTime.exists)
         let paymentSave = app.buttons["settings.paymentReminders.save"]
         let paymentStatus = app.staticTexts["settings.paymentReminders.status"]
-        tapScrollableAction(
+        scrollToHittable(
             paymentSave,
-            in: app.scrollViews["screen.settings.orderReminders"],
-            waitingFor: paymentStatus,
             in: app
         )
+        paymentSave.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.12, dy: 0.5)
+        ).tap()
+        XCTAssertTrue(paymentStatus.waitForExistence(timeout: 5))
     }
 
     func testSettingsShowsInventoryCSVActions() throws {

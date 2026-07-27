@@ -190,11 +190,7 @@ struct OrderReminderSettingsView: View {
             Button("Save Reminder Defaults") {
                 viewModel.save()
             }
-            .font(.headline)
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(Color.cloudBakePink, in: Capsule())
+            .buttonStyle(CloudBakeFullWidthActionButtonStyle())
             .accessibilityIdentifier("settings.orderReminders.save")
 
             CloudBakeSection("Payment Follow-up") {
@@ -234,11 +230,7 @@ struct OrderReminderSettingsView: View {
             Button("Save Payment Reminder Time") {
                 paymentViewModel.save()
             }
-            .font(.headline)
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(Color.cloudBakePink, in: Capsule())
+            .buttonStyle(CloudBakeFullWidthActionButtonStyle())
             .accessibilityIdentifier("settings.paymentReminders.save")
         }
         .accessibilityIdentifier("screen.settings.orderReminders")

@@ -1,5 +1,41 @@
 import SwiftUI
 
+struct CloudBakeFullWidthActionButtonStyle: ButtonStyle {
+    let tint: Color
+
+    init(tint: Color = CloudBakeTheme.ColorToken.primaryAction) {
+        self.tint = tint
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline)
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(tint.opacity(0.12), in: Capsule())
+            .contentShape(Capsule())
+            .opacity(configuration.isPressed ? 0.72 : 1)
+    }
+}
+
+struct CloudBakeFullWidthTextButton: View {
+    let title: String
+    let accessibilityIdentifier: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
 struct CloudBakeInlineActionButton: View {
     enum Prominence {
         case compact

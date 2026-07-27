@@ -56,11 +56,12 @@ private struct CloudBakeBottomNavigationItem: View {
             } label: {
                 itemContent
                     .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(destination.bottomNavigationTitle)
             .accessibilityIdentifier(destination.bottomNavigationAccessibilityIdentifier)
-            .frame(maxWidth: .infinity)
         }
     }
 
