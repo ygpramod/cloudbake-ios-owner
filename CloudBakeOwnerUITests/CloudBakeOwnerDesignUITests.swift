@@ -127,20 +127,27 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.navigationBars["First Gallery Cake"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Remove Favorite"].exists)
 
-        tapWhenReady(app.buttons["Tags"])
-        let tagsField = app.textFields["designs.preview.tags.field"]
+        tapWhenReady(app.navigationBars.buttons["Tags"])
+        let tagsAlert = app.alerts["Edit Tags"]
+        XCTAssertTrue(tagsAlert.waitForExistence(timeout: 5))
+        let tagsField = tagsAlert.textFields.firstMatch
         XCTAssertTrue(tagsField.waitForExistence(timeout: 5))
         tagsField.tap()
         tagsField.typeText(", Wedding")
-        tapWhenReady(app.buttons["designs.preview.tags.save"])
+        tapVisibleElementAtCenter(nativeAlertAction(labeled: "Save", in: tagsAlert), in: app)
         tapWhenReady(app.buttons["Next Design"])
         tapWhenReady(app.buttons["Previous Design"])
-        tapWhenReady(app.buttons["Tags"])
+        tapWhenReady(app.navigationBars.buttons["Tags"])
+        let updatedTagsAlert = app.alerts["Edit Tags"]
+        XCTAssertTrue(updatedTagsAlert.waitForExistence(timeout: 5))
         XCTAssertTrue(
-            String(describing: app.textFields["designs.preview.tags.field"].value)
+            String(describing: updatedTagsAlert.textFields.firstMatch.value)
                 .contains("Wedding")
         )
-        tapWhenReady(app.buttons["designs.tags.cancel"])
+        tapVisibleElementAtCenter(
+            nativeAlertAction(labeled: "Cancel", in: updatedTagsAlert),
+            in: app
+        )
     }
 
     func testDesignLandingCanScrollFromBottomBackToTop() throws {

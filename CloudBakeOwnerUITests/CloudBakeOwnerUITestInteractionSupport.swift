@@ -271,6 +271,26 @@ extension CloudBakeOwnerUITests {
         return matches.element(boundBy: max(0, matchCount - 1))
     }
 
+    func nativeAlertAction(
+        labeled label: String,
+        in alert: XCUIElement,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> XCUIElement {
+        let matches = alert.buttons.matching(
+            NSPredicate(format: "label == %@", label)
+        )
+        let matchCount = matches.count
+        XCTAssertGreaterThan(
+            matchCount,
+            0,
+            "Native alert action \(label) was not available.",
+            file: file,
+            line: line
+        )
+        return matches.element(boundBy: max(0, matchCount - 1))
+    }
+
     func tapVisibleElementAtCenter(
         _ element: XCUIElement,
         in app: XCUIApplication,
