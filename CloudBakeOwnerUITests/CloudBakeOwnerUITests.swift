@@ -419,11 +419,11 @@ final class CloudBakeOwnerUITests: XCTestCase {
         let exportButton = app.buttons["settings.inventory.export"]
         scrollToVisible(exportButton, in: app, scrollContainer: settingsScroll)
         tapWhenReady(exportButton)
-        let continueButton = app.buttons["settings.inventory.export.continue"]
-        if !continueButton.waitForExistence(timeout: 10) {
+        let confirmationTitle = app.staticTexts["Export Inventory CSV?"]
+        if !confirmationTitle.waitForExistence(timeout: 10) {
             XCTFail("Inventory export confirmation did not appear. Hierarchy: \(app.debugDescription)")
         }
-        tapWhenReady(continueButton)
+        tapWhenReady(nativeDialogAction(labeled: "Create Export", in: app))
 
         let exporter = app.descendants(matching: .any)["settings.fileExporter"]
         if !exporter.waitForExistence(timeout: 10) {
@@ -437,7 +437,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         openDashboardDestination("Settings", in: app)
         let importButton = app.buttons["settings.inventory.import"]
-        let continueButton = app.buttons["settings.inventory.import.continue"]
+        let confirmationTitle = app.staticTexts["Import Inventory CSV?"]
         let settingsScroll = expandSettingsSection(
             "settings.dataManagement.disclosure",
             revealing: importButton,
@@ -446,10 +446,10 @@ final class CloudBakeOwnerUITests: XCTestCase {
         tapScrollableAction(
             importButton,
             in: settingsScroll,
-            waitingFor: continueButton,
+            waitingFor: confirmationTitle,
             in: app
         )
-        tapWhenReady(continueButton)
+        tapWhenReady(nativeDialogAction(labeled: "Choose CSV File", in: app))
 
         let importer = app.descendants(matching: .any)["settings.fileImporter"]
         if !importer.waitForExistence(timeout: 10) {
@@ -787,12 +787,12 @@ final class CloudBakeOwnerUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Restore Cloud Backup?"].waitForExistence(timeout: 5))
         XCTAssertTrue(
             nativeDialogAction(
-                identifiedBy: "settings.cloudRestore.confirm",
+                labeled: "Restore Backup",
                 in: app
             ).exists
         )
         let startFreshButton = nativeDialogAction(
-            identifiedBy: "settings.cloudRestore.startFresh",
+            labeled: "Start Fresh",
             in: app
         )
         tapWhenReady(startFreshButton)
@@ -808,7 +808,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Restore Cloud Backup?"].waitForExistence(timeout: 5))
         let restoreButton = nativeDialogAction(
-            identifiedBy: "settings.cloudRestore.confirm",
+            labeled: "Restore Backup",
             in: app
         )
         tapWhenReady(restoreButton)
@@ -1555,10 +1555,7 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         tapWhenReady(app.buttons["orders.customerSelection.newCustomer"], timeout: transitionTimeout)
         tapWhenReady(
-            nativeDialogAction(
-                identifiedBy: "orders.customerSelection.add.manual",
-                in: app
-            ),
+            nativeDialogAction(labeled: "Enter Manually", in: app),
             waitingFor: app.navigationBars["Add Customer"],
             in: app,
             timeout: transitionTimeout
@@ -1886,12 +1883,12 @@ final class CloudBakeOwnerUITests: XCTestCase {
             )
         )
 
-        let error = app.staticTexts["Recipe has no ingredients to deduct."]
+        let error = app.staticTexts["orders.detail.statusChangeError"]
         XCTAssertTrue(error.waitForExistence(timeout: 5))
         XCTAssertEqual(error.label, "Recipe has no ingredients to deduct.")
         tapWhenReady(
             nativeDialogAction(
-                identifiedBy: "orders.detail.statusChangeError.dismiss",
+                labeled: "OK",
                 in: app
             )
         )
