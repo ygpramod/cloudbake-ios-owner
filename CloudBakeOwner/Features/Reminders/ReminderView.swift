@@ -65,6 +65,7 @@ struct ReminderView: View {
                         self.pendingPaidItem = nil
                     }
                 }
+                .tint(Color.cloudBakePink)
                 .accessibilityIdentifier("reminders.paymentDue.markPaid.confirm")
             }
         }
@@ -369,7 +370,7 @@ private struct PaymentDueReminderRow: View {
                 CloudBakeInlineActionButton(
                     title: "Mark as Paid",
                     systemImage: "checkmark.circle",
-                    tint: .cloudBakePink,
+                    tint: .cloudBakePurple,
                     accessibilityIdentifier: "reminders.paymentDue.markPaid.\(item.id)",
                     action: onMarkPaid
                 )
