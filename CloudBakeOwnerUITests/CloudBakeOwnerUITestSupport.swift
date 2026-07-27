@@ -687,6 +687,26 @@ extension CloudBakeOwnerUITests {
         return matches.element(boundBy: max(0, matchCount - 1))
     }
 
+    func nativeDialogAction(
+        labeled label: String,
+        in app: XCUIApplication,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> XCUIElement {
+        let matches = app.sheets.buttons.matching(
+            NSPredicate(format: "label == %@", label)
+        )
+        let matchCount = matches.count
+        XCTAssertGreaterThan(
+            matchCount,
+            0,
+            "Native dialog action \(label) was not available.",
+            file: file,
+            line: line
+        )
+        return matches.element(boundBy: max(0, matchCount - 1))
+    }
+
     func assertExistsAfterScrolling(
         _ element: XCUIElement,
         in app: XCUIApplication,
