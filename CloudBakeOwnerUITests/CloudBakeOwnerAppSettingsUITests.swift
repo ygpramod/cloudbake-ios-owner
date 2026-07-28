@@ -74,10 +74,10 @@ extension CloudBakeOwnerUITests {
             "1"
         )
         let reminderSave = app.buttons["settings.orderReminders.save"]
-        scrollToHittable(
+        positionScrollableElementForInteraction(
             reminderSave,
-            in: app,
-            scrollContainer: app.scrollViews["screen.settings.orderReminders"]
+            in: app.scrollViews["screen.settings.orderReminders"],
+            app: app
         )
         reminderSave.coordinate(
             withNormalizedOffset: CGVector(dx: 0.12, dy: 0.5)
@@ -92,9 +92,10 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(paymentTime.exists)
         let paymentSave = app.buttons["settings.paymentReminders.save"]
         let paymentStatus = app.staticTexts["settings.paymentReminders.status"]
-        scrollToHittable(
+        positionScrollableElementForInteraction(
             paymentSave,
-            in: app
+            in: app.scrollViews["screen.settings.orderReminders"],
+            app: app
         )
         paymentSave.coordinate(
             withNormalizedOffset: CGVector(dx: 0.12, dy: 0.5)
