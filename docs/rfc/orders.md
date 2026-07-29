@@ -1,5 +1,9 @@
 # Orders RFC
 
+> Historical feature RFC. Current consolidated requirements:
+> [Orders Screen RFC](https://github.com/ygpramod/CloudBake/blob/main/docs/rfc/screens/orders.md).
+> Use this file for earlier rationale and slice history, not as the starting point for new work.
+
 ## Status
 
 Implemented for current owner MVP

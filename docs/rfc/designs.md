@@ -1,5 +1,9 @@
 # Designs RFC
 
+> Historical feature RFC. Current consolidated requirements:
+> [Designs Screen RFC](https://github.com/ygpramod/CloudBake/blob/main/docs/rfc/screens/designs.md).
+> Use this file for earlier rationale and slice history, not as the starting point for new work.
+
 ## Status
 
 Implemented for iPhone. iPad remains explicitly deferred and is not a supported device family.

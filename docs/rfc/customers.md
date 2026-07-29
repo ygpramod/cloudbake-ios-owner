@@ -1,5 +1,9 @@
 # Customers RFC
 
+> Historical feature RFC. Current consolidated requirements:
+> [Customers Screen RFC](https://github.com/ygpramod/CloudBake/blob/main/docs/rfc/screens/customers.md).
+> Use this file for earlier rationale and slice history, not as the starting point for new work.
+
 ## Status
 
 Implemented for current owner MVP
