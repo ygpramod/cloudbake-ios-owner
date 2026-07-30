@@ -18,7 +18,7 @@ enum CloudBakeTheme {
 
     enum Typography {
         static let screenTitle = Font.system(size: 28, weight: .heavy, design: .rounded)
-        static let reportTitle = Font.system(size: 27, weight: .bold, design: .rounded)
+        static let reportTitle = Font.system(size: 26, weight: .bold, design: .rounded)
         static let brandTitle = Font.system(size: 32, weight: .heavy, design: .serif)
         static let metricValue = Font.system(size: 28, weight: .bold, design: .rounded)
         static let sectionTitle = Font.headline.weight(.semibold)
