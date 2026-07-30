@@ -85,4 +85,20 @@ final class CloudBakeOwnerUITests: XCTestCase {
 
         assertScreenVisible("screen.more", in: app, timeout: 5)
     }
+
+    func testBottomNavigationReturnsDirectlyToDashboard() {
+        let app = makeApp()
+        app.launch()
+
+        tapWhenReady(app.buttons["bottom.navigation.orders"])
+        assertScreenVisible("screen.orders", in: app, timeout: 5)
+
+        tapWhenReady(app.buttons["bottom.navigation.inventory"])
+        assertScreenVisible("screen.inventory", in: app, timeout: 5)
+
+        tapWhenReady(app.buttons["bottom.navigation.dashboard"])
+        assertDashboardVisible(in: app, timeout: 5)
+        XCTAssertFalse(app.descendants(matching: .any)["screen.orders"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["screen.inventory"].exists)
+    }
 }
