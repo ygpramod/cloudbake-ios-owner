@@ -87,6 +87,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testAppLaunchesToDashboard
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testFirstLaunchIntroductionSupportsNextAndSkip
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testPrimaryNavigationDestinationsAreReachable
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testBottomNavigationReturnsDirectlyToDashboard
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testReportsOpenOnOutstandingPaymentLedger
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testMoreTabReturnsFromGroupedDestinationToMore
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testDashboardDesignsShortcutOpensDesigns

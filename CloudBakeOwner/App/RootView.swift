@@ -69,7 +69,7 @@ struct RootView: View {
 
             CloudBakeBottomNavigation(
                 selectedDestination: selectedDestination,
-                onSelect: navigate
+                onSelect: navigateFromBottomNavigation
             )
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .ignoresSafeArea(.container, edges: .bottom)
@@ -200,6 +200,15 @@ struct RootView: View {
         navigationPath.append(destination)
         if navigationPath.count > maximumSectionHistoryCount {
             navigationPath.removeFirst(navigationPath.count - maximumSectionHistoryCount)
+        }
+    }
+
+    private func navigateFromBottomNavigation(_ destination: AppDestination) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+
+        withTransaction(transaction) {
+            navigate(destination)
         }
     }
 
@@ -582,7 +591,7 @@ private struct MoreView: View {
         MoreSection(
             title: "App",
             destinations: [.settings]
-        )
+        ),
     ]
 
     var body: some View {
