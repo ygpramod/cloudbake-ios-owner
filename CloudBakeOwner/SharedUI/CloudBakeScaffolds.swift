@@ -7,6 +7,7 @@ struct CloudBakeScreenScaffold<Content: View>: View {
     let primaryAction: CloudBakeScreenAction?
     let secondaryActions: [CloudBakeScreenAction]
     let collapsesActionsIntoMenu: Bool
+    let showsHeader: Bool
     @ViewBuilder let content: Content
 
     init(
@@ -15,6 +16,7 @@ struct CloudBakeScreenScaffold<Content: View>: View {
         primaryAction: CloudBakeScreenAction? = nil,
         secondaryActions: [CloudBakeScreenAction] = [],
         collapsesActionsIntoMenu: Bool = false,
+        showsHeader: Bool = true,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
@@ -22,6 +24,7 @@ struct CloudBakeScreenScaffold<Content: View>: View {
         self.primaryAction = primaryAction
         self.secondaryActions = secondaryActions
         self.collapsesActionsIntoMenu = collapsesActionsIntoMenu
+        self.showsHeader = showsHeader
         self.content = content()
     }
 
@@ -31,12 +34,14 @@ struct CloudBakeScreenScaffold<Content: View>: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: CloudBakeTheme.Spacing.section) {
-                    CloudBakeScreenHeader(
-                        title: title,
-                        primaryAction: primaryAction,
-                        secondaryActions: secondaryActions,
-                        collapsesActionsIntoMenu: collapsesActionsIntoMenu
-                    )
+                    if showsHeader {
+                        CloudBakeScreenHeader(
+                            title: title,
+                            primaryAction: primaryAction,
+                            secondaryActions: secondaryActions,
+                            collapsesActionsIntoMenu: collapsesActionsIntoMenu
+                        )
+                    }
 
                     content
                 }

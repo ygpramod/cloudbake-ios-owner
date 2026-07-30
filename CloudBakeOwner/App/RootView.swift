@@ -597,7 +597,8 @@ private struct MoreView: View {
     var body: some View {
         CloudBakeScreenScaffold(
             title: "More",
-            selectedDestination: .more
+            selectedDestination: .more,
+            showsHeader: false
         ) {
             ForEach(sections) { section in
                 CloudBakeSection(section.title) {
