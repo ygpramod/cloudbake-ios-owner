@@ -47,23 +47,22 @@ final class OrderNotificationRouter: NSObject, ObservableObject, UNUserNotificat
 
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
-        let userInfo = response.notification.request.content.userInfo
-        if userInfo[PaymentPendingReminderScheduler.notificationDestinationKey] as? String
-            == PaymentPendingReminderScheduler.notificationDestination {
-            await MainActor.run {
-                openPaymentReport()
-            }
-            return
-        }
-        guard userInfo[OrderReminderScheduler.orderNotificationDestinationKey] as? String == OrderReminderScheduler.orderNotificationDestinationOrder,
-              let orderId = userInfo[OrderReminderScheduler.orderNotificationOrderIdKey] as? String else {
-            return
-        }
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        handleNotificationResponse(
+            userInfo: response.notification.request.content.userInfo,
+            completionHandler: completionHandler
+        )
+    }
 
-        await MainActor.run {
-            openOrder(id: orderId)
+    nonisolated func handleNotificationResponse(
+        userInfo: [AnyHashable: Any],
+        completionHandler: @escaping () -> Void
+    ) {
+        completionHandler()
+        Task { @MainActor [weak self] in
+            self?.routeNotification(userInfo: userInfo)
         }
     }
 }
