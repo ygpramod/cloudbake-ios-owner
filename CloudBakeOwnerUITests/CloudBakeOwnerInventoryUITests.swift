@@ -461,6 +461,11 @@ extension CloudBakeOwnerUITests {
             waitingFor: app.navigationBars["Add by Voice"]
         )
 
+        XCTAssertFalse(app.staticTexts["inventory.voice.guidance"].exists)
+        tapWhenReady(app.buttons["inventory.voice.guidance.toggle"])
+        XCTAssertTrue(app.staticTexts["inventory.voice.guidance"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["inventory.voice.guidance.examples"].exists)
+
         let transcript = app.textViews["inventory.voice.transcript"]
         XCTAssertTrue(transcript.waitForExistence(timeout: 5))
         typeText("Cake flour 800 grams, strawberry 100 grams", into: transcript)
