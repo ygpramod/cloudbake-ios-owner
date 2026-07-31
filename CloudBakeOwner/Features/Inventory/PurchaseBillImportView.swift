@@ -266,6 +266,7 @@ struct VoiceInventoryImportView: View {
     @State private var pendingUnknownDraftId: String?
     @State private var mappingDraftId: String?
     @State private var inventorySearch = ""
+    @State private var isShowingVoiceGuidance = false
 
     @MainActor
     init(
@@ -294,7 +295,21 @@ struct VoiceInventoryImportView: View {
 
     var body: some View {
         Form {
-            Section("Voice Inventory") {
+            Section {
+                if isShowingVoiceGuidance {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Say one item at a time using its name, quantity, and unit.")
+                            .accessibilityIdentifier("inventory.voice.guidance")
+
+                        Text("For example: Flour 800 grams, Strawberries 100 grams, or Eggs 12 pieces.")
+                            .accessibilityIdentifier("inventory.voice.guidance.examples")
+
+                        Text("Pause between items to start a new line. You can edit the transcript before creating drafts.")
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
+
                 Text("Recognition stays on this iPhone and uses the current iPhone language.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -325,6 +340,23 @@ struct VoiceInventoryImportView: View {
                 }
                 .disabled(viewModel.voiceInventoryTranscript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityIdentifier("inventory.voice.createDrafts")
+            } header: {
+                HStack {
+                    Text("Voice Inventory")
+
+                    Spacer()
+
+                    Button {
+                        isShowingVoiceGuidance.toggle()
+                    } label: {
+                        Image(systemName: "info.circle")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        isShowingVoiceGuidance ? "Hide voice inventory guidance" : "Show voice inventory guidance"
+                    )
+                    .accessibilityIdentifier("inventory.voice.guidance.toggle")
+                }
             }
 
             if !viewModel.voiceInventoryDrafts.isEmpty {
@@ -354,6 +386,7 @@ struct VoiceInventoryImportView: View {
         }
         .cloudBakeFormScreenStyle()
         .navigationTitle("Add by Voice")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
@@ -447,7 +480,8 @@ struct VoiceInventoryImportView: View {
         let query = TextInputFormatting.normalizedSearchKey(inventorySearch)
         let compatibleItems: [InventoryItem]
         if let mappingDraftId,
-           let draft = viewModel.voiceInventoryDrafts.first(where: { $0.id == mappingDraftId }) {
+            let draft = viewModel.voiceInventoryDrafts.first(where: { $0.id == mappingDraftId })
+        {
             compatibleItems = viewModel.items.filter {
                 draft.unit.convertedQuantity(1, to: $0.unit) != nil
             }
@@ -465,7 +499,8 @@ struct VoiceInventoryImportView: View {
 
     private var unknownDraftSubtitle: String {
         guard let id = pendingUnknownDraftId,
-              let draft = viewModel.voiceInventoryDrafts.first(where: { $0.id == id }) else {
+            let draft = viewModel.voiceInventoryDrafts.first(where: { $0.id == id })
+        else {
             return "Choose how this spoken item should be saved."
         }
         return "\(draft.name) is not in inventory. Map it to an existing item or create it as new inventory."
@@ -481,9 +516,10 @@ struct VoiceInventoryImportView: View {
     }
 
     private func offerNextUnknownDraft() {
-        pendingUnknownDraftId = viewModel.voiceInventoryDrafts.first {
-            $0.destination == .unresolved
-        }?.id
+        pendingUnknownDraftId =
+            viewModel.voiceInventoryDrafts.first {
+                $0.destination == .unresolved
+            }?.id
     }
 
     private func startListening() {
@@ -540,8 +576,8 @@ private struct VoiceInventoryDraftRow: View {
                     set: onNameChange
                 )
             )
-                .textInputAutocapitalization(.words)
-                .accessibilityIdentifier("inventory.voice.draft.name.\(draft.id)")
+            .textInputAutocapitalization(.words)
+            .accessibilityIdentifier("inventory.voice.draft.name.\(draft.id)")
 
             HStack {
                 TextField("Quantity", text: $draft.quantityText)
@@ -560,13 +596,15 @@ private struct VoiceInventoryDraftRow: View {
                     .accessibilityIdentifier("inventory.voice.draft.minimum.\(draft.id)")
             }
 
-            Toggle("Has Expiry Date", isOn: Binding(
-                get: { draft.hasExpiryDate },
-                set: {
-                    draft.hasExpiryDate = $0
-                    draft.expiryUsesDefault = false
-                }
-            ))
+            Toggle(
+                "Has Expiry Date",
+                isOn: Binding(
+                    get: { draft.hasExpiryDate },
+                    set: {
+                        draft.hasExpiryDate = $0
+                        draft.expiryUsesDefault = false
+                    }
+                ))
             if draft.hasExpiryDate {
                 DatePicker(
                     "Expiry Date",
