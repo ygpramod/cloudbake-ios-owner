@@ -97,6 +97,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeNotesCanBeEditedFromDetail
           - feature: settings
             only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testBackupNotificationColdLaunchOpensExpandedBackupSettings
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsOpensHelpGuideAndReplaysIntroduction
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsOpensPrivacyPolicy
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testSettingsSavesOrderReminderDefaults
@@ -159,6 +160,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeDeletedFromDetail
           - feature: inventory
             only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryNotificationColdLaunchOpensRelevantItem
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDuplicateNameShowsWarningBeforeAdding
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryOwnerJourneyShowsDetailEditsStockHistoryAndDashboard
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventorySwipeReturnStopsAtClosedCard
