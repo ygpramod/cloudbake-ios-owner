@@ -5,24 +5,33 @@ import os
 struct CloudBakeOwnerApp: App {
     private let database: Result<AppDatabase, Error>
     private let cloudBackupRuntime: CloudBackupRuntime?
-    @StateObject private var orderNotificationRouter = OrderNotificationRouter()
+    @StateObject private var orderNotificationRouter: OrderNotificationRouter
     @StateObject private var orderNavigationRouter = OrderNavigationRouter()
     @StateObject private var inventoryNavigationRouter = InventoryNavigationRouter()
 
     init() {
+        let notificationRouter = OrderNotificationRouter()
+        #if DEBUG
+            if let userInfo = AcceptanceTestRuntime.pendingNotificationUserInfo {
+                notificationRouter.routeNotification(userInfo: userInfo)
+            }
+        #endif
+        _orderNotificationRouter = StateObject(wrappedValue: notificationRouter)
+
         let database = Result { try AppDatabase.openConfigured() }
         self.database = database
 
         #if DEBUG
-        if AcceptanceTestRuntime.usesAutomaticCellularBackupFixture {
-            cloudBackupRuntime = CloudBackupRuntime.automaticCellularUITestFixture()
-            return
-        }
+            if AcceptanceTestRuntime.usesAutomaticCellularBackupFixture {
+                cloudBackupRuntime = CloudBackupRuntime.automaticCellularUITestFixture()
+                return
+            }
         #endif
 
         guard !AcceptanceTestRuntime.isRunning,
-              !AcceptanceTestRuntime.isXCTestProcess,
-              case .success(let appDatabase) = database else {
+            !AcceptanceTestRuntime.isXCTestProcess,
+            case .success(let appDatabase) = database
+        else {
             cloudBackupRuntime = nil
             return
         }
@@ -47,10 +56,10 @@ struct CloudBakeOwnerApp: App {
                     database: database,
                     cloudBackupRuntime: cloudBackupRuntime
                 )
-                    .environmentObject(orderNotificationRouter)
-                    .environmentObject(orderNavigationRouter)
-                    .environmentObject(inventoryNavigationRouter)
-                    .preferredColorScheme(.light)
+                .environmentObject(orderNotificationRouter)
+                .environmentObject(orderNavigationRouter)
+                .environmentObject(inventoryNavigationRouter)
+                .preferredColorScheme(.light)
             case .failure:
                 ContentUnavailableView(
                     "CloudBake cannot open",

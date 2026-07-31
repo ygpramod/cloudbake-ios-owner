@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import CloudBakeOwner
 
 final class AppDestinationTests: XCTestCase {
@@ -46,7 +47,7 @@ final class AppDestinationTests: XCTestCase {
         let fixtureOnly = ["CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS": "1"]
         let acceptanceFixture = [
             "CLOUDBAKE_USE_IN_MEMORY_DATABASE": "1",
-            "CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS": "1"
+            "CLOUDBAKE_TEST_CLOUD_BACKUP_SETTINGS": "1",
         ]
 
         XCTAssertFalse(
@@ -70,9 +71,30 @@ final class AppDestinationTests: XCTestCase {
             AcceptanceTestRuntime.usesCloudRestoreFixture(
                 environment: [
                     "CLOUDBAKE_USE_IN_MEMORY_DATABASE": "1",
-                    "CLOUDBAKE_TEST_EMPTY_RESTORE": "1"
+                    "CLOUDBAKE_TEST_EMPTY_RESTORE": "1",
                 ]
             )
+        )
+    }
+
+    func testAcceptanceNotificationPayloadRequiresExplicitInMemoryDatabaseFlag() {
+        XCTAssertNil(
+            AcceptanceTestRuntime.pendingNotificationUserInfo(
+                environment: [
+                    "CLOUDBAKE_TEST_NOTIFICATION_DESTINATION": "backup-settings"
+                ]
+            )
+        )
+
+        let payload = AcceptanceTestRuntime.pendingNotificationUserInfo(
+            environment: [
+                "CLOUDBAKE_USE_IN_MEMORY_DATABASE": "1",
+                "CLOUDBAKE_TEST_NOTIFICATION_DESTINATION": "inventory-item",
+            ]
+        )
+        XCTAssertEqual(
+            payload?[ExpiryReminderScheduler.notificationInventoryItemIdKey] as? String,
+            "inventory-ui-fixture-cake-flour"
         )
     }
 
@@ -81,7 +103,7 @@ final class AppDestinationTests: XCTestCase {
             AcceptanceTestDatabaseFixtures.openIfRequested(
                 environment: [
                     "CLOUDBAKE_USE_IN_MEMORY_DATABASE": "1",
-                    "CLOUDBAKE_SEED_CUSTOMER_FIXTURE": "1"
+                    "CLOUDBAKE_SEED_CUSTOMER_FIXTURE": "1",
                 ]
             )
         )
@@ -106,7 +128,7 @@ final class AppDestinationTests: XCTestCase {
                 OrderInventoryReservationRepairSummary(
                     completedCount: 2,
                     failedCount: 0
-                )
+                ),
             ]
         )
         let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
@@ -155,7 +177,8 @@ final class AppDestinationTests: XCTestCase {
 }
 
 private final class FakeReservationRepairRepository:
-    OrderInventoryReservationMutationRepository {
+    OrderInventoryReservationMutationRepository
+{
     var summaries: [OrderInventoryReservationRepairSummary]
     var requestedLimits: [Int] = []
     var requestedDates: [Date] = []

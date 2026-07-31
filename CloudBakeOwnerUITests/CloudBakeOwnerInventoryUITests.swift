@@ -1,6 +1,16 @@
 import XCTest
 
 extension CloudBakeOwnerUITests {
+    func testInventoryNotificationColdLaunchOpensRelevantItem() {
+        let app = makeApp()
+        app.launchEnvironment["CLOUDBAKE_SEED_INVENTORY_FIXTURE"] = "1"
+        app.launchEnvironment["CLOUDBAKE_TEST_NOTIFICATION_DESTINATION"] = "inventory-item"
+        app.launch()
+
+        XCTAssertTrue(app.scrollViews["inventory.detail.screen"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Cake flour"].exists)
+    }
+
     func testExpiredInventoryCanBeDisposedFromItemDetail() throws {
         let app = makeApp(initialDestination: "inventory")
         app.launchEnvironment["CLOUDBAKE_SEED_EXPIRED_INVENTORY_FIXTURE"] = "1"
@@ -57,7 +67,9 @@ extension CloudBakeOwnerUITests {
         app.textFields["inventory.form.minimumQuantity"].typeText("250")
         app.buttons["inventory.form.save"].tap()
 
-        XCTAssertTrue(app.staticTexts["Possible duplicate: Cake flour already exists. Tap Save again to add a separate item."].waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.staticTexts["Possible duplicate: Cake flour already exists. Tap Save again to add a separate item."].waitForExistence(
+                timeout: 5))
     }
 
     func testInventoryOwnerJourneyShowsDetailEditsStockHistoryAndDashboard() throws {

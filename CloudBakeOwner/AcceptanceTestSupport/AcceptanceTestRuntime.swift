@@ -57,6 +57,32 @@ enum AcceptanceTestRuntime {
             return destination
         }
 
+        static var pendingNotificationUserInfo: [AnyHashable: Any]? {
+            pendingNotificationUserInfo(environment: environment)
+        }
+
+        static func pendingNotificationUserInfo(
+            environment: [String: String]
+        ) -> [AnyHashable: Any]? {
+            guard isRunning(environment: environment) else { return nil }
+            switch environment["CLOUDBAKE_TEST_NOTIFICATION_DESTINATION"] {
+            case ExpiryReminderScheduler.notificationDestination:
+                return [
+                    ExpiryReminderScheduler.notificationDestinationKey:
+                        ExpiryReminderScheduler.notificationDestination,
+                    ExpiryReminderScheduler.notificationInventoryItemIdKey:
+                        "inventory-ui-fixture-cake-flour",
+                ]
+            case ManualBackupReminderScheduler.notificationDestination:
+                return [
+                    ManualBackupReminderScheduler.notificationDestinationKey:
+                        ManualBackupReminderScheduler.notificationDestination
+                ]
+            default:
+                return nil
+            }
+        }
+
         static func isRunning(environment: [String: String]) -> Bool {
             environment["CLOUDBAKE_USE_IN_MEMORY_DATABASE"] == "1"
         }
@@ -68,6 +94,7 @@ enum AcceptanceTestRuntime {
         static let isRunning = false
         static let isXCTestProcess = false
         static let opensManualOrderCustomerEntryDirectly = false
+        static let pendingNotificationUserInfo: [AnyHashable: Any]? = nil
     #endif
 }
 

@@ -1,6 +1,15 @@
 import XCTest
 
 extension CloudBakeOwnerUITests {
+    func testBackupNotificationColdLaunchOpensExpandedBackupSettings() {
+        let app = makeApp()
+        app.launchEnvironment["CLOUDBAKE_TEST_NOTIFICATION_DESTINATION"] = "backup-settings"
+        app.launch()
+
+        assertScreenVisible("screen.settings", in: app, timeout: 10)
+        XCTAssertTrue(app.switches["settings.backup.weeklyReminder"].waitForExistence(timeout: 5))
+    }
+
     func testFirstLaunchIntroductionSupportsNextAndSkip() {
         let app = makeApp()
         app.launchEnvironment["CLOUDBAKE_TEST_INTRODUCTION"] = "1"
