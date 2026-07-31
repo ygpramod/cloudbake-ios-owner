@@ -243,6 +243,8 @@ Manual bill text entry remains available when an image is unclear.
 Open the Inventory header actions and choose Add Inventory by Voice. Start listening and speak
 items as `name quantity unit`, or type directly into the editable transcript. CloudBake uses only
 on-device recognition in the current iPhone language. It never uploads the audio or transcript.
+Use the information button beside Voice Inventory when you need inline examples of the phrase
+format. The Add by Voice screen uses the same compact navigation title as other CloudBake forms.
 When you pause before speaking the next item, CloudBake keeps the earlier text and places the next
 utterance on a new line. If you edit the transcript while listening, later speech continues from
 the edited text instead of restoring the recognizer's earlier wording.

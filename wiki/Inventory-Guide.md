@@ -175,6 +175,10 @@ clearly.
 
 ## Add Inventory By Voice
 
+On the Add by Voice screen, tap the information button beside Voice Inventory to show the expected
+phrase format and examples without leaving the form. The guidance is collapsed by default. Say one
+item at a time using its name, quantity, and unit, then pause before the next item.
+
 Use Add Inventory by Voice to speak several item, quantity, and unit phrases, such as
 `flour 800 grams, strawberry 100 grams`. Recognition runs on the iPhone in the current iPhone
 language; CloudBake does not upload the audio or transcript and does not fall back to server speech
