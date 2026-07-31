@@ -55,7 +55,8 @@ struct ExpiryReminderScheduler {
 
     func makeReminderRequests(limit: Int = 60) throws -> [UNNotificationRequest] {
         let now = dateProvider()
-        let threshold = Self.calendar.date(byAdding: .month, value: 1, to: now)
+        let threshold =
+            Self.calendar.date(byAdding: .month, value: 1, to: now)
             ?? now.addingTimeInterval(30 * 24 * 60 * 60)
         guard let nextReminderDate = nextReminderDate(after: now) else {
             return []
@@ -83,13 +84,14 @@ struct ExpiryReminderScheduler {
     ) -> UNNotificationRequest? {
         let content = UNMutableNotificationContent()
         content.title = "Inventory expiring soon"
-        content.body = "\(candidate.itemName) has \(candidate.batch.remainingQuantity.formatted()) \(candidate.unit.displayName) expiring on \(expiresAt.formatted(date: .abbreviated, time: .omitted))."
+        content.body =
+            "\(candidate.itemName) has \(candidate.batch.remainingQuantity.formatted()) \(candidate.unit.displayName) expiring on \(expiresAt.formatted(date: .abbreviated, time: .omitted))."
         content.sound = .default
         content.userInfo = [
             Self.notificationDestinationKey: Self.notificationDestination,
             Self.notificationInventoryItemIdKey: candidate.inventoryItemId,
             CloudBakeNotificationCapacityPolicy.businessDateUserInfoKey:
-                expiresAt.timeIntervalSince1970
+                expiresAt.timeIntervalSince1970,
         ]
 
         guard let triggerDate = scheduledReminderDate(for: expiresAt, now: now) else {
@@ -107,27 +109,30 @@ struct ExpiryReminderScheduler {
     }
 
     private func scheduledReminderDate(for expiresAt: Date, now: Date) -> Date? {
-        let preferredDate = Self.calendar.date(byAdding: .month, value: -1, to: expiresAt)
+        let preferredDate =
+            Self.calendar.date(byAdding: .month, value: -1, to: expiresAt)
             ?? expiresAt.addingTimeInterval(-30 * 24 * 60 * 60)
         let reminderDay = max(preferredDate, now)
         let morningComponents = Self.calendar.dateComponents([.year, .month, .day], from: reminderDay)
-        let morning = Self.calendar.date(
-            from: DateComponents(
-                calendar: Self.calendar,
-                year: morningComponents.year,
-                month: morningComponents.month,
-                day: morningComponents.day,
-                hour: 9,
-                minute: 0
-            )
-        ) ?? reminderDay
+        let morning =
+            Self.calendar.date(
+                from: DateComponents(
+                    calendar: Self.calendar,
+                    year: morningComponents.year,
+                    month: morningComponents.month,
+                    day: morningComponents.day,
+                    hour: 9,
+                    minute: 0
+                )
+            ) ?? reminderDay
 
         if morning > now, morning <= expiresAt {
             return morning
         }
 
         guard let nextMorning = Self.calendar.date(byAdding: .day, value: 1, to: morning),
-              nextMorning <= expiresAt else {
+            nextMorning <= expiresAt
+        else {
             return nil
         }
 
@@ -136,16 +141,18 @@ struct ExpiryReminderScheduler {
 
     private func nextReminderDate(after date: Date) -> Date? {
         let day = Self.calendar.dateComponents([.year, .month, .day], from: date)
-        guard let morning = Self.calendar.date(
-            from: DateComponents(
-                calendar: Self.calendar,
-                year: day.year,
-                month: day.month,
-                day: day.day,
-                hour: 9,
-                minute: 0
+        guard
+            let morning = Self.calendar.date(
+                from: DateComponents(
+                    calendar: Self.calendar,
+                    year: day.year,
+                    month: day.month,
+                    day: day.day,
+                    hour: 9,
+                    minute: 0
+                )
             )
-        ) else {
+        else {
             return nil
         }
         if morning > date {

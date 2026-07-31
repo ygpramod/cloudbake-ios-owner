@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import CloudBakeOwner
 
 @MainActor
@@ -8,7 +9,7 @@ final class NavigationRouterTests: XCTestCase {
 
         router.routeNotification(userInfo: [
             OrderReminderScheduler.orderNotificationDestinationKey: OrderReminderScheduler.orderNotificationDestinationOrder,
-            OrderReminderScheduler.orderNotificationOrderIdKey: "order-chocolate"
+            OrderReminderScheduler.orderNotificationOrderIdKey: "order-chocolate",
         ])
 
         XCTAssertEqual(router.pendingOrderId, "order-chocolate")
@@ -19,7 +20,7 @@ final class NavigationRouterTests: XCTestCase {
 
         router.routeNotification(userInfo: [
             OrderReminderScheduler.orderNotificationDestinationKey: "customer",
-            OrderReminderScheduler.orderNotificationOrderIdKey: "order-chocolate"
+            OrderReminderScheduler.orderNotificationOrderIdKey: "order-chocolate",
         ])
 
         XCTAssertNil(router.pendingOrderId)
@@ -31,7 +32,7 @@ final class NavigationRouterTests: XCTestCase {
         router.routeNotification(userInfo: [
             ExpiryReminderScheduler.notificationDestinationKey:
                 ExpiryReminderScheduler.notificationDestination,
-            ExpiryReminderScheduler.notificationInventoryItemIdKey: "inventory-flour"
+            ExpiryReminderScheduler.notificationInventoryItemIdKey: "inventory-flour",
         ])
 
         XCTAssertEqual(router.pendingInventoryItemId, "inventory-flour")
@@ -67,7 +68,7 @@ final class NavigationRouterTests: XCTestCase {
             userInfo: [
                 OrderReminderScheduler.orderNotificationDestinationKey:
                     OrderReminderScheduler.orderNotificationDestinationOrder,
-                OrderReminderScheduler.orderNotificationOrderIdKey: "order-chocolate"
+                OrderReminderScheduler.orderNotificationOrderIdKey: "order-chocolate",
             ],
             completionHandler: {
                 completionCalled = true

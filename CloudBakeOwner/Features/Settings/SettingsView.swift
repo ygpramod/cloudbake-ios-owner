@@ -1,5 +1,5 @@
-import SwiftUI
 import PhotosUI
+import SwiftUI
 import UniformTypeIdentifiers
 
 @MainActor
@@ -18,7 +18,11 @@ final class SettingsViewModel: ObservableObject {
 
     private let repository: any InventoryItemRepository & InventoryStockBatchRepository
     private let csvService: InventoryCSVService
-    private let recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository & InventoryItemRepository)?
+    private let recipeRepository:
+        (
+            any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository
+                & InventoryItemRepository
+        )?
     private let recipeCSVService: RecipeCSVService
     private let logoStore: AppLogoStore
     private let manualBackupService: (any ManualBackupPreparing)?
@@ -28,7 +32,10 @@ final class SettingsViewModel: ObservableObject {
     init(
         repository: any InventoryItemRepository & InventoryStockBatchRepository,
         csvService: InventoryCSVService = InventoryCSVService(),
-        recipeRepository: (any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository & InventoryItemRepository)? = nil,
+        recipeRepository: (
+            any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeCSVImportRepository
+                & InventoryItemRepository
+        )? = nil,
         recipeCSVService: RecipeCSVService = RecipeCSVService(),
         logoStore: AppLogoStore = AppLogoStore(),
         manualBackupService: (any ManualBackupPreparing)? = nil,
@@ -43,11 +50,13 @@ final class SettingsViewModel: ObservableObject {
         self.logoStore = logoStore
         self.manualBackupService = manualBackupService
         self.manualBackupPreferences = manualBackupPreferences
-        let fallbackScheduler = manualBackupReminderScheduler
+        let fallbackScheduler =
+            manualBackupReminderScheduler
             ?? ManualBackupReminderScheduler(preferences: manualBackupPreferences)
-        self.refreshReminderSchedule = refreshReminderSchedule ?? {
-            _ = await fallbackScheduler.refreshReminder()
-        }
+        self.refreshReminderSchedule =
+            refreshReminderSchedule ?? {
+                _ = await fallbackScheduler.refreshReminder()
+            }
         lastManualBackupDate = manualBackupPreferences.lastSuccessfulExport
         lastManualBackupOmittedAssetCount =
             manualBackupPreferences.lastSuccessfulOmittedAssetCount
@@ -77,7 +86,8 @@ final class SettingsViewModel: ObservableObject {
 
     func approveManualBackupPhotoOmissions() async -> ManualBackupExport? {
         guard let manualBackupService,
-              let proposal = pendingManualBackupPhotoProposal else { return nil }
+            let proposal = pendingManualBackupPhotoProposal
+        else { return nil }
         pendingManualBackupPhotoProposal = nil
         isPreparingBackup = true
         defer { isPreparingBackup = false }
@@ -100,7 +110,8 @@ final class SettingsViewModel: ObservableObject {
 
     func confirmManualBackupPhotoRemoval() async -> ManualBackupExport? {
         guard let manualBackupService,
-              let proposal = pendingManualBackupPhotoProposal else { return nil }
+            let proposal = pendingManualBackupPhotoProposal
+        else { return nil }
         isConfirmingManualBackupPhotoRemoval = false
         pendingManualBackupPhotoProposal = nil
         isPreparingBackup = true
@@ -119,7 +130,8 @@ final class SettingsViewModel: ObservableObject {
 
     func cancelManualBackupPhotoDecision() async {
         guard let manualBackupService,
-              let proposal = pendingManualBackupPhotoProposal else { return }
+            let proposal = pendingManualBackupPhotoProposal
+        else { return }
         pendingManualBackupPhotoProposal = nil
         isConfirmingManualBackupPhotoRemoval = false
         let result = await manualBackupService.cancelUnavailablePhotoDecision(
@@ -278,7 +290,8 @@ final class SettingsViewModel: ObservableObject {
         case .ready(let export):
             pendingManualBackupPhotoProposal = nil
             if export.omittedAssetCount > 0 {
-                statusMessage = "Backup is ready without \(export.omittedAssetCount) unavailable photo\(export.omittedAssetCount == 1 ? "" : "s"). Choose a safe location to save it."
+                statusMessage =
+                    "Backup is ready without \(export.omittedAssetCount) unavailable photo\(export.omittedAssetCount == 1 ? "" : "s"). Choose a safe location to save it."
             } else {
                 statusMessage = "Backup is ready. Choose a safe location to save it."
             }
@@ -295,7 +308,8 @@ final class SettingsViewModel: ObservableObject {
     private func handleManualBackupPreparationFailure(_ error: Error) {
         statusMessage = nil
         if error as? ManualBackupServiceError == .photosAccessDeniedAfterPhotoRemoval {
-            errorMessage = "The unavailable photo references were removed from CloudBake, but the backup did not complete. Allow CloudBake full access to Photos in iPhone Settings, then try again."
+            errorMessage =
+                "The unavailable photo references were removed from CloudBake, but the backup did not complete. Allow CloudBake full access to Photos in iPhone Settings, then try again."
         } else if error as? ManualBackupServiceError == .backupFailedAfterPhotoRemoval {
             errorMessage = "The unavailable photo references were removed, but CloudBake could not create the backup. Try again."
         } else if error as? BackupExternalAssetResolverError == .accessDenied {
@@ -570,66 +584,66 @@ struct SettingsView: View {
 
                         CloudBakeDetailDivider()
 
-                    settingsAction(
-                        title: "Delete Cloud Backup",
-                        detail: "Permanently remove the complete recovery backup from iCloud. Local data stays on this iPhone.",
-                        systemImage: "trash",
-                        accessibilityIdentifier: "settings.cloudBackup.delete"
-                    ) {
-                        cloudBackupViewModel.requestCloudBackupDeletion()
-                    }
+                        settingsAction(
+                            title: "Delete Cloud Backup",
+                            detail: "Permanently remove the complete recovery backup from iCloud. Local data stays on this iPhone.",
+                            systemImage: "trash",
+                            accessibilityIdentifier: "settings.cloudBackup.delete"
+                        ) {
+                            cloudBackupViewModel.requestCloudBackupDeletion()
+                        }
 
-                    if let deletionMessage = cloudBackupViewModel.deletionMessage {
-                        Text(deletionMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .padding(.bottom, 12)
-                            .accessibilityIdentifier("settings.cloudBackup.delete.message")
-                    }
+                        if let deletionMessage = cloudBackupViewModel.deletionMessage {
+                            Text(deletionMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .padding(.bottom, 12)
+                                .accessibilityIdentifier("settings.cloudBackup.delete.message")
+                        }
 
-                    CloudBakeDetailDivider()
+                        CloudBakeDetailDivider()
 
-                    settingsAction(
-                        title: "Import Inventory CSV",
-                        detail: "Review merge behavior before choosing a CSV file.",
-                        systemImage: "square.and.arrow.down",
-                        accessibilityIdentifier: "settings.inventory.import"
-                    ) {
-                        pendingDataOperation = .importInventory
-                    }
+                        settingsAction(
+                            title: "Import Inventory CSV",
+                            detail: "Review merge behavior before choosing a CSV file.",
+                            systemImage: "square.and.arrow.down",
+                            accessibilityIdentifier: "settings.inventory.import"
+                        ) {
+                            pendingDataOperation = .importInventory
+                        }
 
-                    CloudBakeDetailDivider()
+                        CloudBakeDetailDivider()
 
-                    settingsAction(
-                        title: "Export Inventory CSV",
-                        detail: "Review export contents before choosing where to save.",
-                        systemImage: "square.and.arrow.up",
-                        accessibilityIdentifier: "settings.inventory.export"
-                    ) {
-                        pendingDataOperation = .exportInventory
-                    }
+                        settingsAction(
+                            title: "Export Inventory CSV",
+                            detail: "Review export contents before choosing where to save.",
+                            systemImage: "square.and.arrow.up",
+                            accessibilityIdentifier: "settings.inventory.export"
+                        ) {
+                            pendingDataOperation = .exportInventory
+                        }
 
-                    CloudBakeDetailDivider()
+                        CloudBakeDetailDivider()
 
-                    settingsAction(
-                        title: "Import Recipe CSV",
-                        detail: "Import name, recipe notes, and pipe-separated ingredients.",
-                        systemImage: "square.and.arrow.down",
-                        accessibilityIdentifier: "settings.recipes.import"
-                    ) {
-                        pendingDataOperation = .importRecipes
-                    }
+                        settingsAction(
+                            title: "Import Recipe CSV",
+                            detail: "Import name, recipe notes, and pipe-separated ingredients.",
+                            systemImage: "square.and.arrow.down",
+                            accessibilityIdentifier: "settings.recipes.import"
+                        ) {
+                            pendingDataOperation = .importRecipes
+                        }
 
-                    CloudBakeDetailDivider()
+                        CloudBakeDetailDivider()
 
-                    settingsAction(
-                        title: "Export Recipe CSV",
-                        detail: "Export recipes with a reusable ingredient format example.",
-                        systemImage: "square.and.arrow.up",
-                        accessibilityIdentifier: "settings.recipes.export"
-                    ) {
-                        pendingDataOperation = .exportRecipes
-                    }
+                        settingsAction(
+                            title: "Export Recipe CSV",
+                            detail: "Export recipes with a reusable ingredient format example.",
+                            systemImage: "square.and.arrow.up",
+                            accessibilityIdentifier: "settings.recipes.export"
+                        ) {
+                            pendingDataOperation = .exportRecipes
+                        }
                     }
                     .padding(.top, 12)
                 } label: {
@@ -663,7 +677,8 @@ struct SettingsView: View {
         .cloudBakeConfirmationDialog(
             isPresented: $cloudBackupViewModel.isConfirmingDeletion,
             title: "Delete Cloud Backup?",
-            message: "This permanently removes CloudBake's complete recovery backup from the current iCloud account. Your database and photos on this iPhone will not be changed. Cloud backup will be turned off after deletion.",
+            message:
+                "This permanently removes CloudBake's complete recovery backup from the current iCloud account. Your database and photos on this iPhone will not be changed. Cloud backup will be turned off after deletion.",
             cancelAccessibilityIdentifier: "settings.cloudBackup.delete.cancel",
             onCancel: { cloudBackupViewModel.cancelCloudBackupDeletion() }
         ) {
@@ -701,7 +716,8 @@ struct SettingsView: View {
         .cloudBakeConfirmationDialog(
             isPresented: $isConfirmingManualBackup,
             title: "Create Full Backup?",
-            message: "CloudBake will prepare the complete database, app-managed photos, lightweight recovery copies of linked Photos-library images, and your custom logo. You will choose where to save the package.",
+            message:
+                "CloudBake will prepare the complete database, app-managed photos, lightweight recovery copies of linked Photos-library images, and your custom logo. You will choose where to save the package.",
             cancelAccessibilityIdentifier: "settings.backup.cancel",
             onCancel: { isConfirmingManualBackup = false }
         ) {
@@ -718,8 +734,9 @@ struct SettingsView: View {
                 },
                 set: { isPresented in
                     guard !isPresented,
-                          viewModel.pendingManualBackupPhotoProposal != nil,
-                          !viewModel.isConfirmingManualBackupPhotoRemoval else { return }
+                        viewModel.pendingManualBackupPhotoProposal != nil,
+                        !viewModel.isConfirmingManualBackupPhotoRemoval
+                    else { return }
                     Task { await viewModel.cancelManualBackupPhotoDecision() }
                 }
             ),
@@ -745,7 +762,8 @@ struct SettingsView: View {
         .cloudBakeConfirmationDialog(
             isPresented: $viewModel.isConfirmingManualBackupPhotoRemoval,
             title: "Remove Broken References?",
-            message: "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
+            message:
+                "This removes only the unavailable photo references from CloudBake. It never deletes photos from the iPhone Photos library.",
             cancelAccessibilityIdentifier: "settings.manualBackup.photos.remove.cancel",
             onCancel: {
                 Task { await viewModel.cancelManualBackupPhotoDecision() }
@@ -961,7 +979,8 @@ struct SettingsView: View {
 
     private var manualBackupUnavailablePhotoDescription: String {
         let count = viewModel.pendingManualBackupPhotoProposal?.unavailablePhotoCount ?? 0
-        return "CloudBake found \(count) linked photo\(count == 1 ? "" : "s") that no longer exist\(count == 1 ? "s" : "") in Photos. Continue without \(count == 1 ? "it" : "them"), remove the broken CloudBake references, or cancel. No backup has been saved."
+        return
+            "CloudBake found \(count) linked photo\(count == 1 ? "" : "s") that no longer exist\(count == 1 ? "s" : "") in Photos. Continue without \(count == 1 ? "it" : "them"), remove the broken CloudBake references, or cancel. No backup has been saved."
     }
 
     private func continueDataOperation(_ operation: SettingsDataOperation) {
@@ -1085,7 +1104,8 @@ private enum SettingsDataOperation: Identifiable {
     var explanation: String {
         switch self {
         case .importInventory:
-            return "CloudBake will merge rows by item name and unit. Matching items are updated, and their stock batches are replaced by the CSV rows."
+            return
+                "CloudBake will merge rows by item name and unit. Matching items are updated, and their stock batches are replaced by the CSV rows."
         case .exportInventory:
             return "CloudBake will export active inventory items and stock batches. Archived items are not included."
         case .importRecipes:

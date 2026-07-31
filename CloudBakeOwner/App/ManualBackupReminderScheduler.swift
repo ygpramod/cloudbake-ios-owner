@@ -67,7 +67,8 @@ struct ManualBackupPreferences {
 
     func ensureNextReminderDate(from date: Date, calendar: Calendar = .current) -> Date {
         if let nextReminderDate { return nextReminderDate }
-        let scheduledDate = calendar.date(byAdding: .day, value: 7, to: date)
+        let scheduledDate =
+            calendar.date(byAdding: .day, value: 7, to: date)
             ?? date.addingTimeInterval(7 * 24 * 60 * 60)
         defaults.set(scheduledDate, forKey: Self.nextReminderDateKey)
         return scheduledDate

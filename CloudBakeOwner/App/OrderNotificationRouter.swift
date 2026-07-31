@@ -43,25 +43,31 @@ final class OrderNotificationRouter: NSObject, ObservableObject, UNUserNotificat
 
     func routeNotification(userInfo: [AnyHashable: Any]) {
         if userInfo[PaymentPendingReminderScheduler.notificationDestinationKey] as? String
-            == PaymentPendingReminderScheduler.notificationDestination {
+            == PaymentPendingReminderScheduler.notificationDestination
+        {
             openPaymentReport()
             return
         }
         if userInfo[ExpiryReminderScheduler.notificationDestinationKey] as? String
             == ExpiryReminderScheduler.notificationDestination,
-           let inventoryItemId = userInfo[
-               ExpiryReminderScheduler.notificationInventoryItemIdKey
-           ] as? String {
+            let inventoryItemId = userInfo[
+                ExpiryReminderScheduler.notificationInventoryItemIdKey
+            ] as? String
+        {
             pendingInventoryItemId = inventoryItemId
             return
         }
         if userInfo[ManualBackupReminderScheduler.notificationDestinationKey] as? String
-            == ManualBackupReminderScheduler.notificationDestination {
+            == ManualBackupReminderScheduler.notificationDestination
+        {
             isBackupSettingsPending = true
             return
         }
-        guard userInfo[OrderReminderScheduler.orderNotificationDestinationKey] as? String == OrderReminderScheduler.orderNotificationDestinationOrder,
-              let orderId = userInfo[OrderReminderScheduler.orderNotificationOrderIdKey] as? String else {
+        guard
+            userInfo[OrderReminderScheduler.orderNotificationDestinationKey] as? String
+                == OrderReminderScheduler.orderNotificationDestinationOrder,
+            let orderId = userInfo[OrderReminderScheduler.orderNotificationOrderIdKey] as? String
+        else {
             return
         }
 
