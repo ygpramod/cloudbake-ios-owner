@@ -29,20 +29,20 @@ struct RootView: View {
         self.database = database
         self.cloudBackupRuntime = cloudBackupRuntime
         #if DEBUG
-        if AcceptanceTestRuntime.usesCloudBackupSettingsFixture {
-            cloudBackupSettingsService = CloudBackupSettingsUITestService()
-        } else {
-            cloudBackupSettingsService = cloudBackupRuntime
-        }
-        let restoreService: (any CloudRestoreSettingsServing)?
-        if AcceptanceTestRuntime.usesCloudRestoreFixture {
-            restoreService = CloudRestoreSettingsUITestService()
-        } else {
-            restoreService = cloudBackupRuntime
-        }
+            if AcceptanceTestRuntime.usesCloudBackupSettingsFixture {
+                cloudBackupSettingsService = CloudBackupSettingsUITestService()
+            } else {
+                cloudBackupSettingsService = cloudBackupRuntime
+            }
+            let restoreService: (any CloudRestoreSettingsServing)?
+            if AcceptanceTestRuntime.usesCloudRestoreFixture {
+                restoreService = CloudRestoreSettingsUITestService()
+            } else {
+                restoreService = cloudBackupRuntime
+            }
         #else
-        cloudBackupSettingsService = cloudBackupRuntime
-        let restoreService: (any CloudRestoreSettingsServing)? = cloudBackupRuntime
+            cloudBackupSettingsService = cloudBackupRuntime
+            let restoreService: (any CloudRestoreSettingsServing)? = cloudBackupRuntime
         #endif
         cloudRestoreSettingsService = restoreService
         _emptyRestoreViewModel = StateObject(
@@ -84,7 +84,8 @@ struct RootView: View {
         .cloudBakeConfirmationDialog(
             isPresented: .constant(isRestoreRecoveryRequired),
             title: "Reopen CloudBake to Finish Recovery",
-            message: "CloudBake has stopped access to your data because restore could not return safely to the previous state. No changes can be made until CloudBake is closed and reopened.",
+            message:
+                "CloudBake has stopped access to your data because restore could not return safely to the previous state. No changes can be made until CloudBake is closed and reopened.",
             messageAccessibilityIdentifier: "restore.recoveryRequired.message",
             showsCancelButton: false,
             onCancel: {}
@@ -393,17 +394,17 @@ struct RootView: View {
 
     private var acceptanceTestForcesIntroduction: Bool {
         #if DEBUG
-        AcceptanceTestRuntime.forcesIntroduction
+            AcceptanceTestRuntime.forcesIntroduction
         #else
-        false
+            false
         #endif
     }
 
     private var acceptanceTestInitialDestination: AppDestination? {
         #if DEBUG
-        AcceptanceTestRuntime.initialDestination
+            AcceptanceTestRuntime.initialDestination
         #else
-        nil
+            nil
         #endif
     }
 
@@ -424,7 +425,8 @@ struct RootView: View {
 
     private func prepareInitialRestoreOrBackup() async {
         guard cloudRestoreSettingsService != nil,
-              (try? OwnerInstallationState(database: database).hasRestorableData()) == false else {
+            (try? OwnerInstallationState(database: database).hasRestorableData()) == false
+        else {
             cloudBackupRuntime?.startLaunchCatchUpIfNeeded()
             return
         }
@@ -493,9 +495,7 @@ actor OrderInventoryReservationRepairCoordinator {
     static let shared = OrderInventoryReservationRepairCoordinator()
 
     private var isRepairing = false
-    private var waiters: [
-        CheckedContinuation<OrderInventoryReservationRepairSummary, Error>
-    ] = []
+    private var waiters: [CheckedContinuation<OrderInventoryReservationRepairSummary, Error>] = []
 
     func repair(
         database: AppDatabase,
