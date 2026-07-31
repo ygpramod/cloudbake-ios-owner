@@ -103,6 +103,8 @@ struct RootView: View {
             )
             navigateToOrdersWhenNotificationIsPending()
             navigateToPaymentReportWhenNotificationIsPending()
+            navigateToInventoryWhenNotificationIsPending()
+            navigateToBackupSettingsWhenNotificationIsPending()
             navigateToOrdersWhenNewOrderIsPending()
             navigateToInventoryWhenItemIsPending()
         }
@@ -126,6 +128,20 @@ struct RootView: View {
             }
 
             navigateToPaymentReportWhenNotificationIsPending()
+        }
+        .onChange(of: orderNotificationRouter.pendingInventoryItemId) { _, itemId in
+            guard itemId != nil else {
+                return
+            }
+
+            navigateToInventoryWhenNotificationIsPending()
+        }
+        .onChange(of: orderNotificationRouter.isBackupSettingsPending) { _, isPending in
+            guard isPending else {
+                return
+            }
+
+            navigateToBackupSettingsWhenNotificationIsPending()
         }
         .onChange(of: orderNavigationRouter.pendingNewOrderRequest) { _, request in
             guard request != nil else {
@@ -228,6 +244,23 @@ struct RootView: View {
 
         navigate(.reports)
         orderNotificationRouter.clearPendingPaymentReport()
+    }
+
+    private func navigateToInventoryWhenNotificationIsPending() {
+        guard let inventoryItemId = orderNotificationRouter.pendingInventoryItemId else {
+            return
+        }
+
+        inventoryNavigationRouter.openInventoryItem(id: inventoryItemId)
+        orderNotificationRouter.clearPendingInventoryItemId()
+    }
+
+    private func navigateToBackupSettingsWhenNotificationIsPending() {
+        guard orderNotificationRouter.isBackupSettingsPending else {
+            return
+        }
+
+        navigate(.settings)
     }
 
     private func navigateToOrdersWhenNewOrderIsPending() {

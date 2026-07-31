@@ -307,6 +307,7 @@ final class SettingsViewModel: ObservableObject {
 }
 
 struct SettingsView: View {
+    @EnvironmentObject private var orderNotificationRouter: OrderNotificationRouter
     @StateObject private var viewModel: SettingsViewModel
     @StateObject private var orderReminderSettingsViewModel: OrderReminderSettingsViewModel
     @StateObject private var paymentReminderSettingsViewModel: PaymentReminderSettingsViewModel
@@ -651,6 +652,11 @@ struct SettingsView: View {
                 )
             }
         }
+        .onAppear(perform: expandBackupWhenNotificationIsPending)
+        .onChange(of: orderNotificationRouter.isBackupSettingsPending) { _, isPending in
+            guard isPending else { return }
+            expandBackupWhenNotificationIsPending()
+        }
         .accessibilityIdentifier(AppDestination.settings.screenAccessibilityIdentifier)
         .cloudBackupPrompts(viewModel: cloudBackupViewModel)
         .cloudRestorePrompts(viewModel: cloudRestoreViewModel)
@@ -802,6 +808,12 @@ struct SettingsView: View {
             }
             .interactiveDismissDisabled()
         }
+    }
+
+    private func expandBackupWhenNotificationIsPending() {
+        guard orderNotificationRouter.isBackupSettingsPending else { return }
+        isBackupExpanded = true
+        orderNotificationRouter.clearPendingBackupSettings()
     }
 
     private func settingsAction(

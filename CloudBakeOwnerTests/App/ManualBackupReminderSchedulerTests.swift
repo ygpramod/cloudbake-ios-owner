@@ -38,6 +38,12 @@ final class ManualBackupReminderSchedulerTests: XCTestCase {
             center.requests.first?.trigger as? UNTimeIntervalNotificationTrigger
         )
         XCTAssertEqual(trigger.timeInterval, 7 * 24 * 60 * 60, accuracy: 0.01)
+        XCTAssertEqual(
+            center.requests.first?.content.userInfo[
+                ManualBackupReminderScheduler.notificationDestinationKey
+            ] as? String,
+            ManualBackupReminderScheduler.notificationDestination
+        )
         XCTAssertEqual(preferences.reminderDeliveryStatus, .scheduled)
     }
 

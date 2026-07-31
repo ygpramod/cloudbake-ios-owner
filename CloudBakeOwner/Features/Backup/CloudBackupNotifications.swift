@@ -113,6 +113,10 @@ final class SystemCloudBackupNotificationSender: CloudBackupNotificationSending,
             }
             let content = UNMutableNotificationContent()
             content.sound = .default
+            content.userInfo = [
+                ManualBackupReminderScheduler.notificationDestinationKey:
+                    ManualBackupReminderScheduler.notificationDestination
+            ]
             switch result {
             case .completed:
                 content.title = "CloudBake backup complete"

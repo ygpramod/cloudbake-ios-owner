@@ -13,6 +13,9 @@ extension UNUserNotificationCenter: LocalNotificationCenter {}
 struct ExpiryReminderScheduler {
     private static let notificationPrefix = "inventory-expiry-"
     private static let calendar = Calendar(identifier: .gregorian)
+    static let notificationDestinationKey = "cloudbake.destination"
+    static let notificationDestination = "inventory-item"
+    static let notificationInventoryItemIdKey = "cloudbake.inventoryItemId"
 
     private let repository: any InventoryExpiryReminderRepository
     private let notificationCenter: LocalNotificationCenter
@@ -83,6 +86,8 @@ struct ExpiryReminderScheduler {
         content.body = "\(candidate.itemName) has \(candidate.batch.remainingQuantity.formatted()) \(candidate.unit.displayName) expiring on \(expiresAt.formatted(date: .abbreviated, time: .omitted))."
         content.sound = .default
         content.userInfo = [
+            Self.notificationDestinationKey: Self.notificationDestination,
+            Self.notificationInventoryItemIdKey: candidate.inventoryItemId,
             CloudBakeNotificationCapacityPolicy.businessDateUserInfoKey:
                 expiresAt.timeIntervalSince1970
         ]

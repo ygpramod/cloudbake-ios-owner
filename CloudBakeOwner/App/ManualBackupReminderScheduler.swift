@@ -84,6 +84,8 @@ enum ManualBackupReminderStatus: String, Equatable, Sendable {
 
 struct ManualBackupReminderScheduler {
     static let notificationIdentifier = "manual-backup-reminder"
+    static let notificationDestinationKey = "cloudbake.destination"
+    static let notificationDestination = "backup-settings"
 
     private let preferences: ManualBackupPreferences
     private let notificationCenter: any LocalNotificationCenter
@@ -137,6 +139,9 @@ struct ManualBackupReminderScheduler {
         content.title = "Back up CloudBake"
         content.body = "Save a current CloudBake backup from Settings."
         content.sound = .default
+        content.userInfo = [
+            Self.notificationDestinationKey: Self.notificationDestination
+        ]
         return UNNotificationRequest(
             identifier: Self.notificationIdentifier,
             content: content,
