@@ -1,5 +1,6 @@
 import UserNotifications
 import XCTest
+
 @testable import CloudBakeOwner
 
 final class ExpiryReminderSchedulerTests: XCTestCase {
@@ -106,7 +107,7 @@ final class ExpiryReminderSchedulerTests: XCTestCase {
                 expiresAt: nil,
                 createdAt: now,
                 updatedAt: now
-            )
+            ),
         ]
         let scheduler = ExpiryReminderScheduler(
             repository: repository,
@@ -205,7 +206,7 @@ final class ExpiryReminderSchedulerTests: XCTestCase {
                 identifier: "unrelated-reminder",
                 content: UNNotificationContent(),
                 trigger: nil
-            )
+            ),
         ]
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         repository.items = [
@@ -246,7 +247,8 @@ final class ExpiryReminderSchedulerTests: XCTestCase {
 private final class FakeExpiryReminderRepository:
     InventoryItemRepository,
     InventoryStockBatchRepository,
-    InventoryExpiryReminderRepository {
+    InventoryExpiryReminderRepository
+{
     var items: [InventoryItem] = []
     var batches: [InventoryStockBatch] = []
 

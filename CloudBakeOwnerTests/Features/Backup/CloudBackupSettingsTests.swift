@@ -1,6 +1,7 @@
 import Combine
 import UserNotifications
 import XCTest
+
 @testable import CloudBakeOwner
 
 @MainActor
@@ -479,7 +480,7 @@ final class CloudBackupSettingsTests: XCTestCase {
             [
                 .replaceExistingData,
                 .useCellular(displayedByteCount: proposal.snapshot.totalByteCount),
-                .brokenAssets(.removeReferences)
+                .brokenAssets(.removeReferences),
             ]
         )
     }
@@ -632,7 +633,7 @@ private actor CloudRestoreSettingsServiceSpy: CloudRestoreSettingsServing {
         case .replaceExistingData:
             return .requiresCellularConfirmation(proposal)
         case .useCellular(let displayedByteCount)
-            where displayedByteCount == proposal.snapshot.totalByteCount:
+        where displayedByteCount == proposal.snapshot.totalByteCount:
             return .requiresBrokenAssetDecision(
                 BrokenRestoreAssetProposal(
                     restoreProposalID: proposal.id,
