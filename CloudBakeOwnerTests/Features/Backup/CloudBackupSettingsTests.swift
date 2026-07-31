@@ -105,6 +105,12 @@ final class CloudBackupSettingsTests: XCTestCase {
             request.content.body,
             "Open Backup in Settings for safe guidance and try again."
         )
+        XCTAssertEqual(
+            request.content.userInfo[
+                ManualBackupReminderScheduler.notificationDestinationKey
+            ] as? String,
+            ManualBackupReminderScheduler.notificationDestination
+        )
     }
 
     func testViewModelPresentsSafeFailureGuidanceWithoutPrivateDetails() async {

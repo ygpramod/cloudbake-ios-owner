@@ -4,7 +4,9 @@ import UserNotifications
 @MainActor
 final class OrderNotificationRouter: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     @Published private(set) var pendingOrderId: String?
+    @Published private(set) var pendingInventoryItemId: String?
     @Published private(set) var isPaymentReportPending = false
+    @Published private(set) var isBackupSettingsPending = false
 
     override init() {
         super.init()
@@ -23,6 +25,10 @@ final class OrderNotificationRouter: NSObject, ObservableObject, UNUserNotificat
         pendingOrderId = nil
     }
 
+    func clearPendingInventoryItemId() {
+        pendingInventoryItemId = nil
+    }
+
     func openPaymentReport() {
         isPaymentReportPending = true
     }
@@ -31,10 +37,27 @@ final class OrderNotificationRouter: NSObject, ObservableObject, UNUserNotificat
         isPaymentReportPending = false
     }
 
+    func clearPendingBackupSettings() {
+        isBackupSettingsPending = false
+    }
+
     func routeNotification(userInfo: [AnyHashable: Any]) {
         if userInfo[PaymentPendingReminderScheduler.notificationDestinationKey] as? String
             == PaymentPendingReminderScheduler.notificationDestination {
             openPaymentReport()
+            return
+        }
+        if userInfo[ExpiryReminderScheduler.notificationDestinationKey] as? String
+            == ExpiryReminderScheduler.notificationDestination,
+           let inventoryItemId = userInfo[
+               ExpiryReminderScheduler.notificationInventoryItemIdKey
+           ] as? String {
+            pendingInventoryItemId = inventoryItemId
+            return
+        }
+        if userInfo[ManualBackupReminderScheduler.notificationDestinationKey] as? String
+            == ManualBackupReminderScheduler.notificationDestination {
+            isBackupSettingsPending = true
             return
         }
         guard userInfo[OrderReminderScheduler.orderNotificationDestinationKey] as? String == OrderReminderScheduler.orderNotificationDestinationOrder,

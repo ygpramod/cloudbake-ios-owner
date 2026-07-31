@@ -25,6 +25,29 @@ final class NavigationRouterTests: XCTestCase {
         XCTAssertNil(router.pendingOrderId)
     }
 
+    func testOrderNotificationRouterRoutesInventoryExpiryPayload() {
+        let router = OrderNotificationRouter()
+
+        router.routeNotification(userInfo: [
+            ExpiryReminderScheduler.notificationDestinationKey:
+                ExpiryReminderScheduler.notificationDestination,
+            ExpiryReminderScheduler.notificationInventoryItemIdKey: "inventory-flour"
+        ])
+
+        XCTAssertEqual(router.pendingInventoryItemId, "inventory-flour")
+    }
+
+    func testOrderNotificationRouterRoutesBackupPayload() {
+        let router = OrderNotificationRouter()
+
+        router.routeNotification(userInfo: [
+            ManualBackupReminderScheduler.notificationDestinationKey:
+                ManualBackupReminderScheduler.notificationDestination
+        ])
+
+        XCTAssertTrue(router.isBackupSettingsPending)
+    }
+
     func testOrderNotificationRouterClearsPendingOrderOnlyWhenAsked() {
         let router = OrderNotificationRouter()
         router.openOrder(id: "order-chocolate")

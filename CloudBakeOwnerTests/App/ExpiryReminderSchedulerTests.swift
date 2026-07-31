@@ -44,6 +44,17 @@ final class ExpiryReminderSchedulerTests: XCTestCase {
             requests[0].content.body,
             "Cake flour has 500 g expiring on \(expiresAt.formatted(date: .abbreviated, time: .omitted))."
         )
+        XCTAssertEqual(
+            requests[0].content.userInfo[ExpiryReminderScheduler.notificationDestinationKey]
+                as? String,
+            ExpiryReminderScheduler.notificationDestination
+        )
+        XCTAssertEqual(
+            requests[0].content.userInfo[
+                ExpiryReminderScheduler.notificationInventoryItemIdKey
+            ] as? String,
+            "inventory-flour"
+        )
         let trigger = try XCTUnwrap(requests[0].trigger as? UNCalendarNotificationTrigger)
         XCTAssertEqual(trigger.dateComponents.hour, 9)
         XCTAssertEqual(trigger.dateComponents.minute, 0)
