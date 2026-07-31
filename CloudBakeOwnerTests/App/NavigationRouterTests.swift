@@ -36,6 +36,29 @@ final class NavigationRouterTests: XCTestCase {
         XCTAssertNil(router.pendingOrderId)
     }
 
+    func testNotificationResponseCompletesBeforeRouting() async {
+        let router = OrderNotificationRouter()
+        var completionCalled = false
+
+        router.handleNotificationResponse(
+            userInfo: [
+                OrderReminderScheduler.orderNotificationDestinationKey:
+                    OrderReminderScheduler.orderNotificationDestinationOrder,
+                OrderReminderScheduler.orderNotificationOrderIdKey: "order-chocolate"
+            ],
+            completionHandler: {
+                completionCalled = true
+                XCTAssertNil(router.pendingOrderId)
+            }
+        )
+
+        XCTAssertTrue(completionCalled)
+        for _ in 0..<10 where router.pendingOrderId == nil {
+            await Task.yield()
+        }
+        XCTAssertEqual(router.pendingOrderId, "order-chocolate")
+    }
+
     func testInventoryNavigationRouterClearsPendingItemOnlyWhenAsked() {
         let router = InventoryNavigationRouter()
         router.openInventoryItem(id: "inventory-flour")
