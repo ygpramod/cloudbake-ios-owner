@@ -55,12 +55,14 @@ struct ExpiryReminderScheduler {
 
     func makeReminderRequests(limit: Int = 60) throws -> [UNNotificationRequest] {
         let now = dateProvider()
-        let threshold =
-            Self.calendar.date(byAdding: .month, value: 1, to: now)
-            ?? now.addingTimeInterval(30 * 24 * 60 * 60)
         guard let nextReminderDate = nextReminderDate(after: now) else {
             return []
         }
+        let reminderDay = Self.calendar.startOfDay(for: nextReminderDate)
+        let dayAfterHorizon =
+            Self.calendar.date(byAdding: .day, value: 15, to: reminderDay)
+            ?? reminderDay.addingTimeInterval(15 * 24 * 60 * 60)
+        let threshold = dayAfterHorizon.addingTimeInterval(-1)
         return try repository.fetchInventoryExpiryReminderCandidates(
             expiringFrom: nextReminderDate,
             through: threshold,
@@ -110,8 +112,8 @@ struct ExpiryReminderScheduler {
 
     private func scheduledReminderDate(for expiresAt: Date, now: Date) -> Date? {
         let preferredDate =
-            Self.calendar.date(byAdding: .month, value: -1, to: expiresAt)
-            ?? expiresAt.addingTimeInterval(-30 * 24 * 60 * 60)
+            Self.calendar.date(byAdding: .day, value: -14, to: expiresAt)
+            ?? expiresAt.addingTimeInterval(-14 * 24 * 60 * 60)
         let reminderDay = max(preferredDate, now)
         let morningComponents = Self.calendar.dateComponents([.year, .month, .day], from: reminderDay)
         let morning =

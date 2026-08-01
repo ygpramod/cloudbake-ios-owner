@@ -308,7 +308,7 @@ final class InventoryListViewModelTests: XCTestCase {
         )
     }
 
-    func testAddItemDefaultsInitialStockBatchToOneMonthExpiry() {
+    func testAddItemDefaultsInitialStockBatchToThreeMonthExpiry() {
         let repository = FakeInventoryItemRepository()
         let calendar = Calendar(identifier: .gregorian)
         let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
@@ -323,10 +323,10 @@ final class InventoryListViewModelTests: XCTestCase {
         viewModel.draftMinimumQuantity = "250"
 
         XCTAssertTrue(viewModel.draftHasExpiryDate)
-        XCTAssertEqual(viewModel.draftExpiryDate, calendar.date(byAdding: .month, value: 1, to: now))
+        XCTAssertEqual(viewModel.draftExpiryDate, calendar.date(byAdding: .month, value: 3, to: now))
         XCTAssertTrue(viewModel.addItem())
 
-        XCTAssertEqual(repository.batches.first?.expiresAt, calendar.date(byAdding: .month, value: 1, to: now))
+        XCTAssertEqual(repository.batches.first?.expiresAt, calendar.date(byAdding: .month, value: 3, to: now))
     }
 
     func testAddItemUsesAndPersistsCustomDefaultExpiryDays() {
@@ -470,7 +470,7 @@ final class InventoryListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftExpiryDate, calendar.date(byAdding: .day, value: 4, to: now))
     }
 
-    func testSelectingStandardDefaultsExpiryToOneMonth() {
+    func testSelectingStandardDefaultsExpiryToThreeMonths() {
         let repository = FakeInventoryItemRepository()
         let calendar = Calendar(identifier: .gregorian)
         let now = calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
@@ -484,7 +484,7 @@ final class InventoryListViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.draftType, .standard)
         XCTAssertTrue(viewModel.draftHasExpiryDate)
-        XCTAssertEqual(viewModel.draftExpiryDate, calendar.date(byAdding: .month, value: 1, to: now))
+        XCTAssertEqual(viewModel.draftExpiryDate, calendar.date(byAdding: .month, value: 3, to: now))
     }
 
     func testAddItemPersistsPerishableTypeAndFourDayExpiry() {

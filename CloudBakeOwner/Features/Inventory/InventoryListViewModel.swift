@@ -1201,7 +1201,7 @@ final class InventoryListViewModel: ObservableObject {
 
     private func defaultStandardExpiryDate() -> Date {
         let now = dateProvider()
-        return Calendar.current.date(byAdding: .month, value: 1, to: now) ?? now
+        return Calendar.current.date(byAdding: .month, value: 3, to: now) ?? now
     }
 
     private func defaultPerishableExpiryDate() -> Date {

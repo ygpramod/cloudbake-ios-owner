@@ -238,6 +238,7 @@ extension GRDBCoreDataRepository {
                       ON inventory_items.id =
                         inventory_stock_batches.inventory_item_id
                     WHERE inventory_stock_batches.remaining_quantity > 0
+                      AND inventory_items.inventory_type = ?
                       AND inventory_stock_batches.expires_at_unix_time
                             BETWEEN ? AND ?
                     ORDER BY
@@ -248,9 +249,10 @@ extension GRDBCoreDataRepository {
                     LIMIT ?
                     """,
                 arguments: [
+                    InventoryItemType.standard.rawValue,
                     expiringFrom.timeIntervalSince1970,
                     through.timeIntervalSince1970,
-                    limit
+                    limit,
                 ]
             ).compactMap { row in
                 guard let unit = InventoryUnit(
