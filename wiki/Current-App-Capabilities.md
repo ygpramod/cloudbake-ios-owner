@@ -223,6 +223,9 @@ The app currently supports:
     one-year default ending today; custom date ranges up to 366 days; status filters; Day, Week, and
     Month grouping where applicable; bounded row and sales-bucket drill-down; payment delay from
     order due date; partial ingredient-cost warnings; and exact receipt/sales totals.
+139. user-confirmed purchase-bill cropping before local Vision recognition, geometric reconstruction
+    of recognized receipt lines from top to bottom and left to right, and readable shared headings
+    throughout the purchase-bill and voice-inventory forms.
 
 ## Partially Prepared
 

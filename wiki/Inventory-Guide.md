@@ -153,11 +153,13 @@ inventory item's name or aliases, and captures common quantity/unit pairs such a
 `250 ml`, `12 pcs`, `2 tsp`, or `1 cup`.
 
 The owner can open Import Bill, take a purchase bill photo, retake the photo, or choose an existing
-bill image from the photo library. The app reads the selected image using local Vision OCR and
-parses the recognized text into draft inventory rows.
+bill image from the photo library. Before recognition, move or resize the crop frame so it contains
+only the bill, then choose Use Crop. Cancel keeps the previous bill and recognized text unchanged.
+The app reads the cropped image using local Vision OCR, orders recognition boxes into printed rows
+from top to bottom and left to right, and parses the recognized text into draft inventory rows.
 
-The selected bill image is previewed in the import flow so the owner can quickly spot the wrong
-photo before saving drafts.
+The confirmed cropped bill image is previewed in the import flow so the owner can quickly spot the
+wrong photo before saving drafts.
 
 The owner can review draft items before saving. Draft review supports selecting which items to save,
 editing recognized text, names, quantities, units, minimum quantities, and expiry dates.
