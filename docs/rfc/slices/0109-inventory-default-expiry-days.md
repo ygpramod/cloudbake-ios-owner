@@ -24,8 +24,9 @@ Voice inventory entry and supplier-specific expiry rules are outside this slice.
 
 1. Default expiry days must be blank or a positive whole number.
 2. An item-level value overrides the type default.
-3. Without an item-level value, Standard inventory defaults to one calendar month and Perishable
-   inventory defaults to four days, preserving existing behavior.
+3. Without an item-level value, Standard inventory originally defaulted to one calendar month and
+   Perishable inventory defaults to four days. Slice `0127` subsequently changes the Standard
+   fallback to three calendar months while preserving the Perishable fallback.
 4. Changing the item-level value affects future stock only and must not rewrite existing batches.
 5. A matched purchase-bill draft uses the saved item default; an unmatched draft retains the
    Standard fallback.

@@ -229,6 +229,12 @@ The app currently supports:
 140. native document-camera edge correction, generic measured-product purchase-bill drafts from the
     exact on-device OCR text, editable purchase amounts, per-row Add to Inventory controls,
     receipt-name aliases for mapped inventory, and atomic priced-batch saving.
+141. three-calendar-month default expiry for Standard inventory while retaining the four-day
+    Perishable default and per-item overrides.
+142. Standard inventory expiry notifications fourteen days before expiry, with Perishable expiry
+    notifications suppressed.
+143. next-day nearest-hour defaults for new order due times and uninterrupted Ready/Completed
+    status progression for orders without recipes or inventory ingredients.
 
 ## Partially Prepared
 

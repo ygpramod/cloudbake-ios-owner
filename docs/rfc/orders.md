@@ -258,6 +258,11 @@ confirmation. Continuing consumes available non-expired stock without making inv
 records the undeducted quantity, and completes the status change atomically. Multi-recipe orders,
 inventory reservation, and serving/yield modeling remain future work.
 
+Recipe and inventory planning are optional. An order without a linked recipe or inventory-backed
+ingredients can still move through Ready and Completed; CloudBake records no recipe usage and asks
+for no inventory-deduction confirmation in that case. A new order starts with a due date one
+calendar day after creation, rounded to the nearest whole hour with seconds removed.
+
 ## Design And Photo Relationship
 
 Orders should eventually link to:
@@ -339,8 +344,11 @@ pricing, and recipe links.
   only the next relevant reminder, and completed or cancelled orders are excluded from due reminder
   alerts.
 - Orders can now change status from detail without opening the full edit form.
+- New orders default to one calendar day after creation at the nearest whole hour.
 - Orders can now deduct linked recipe ingredients once when an order is marked Ready or
   Completed. Linked recipe usage can be scaled with an owner-entered positive recipe multiplier.
+- Orders without a linked recipe or inventory ingredients can still move through Ready and
+  Completed without creating recipe usage.
 - Orders can now store order-specific extra ingredients from order form or detail under the linked
   recipe section. These ingredients are deducted with the linked recipe usage without changing the
   original recipe.
