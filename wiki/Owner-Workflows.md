@@ -229,8 +229,10 @@ use batch correction when the saved data is wrong.
 Use Import Bill when newly purchased baking stock should become inventory drafts.
 
 The owner can take a bill photo, retake the photo, or choose an existing bill image from the photo
-library. The selected image is previewed, read locally with Apple Vision OCR, and turned into
-editable draft inventory rows.
+library. Move and resize the crop frame to exclude unrelated text, then choose Use Crop. CloudBake
+reads the cropped image locally with Apple Vision OCR, rebuilds receipt lines from top to bottom and
+left to right, and turns them into editable draft inventory rows. Canceling the crop preserves the
+previous bill and text.
 
 Inventory item aliases help this flow recognize bill names that differ from the saved inventory
 name. Add aliases such as brand names, abbreviations, or local ingredient names from the inventory
