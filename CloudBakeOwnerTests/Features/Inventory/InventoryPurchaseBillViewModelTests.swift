@@ -341,7 +341,7 @@ extension InventoryListViewModelTests {
                 quantityText: "100",
                 unit: .gram,
                 minimumQuantityText: "0",
-                expiryDate: calendar.date(byAdding: .month, value: 1, to: now)!
+                expiryDate: calendar.date(byAdding: .month, value: 3, to: now)!
             )
         ]
 

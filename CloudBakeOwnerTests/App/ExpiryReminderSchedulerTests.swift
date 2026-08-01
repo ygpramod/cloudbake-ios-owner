@@ -4,7 +4,7 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class ExpiryReminderSchedulerTests: XCTestCase {
-    func testMakeReminderRequestsSchedulesExpiringBatchesWithinOneMonth() throws {
+    func testMakeReminderRequestsSchedulesStandardBatchTwoWeeksBeforeExpiry() throws {
         let repository = FakeExpiryReminderRepository()
         let calendar = Calendar(identifier: .gregorian)
         let now = calendar.date(from: DateComponents(year: 2027, month: 1, day: 15, hour: 8, minute: 0))!
@@ -57,8 +57,45 @@ final class ExpiryReminderSchedulerTests: XCTestCase {
             "inventory-flour"
         )
         let trigger = try XCTUnwrap(requests[0].trigger as? UNCalendarNotificationTrigger)
+        XCTAssertEqual(trigger.dateComponents.day, 15)
         XCTAssertEqual(trigger.dateComponents.hour, 9)
         XCTAssertEqual(trigger.dateComponents.minute, 0)
+    }
+
+    func testMakeReminderRequestsDoesNotSchedulePerishableInventory() throws {
+        let repository = FakeExpiryReminderRepository()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = calendar.date(from: DateComponents(year: 2027, month: 1, day: 15, hour: 8))!
+        let expiresAt = calendar.date(byAdding: .day, value: 4, to: now)!
+        repository.items = [
+            InventoryItem(
+                id: "inventory-cream",
+                name: "Cream",
+                type: .perishable,
+                unit: .milliliter,
+                currentQuantity: 500,
+                minimumQuantity: 100,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        repository.batches = [
+            InventoryStockBatch(
+                id: "batch-cream",
+                inventoryItemId: "inventory-cream",
+                remainingQuantity: 500,
+                expiresAt: expiresAt,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        let scheduler = ExpiryReminderScheduler(
+            repository: repository,
+            notificationCenter: FakeExpiryReminderNotificationCenter(),
+            dateProvider: { now }
+        )
+
+        XCTAssertEqual(try scheduler.makeReminderRequests(), [])
     }
 
     func testMakeReminderRequestsIgnoresBatchesThatDoNotNeedExpiryReminder() throws {

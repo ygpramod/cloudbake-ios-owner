@@ -670,6 +670,7 @@ where Self: InventoryItemRepository & InventoryStockBatchRepository {
             throw InventoryExpiryReminderQueryError.invalidDateRange
         }
         return try fetchInventoryItems()
+            .filter { $0.type == .standard }
             .flatMap { item in
                 try fetchInventoryStockBatches(inventoryItemId: item.id)
                     .compactMap { batch in
