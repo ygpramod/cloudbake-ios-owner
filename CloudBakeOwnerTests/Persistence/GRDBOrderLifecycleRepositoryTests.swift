@@ -3,6 +3,46 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class GRDBOrderLifecycleRepositoryTests: XCTestCase {
+    func testOrderWithoutRecipeCanMoveThroughReadyAndCompleted() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_010_000)
+        let order = Order(
+            id: "order-no-recipe",
+            customerId: nil,
+            cakeDesignId: nil,
+            recipeId: nil,
+            title: "Custom cake",
+            customerName: "Amy",
+            status: .draft,
+            dueAt: timestamp.addingTimeInterval(86_400),
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(order)
+
+        let readyOrder = try repository.changeOrderStatus(
+            order: order,
+            status: .ready,
+            updatedAt: timestamp.addingTimeInterval(60),
+            usageId: "unused-ready-usage",
+            transactionIdProvider: { "unused-ready-transaction" }
+        )
+        let completedOrder = try repository.changeOrderStatus(
+            order: readyOrder,
+            status: .completed,
+            updatedAt: timestamp.addingTimeInterval(120),
+            usageId: "unused-completed-usage",
+            transactionIdProvider: { "unused-completed-transaction" }
+        )
+
+        XCTAssertEqual(completedOrder.status, .completed)
+        XCTAssertEqual(try repository.fetchOrder(id: order.id)?.status, .completed)
+        XCTAssertNil(try repository.fetchOrderRecipeUsage(orderId: order.id))
+    }
+
     func testChangingOrderStatusToReadyRecordsRecipeUsageAndDeductsInventory() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_010_000)

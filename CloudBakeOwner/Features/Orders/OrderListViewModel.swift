@@ -69,6 +69,7 @@ final class OrderListViewModel: ObservableObject {
             & OrderPhotoRepository & PaymentReceiptRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
+    private let calendar: Calendar
     private let onReminderDataChanged: () -> Void
     private let presentation: OrderListPresentation
     private let paymentWorkflow: OrderPaymentWorkflow
@@ -97,6 +98,7 @@ final class OrderListViewModel: ObservableObject {
         self.repository = repository
         self.idGenerator = idGenerator
         self.dateProvider = dateProvider
+        self.calendar = calendar
         self.onReminderDataChanged = onReminderDataChanged
         self.presentation = OrderListPresentation(
             dateProvider: dateProvider,
@@ -117,6 +119,10 @@ final class OrderListViewModel: ObservableObject {
             photoLibrary: designPhotoLibrary,
             idGenerator: idGenerator,
             dateProvider: dateProvider
+        )
+        self.draftDueAt = OrderDueDateDefaults.dueAt(
+            after: dateProvider(),
+            calendar: calendar
         )
     }
 
@@ -1771,7 +1777,10 @@ final class OrderListViewModel: ObservableObject {
         draftRecipeScaleMultiplier = "1"
         draftCakeDesignId = ""
         draftCustomerReferencePhotoId = ""
-        draftDueAt = dateProvider()
+        draftDueAt = OrderDueDateDefaults.dueAt(
+            after: dateProvider(),
+            calendar: calendar
+        )
         draftStatus = .draft
         draftFulfillmentType = .pickup
         draftDeliveryAddress = ""

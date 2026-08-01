@@ -1153,10 +1153,9 @@ extension GRDBCoreDataRepository {
                 try replaceOrderExtraIngredients(orderId: order.id, with: extraIngredients, in: db)
             }
 
-            if shouldRecordRecipeUsage(from: persistedOrder.status, to: status) {
-                guard let recipeId = order.recipeId else {
-                    throw OrderRecipeUsageError.orderHasNoLinkedRecipe
-                }
+            if shouldRecordRecipeUsage(from: persistedOrder.status, to: status),
+                let recipeId = order.recipeId
+            {
                 try recordRecipeUsageIfNeeded(
                     order: order,
                     recipeId: recipeId,
