@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented
+Superseded by RFC-0127
 
 ## Parent RFC
 

@@ -57,7 +57,8 @@ The app currently supports:
 37. purchase bill photo retake and selected-photo preview,
 38. purchase bill photo library import,
 39. duplicate matching for purchase bill draft save,
-40. local expiry reminder notifications for stock expiring within one month,
+40. local expiry reminder notifications for Standard stock expiring within two weeks; Perishable
+    stock does not schedule expiry reminders,
 41. owner-selected currency setting for money display,
 42. recipe list,
 43. recipe creation with name and owner notes,
