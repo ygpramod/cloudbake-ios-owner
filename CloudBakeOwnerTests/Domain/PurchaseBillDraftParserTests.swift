@@ -55,7 +55,7 @@ final class PurchaseBillDraftParserTests: XCTestCase {
             drafts,
             [
                 PurchaseBillDraftInventoryItem(
-                    name: "Cake Flour",
+                    name: "Aashirvaad Maida",
                     sourceLine: "Aashirvaad Maida 2kg",
                     quantity: 2,
                     unit: .kilogram,

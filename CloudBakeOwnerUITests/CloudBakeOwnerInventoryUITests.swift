@@ -454,7 +454,10 @@ extension CloudBakeOwnerUITests {
         dismissKeyboard(in: app)
         tapWhenReady(createDrafts)
 
-        XCTAssertTrue(app.switches["inventory.purchaseBill.draft.include"].waitForExistence(timeout: 5))
+        let includeControl = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label == %@", "Add to Inventory")
+        ).firstMatch
+        XCTAssertTrue(includeControl.waitForExistence(timeout: 5))
     }
 
     func testVoiceInventoryDraftsCanUpdateExistingAndCreateUnknownItems() throws {
