@@ -61,13 +61,14 @@ extension CloudBakeOwnerUITests {
         app.launch()
 
         let reference = app.buttons["designs.reference.design-ui-fixture-reference"]
-        tapScrollableAction(
+        scrollToVisible(
             reference,
-            in: app.scrollViews["screen.designs"],
-            waitingFor: app.staticTexts["References"],
-            in: app
+            in: app,
+            scrollContainer: app.scrollViews["screen.designs"]
         )
         let useForNewOrder = app.buttons["designs.preview.useForNewOrder"]
+        tapVisibleElementAtCenter(reference, in: app)
+        XCTAssertTrue(useForNewOrder.waitForExistence(timeout: 15))
         tapWhenReady(useForNewOrder, timeout: 15)
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 10))
