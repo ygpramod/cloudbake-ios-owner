@@ -103,6 +103,7 @@ struct PurchaseBillImportView: View {
             }
         }
         .cloudBakeFormScreenStyle()
+        .inventoryImportTopEdgeStyle()
         .safeAreaInset(edge: .top, spacing: 0) {
             InventoryImportScreenHeader(
                 title: "Import Bill",
@@ -433,6 +434,7 @@ struct VoiceInventoryImportView: View {
             }
         }
         .cloudBakeFormScreenStyle()
+        .inventoryImportTopEdgeStyle()
         .safeAreaInset(edge: .top, spacing: 0) {
             InventoryImportScreenHeader(
                 title: "Add by Voice",
@@ -633,6 +635,17 @@ private struct InventoryImportSectionHeader: View {
             .font(CloudBakeTheme.Typography.sectionTitle)
             .foregroundStyle(.primary)
             .textCase(nil)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func inventoryImportTopEdgeStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            scrollEdgeEffectHidden(true, for: .top)
+        } else {
+            self
+        }
     }
 }
 
