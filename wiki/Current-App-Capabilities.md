@@ -226,6 +226,9 @@ The app currently supports:
 139. user-confirmed purchase-bill cropping before local Vision recognition, geometric reconstruction
     of recognized receipt lines from top to bottom and left to right, and readable shared headings
     throughout the purchase-bill and voice-inventory forms.
+140. native document-camera edge correction, generic measured-product purchase-bill drafts from the
+    exact on-device OCR text, editable purchase amounts, per-row Add to Inventory controls,
+    receipt-name aliases for mapped inventory, and atomic priced-batch saving.
 
 ## Partially Prepared
 
@@ -237,13 +240,7 @@ The app has domain foundations or partial workflows for:
 4. customer-safe profile projection for future consumer-facing surfaces,
 5. order reminder snooze,
 6. inventory transactions,
-7. purchase bill filtering by baking catalog,
-8. purchase bill draft inventory parsing,
-9. purchase bill text recognition through Apple Vision,
-10. purchase bill draft review flow,
-11. purchase bill camera import flow,
-12. purchase bill duplicate matching,
-13. recipe ingredient quantity extraction.
+7. recipe ingredient quantity extraction.
 
 These are not all owner-facing workflows yet.
 
