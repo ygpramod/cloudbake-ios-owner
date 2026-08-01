@@ -262,7 +262,8 @@ extension OrderRepository {
 
         let candidates = Array(filtered.prefix(limit + 1))
         let pageOrders = Array(candidates.prefix(limit))
-        let nextCursor = candidates.count > limit
+        let nextCursor =
+            candidates.count > limit
             ? pageOrders.last.map {
                 OrderPageCursor(dueAt: $0.dueAt, orderId: $0.id)
             }
@@ -326,21 +327,25 @@ where Self: OrderRepository & OrderReminderConfigurationRepository {
         let configurations = try fetchOrderReminderConfigurations(
             orderIds: orders.map(\.id)
         )
-        return orders
+        return
+            orders
             .flatMap { order -> [ScheduledOrderReminderOccurrence] in
                 let configuration = configurations[order.id] ?? .initialDefault
                 guard configuration.isEnabled else {
                     return []
                 }
-                let offsets = configuration.dayOffsets
+                let offsets =
+                    configuration.dayOffsets
                     + (configuration.includesDueTime ? [0] : [])
                 return offsets.compactMap { offsetDays in
-                    guard let remindAt = calendar.date(
-                        byAdding: .day,
-                        value: -offsetDays,
-                        to: order.dueAt
-                    ),
-                    remindAt > date else {
+                    guard
+                        let remindAt = calendar.date(
+                            byAdding: .day,
+                            value: -offsetDays,
+                            to: order.dueAt
+                        ),
+                        remindAt > date
+                    else {
                         return nil
                     }
                     return ScheduledOrderReminderOccurrence(
@@ -675,9 +680,10 @@ where Self: InventoryItemRepository & InventoryStockBatchRepository {
                 try fetchInventoryStockBatches(inventoryItemId: item.id)
                     .compactMap { batch in
                         guard batch.remainingQuantity > 0,
-                              let expiresAt = batch.expiresAt,
-                              expiresAt >= expiringFrom,
-                              expiresAt <= through else {
+                            let expiresAt = batch.expiresAt,
+                            expiresAt >= expiringFrom,
+                            expiresAt <= through
+                        else {
                             return nil
                         }
                         return InventoryExpiryReminderCandidate(

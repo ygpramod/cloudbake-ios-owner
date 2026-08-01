@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import CloudBakeOwner
 
 @MainActor
@@ -157,7 +158,7 @@ final class OrderListViewModelTests: XCTestCase {
                 OrderCalendarDay(
                     day: calendar.startOfDay(for: secondDay),
                     orders: [thirdOrder]
-                )
+                ),
             ]
         )
     }
@@ -452,7 +453,7 @@ final class OrderListViewModelTests: XCTestCase {
                 OrderReminderPlanItem(
                     offsetDays: 0,
                     remindAt: dueAt
-                )
+                ),
             ]
         )
     }
@@ -470,7 +471,7 @@ final class OrderListViewModelTests: XCTestCase {
                 dayOffsets: [10, 2],
                 includesDueTime: false
             ),
-            disabledOrder.id: .disabled
+            disabledOrder.id: .disabled,
         ]
         let viewModel = OrderListViewModel(repository: repository, calendar: calendar)
 
@@ -486,7 +487,7 @@ final class OrderListViewModelTests: XCTestCase {
                 OrderReminderPlanItem(
                     offsetDays: 2,
                     remindAt: date(byAddingDays: -2, to: dueAt, calendar: calendar)
-                )
+                ),
             ]
         )
         XCTAssertTrue(viewModel.reminderPlan(for: disabledOrder).isEmpty)
@@ -536,7 +537,7 @@ final class OrderListViewModelTests: XCTestCase {
                 OrderReminderDueGroup(
                     order: activeOrder,
                     reminders: [viewModel.reminderPlan(for: activeOrder)[1]]
-                )
+                ),
             ]
         )
     }
@@ -564,7 +565,7 @@ final class OrderListViewModelTests: XCTestCase {
         let order = makeOrder(id: "order-overdue", title: "Birthday Cake", status: .confirmed, dueAt: dueAt)
         repository.orders = [
             makeOrder(id: "order-completed", title: "Done Cake", status: .completed, dueAt: dueAt),
-            order
+            order,
         ]
         let viewModel = OrderListViewModel(
             repository: repository,
@@ -575,7 +576,9 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.load()
 
         XCTAssertEqual(viewModel.overdueAlert?.order.id, order.id)
-        XCTAssertEqual(viewModel.overdueAlert?.message, "Birthday Cake was due at \(dueAt.formatted(date: .omitted, time: .shortened)), update status?")
+        XCTAssertEqual(
+            viewModel.overdueAlert?.message, "Birthday Cake was due at \(dueAt.formatted(date: .omitted, time: .shortened)), update status?"
+        )
         XCTAssertTrue(viewModel.isOverdue(order))
     }
 
@@ -959,7 +962,7 @@ final class OrderListViewModelTests: XCTestCase {
         repository.orders = [unlinkedOrder, noPhoneOrder, nonDialablePhoneOrder]
         repository.customers = [
             makeCustomer(id: "customer-no-phone", name: "Amy Rao", phone: " "),
-            makeCustomer(id: "customer-non-dialable-phone", name: "Maya Rao", phone: "N/A")
+            makeCustomer(id: "customer-non-dialable-phone", name: "Maya Rao", phone: "N/A"),
         ]
         let viewModel = OrderListViewModel(repository: repository)
         viewModel.load()
@@ -1169,7 +1172,7 @@ final class OrderListViewModelTests: XCTestCase {
                 unit: .gram,
                 createdAt: timestamp,
                 updatedAt: timestamp
-            )
+            ),
         ]
         let viewModel = OrderListViewModel(repository: repository)
 
@@ -1458,7 +1461,7 @@ final class OrderListViewModelTests: XCTestCase {
                 recipeId: "recipe-cake",
                 status: .confirmed,
                 dueAt: timestamp
-            )
+            ),
         ]
         repository.recipes = [makeRecipe(id: "recipe-cake", name: "Cake")]
         repository.inventoryItems = [
