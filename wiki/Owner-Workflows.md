@@ -228,15 +228,26 @@ use batch correction when the saved data is wrong.
 
 Use Import Bill when newly purchased baking stock should become inventory drafts.
 
-The owner can take a bill photo, retake the photo, or choose an existing bill image from the photo
-library. Move and resize the crop frame to exclude unrelated text, then choose Use Crop. CloudBake
-reads the cropped image locally with Apple Vision OCR, rebuilds receipt lines from top to bottom and
-left to right, and turns them into editable draft inventory rows. Canceling the crop preserves the
-previous bill and text.
+The owner can use Apple's native document camera or choose an existing bill image from the photo
+library. Confirm the native document edges for a camera scan, or move the crop frame for a library
+photo. CloudBake reads the confirmed image locally with Apple Vision OCR, rebuilds receipt lines
+from top to bottom and left to right, and turns them into editable draft inventory rows. Canceling
+the crop preserves the previous bill and text.
 
 Inventory item aliases help this flow recognize bill names that differ from the saved inventory
 name. Add aliases such as brand names, abbreviations, or local ingredient names from the inventory
 add/edit form.
+
+Review all detected receipt products, including ones outside the baking catalog. Existing unique
+name or alias matches map automatically. Use Add to Inventory to include or exclude each row.
+Measured unmatched products default on and create new inventory, with an option to map them to
+existing inventory. Rows that look like charges and have no measurement use `1 each` and default
+off. Review the editable amount paid; it becomes the purchase-batch cost. When mapping, CloudBake
+saves the receipt product name as an alias. Save commits all included rows atomically.
+
+CloudBake normalizes common OCR spacing errors and supports quantity/price rows such as `2 4.00`.
+It ignores discount, total, tax, payment, and loyalty metadata instead of trying to reconcile a
+store-specific receipt.
 
 Manual bill text entry remains available when an image is unclear.
 

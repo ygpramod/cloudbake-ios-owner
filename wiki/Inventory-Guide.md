@@ -131,12 +131,11 @@ lines. CloudBake removes blank aliases and duplicate aliases before saving.
 
 ## Baking Catalog
 
-The baking catalog is a JSON config that lists ingredients, decorations, and packaging that are
-relevant to baking.
+The baking catalog is a JSON config that lists common ingredients, decorations, and packaging.
 
-The catalog includes names, aliases, categories, and an active flag. It is used as the foundation
-for future purchase bill scanning, where the app should draft inventory only for baking-related
-bill lines.
+The catalog includes names, aliases, categories, and an active flag. Purchase-bill import uses it
+to recognize familiar product names, but it does not hide measured receipt products that are not in
+the catalog.
 
 Today the catalog is bundled with the app as `BakingCatalog.json`. Future slices can add an owner
 editing screen or a local editable copy.
@@ -148,32 +147,41 @@ Purchase bill draft parsing turns recognized bill text into inventory draft cand
 Bill text recognition uses Apple's local Vision OCR framework. Receipt images do not need to leave
 the device for the first version, and there is no OCR subscription or per-scan service fee.
 
-The parser reads bill text line by line, keeps only lines that match the baking catalog or an active
-inventory item's name or aliases, and captures common quantity/unit pairs such as `1 kg`, `500g`,
-`250 ml`, `12 pcs`, `2 tsp`, or `1 cup`.
+The parser reads the editable on-device OCR text line by line and captures product rows with common
+quantity/unit pairs such as `1 kg`, `500g`, `250 ml`, `12 pcs`, `2 tsp`, or `1 cup`. Catalog and
+active inventory names or aliases improve automatic matching; they do not filter out other measured
+products. OCR price spacing such as `3. 15` is normalized. A following row such as `2 4.00`
+multiplies the package quantity by two and records `4.00` as the total amount paid.
 
-The owner can open Import Bill, take a purchase bill photo, retake the photo, or choose an existing
-bill image from the photo library. Before recognition, move or resize the crop frame so it contains
-only the bill, then choose Use Crop. Cancel keeps the previous bill and recognized text unchanged.
-The app reads the cropped image using local Vision OCR, orders recognition boxes into printed rows
-from top to bottom and left to right, and parses the recognized text into draft inventory rows.
+The owner can open Import Bill, scan a bill with Apple's native document camera, or choose an
+existing bill image from the photo library. The document camera provides native edge and
+perspective confirmation. Library photos use CloudBake's movable crop frame. Cancel keeps the
+previous bill and recognized text unchanged. The app reads the confirmed image using local Vision
+OCR, orders recognition boxes into printed rows from top to bottom and left to right, and parses the
+recognized text into draft inventory rows.
 
 The confirmed cropped bill image is previewed in the import flow so the owner can quickly spot the
 wrong photo before saving drafts.
 
-The owner can review draft items before saving. Draft review supports selecting which items to save,
-editing recognized text, names, quantities, units, minimum quantities, and expiry dates.
+The owner can review every detected product before saving and edit its name, quantity, unit, amount
+paid, and expiry. A unique inventory name or alias match maps automatically. Every row has an Add
+to Inventory toggle. Measured unmatched products default on and create new inventory; they can be
+mapped to existing inventory instead. Product-like rows without a measurement use `1 each` and
+default off because they may be charges rather than inventory. Minimum quantity is requested only
+for a new inventory item.
 
-When a draft matches an existing active inventory item, CloudBake adds the draft quantity to that
-existing item and creates a new stock batch with the draft expiry date. Compatible units are
-converted first, such as `1 kg` on the bill becoming `1000 g` for an item stored in grams.
+When a draft maps to an existing active inventory item, CloudBake adds the draft quantity to that
+item, saves the receipt product name as an alias, and creates a priced stock batch with the draft
+expiry date. Compatible units are converted first, such as `1 kg` on the bill becoming `1000 g` for
+an item stored in grams.
 
 When bill text matches an inventory alias, the draft uses the saved inventory item name so saving the
 draft updates that item.
 
-Drafts that do not match existing inventory create normal inventory items and initial stock batches.
-Manual recognized text entry remains available as a fallback when a bill photo cannot be read
-clearly.
+An included unmatched row makes a normal inventory item and initial priced stock batch. Turning Add
+to Inventory off leaves the row unchanged. Discounts, totals, tax, payment, and loyalty lines are
+not imported or reconciled. The complete included import is saved atomically. Manual recognized
+text entry remains available as a fallback when a bill photo cannot be read clearly.
 
 ## Add Inventory By Voice
 
