@@ -50,8 +50,8 @@ remaining stock, or when remaining stock expires within one month.
 Perishable items are different. CloudBake hides perishable low-inventory alerts unless an active
 order needs that item through a linked recipe or order-specific extra ingredients.
 
-The app also uses local notifications for remaining stock expiring within one month after the owner
-grants notification permission.
+The app also uses local notifications for Standard stock fourteen days before expiry after the
+owner grants notification permission. Perishable stock does not schedule expiry notifications.
 
 Example:
 
@@ -70,9 +70,9 @@ Expiry example:
 
 Each new stock quantity is tracked as a batch with an optional expiry date and optional amount.
 
-Standard inventory defaults to having an expiry date one month from the add or adjustment date, but
-the owner can turn expiry off before saving. Perishable inventory defaults the expiry date to four
-days from the add or adjustment date.
+Standard inventory defaults to having an expiry date three calendar months from the add or
+adjustment date, but the owner can turn expiry off before saving. Perishable inventory defaults the
+expiry date to four days from the add or adjustment date.
 
 An item can instead define its own positive whole-number default expiry days. That value applies to
 future initial stock, adjustments, and matched purchase-bill drafts. It does not rewrite existing
@@ -86,8 +86,8 @@ When stock is used, the app deducts from the oldest-expiring batch first. After 
 zero, usage continues into the next oldest batch.
 
 Expiry reminders are local to the device. The reminder message names the item, remaining batch
-quantity, unit, and expiry date. Expired batches, empty batches, no-expiry batches, and batches
-expiring later than one month are not scheduled for expiry reminder notifications.
+quantity, unit, and expiry date. Only Standard batches are eligible, fourteen days before expiry.
+Perishable, expired, empty, and no-expiry batches are not scheduled for expiry notifications.
 
 Expiry reminders are scheduled once per day at 9 AM. If CloudBake refreshes reminders after that
 day's 9 AM reminder time, it schedules the next reminder for 9 AM on the following day when the

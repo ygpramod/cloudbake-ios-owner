@@ -43,15 +43,18 @@ Expiry date is optional for new stock when inventory is added or adjusted upward
 expiry on, and the owner can turn it off before saving. The owner can correct a stock batch quantity
 or expiry date from inventory detail.
 
-Perishable inventory defaults new stock expiry to four days from the add or adjustment date.
+Standard inventory defaults new stock expiry to three calendar months from the add or adjustment
+date. Perishable inventory defaults new stock expiry to four days.
 Each inventory item can override its type default with a positive whole number of days. The app
 applies that default when initial stock, adjusted stock, or a matched purchase-bill draft receives
 an expiry date. The owner can still change or remove the expiry date for an individual batch.
 
-The app uses expiry to warn the owner one month before expiry and to decide which batch should be
-consumed first.
+The app uses expiry to decide which batch should be consumed first. Standard inventory receives a
+local reminder fourteen days before expiry. Perishable inventory does not receive expiry reminder
+notifications.
 
-Expiry reminders are local notifications for remaining stock batches expiring within one month.
+Expiry reminders are local notifications for remaining Standard stock batches expiring within two
+weeks.
 They help the owner use or replace handmade-cake ingredients before the expiry date.
 
 ## Current Quantity
