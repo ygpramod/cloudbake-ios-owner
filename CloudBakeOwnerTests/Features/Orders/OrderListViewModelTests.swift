@@ -3,6 +3,62 @@ import XCTest
 
 @MainActor
 final class OrderListViewModelTests: XCTestCase {
+    func testBeginAddingOrderDefaultsDueTimeToNextDayAtNearestHour() {
+        let repository = FakeOrderRepository()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let beforeHalfHour = calendar.date(
+            from: DateComponents(year: 2026, month: 8, day: 1, hour: 12, minute: 23, second: 56)
+        )!
+        let afterHalfHour = calendar.date(
+            from: DateComponents(year: 2026, month: 8, day: 1, hour: 12, minute: 31)
+        )!
+        var now = beforeHalfHour
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { now },
+            calendar: calendar
+        )
+
+        viewModel.beginAddingOrder()
+
+        XCTAssertEqual(
+            viewModel.draftDueAt,
+            calendar.date(from: DateComponents(year: 2026, month: 8, day: 2, hour: 12))
+        )
+
+        now = afterHalfHour
+        viewModel.beginAddingOrder()
+
+        XCTAssertEqual(
+            viewModel.draftDueAt,
+            calendar.date(from: DateComponents(year: 2026, month: 8, day: 2, hour: 13))
+        )
+    }
+
+    func testOrderWithoutRecipeCanMoveToReadyAndCompleted() throws {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let order = makeOrder(
+            id: "order-no-recipe",
+            recipeId: nil,
+            status: .confirmed,
+            dueAt: timestamp
+        )
+        repository.orders = [order]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { timestamp }
+        )
+
+        XCTAssertTrue(viewModel.changeOrderStatus(order, to: .ready))
+        let readyOrder = try XCTUnwrap(viewModel.order(id: order.id))
+        XCTAssertTrue(viewModel.changeOrderStatus(readyOrder, to: .completed))
+
+        XCTAssertEqual(viewModel.order(id: order.id)?.status, .completed)
+        XCTAssertTrue(repository.usages.isEmpty)
+    }
+
     func testLoadFetchesOrdersCustomersAndRecipes() {
         let repository = FakeOrderRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
