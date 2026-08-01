@@ -7,8 +7,8 @@ Implemented
 ## Context
 
 The Add Inventory by Voice screen accepts structured speech, but the required phrase format is not
-discoverable from the screen itself. Its large navigation title also diverges from CloudBake's
-other form screens.
+discoverable from the screen itself. Its system large title is also oversized compared with
+CloudBake's shared screen typography. The Import Purchase Bill screen has the same title mismatch.
 
 ## Scope
 
@@ -18,7 +18,8 @@ other form screens.
 3. Explain that each phrase needs an item name, quantity, and unit and that a pause starts the next
    item on a new line.
 4. Keep the guidance collapsed by default so the transcript remains the primary control.
-5. Use the standard inline navigation-title size used by other CloudBake form screens.
+5. Keep both import screen titles in their original top-leading position while using CloudBake's
+   smaller shared screen-title typography.
 
 ## Accessibility
 
