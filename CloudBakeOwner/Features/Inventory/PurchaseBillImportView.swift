@@ -11,6 +11,8 @@ struct PurchaseBillImportView: View {
     @State private var hasOfferedCamera = false
     @State private var selectedBillImage: UIImage?
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var pendingCropImage: UIImage?
+    @State private var isShowingCrop = false
 
     private let recognizer: PurchaseBillTextRecognizing
     private let catalogProvider: () -> [BakingCatalogItem]
@@ -29,7 +31,7 @@ struct PurchaseBillImportView: View {
 
     var body: some View {
         Form {
-            Section("Bill Photo") {
+            Section {
                 Button {
                     isShowingCamera = true
                 } label: {
@@ -57,9 +59,11 @@ struct PurchaseBillImportView: View {
                     ProgressView("Reading bill")
                         .accessibilityIdentifier("inventory.purchaseBill.recognizing")
                 }
+            } header: {
+                InventoryImportSectionHeader(title: "Bill Photo")
             }
 
-            Section("Bill Text") {
+            Section {
                 TextField("Bill Text", text: $viewModel.purchaseBillRecognizedText, axis: .vertical)
                     .lineLimit(4...8)
                     .accessibilityIdentifier("inventory.purchaseBill.text")
@@ -71,10 +75,12 @@ struct PurchaseBillImportView: View {
                 }
                 .disabled(viewModel.isRecognizingPurchaseBill)
                 .accessibilityIdentifier("inventory.purchaseBill.createDrafts")
+            } header: {
+                InventoryImportSectionHeader(title: "Bill Text")
             }
 
             if !viewModel.purchaseBillDrafts.isEmpty {
-                Section("Draft Items") {
+                Section {
                     ForEach($viewModel.purchaseBillDrafts) { $draft in
                         PurchaseBillDraftRow(
                             draft: $draft,
@@ -83,6 +89,8 @@ struct PurchaseBillImportView: View {
                             }
                         )
                     }
+                } header: {
+                    InventoryImportSectionHeader(title: "Draft Items")
                 }
             }
 
@@ -141,21 +149,46 @@ struct PurchaseBillImportView: View {
         }
         .fullScreenCover(isPresented: $isShowingCamera) {
             CameraImagePickerView { image in
-                selectedBillImage = image
-                recognizeBillPhoto(image)
+                pendingCropImage = image
             }
             .ignoresSafeArea()
+        }
+        .onChange(of: isShowingCamera) { _, isShowing in
+            if !isShowing, pendingCropImage != nil {
+                isShowingCrop = true
+            }
+        }
+        .fullScreenCover(isPresented: $isShowingCrop) {
+            if let pendingCropImage {
+                BillImageCropView(
+                    image: pendingCropImage,
+                    onCancel: cancelCrop,
+                    onUseCrop: useCroppedBillImage
+                )
+            }
         }
     }
 
     private func importBillPhoto(_ item: PhotosPickerItem) async {
         do {
             let image = try await PhotoPickerImageLoader.image(from: item)
-            selectedBillImage = image
-            recognizeBillPhoto(image)
+            pendingCropImage = image
+            isShowingCrop = true
         } catch {
             viewModel.errorMessage = "The bill photo could not be read. Try another photo or enter the bill text manually."
         }
+    }
+
+    private func cancelCrop() {
+        isShowingCrop = false
+        pendingCropImage = nil
+    }
+
+    private func useCroppedBillImage(_ image: UIImage) {
+        selectedBillImage = image
+        isShowingCrop = false
+        pendingCropImage = nil
+        recognizeBillPhoto(image)
     }
 
     private func recognizeBillPhoto(_ image: UIImage) {
@@ -302,7 +335,7 @@ struct VoiceInventoryImportView: View {
 
     var body: some View {
         Form {
-            Section("Voice Inventory") {
+            Section {
                 Button {
                     isShowingVoiceGuidance.toggle()
                 } label: {
@@ -368,10 +401,12 @@ struct VoiceInventoryImportView: View {
                 }
                 .disabled(viewModel.voiceInventoryTranscript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityIdentifier("inventory.voice.createDrafts")
+            } header: {
+                InventoryImportSectionHeader(title: "Voice Inventory")
             }
 
             if !viewModel.voiceInventoryDrafts.isEmpty {
-                Section("Draft Items") {
+                Section {
                     ForEach($viewModel.voiceInventoryDrafts) { $draft in
                         VoiceInventoryDraftRow(
                             draft: $draft,
@@ -384,6 +419,8 @@ struct VoiceInventoryImportView: View {
                             }
                         )
                     }
+                } header: {
+                    InventoryImportSectionHeader(title: "Draft Items")
                 }
             }
 
@@ -585,6 +622,17 @@ private struct InventoryImportScreenHeader: View {
         .padding(.top, 10)
         .padding(.bottom, 8)
         .background(CloudBakeScreenBackground())
+    }
+}
+
+private struct InventoryImportSectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(CloudBakeTheme.Typography.sectionTitle)
+            .foregroundStyle(.primary)
+            .textCase(nil)
     }
 }
 

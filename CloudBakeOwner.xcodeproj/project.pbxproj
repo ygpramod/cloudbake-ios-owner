@@ -133,6 +133,9 @@
 		41000000000000000000003E /* InventoryItemForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000046 /* InventoryItemForm.swift */; };
 		41000000000000000000003F /* InventoryStockForms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000047 /* InventoryStockForms.swift */; };
 		410000000000000000000040 /* PurchaseBillImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000048 /* PurchaseBillImportView.swift */; };
+		C12500000000000000000001 /* BillImageCropView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12500000000000000000002 /* BillImageCropView.swift */; };
+		C12500000000000000000003 /* DocumentTextReadingOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12500000000000000000004 /* DocumentTextReadingOrderTests.swift */; };
+		C12500000000000000000005 /* BillImageCropperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12500000000000000000006 /* BillImageCropperTests.swift */; };
 		410000000000000000000041 /* InventoryItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420000000000000000000049 /* InventoryItemDetailView.swift */; };
 		410000000000000000000042 /* RecipeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004A /* RecipeDetailView.swift */; };
 		410000000000000000000043 /* RecipeIngredientForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000004B /* RecipeIngredientForm.swift */; };
@@ -354,6 +357,9 @@
 		420000000000000000000046 /* InventoryItemForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryItemForm.swift; sourceTree = "<group>"; };
 		420000000000000000000047 /* InventoryStockForms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryStockForms.swift; sourceTree = "<group>"; };
 		420000000000000000000048 /* PurchaseBillImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseBillImportView.swift; sourceTree = "<group>"; };
+		C12500000000000000000002 /* BillImageCropView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillImageCropView.swift; sourceTree = "<group>"; };
+		C12500000000000000000004 /* DocumentTextReadingOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/DocumentTextReadingOrderTests.swift; sourceTree = "<group>"; };
+		C12500000000000000000006 /* BillImageCropperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/BillImageCropperTests.swift; sourceTree = "<group>"; };
 		420000000000000000000049 /* InventoryItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryItemDetailView.swift; sourceTree = "<group>"; };
 		42000000000000000000004A /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
 		42000000000000000000004B /* RecipeIngredientForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeIngredientForm.swift; sourceTree = "<group>"; };
@@ -638,6 +644,7 @@
 		450000000000000000000015 /* Inventory */ = {
 			isa = PBXGroup;
 			children = (
+				C12500000000000000000002 /* BillImageCropView.swift */,
 				420000000000000000000045 /* ArchivedInventoryView.swift */,
 				420000000000000000000044 /* InventoryHistoryView.swift */,
 				420000000000000000000057 /* InventoryDraftValidation.swift */,
@@ -711,6 +718,8 @@
 			isa = PBXGroup;
 			children = (
 				420000000000000000000006 /* AppDestinationTests.swift */,
+				C12500000000000000000006 /* BillImageCropperTests.swift */,
+				C12500000000000000000004 /* DocumentTextReadingOrderTests.swift */,
 				420000000000000000000027 /* ExpiryReminderSchedulerTests.swift */,
 				4200000000000000000000DA /* ManualBackupReminderSchedulerTests.swift */,
 				4200000000000000000000B3 /* NavigationRouterTests.swift */,
@@ -1171,6 +1180,7 @@
 				410000000000000000000050 /* InventoryStockOperation.swift in Sources */,
 				41000000000000000000003F /* InventoryStockForms.swift in Sources */,
 				410000000000000000000040 /* PurchaseBillImportView.swift in Sources */,
+				C12500000000000000000001 /* BillImageCropView.swift in Sources */,
 				41000000000000000000002B /* OrderListView.swift in Sources */,
 				41000000000000000000002C /* OrderListViewModel.swift in Sources */,
 				C17000000000000000000001 /* OrderChecklistWorkflow.swift in Sources */,
@@ -1238,6 +1248,8 @@
 				4100000000000000000000F1 /* RestoreCoordinatorTests.swift in Sources */,
 				4100000000000000000000F3 /* LocalRestoreServiceTests.swift in Sources */,
 				410000000000000000000006 /* AppDestinationTests.swift in Sources */,
+				C12500000000000000000005 /* BillImageCropperTests.swift in Sources */,
+				C12500000000000000000003 /* DocumentTextReadingOrderTests.swift in Sources */,
 				41000000000000000000000B /* AppDatabaseTests.swift in Sources */,
 					410000000000000000000018 /* BakingCatalogTests.swift in Sources */,
 					410000000000000000000010 /* CoreModelsTests.swift in Sources */,

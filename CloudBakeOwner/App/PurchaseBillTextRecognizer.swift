@@ -29,11 +29,14 @@ final class VisionDocumentTextRecognizer: DocumentTextRecognizing {
                     return
                 }
 
-                let recognizedLines = observations.compactMap { observation in
-                    observation.topCandidates(1).first?.string
+                let recognizedRegions = observations.compactMap { observation -> DocumentTextRegion? in
+                    guard let text = observation.topCandidates(1).first?.string else {
+                        return nil
+                    }
+                    return DocumentTextRegion(text: text, boundingBox: observation.boundingBox)
                 }
 
-                continuation.resume(returning: recognizedLines.joined(separator: "\n"))
+                continuation.resume(returning: DocumentTextReadingOrder.text(from: recognizedRegions))
             }
 
             request.recognitionLevel = .accurate
@@ -45,6 +48,77 @@ final class VisionDocumentTextRecognizer: DocumentTextRecognizing {
                 continuation.resume(throwing: error)
             }
         }
+    }
+}
+
+struct DocumentTextRegion: Equatable {
+    let text: String
+    let boundingBox: CGRect
+}
+
+enum DocumentTextReadingOrder {
+    static func text(from regions: [DocumentTextRegion]) -> String {
+        rows(from: regions)
+            .map { row in
+                row.regions
+                    .sorted { lhs, rhs in
+                        lhs.boundingBox.minX < rhs.boundingBox.minX
+                    }
+                    .map { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .joined(separator: " ")
+            }
+            .joined(separator: "\n")
+    }
+
+    private static func rows(from regions: [DocumentTextRegion]) -> [DocumentTextRow] {
+        let orderedRegions = regions.sorted { lhs, rhs in
+            let verticalDifference = lhs.boundingBox.midY - rhs.boundingBox.midY
+            if abs(verticalDifference) > 0.001 {
+                return verticalDifference > 0
+            }
+            return lhs.boundingBox.minX < rhs.boundingBox.minX
+        }
+
+        var rows: [DocumentTextRow] = []
+        for region in orderedRegions where !region.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if let rowIndex = rows.firstIndex(where: { $0.contains(region) }) {
+                rows[rowIndex].append(region)
+            } else {
+                rows.append(DocumentTextRow(region: region))
+            }
+        }
+
+        return rows.sorted { lhs, rhs in
+            lhs.boundingBox.maxY > rhs.boundingBox.maxY
+        }
+    }
+}
+
+private struct DocumentTextRow {
+    private(set) var regions: [DocumentTextRegion]
+    private(set) var boundingBox: CGRect
+
+    init(region: DocumentTextRegion) {
+        regions = [region]
+        boundingBox = region.boundingBox
+    }
+
+    func contains(_ region: DocumentTextRegion) -> Bool {
+        let overlap = max(
+            0,
+            min(boundingBox.maxY, region.boundingBox.maxY)
+                - max(boundingBox.minY, region.boundingBox.minY)
+        )
+        let shorterHeight = min(boundingBox.height, region.boundingBox.height)
+        guard shorterHeight > 0 else {
+            return abs(boundingBox.midY - region.boundingBox.midY) <= 0.01
+        }
+        return overlap / shorterHeight >= 0.5
+    }
+
+    mutating func append(_ region: DocumentTextRegion) {
+        regions.append(region)
+        boundingBox = boundingBox.union(region.boundingBox)
     }
 }
 
@@ -137,10 +211,12 @@ struct VoiceInventoryTranscriptAccumulator {
         } else if isCumulativeRevision(incomingSegments) {
             activeSegments = incomingSegments
         } else if let activeStartTime = activeSegments.first?.startTime,
-                  abs(updateStartTime - activeStartTime) < 0.01 {
+            abs(updateStartTime - activeStartTime) < 0.01
+        {
             activeSegments = incomingSegments
         } else if let activeStartTime = activeSegments.first?.startTime,
-                  updateStartTime > activeStartTime {
+            updateStartTime > activeStartTime
+        {
             activeSegments.removeAll { segment in
                 segment.endTime > updateStartTime || abs(segment.startTime - updateStartTime) < 0.01
             }
@@ -169,7 +245,8 @@ struct VoiceInventoryTranscriptAccumulator {
         let recognizedKey = recognitionKey(for: recognizedSegments)
         if !recognizedKey.isEmpty {
             if ignoredRecognitionKey.isEmpty {
-                ignoredRecognitionFirstSegmentKey = recognizedSegments.first
+                ignoredRecognitionFirstSegmentKey =
+                    recognizedSegments.first
                     .map { recognitionKey(for: [$0]) } ?? ""
             }
             ignoredRecognitionKey += recognizedKey
@@ -196,8 +273,9 @@ struct VoiceInventoryTranscriptAccumulator {
                     return Array(incomingSegments.dropFirst(newUtteranceIndex))
                 }
                 if let ignoredRecognitionEndTime,
-                   incomingSegments.last?.endTime ?? 0
-                    <= ignoredRecognitionEndTime + Self.recognitionTimingTolerance {
+                    incomingSegments.last?.endTime ?? 0
+                        <= ignoredRecognitionEndTime + Self.recognitionTimingTolerance
+                {
                     return []
                 }
             }
@@ -302,12 +380,14 @@ struct VoiceInventoryTranscriptAccumulator {
             let pauseDuration = priorEndTime.map { segment.startTime - $0 }
             let textIsNumeric = text.allSatisfy(\.isNumber)
             if priorTextWasNumeric,
-               textIsNumeric,
-               let pauseDuration,
-               pauseDuration < 0.35 {
+                textIsNumeric,
+                let pauseDuration,
+                pauseDuration < 0.35
+            {
                 result += text
             } else if let pauseDuration,
-                      pauseDuration >= Self.newUtterancePause {
+                pauseDuration >= Self.newUtterancePause
+            {
                 result += "\n\(text)"
             } else if result.isEmpty || text.first?.isPunctuation == true {
                 result += text
@@ -395,11 +475,13 @@ final class OnDeviceVoiceInventorySpeechRecognizer: VoiceInventorySpeechRecogniz
                             duration: $0.duration
                         )
                     }
-                    guard let transcript = self?.transcriptAccumulator.merge(
-                        segments,
-                        isFinal: result.isFinal
-                    ),
-                          !transcript.isEmpty else {
+                    guard
+                        let transcript = self?.transcriptAccumulator.merge(
+                            segments,
+                            isFinal: result.isFinal
+                        ),
+                        !transcript.isEmpty
+                    else {
                         return
                     }
                     onTranscript(transcript)
