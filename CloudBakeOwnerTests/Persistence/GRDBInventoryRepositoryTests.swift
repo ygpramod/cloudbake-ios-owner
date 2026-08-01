@@ -1,5 +1,6 @@
 import GRDB
 import XCTest
+
 @testable import CloudBakeOwner
 
 final class GRDBInventoryRepositoryTests: XCTestCase {
@@ -116,12 +117,61 @@ final class GRDBInventoryRepositoryTests: XCTestCase {
             limit: 2
         )
 
-        XCTAssertEqual(candidates.map(\.batch.id), [
-            "batch-expiry-3",
-            "batch-expiry-2"
-        ])
+        XCTAssertEqual(
+            candidates.map(\.batch.id),
+            [
+                "batch-expiry-3",
+                "batch-expiry-2",
+            ])
         XCTAssertEqual(candidates.map(\.itemName), ["Cake flour", "Cake flour"])
         XCTAssertEqual(candidates.map(\.unit), [.gram, .gram])
+    }
+
+    func testExpiryReminderCandidatesExcludePerishableInventory() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let now = Date(timeIntervalSince1970: 1_800_020_000)
+        let standard = InventoryItem(
+            id: "inventory-standard",
+            name: "Cake flour",
+            type: .standard,
+            unit: .gram,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: now,
+            updatedAt: now
+        )
+        let perishable = InventoryItem(
+            id: "inventory-perishable",
+            name: "Cream",
+            type: .perishable,
+            unit: .milliliter,
+            currentQuantity: 500,
+            minimumQuantity: 100,
+            createdAt: now,
+            updatedAt: now
+        )
+        try repository.save(standard)
+        try repository.save(perishable)
+        for item in [standard, perishable] {
+            try repository.save(
+                InventoryStockBatch(
+                    id: "batch-\(item.id)",
+                    inventoryItemId: item.id,
+                    remainingQuantity: 500,
+                    expiresAt: now.addingTimeInterval(7 * 86_400),
+                    createdAt: now,
+                    updatedAt: now
+                )
+            )
+        }
+
+        let candidates = try repository.fetchInventoryExpiryReminderCandidates(
+            expiringFrom: now,
+            through: now.addingTimeInterval(14 * 86_400),
+            limit: 60
+        )
+
+        XCTAssertEqual(candidates.map(\.inventoryItemId), [standard.id])
     }
 
     func testInventoryItemSaveUpdatesExistingItemWithSameId() throws {
@@ -773,7 +823,7 @@ final class GRDBInventoryRepositoryTests: XCTestCase {
                         )
                     )
                 }
-            )
+            ),
         ]
 
         for (dependencyName, setUpDependency) in cases {

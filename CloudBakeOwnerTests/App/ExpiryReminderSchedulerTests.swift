@@ -8,7 +8,9 @@ final class ExpiryReminderSchedulerTests: XCTestCase {
         let repository = FakeExpiryReminderRepository()
         let calendar = Calendar(identifier: .gregorian)
         let now = calendar.date(from: DateComponents(year: 2027, month: 1, day: 15, hour: 8, minute: 0))!
-        let expiresAt = calendar.date(byAdding: .day, value: 10, to: now)!
+        let expiresAt = calendar.date(
+            from: DateComponents(year: 2027, month: 1, day: 29, hour: 18)
+        )!
         repository.items = [
             InventoryItem(
                 id: "inventory-flour",
