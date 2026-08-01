@@ -2,6 +2,7 @@ import Foundation
 import PhotosUI
 import SwiftUI
 import UIKit
+import VisionKit
 
 struct PurchaseBillImportView: View {
     @ObservedObject var viewModel: InventoryListViewModel
@@ -13,6 +14,9 @@ struct PurchaseBillImportView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var pendingCropImage: UIImage?
     @State private var isShowingCrop = false
+    @State private var actionDraftId: String?
+    @State private var mappingDraftId: String?
+    @State private var inventorySearch = ""
 
     private let recognizer: PurchaseBillTextRecognizing
     private let catalogProvider: () -> [BakingCatalogItem]
@@ -37,7 +41,7 @@ struct PurchaseBillImportView: View {
                 } label: {
                     Label(selectedBillImage == nil ? "Take Bill Photo" : "Retake Bill Photo", systemImage: "camera")
                 }
-                .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera) || viewModel.isRecognizingPurchaseBill)
+                .disabled(!VNDocumentCameraViewController.isSupported || viewModel.isRecognizingPurchaseBill)
                 .accessibilityIdentifier("inventory.purchaseBill.camera")
 
                 PhotosPicker(selection: $selectedPhotoItem, matching: .images, photoLibrary: .shared()) {
@@ -80,8 +84,19 @@ struct PurchaseBillImportView: View {
                     ForEach($viewModel.purchaseBillDrafts) { $draft in
                         PurchaseBillDraftRow(
                             draft: $draft,
+                            destinationName: purchaseBillDestinationName(for: draft.destination),
                             onNameChanged: {
                                 viewModel.refreshPurchaseBillDraftMatch(draftId: draft.id)
+                            },
+                            onSetIncluded: { isIncluded in
+                                if isIncluded {
+                                    viewModel.refreshPurchaseBillDraftMatch(draftId: draft.id)
+                                } else {
+                                    viewModel.ignorePurchaseBillDraft(draft.id)
+                                }
+                            },
+                            onChooseDestination: {
+                                actionDraftId = draft.id
                             }
                         )
                     }
@@ -130,27 +145,26 @@ struct PurchaseBillImportView: View {
                         dismiss()
                     }
                 }
-                .disabled(viewModel.purchaseBillDrafts.isEmpty)
+                .disabled(!viewModel.canSavePurchaseBillDrafts)
                 .accessibilityIdentifier("inventory.purchaseBill.save")
             }
         }
         .onAppear {
-            guard UIImagePickerController.isSourceTypeAvailable(.camera), !hasOfferedCamera else {
+            guard VNDocumentCameraViewController.isSupported, !hasOfferedCamera else {
                 return
             }
             hasOfferedCamera = true
             isShowingCamera = true
         }
         .fullScreenCover(isPresented: $isShowingCamera) {
-            CameraImagePickerView { image in
-                pendingCropImage = image
-            }
+            DocumentCameraScannerView(
+                onDocumentSelected: useScannedBillImage,
+                onFailure: { _ in
+                    viewModel.errorMessage =
+                        "The bill could not be scanned. Try again or choose a photo from the library."
+                }
+            )
             .ignoresSafeArea()
-        }
-        .onChange(of: isShowingCamera) { _, isShowing in
-            if !isShowing, pendingCropImage != nil {
-                isShowingCrop = true
-            }
         }
         .fullScreenCover(isPresented: $isShowingCrop) {
             if let pendingCropImage {
@@ -159,6 +173,59 @@ struct PurchaseBillImportView: View {
                     onCancel: cancelCrop,
                     onUseCrop: useCroppedBillImage
                 )
+            }
+        }
+        .confirmationDialog(
+            "Choose How to Save",
+            isPresented: purchaseBillActionPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Create New Inventory") {
+                if let actionDraftId {
+                    viewModel.resolvePurchaseBillDraftAsNew(actionDraftId)
+                }
+                self.actionDraftId = nil
+            }
+            Button("Map to Existing Inventory") {
+                let draftId = actionDraftId
+                actionDraftId = nil
+                DispatchQueue.main.async {
+                    mappingDraftId = draftId
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                actionDraftId = nil
+            }
+        }
+        .sheet(isPresented: purchaseBillMappingPresented) {
+            NavigationStack {
+                List(filteredPurchaseBillInventoryItems, id: \.id) { item in
+                    Button {
+                        if let mappingDraftId {
+                            viewModel.mapPurchaseBillDraft(mappingDraftId, to: item.id)
+                        }
+                        self.mappingDraftId = nil
+                        inventorySearch = ""
+                    } label: {
+                        VStack(alignment: .leading) {
+                            Text(item.name)
+                            Text("\(item.currentQuantity.formatted()) \(item.unit.displayName)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityIdentifier("inventory.purchaseBill.map.item.\(item.id)")
+                }
+                .navigationTitle("Map Inventory")
+                .searchable(text: $inventorySearch, prompt: "Search inventory")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            mappingDraftId = nil
+                            inventorySearch = ""
+                        }
+                    }
+                }
             }
         }
     }
@@ -185,6 +252,11 @@ struct PurchaseBillImportView: View {
         recognizeBillPhoto(image)
     }
 
+    private func useScannedBillImage(_ image: UIImage) {
+        selectedBillImage = image
+        recognizeBillPhoto(image)
+    }
+
     private func recognizeBillPhoto(_ image: UIImage) {
         guard let cgImage = image.cgImage else {
             viewModel.errorMessage = "The bill photo could not be read. Try another photo or enter the bill text manually."
@@ -199,59 +271,164 @@ struct PurchaseBillImportView: View {
             )
         }
     }
+
+    private var purchaseBillActionPresented: Binding<Bool> {
+        Binding(
+            get: { actionDraftId != nil },
+            set: { isPresented in
+                if !isPresented {
+                    actionDraftId = nil
+                }
+            }
+        )
+    }
+
+    private var purchaseBillMappingPresented: Binding<Bool> {
+        Binding(
+            get: { mappingDraftId != nil },
+            set: { isPresented in
+                if !isPresented {
+                    mappingDraftId = nil
+                    inventorySearch = ""
+                }
+            }
+        )
+    }
+
+    private var filteredPurchaseBillInventoryItems: [InventoryItem] {
+        let compatibleItems: [InventoryItem]
+        if let mappingDraftId,
+            let draft = viewModel.purchaseBillDrafts.first(where: { $0.id == mappingDraftId })
+        {
+            compatibleItems = viewModel.items.filter {
+                draft.unit.convertedQuantity(1, to: $0.unit) != nil
+            }
+        } else {
+            compatibleItems = viewModel.items
+        }
+
+        let query = TextInputFormatting.normalizedSearchKey(inventorySearch)
+        guard !query.isEmpty else {
+            return compatibleItems
+        }
+        return compatibleItems.filter {
+            TextInputFormatting.normalizedSearchKey($0.name).contains(query)
+                || $0.aliases.contains {
+                    TextInputFormatting.normalizedSearchKey($0).contains(query)
+                }
+        }
+    }
+
+    private func purchaseBillDestinationName(
+        for destination: PurchaseBillDraftDestination
+    ) -> String {
+        switch destination {
+        case .newItem: "Creates new inventory"
+        case .existingItem(let id):
+            "Adds to \(viewModel.items.first(where: { $0.id == id })?.name ?? "existing inventory")"
+        case .ignored: "Not added"
+        }
+    }
 }
 
 private struct PurchaseBillDraftRow: View {
     @Binding var draft: PurchaseBillInventoryDraft
+    let destinationName: String
     let onNameChanged: () -> Void
+    let onSetIncluded: (Bool) -> Void
+    let onChooseDestination: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Toggle(isOn: $draft.isSelected) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(draft.sourceLine)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            Text(draft.sourceLine)
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
-                    if let matchedInventoryItemName = draft.matchedInventoryItemName {
-                        Label("Adds To Existing: \(matchedInventoryItemName)", systemImage: "arrow.triangle.merge")
-                            .font(.caption)
-                            .foregroundStyle(.blue)
-                    }
-                }
+            Toggle(
+                "Add to Inventory",
+                isOn: Binding(
+                    get: { draft.destination != .ignored },
+                    set: onSetIncluded
+                )
+            )
+            .accessibilityIdentifier("inventory.purchaseBill.draft.include")
+
+            if draft.destination != .ignored {
+                Label(destinationName, systemImage: destinationSystemImage)
+                    .font(.caption)
+                    .foregroundStyle(destinationColor)
+
+                Button(destinationButtonTitle, action: onChooseDestination)
+                    .accessibilityIdentifier("inventory.purchaseBill.draft.destination.\(draft.id)")
             }
-            .accessibilityIdentifier("inventory.purchaseBill.draft.selected.\(draft.id)")
 
+            if draft.destination != .ignored {
+                editableFields
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityIdentifier("inventory.purchaseBill.draft.\(draft.id)")
+    }
+
+    @ViewBuilder
+    private var editableFields: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Name")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            TextField("Name", text: $draft.name)
+                .textInputAutocapitalization(.words)
+                .onChange(of: draft.name) {
+                    onNameChanged()
+                }
+                .accessibilityIdentifier("inventory.purchaseBill.draft.name.\(draft.id)")
+        }
+
+        HStack {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Name")
+                Text("Quantity")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                TextField("Name", text: $draft.name)
-                    .textInputAutocapitalization(.words)
-                    .onChange(of: draft.name) {
-                        onNameChanged()
-                    }
-                    .accessibilityIdentifier("inventory.purchaseBill.draft.name.\(draft.id)")
+                TextField("Quantity", text: $draft.quantityText)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("inventory.purchaseBill.draft.quantity.\(draft.id)")
             }
 
-            HStack {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Current Quantity")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    TextField("Current Quantity", text: $draft.quantityText)
-                        .keyboardType(.decimalPad)
-                        .accessibilityIdentifier("inventory.purchaseBill.draft.quantity.\(draft.id)")
-                }
-
-                Picker("Unit", selection: $draft.unit) {
-                    ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
-                        Text(unit.displayName).tag(unit)
+            Menu {
+                ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
+                    Button {
+                        draft.unit = unit
+                    } label: {
+                        if unit == draft.unit {
+                            Label(unit.displayName, systemImage: "checkmark")
+                        } else {
+                            Text(unit.displayName)
+                        }
                     }
                 }
-                .accessibilityIdentifier("inventory.purchaseBill.draft.unit.\(draft.id)")
+            } label: {
+                HStack(spacing: 4) {
+                    Text(draft.unit.displayName)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2)
+                }
             }
+            .fixedSize(horizontal: true, vertical: false)
+            .accessibilityLabel("Unit")
+            .accessibilityValue(draft.unit.displayName)
+            .accessibilityIdentifier("inventory.purchaseBill.draft.unit.\(draft.id)")
+        }
 
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Amount Paid")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            TextField("Amount Paid", text: $draft.amountPaidText)
+                .keyboardType(.decimalPad)
+                .accessibilityIdentifier("inventory.purchaseBill.draft.amount.\(draft.id)")
+        }
+
+        if draft.showsMinimumQuantity {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Minimum Quantity")
                     .font(.caption)
@@ -260,36 +437,58 @@ private struct PurchaseBillDraftRow: View {
                     .keyboardType(.decimalPad)
                     .accessibilityIdentifier("inventory.purchaseBill.draft.minimum.\(draft.id)")
             }
+        }
 
-            Toggle(
-                "Has Expiry Date",
-                isOn: Binding(
-                    get: { draft.hasExpiryDate },
-                    set: { hasExpiryDate in
-                        draft.hasExpiryDate = hasExpiryDate
+        Toggle(
+            "Has Expiry Date",
+            isOn: Binding(
+                get: { draft.hasExpiryDate },
+                set: { hasExpiryDate in
+                    draft.hasExpiryDate = hasExpiryDate
+                    draft.expiryUsesDefault = false
+                }
+            )
+        )
+        .accessibilityIdentifier("inventory.purchaseBill.draft.hasExpiryDate.\(draft.id)")
+
+        if draft.hasExpiryDate {
+            DatePicker(
+                "Expiry Date",
+                selection: Binding(
+                    get: { draft.expiryDate },
+                    set: { expiryDate in
+                        draft.expiryDate = expiryDate
                         draft.expiryUsesDefault = false
                     }
-                )
+                ),
+                displayedComponents: .date
             )
-            .accessibilityIdentifier("inventory.purchaseBill.draft.hasExpiryDate.\(draft.id)")
-
-            if draft.hasExpiryDate {
-                DatePicker(
-                    "Expiry Date",
-                    selection: Binding(
-                        get: { draft.expiryDate },
-                        set: { expiryDate in
-                            draft.expiryDate = expiryDate
-                            draft.expiryUsesDefault = false
-                        }
-                    ),
-                    displayedComponents: .date
-                )
-                .accessibilityIdentifier("inventory.purchaseBill.draft.expiry.\(draft.id)")
-            }
+            .accessibilityIdentifier("inventory.purchaseBill.draft.expiry.\(draft.id)")
         }
-        .padding(.vertical, 4)
-        .accessibilityIdentifier("inventory.purchaseBill.draft.\(draft.id)")
+    }
+
+    private var destinationButtonTitle: String {
+        switch draft.destination {
+        case .newItem: "Map to Existing Inventory"
+        case .existingItem: "Change Inventory"
+        case .ignored: ""
+        }
+    }
+
+    private var destinationSystemImage: String {
+        switch draft.destination {
+        case .newItem: "plus.circle"
+        case .existingItem: "arrow.triangle.merge"
+        case .ignored: "eye.slash"
+        }
+    }
+
+    private var destinationColor: Color {
+        switch draft.destination {
+        case .newItem: .green
+        case .existingItem: .blue
+        case .ignored: .secondary
+        }
     }
 }
 

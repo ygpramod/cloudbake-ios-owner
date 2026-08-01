@@ -19,7 +19,8 @@ struct BillImageCropView: View {
                     .padding(.horizontal)
 
                 GeometryReader { proxy in
-                    let imageFrame = aspectFitFrame(imageSize: image.size, in: proxy.size)
+                    let canvasFrame = CGRect(origin: .zero, size: proxy.size).insetBy(dx: 24, dy: 24)
+                    let imageFrame = aspectFitFrame(imageSize: image.size, in: canvasFrame)
 
                     ZStack {
                         Color.black
@@ -149,15 +150,15 @@ struct BillImageCropView: View {
         return cropRect
     }
 
-    private func aspectFitFrame(imageSize: CGSize, in containerSize: CGSize) -> CGRect {
+    private func aspectFitFrame(imageSize: CGSize, in containerFrame: CGRect) -> CGRect {
         guard imageSize.width > 0, imageSize.height > 0 else {
-            return CGRect(origin: .zero, size: containerSize)
+            return containerFrame
         }
-        let scale = min(containerSize.width / imageSize.width, containerSize.height / imageSize.height)
+        let scale = min(containerFrame.width / imageSize.width, containerFrame.height / imageSize.height)
         let size = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
         return CGRect(
-            x: (containerSize.width - size.width) / 2,
-            y: (containerSize.height - size.height) / 2,
+            x: containerFrame.minX + (containerFrame.width - size.width) / 2,
+            y: containerFrame.minY + (containerFrame.height - size.height) / 2,
             width: size.width,
             height: size.height
         )
