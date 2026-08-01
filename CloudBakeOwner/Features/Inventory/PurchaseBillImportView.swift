@@ -31,7 +31,7 @@ struct PurchaseBillImportView: View {
 
     var body: some View {
         Form {
-            Section {
+            Section("Bill Photo") {
                 Button {
                     isShowingCamera = true
                 } label: {
@@ -59,11 +59,9 @@ struct PurchaseBillImportView: View {
                     ProgressView("Reading bill")
                         .accessibilityIdentifier("inventory.purchaseBill.recognizing")
                 }
-            } header: {
-                InventoryImportSectionHeader(title: "Bill Photo")
             }
 
-            Section {
+            Section("Bill Text") {
                 TextField("Bill Text", text: $viewModel.purchaseBillRecognizedText, axis: .vertical)
                     .lineLimit(4...8)
                     .accessibilityIdentifier("inventory.purchaseBill.text")
@@ -75,12 +73,10 @@ struct PurchaseBillImportView: View {
                 }
                 .disabled(viewModel.isRecognizingPurchaseBill)
                 .accessibilityIdentifier("inventory.purchaseBill.createDrafts")
-            } header: {
-                InventoryImportSectionHeader(title: "Bill Text")
             }
 
             if !viewModel.purchaseBillDrafts.isEmpty {
-                Section {
+                Section("Draft Items") {
                     ForEach($viewModel.purchaseBillDrafts) { $draft in
                         PurchaseBillDraftRow(
                             draft: $draft,
@@ -89,8 +85,6 @@ struct PurchaseBillImportView: View {
                             }
                         )
                     }
-                } header: {
-                    InventoryImportSectionHeader(title: "Draft Items")
                 }
             }
 
@@ -103,7 +97,6 @@ struct PurchaseBillImportView: View {
             }
         }
         .cloudBakeFormScreenStyle()
-        .inventoryImportTopEdgeStyle()
         .safeAreaInset(edge: .top, spacing: 0) {
             InventoryImportScreenHeader(
                 title: "Import Bill",
@@ -336,7 +329,7 @@ struct VoiceInventoryImportView: View {
 
     var body: some View {
         Form {
-            Section {
+            Section("Voice Inventory") {
                 Button {
                     isShowingVoiceGuidance.toggle()
                 } label: {
@@ -402,12 +395,10 @@ struct VoiceInventoryImportView: View {
                 }
                 .disabled(viewModel.voiceInventoryTranscript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityIdentifier("inventory.voice.createDrafts")
-            } header: {
-                InventoryImportSectionHeader(title: "Voice Inventory")
             }
 
             if !viewModel.voiceInventoryDrafts.isEmpty {
-                Section {
+                Section("Draft Items") {
                     ForEach($viewModel.voiceInventoryDrafts) { $draft in
                         VoiceInventoryDraftRow(
                             draft: $draft,
@@ -420,8 +411,6 @@ struct VoiceInventoryImportView: View {
                             }
                         )
                     }
-                } header: {
-                    InventoryImportSectionHeader(title: "Draft Items")
                 }
             }
 
@@ -434,7 +423,6 @@ struct VoiceInventoryImportView: View {
             }
         }
         .cloudBakeFormScreenStyle()
-        .inventoryImportTopEdgeStyle()
         .safeAreaInset(edge: .top, spacing: 0) {
             InventoryImportScreenHeader(
                 title: "Add by Voice",
@@ -623,29 +611,6 @@ private struct InventoryImportScreenHeader: View {
         .padding(.horizontal, CloudBakeTheme.Spacing.screenHorizontal)
         .padding(.top, 10)
         .padding(.bottom, 8)
-        .background(CloudBakeScreenBackground())
-    }
-}
-
-private struct InventoryImportSectionHeader: View {
-    let title: String
-
-    var body: some View {
-        Text(title)
-            .font(CloudBakeTheme.Typography.sectionTitle)
-            .foregroundStyle(.primary)
-            .textCase(nil)
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func inventoryImportTopEdgeStyle() -> some View {
-        if #available(iOS 26.0, *) {
-            scrollEdgeEffectHidden(true, for: .top)
-        } else {
-            self
-        }
     }
 }
 
