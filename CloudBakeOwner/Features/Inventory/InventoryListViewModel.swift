@@ -783,7 +783,7 @@ final class InventoryListViewModel: ObservableObject {
         )
 
         guard !drafts.isEmpty else {
-            errorMessage = "No baking inventory items were found in the bill text."
+            errorMessage = "No purchase items were found in the bill text."
             purchaseBillDrafts = []
             return false
         }
@@ -836,6 +836,49 @@ final class InventoryListViewModel: ObservableObject {
             errorMessage = error.ownerMessage
             return false
         }
+    }
+
+    var canSavePurchaseBillDrafts: Bool {
+        let includedDrafts = purchaseBillDrafts.filter { $0.destination != .ignored }
+        return !includedDrafts.isEmpty
+    }
+
+    func resolvePurchaseBillDraftAsNew(_ draftId: String) {
+        guard let index = purchaseBillDrafts.firstIndex(where: { $0.id == draftId }) else {
+            return
+        }
+        purchaseBillDrafts[index].destination = .newItem
+        purchaseBillDrafts[index].matchedInventoryItemId = nil
+        purchaseBillDrafts[index].matchedInventoryItemName = nil
+        if purchaseBillDrafts[index].expiryUsesDefault {
+            purchaseBillDrafts[index].expiryDate = defaultExpiryDate(for: .standard)
+        }
+        errorMessage = nil
+    }
+
+    func mapPurchaseBillDraft(_ draftId: String, to inventoryItemId: String) {
+        guard let index = purchaseBillDrafts.firstIndex(where: { $0.id == draftId }),
+            let item = items.first(where: { $0.id == inventoryItemId })
+        else {
+            return
+        }
+        purchaseBillDrafts[index].destination = .existingItem(item.id)
+        purchaseBillDrafts[index].matchedInventoryItemId = item.id
+        purchaseBillDrafts[index].matchedInventoryItemName = item.name
+        if purchaseBillDrafts[index].expiryUsesDefault {
+            purchaseBillDrafts[index].expiryDate = defaultExpiryDate(for: item)
+        }
+        errorMessage = nil
+    }
+
+    func ignorePurchaseBillDraft(_ draftId: String) {
+        guard let index = purchaseBillDrafts.firstIndex(where: { $0.id == draftId }) else {
+            return
+        }
+        purchaseBillDrafts[index].destination = .ignored
+        purchaseBillDrafts[index].matchedInventoryItemId = nil
+        purchaseBillDrafts[index].matchedInventoryItemName = nil
+        errorMessage = nil
     }
 
     func cancelPurchaseBillImport() {
@@ -944,6 +987,9 @@ final class InventoryListViewModel: ObservableObject {
         }
         purchaseBillDrafts[draftIndex].matchedInventoryItemId = matchedItem?.id
         purchaseBillDrafts[draftIndex].matchedInventoryItemName = matchedItem?.name
+        purchaseBillDrafts[draftIndex].destination =
+            matchedItem.map { .existingItem($0.id) } ?? .newItem
+        errorMessage = nil
     }
 
     func beginViewingHistory(_ item: InventoryItem) {

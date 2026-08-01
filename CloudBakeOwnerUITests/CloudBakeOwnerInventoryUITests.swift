@@ -447,7 +447,14 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.buttons["inventory.purchaseBill.library"].waitForExistence(timeout: 5))
         let billText = app.textFields["inventory.purchaseBill.text"]
         XCTAssertTrue(billText.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["inventory.purchaseBill.createDrafts"].waitForExistence(timeout: 5))
+        let createDrafts = app.buttons["inventory.purchaseBill.createDrafts"]
+        XCTAssertTrue(createDrafts.waitForExistence(timeout: 5))
+
+        typeText("Cake Flour 1 kg 4.50", into: billText)
+        dismissKeyboard(in: app)
+        tapWhenReady(createDrafts)
+
+        XCTAssertTrue(app.switches["inventory.purchaseBill.draft.include"].waitForExistence(timeout: 5))
     }
 
     func testVoiceInventoryDraftsCanUpdateExistingAndCreateUnknownItems() throws {

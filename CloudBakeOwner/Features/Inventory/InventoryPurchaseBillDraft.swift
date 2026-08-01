@@ -1,5 +1,11 @@
 import Foundation
 
+enum PurchaseBillDraftDestination: Equatable {
+    case newItem
+    case existingItem(String)
+    case ignored
+}
+
 struct PurchaseBillInventoryDraft: Identifiable, Equatable {
     let id: String
     let sourceLine: String
@@ -8,11 +14,17 @@ struct PurchaseBillInventoryDraft: Identifiable, Equatable {
     var unit: InventoryUnit
     var minimumQuantityText: String
     var expiryDate: Date
-    var isSelected: Bool
     var matchedInventoryItemId: String? = nil
     var matchedInventoryItemName: String? = nil
     var hasExpiryDate: Bool = true
     var expiryUsesDefault: Bool = true
+    var receiptName: String = ""
+    var amountPaidText: String = ""
+    var destination: PurchaseBillDraftDestination = .newItem
+
+    var showsMinimumQuantity: Bool {
+        destination == .newItem
+    }
 }
 
 enum InventoryPurchaseBillDraftBuilder {
@@ -23,22 +35,28 @@ enum InventoryPurchaseBillDraftBuilder {
         idProvider: () -> String
     ) -> [PurchaseBillInventoryDraft] {
         parsedDrafts.map { draft in
-            let matchedItem = InventoryDuplicateMatcher.matchingItem(
-                named: draft.name,
-                in: inventoryItems,
-                excludingItemId: nil
-            )
+            let matchedItem = uniqueExactMatch(named: draft.name, in: inventoryItems)
+            let destination: PurchaseBillDraftDestination
+            if let matchedItem {
+                destination = .existingItem(matchedItem.id)
+            } else if draft.shouldDefaultToIgnore {
+                destination = .ignored
+            } else {
+                destination = .newItem
+            }
             return PurchaseBillInventoryDraft(
                 id: idProvider(),
                 sourceLine: draft.sourceLine,
                 name: draft.name,
-                quantityText: draft.quantity?.formatted() ?? "",
-                unit: draft.unit ?? .gram,
+                quantityText: draft.quantity?.formatted() ?? "1",
+                unit: draft.unit ?? .each,
                 minimumQuantityText: "0",
                 expiryDate: defaultExpiryDate(matchedItem),
-                isSelected: true,
                 matchedInventoryItemId: matchedItem?.id,
-                matchedInventoryItemName: matchedItem?.name
+                matchedInventoryItemName: matchedItem?.name,
+                receiptName: draft.receiptName,
+                amountPaidText: draft.amount.map { NSDecimalNumber(decimal: $0).stringValue } ?? "",
+                destination: destination
             )
         }
     }
@@ -47,11 +65,23 @@ enum InventoryPurchaseBillDraftBuilder {
         for draft: PurchaseBillInventoryDraft,
         inventoryItems: [InventoryItem]
     ) -> InventoryItem? {
-        InventoryDuplicateMatcher.matchingItem(
-            named: draft.name,
-            in: inventoryItems,
-            excludingItemId: nil
-        )
+        uniqueExactMatch(named: draft.name, in: inventoryItems)
+    }
+
+    private static func uniqueExactMatch(
+        named name: String,
+        in inventoryItems: [InventoryItem]
+    ) -> InventoryItem? {
+        let nameKey = InventoryDuplicateMatcher.duplicateKey(for: name)
+        let matches = inventoryItems.filter { item in
+            ([item.name] + item.aliases).contains {
+                InventoryDuplicateMatcher.duplicateKey(for: $0) == nameKey
+            }
+        }
+        guard matches.count == 1 else {
+            return nil
+        }
+        return matches[0]
     }
 }
 
@@ -90,7 +120,8 @@ struct ParsedVoiceInventoryItem: Equatable {
 
 enum VoiceInventoryDraftParser {
     static func items(from transcript: String) -> [ParsedVoiceInventoryItem] {
-        let pattern = #"(?i)\b(\d+(?:[\.,]\d+)?)\s*(kg|kilograms?|g|gm|grams?|l|liters?|litres?|ml|milliliters?|millilitres?|tsp|teaspoons?|tbsp|tablespoons?|cups?|pcs|pc|pieces?|each)\b"#
+        let pattern =
+            #"(?i)\b(\d+(?:[\.,]\d+)?)\s*(kg|kilograms?|g|gm|grams?|l|liters?|litres?|ml|milliliters?|millilitres?|tsp|teaspoons?|tbsp|tablespoons?|cups?|pcs|pc|pieces?|each)\b"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else {
             return []
         }
@@ -101,8 +132,9 @@ enum VoiceInventoryDraftParser {
 
         return matches.compactMap { match in
             guard let measurementRange = Range(match.range, in: transcript),
-                  let quantityRange = Range(match.range(at: 1), in: transcript),
-                  let unitRange = Range(match.range(at: 2), in: transcript) else {
+                let quantityRange = Range(match.range(at: 1), in: transcript),
+                let unitRange = Range(match.range(at: 2), in: transcript)
+            else {
                 return nil
             }
 
@@ -111,9 +143,10 @@ enum VoiceInventoryDraftParser {
             let name = cleanedName(rawName)
             let quantityText = String(transcript[quantityRange]).replacingOccurrences(of: ",", with: ".")
             guard !name.isEmpty,
-                  let quantity = Double(quantityText),
-                  quantity > 0,
-                  let unit = inventoryUnit(from: String(transcript[unitRange])) else {
+                let quantity = Double(quantityText),
+                quantity > 0,
+                let unit = inventoryUnit(from: String(transcript[unitRange]))
+            else {
                 return nil
             }
 

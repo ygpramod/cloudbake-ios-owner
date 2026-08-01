@@ -5,7 +5,7 @@ import XCTest
 @MainActor
 extension InventoryListViewModelTests {
     func testCreatePurchaseBillDraftsFromRecognizedText() {
-        var ids = ["draft-flour", "draft-butter"]
+        var ids = ["draft-flour", "draft-detergent", "draft-butter"]
         let viewModel = InventoryListViewModel(
             repository: FakeInventoryItemRepository(),
             idGenerator: { ids.removeFirst() }
@@ -18,31 +18,14 @@ extension InventoryListViewModelTests {
 
         XCTAssertTrue(viewModel.createPurchaseBillDrafts(catalog: purchaseBillCatalog))
 
+        XCTAssertEqual(viewModel.purchaseBillDrafts.map(\.id), idsForExpectedPurchaseBillDrafts)
         XCTAssertEqual(
-            viewModel.purchaseBillDrafts,
-            [
-                PurchaseBillInventoryDraft(
-                    id: "draft-flour",
-                    sourceLine: "Cake Flour 1 kg",
-                    name: "Cake Flour",
-                    quantityText: "1",
-                    unit: .kilogram,
-                    minimumQuantityText: "0",
-                    expiryDate: viewModel.purchaseBillDrafts[0].expiryDate,
-                    isSelected: true
-                ),
-                PurchaseBillInventoryDraft(
-                    id: "draft-butter",
-                    sourceLine: "Unsalted Butter 500 g",
-                    name: "Butter",
-                    quantityText: "500",
-                    unit: .gram,
-                    minimumQuantityText: "0",
-                    expiryDate: viewModel.purchaseBillDrafts[1].expiryDate,
-                    isSelected: true
-                ),
-            ]
+            viewModel.purchaseBillDrafts.map(\.name),
+            ["Cake Flour", "Laundry Detergent", "Butter"]
         )
+        XCTAssertEqual(viewModel.purchaseBillDrafts.map(\.quantityText), ["1", "1", "500"])
+        XCTAssertEqual(viewModel.purchaseBillDrafts.map(\.unit), [.kilogram, .liter, .gram])
+        XCTAssertEqual(viewModel.purchaseBillDrafts.map(\.destination), [.newItem, .newItem, .newItem])
         XCTAssertNil(viewModel.errorMessage)
     }
 
@@ -109,6 +92,129 @@ extension InventoryListViewModelTests {
         XCTAssertEqual(viewModel.purchaseBillDrafts.first?.unit, .kilogram)
     }
 
+    func testExactOwnerOCRIncludesMeasuredProductsAndDefaultsUncertainChargesOff() {
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-oreo",
+                name: "Oreo",
+                aliases: ["OREO S COOKIES VANILLA"],
+                unit: .gram,
+                currentQuantity: 200,
+                minimumQuantity: 0,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        var draftNumber = 0
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: {
+                draftNumber += 1
+                return "draft-\(draftNumber)"
+            }
+        )
+        viewModel.load()
+        viewModel.purchaseBillRecognizedText = exactOwnerOCRProductText
+
+        XCTAssertTrue(viewModel.createPurchaseBillDrafts(catalog: []))
+
+        XCTAssertEqual(viewModel.purchaseBillDrafts.count, 7)
+        XCTAssertEqual(
+            viewModel.purchaseBillDrafts.map(\.destination),
+            [
+                .newItem,
+                .existingItem("inventory-oreo"),
+                .newItem,
+                .newItem,
+                .newItem,
+                .ignored,
+                .newItem,
+            ]
+        )
+        XCTAssertEqual(
+            viewModel.purchaseBillDrafts.map(\.amountPaidText),
+            ["4", "1.85", "3.15", "5.35", "3.95", "0.05", "6.9"]
+        )
+        XCTAssertTrue(viewModel.canSavePurchaseBillDrafts)
+    }
+
+    func testPurchaseBillDraftCanBeExcludedAndReincluded() {
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-oreo",
+                name: "Oreo",
+                aliases: ["OREO S COOKIES VANILLA"],
+                unit: .gram,
+                currentQuantity: 200,
+                minimumQuantity: 0,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "draft-oreo" }
+        )
+        viewModel.load()
+        viewModel.purchaseBillRecognizedText = "OREO S COOKIES VANILLA 105G 1.85"
+        XCTAssertTrue(viewModel.createPurchaseBillDrafts(catalog: []))
+
+        viewModel.ignorePurchaseBillDraft("draft-oreo")
+
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.destination, .ignored)
+        XCTAssertFalse(viewModel.canSavePurchaseBillDrafts)
+
+        viewModel.refreshPurchaseBillDraftMatch(draftId: "draft-oreo")
+
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.destination, .existingItem("inventory-oreo"))
+        XCTAssertTrue(viewModel.canSavePurchaseBillDrafts)
+    }
+
+    func testMappedPurchaseBillDraftSavesReceiptAliasAndBatchAmount() {
+        let repository = FakeInventoryItemRepository()
+        let now = Date(timeIntervalSince1970: 1_800_030_000)
+        repository.items = [
+            InventoryItem(
+                id: "inventory-garlic",
+                name: "Garlic",
+                unit: .gram,
+                currentQuantity: 100,
+                minimumQuantity: 20,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "batch-garlic" },
+            dateProvider: { now }
+        )
+        viewModel.load()
+        viewModel.purchaseBillDrafts = [
+            PurchaseBillInventoryDraft(
+                id: "draft-garlic",
+                sourceLine: "WHITE GARLIC CHINA 500G 3. 15",
+                name: "White Garlic China",
+                quantityText: "500",
+                unit: .gram,
+                minimumQuantityText: "0",
+                expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
+                receiptName: "WHITE GARLIC CHINA",
+                amountPaidText: "3.15"
+            )
+        ]
+
+        viewModel.mapPurchaseBillDraft("draft-garlic", to: "inventory-garlic")
+        XCTAssertTrue(viewModel.savePurchaseBillDrafts())
+
+        XCTAssertEqual(repository.items.first?.currentQuantity, 600)
+        XCTAssertEqual(repository.items.first?.aliases, ["WHITE GARLIC CHINA"])
+        XCTAssertEqual(repository.batches.first?.amount, 3.15)
+        XCTAssertEqual(repository.batches.first?.remainingQuantity, 500)
+    }
+
     func testInventoryAliasMatchesBeforeBundledCatalog() {
         var ids = ["draft-flour"]
         let repository = FakeInventoryItemRepository()
@@ -148,6 +254,31 @@ extension InventoryListViewModelTests {
         XCTAssertEqual(viewModel.purchaseBillDrafts.first?.matchedInventoryItemId, "inventory-owner-flour")
     }
 
+    func testPurchaseBillDraftDoesNotAutomaticallyMapAPartialInventoryName() {
+        let repository = FakeInventoryItemRepository()
+        repository.items = [
+            InventoryItem(
+                id: "inventory-garlic",
+                name: "Garlic",
+                unit: .gram,
+                currentQuantity: 100,
+                minimumQuantity: 0,
+                createdAt: Date(timeIntervalSince1970: 1_800_030_000),
+                updatedAt: Date(timeIntervalSince1970: 1_800_030_000)
+            )
+        ]
+        let viewModel = InventoryListViewModel(
+            repository: repository,
+            idGenerator: { "draft-garlic" }
+        )
+        viewModel.load()
+        viewModel.purchaseBillRecognizedText = "WHITE GARLIC CHINA 500G 3. 15"
+
+        XCTAssertTrue(viewModel.createPurchaseBillDrafts(catalog: []))
+
+        XCTAssertEqual(viewModel.purchaseBillDrafts.first?.destination, .newItem)
+    }
+
     func testRefreshPurchaseBillDraftMatchUpdatesAfterNameEdit() {
         let repository = FakeInventoryItemRepository()
         repository.items = [
@@ -172,7 +303,6 @@ extension InventoryListViewModelTests {
                 unit: .kilogram,
                 minimumQuantityText: "0",
                 expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
-                isSelected: true,
                 matchedInventoryItemId: "inventory-flour",
                 matchedInventoryItemName: "Cake flour"
             )
@@ -211,8 +341,7 @@ extension InventoryListViewModelTests {
                 quantityText: "100",
                 unit: .gram,
                 minimumQuantityText: "0",
-                expiryDate: calendar.date(byAdding: .month, value: 1, to: now)!,
-                isSelected: true
+                expiryDate: calendar.date(byAdding: .month, value: 1, to: now)!
             )
         ]
 
@@ -253,7 +382,6 @@ extension InventoryListViewModelTests {
                 unit: .gram,
                 minimumQuantityText: "0",
                 expiryDate: ownerExpiry,
-                isSelected: true,
                 expiryUsesDefault: false
             )
         ]
@@ -264,14 +392,14 @@ extension InventoryListViewModelTests {
         XCTAssertEqual(viewModel.purchaseBillDrafts.first?.expiryDate, ownerExpiry)
     }
 
-    func testCreatePurchaseBillDraftsShowsErrorWhenNoBakingItemsMatch() {
+    func testCreatePurchaseBillDraftsShowsErrorWhenNoPurchaseItemsAreFound() {
         let viewModel = InventoryListViewModel(repository: FakeInventoryItemRepository())
-        viewModel.purchaseBillRecognizedText = "Laundry Detergent 1 L"
+        viewModel.purchaseBillRecognizedText = "GST M200010132 TAX Invoice"
 
         XCTAssertFalse(viewModel.createPurchaseBillDrafts(catalog: purchaseBillCatalog))
 
         XCTAssertEqual(viewModel.purchaseBillDrafts, [])
-        XCTAssertEqual(viewModel.errorMessage, "No baking inventory items were found in the bill text.")
+        XCTAssertEqual(viewModel.errorMessage, "No purchase items were found in the bill text.")
     }
 
     func testRecognizePurchaseBillImageCreatesDraftsFromRecognizedText() async throws {
@@ -305,8 +433,7 @@ extension InventoryListViewModelTests {
                 quantityText: "1",
                 unit: .kilogram,
                 minimumQuantityText: "0",
-                expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
-                isSelected: true
+                expiryDate: Date(timeIntervalSince1970: 1_800_116_400)
             )
         ]
 
@@ -345,7 +472,7 @@ extension InventoryListViewModelTests {
                 unit: .kilogram,
                 minimumQuantityText: "0.5",
                 expiryDate: expiry,
-                isSelected: true
+                destination: .newItem
             ),
             PurchaseBillInventoryDraft(
                 id: "draft-butter",
@@ -355,7 +482,7 @@ extension InventoryListViewModelTests {
                 unit: .gram,
                 minimumQuantityText: "0",
                 expiryDate: expiry,
-                isSelected: false
+                destination: .ignored
             ),
         ]
 
@@ -410,9 +537,9 @@ extension InventoryListViewModelTests {
                 unit: .kilogram,
                 minimumQuantityText: "0",
                 expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
-                isSelected: true,
                 hasExpiryDate: false,
-                expiryUsesDefault: false
+                expiryUsesDefault: false,
+                destination: .newItem
             )
         ]
 
@@ -433,13 +560,13 @@ extension InventoryListViewModelTests {
                 unit: .gram,
                 minimumQuantityText: "0",
                 expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
-                isSelected: true
+                destination: .newItem
             )
         ]
 
         XCTAssertFalse(viewModel.savePurchaseBillDrafts())
 
-        XCTAssertEqual(viewModel.errorMessage, "Draft quantity must be zero or greater.")
+        XCTAssertEqual(viewModel.errorMessage, "Draft quantity must be greater than zero.")
         XCTAssertEqual(repository.items, [])
         XCTAssertEqual(repository.batches, [])
     }
@@ -460,7 +587,7 @@ extension InventoryListViewModelTests {
                 unit: .gram,
                 minimumQuantityText: "2,000",
                 expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
-                isSelected: true
+                destination: .newItem
             )
         ]
 
@@ -501,7 +628,7 @@ extension InventoryListViewModelTests {
                 unit: .kilogram,
                 minimumQuantityText: "0",
                 expiryDate: expiry,
-                isSelected: true
+                destination: .existingItem("inventory-flour")
             )
         ]
 
@@ -568,7 +695,7 @@ extension InventoryListViewModelTests {
                 unit: .kilogram,
                 minimumQuantityText: "0",
                 expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
-                isSelected: true
+                destination: .existingItem("inventory-flour")
             ),
             PurchaseBillInventoryDraft(
                 id: "draft-flour-two",
@@ -578,7 +705,7 @@ extension InventoryListViewModelTests {
                 unit: .gram,
                 minimumQuantityText: "0",
                 expiryDate: Date(timeIntervalSince1970: 1_800_202_800),
-                isSelected: true
+                destination: .existingItem("inventory-flour")
             ),
         ]
 
@@ -612,7 +739,7 @@ extension InventoryListViewModelTests {
                 unit: .liter,
                 minimumQuantityText: "0",
                 expiryDate: Date(timeIntervalSince1970: 1_800_116_400),
-                isSelected: true
+                destination: .existingItem("inventory-flour")
             )
         ]
 
@@ -623,6 +750,27 @@ extension InventoryListViewModelTests {
         XCTAssertEqual(repository.batches, [])
     }
 }
+
+private let idsForExpectedPurchaseBillDrafts = [
+    "draft-flour",
+    "draft-detergent",
+    "draft-butter",
+]
+
+private let exactOwnerOCRProductText = """
+    CHIPSMORE DOUBLE CHOCO 135G
+    2 4.00
+    OREO S COOKIES VANILLA 105G
+    1.85
+    WHITE GARLIC CHINA 500G 3. 15
+    DORITOS SPICY NACHO 190G 5.35
+    RUSSET POTATO USA 800G 3.95
+    PLASTIC BAG CHARGE 0.05
+    MEIJI FRESH MILK 2L. 6.90
+    PRICE OFF 0. 20-
+    Total saving 0. 20-
+    Total (SGD) INCL. GST 25. 05
+    """
 
 final class VoiceInventoryDraftParserTests: XCTestCase {
     func testParserAcceptsArbitraryItemsAcrossCommonSpeechSeparators() {
