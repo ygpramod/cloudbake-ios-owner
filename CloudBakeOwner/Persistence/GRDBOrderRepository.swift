@@ -62,18 +62,22 @@ extension GRDBCoreDataRepository {
         createdAt: Date
     ) throws -> PaymentReceiptVoid {
         try writer.write { db in
-            guard let receiptRow = try Row.fetchOne(
-                db,
-                sql: "SELECT * FROM payment_receipts WHERE id = ?",
-                arguments: [receiptId]
-            ) else {
+            guard
+                let receiptRow = try Row.fetchOne(
+                    db,
+                    sql: "SELECT * FROM payment_receipts WHERE id = ?",
+                    arguments: [receiptId]
+                )
+            else {
                 throw PaymentReceiptPersistenceError.receiptNotFound
             }
-            guard try String.fetchOne(
-                db,
-                sql: "SELECT id FROM payment_receipt_voids WHERE receipt_id = ?",
-                arguments: [receiptId]
-            ) == nil else {
+            guard
+                try String.fetchOne(
+                    db,
+                    sql: "SELECT id FROM payment_receipt_voids WHERE receipt_id = ?",
+                    arguments: [receiptId]
+                ) == nil
+            else {
                 throw PaymentReceiptPersistenceError.alreadyVoided
             }
             guard let amount = optionalDecimal(receiptRow["amount_decimal"]) else {
@@ -105,7 +109,7 @@ extension GRDBCoreDataRepository {
                     void.receiptId,
                     void.reason,
                     void.voidedAt.timeIntervalSince1970,
-                    void.createdAt.timeIntervalSince1970
+                    void.createdAt.timeIntervalSince1970,
                 ]
             )
             try updateDerivedPaidTotal(
@@ -143,15 +147,17 @@ extension GRDBCoreDataRepository {
 
     func fetchLegacyPaidAmount(orderId: String) throws -> Decimal {
         try writer.read { db in
-            guard let value = try String.fetchOne(
-                db,
-                sql: """
-                    SELECT legacy_paid_amount_decimal
-                    FROM orders
-                    WHERE id = ?
-                    """,
-                arguments: [orderId]
-            ) else {
+            guard
+                let value = try String.fetchOne(
+                    db,
+                    sql: """
+                        SELECT legacy_paid_amount_decimal
+                        FROM orders
+                        WHERE id = ?
+                        """,
+                    arguments: [orderId]
+                )
+            else {
                 throw PaymentReceiptPersistenceError.orderNotFound
             }
             guard let amount = Decimal(string: value) else {
@@ -204,7 +210,7 @@ extension GRDBCoreDataRepository {
                 decimalString(receipt.amount),
                 receipt.receivedAt.timeIntervalSince1970,
                 receipt.note,
-                receipt.createdAt.timeIntervalSince1970
+                receipt.createdAt.timeIntervalSince1970,
             ]
         )
         try updateDerivedPaidTotal(
@@ -257,7 +263,7 @@ extension GRDBCoreDataRepository {
             arguments: [
                 decimalString(amount),
                 updatedAt.timeIntervalSince1970,
-                orderId
+                orderId,
             ]
         )
     }
@@ -279,11 +285,13 @@ extension GRDBCoreDataRepository {
 
     func save(_ ingredient: RecipeIngredient) throws {
         try writer.write { db in
-            guard let row = try Row.fetchOne(
-                db,
-                sql: "SELECT * FROM recipe_components WHERE id = ?",
-                arguments: [ingredient.componentId]
-            ) else {
+            guard
+                let row = try Row.fetchOne(
+                    db,
+                    sql: "SELECT * FROM recipe_components WHERE id = ?",
+                    arguments: [ingredient.componentId]
+                )
+            else {
                 throw RecipeIngredientReservationMutationError.componentNotFound
             }
             try saveRecipeIngredient(
@@ -301,17 +309,19 @@ extension GRDBCoreDataRepository {
         allowInventoryShortage: Bool
     ) throws {
         try writer.write { db in
-            guard let recipeId = try String.fetchOne(
-                db,
-                sql: """
-                    SELECT recipe_components.recipe_id
-                    FROM recipe_ingredients
-                    JOIN recipe_components
-                      ON recipe_components.id = recipe_ingredients.component_id
-                    WHERE recipe_ingredients.id = ?
-                    """,
-                arguments: [id]
-            ) else {
+            guard
+                let recipeId = try String.fetchOne(
+                    db,
+                    sql: """
+                        SELECT recipe_components.recipe_id
+                        FROM recipe_ingredients
+                        JOIN recipe_components
+                          ON recipe_components.id = recipe_ingredients.component_id
+                        WHERE recipe_ingredients.id = ?
+                        """,
+                    arguments: [id]
+                )
+            else {
                 return
             }
             try db.execute(
@@ -414,11 +424,11 @@ extension GRDBCoreDataRepository {
     ) throws {
         let persistedOrder = try self.order(id: order.id, in: db)
         let previousStatus = persistedOrder?.status
-        let isEnteringConsumedStatus = previousStatus != order.status &&
-            (order.status == .ready || order.status == .completed)
+        let isEnteringConsumedStatus = previousStatus != order.status && (order.status == .ready || order.status == .completed)
         if isEnteringConsumedStatus,
-           (order.recipeId != nil || persistedOrder?.recipeId != nil),
-           try !hasOrderRecipeUsage(orderId: order.id, in: db) {
+            (order.recipeId != nil || persistedOrder?.recipeId != nil),
+            try !hasOrderRecipeUsage(orderId: order.id, in: db)
+        {
             throw OrderRecipeUsageError.inventoryConsumptionRequired
         }
         try save(order, in: db)
@@ -436,15 +446,15 @@ extension GRDBCoreDataRepository {
             with: extraIngredients,
             in: db
         )
-        let reason = previousStatus.map {
-            $0 == order.status
-                ? OrderInventoryReservationEventReason.orderEdited
-                : reservationEventReason(from: $0, to: order.status)
-        } ?? (
-            order.status == .confirmed || order.status == .inProgress
+        let reason =
+            previousStatus.map {
+                $0 == order.status
+                    ? OrderInventoryReservationEventReason.orderEdited
+                    : reservationEventReason(from: $0, to: order.status)
+            }
+            ?? (order.status == .confirmed || order.status == .inProgress
                 ? .orderConfirmed
-                : .orderEdited
-        )
+                : .orderEdited)
         try synchronizeOrderInventoryReservation(
             for: order,
             at: order.updatedAt,
@@ -460,7 +470,8 @@ extension GRDBCoreDataRepository {
         activationId: String
     ) throws -> OrderInventoryReservationRepairSummary {
         guard (1...50).contains(limit),
-              !activationId.isEmpty else {
+            !activationId.isEmpty
+        else {
             throw OrderInventoryReservationQueryError.invalidLimit
         }
         let orderIds = try writer.read { db in
@@ -485,7 +496,7 @@ extension GRDBCoreDataRepository {
                     OrderInventoryReservationRepairState.failed.rawValue,
                     activationId,
                     OrderInventoryReservationRepairState.pending.rawValue,
-                    limit
+                    limit,
                 ]
             )
         }
@@ -523,7 +534,7 @@ extension GRDBCoreDataRepository {
                             timestamp.timeIntervalSince1970,
                             orderId,
                             OrderInventoryReservationRepairState.pending.rawValue,
-                            OrderInventoryReservationRepairState.failed.rawValue
+                            OrderInventoryReservationRepairState.failed.rawValue,
                         ]
                     )
                     return db.changesCount > 0
@@ -643,11 +654,12 @@ extension GRDBCoreDataRepository {
         guard (1...60).contains(limit) else {
             throw ScheduledOrderReminderQueryError.invalidLimit
         }
-        let dueThrough = Calendar.autoupdatingCurrent.date(
-            byAdding: .day,
-            value: 30,
-            to: cutoff
-        ) ?? cutoff.addingTimeInterval(30 * 24 * 60 * 60)
+        let dueThrough =
+            Calendar.autoupdatingCurrent.date(
+                byAdding: .day,
+                value: 30,
+                to: cutoff
+            ) ?? cutoff.addingTimeInterval(30 * 24 * 60 * 60)
         return try writer.read { db in
             db.add(
                 function: DatabaseFunction(
@@ -656,7 +668,8 @@ extension GRDBCoreDataRepository {
                     pure: true
                 ) { values in
                     guard let dueTimestamp = Double.fromDatabaseValue(values[0]),
-                          let offsetDays = Int.fromDatabaseValue(values[1]) else {
+                        let offsetDays = Int.fromDatabaseValue(values[1])
+                    else {
                         return nil
                     }
                     return orderReminderDate(
@@ -723,7 +736,7 @@ extension GRDBCoreDataRepository {
                     dueThrough.timeIntervalSince1970,
                     OrderReminderConfigurationMode.disabled.rawValue,
                     cutoff.timeIntervalSince1970,
-                    limit
+                    limit,
                 ]
             ).map {
                 ScheduledOrderReminderOccurrence(
@@ -737,36 +750,38 @@ extension GRDBCoreDataRepository {
 
     func fetchPaymentPendingSummary(at date: Date) throws -> PaymentPendingSummary {
         try writer.read { db in
-            guard let row = try Row.fetchOne(
-                db,
-                sql: """
-                    SELECT
-                        COUNT(*) AS order_count,
-                        COALESCE(
-                            SUM(
-                                CAST(quoted_price_decimal AS NUMERIC)
-                                    - COALESCE(
-                                        CAST(deposit_paid_decimal AS NUMERIC),
-                                        0
-                                    )
-                            ),
-                            0
-                        ) AS total_balance
-                    FROM orders INDEXED BY orders_on_status_due_id
-                    WHERE status = ?
-                      AND due_at_unix_time <= ?
-                      AND quoted_price_decimal IS NOT NULL
-                      AND CAST(quoted_price_decimal AS NUMERIC)
-                            > COALESCE(
-                                CAST(deposit_paid_decimal AS NUMERIC),
+            guard
+                let row = try Row.fetchOne(
+                    db,
+                    sql: """
+                        SELECT
+                            COUNT(*) AS order_count,
+                            COALESCE(
+                                SUM(
+                                    CAST(quoted_price_decimal AS NUMERIC)
+                                        - COALESCE(
+                                            CAST(deposit_paid_decimal AS NUMERIC),
+                                            0
+                                        )
+                                ),
                                 0
-                            )
-                    """,
-                arguments: [
-                    OrderStatus.completed.rawValue,
-                    date.timeIntervalSince1970
-                ]
-            ) else {
+                            ) AS total_balance
+                        FROM orders INDEXED BY orders_on_status_due_id
+                        WHERE status = ?
+                          AND due_at_unix_time <= ?
+                          AND quoted_price_decimal IS NOT NULL
+                          AND CAST(quoted_price_decimal AS NUMERIC)
+                                > COALESCE(
+                                    CAST(deposit_paid_decimal AS NUMERIC),
+                                    0
+                                )
+                        """,
+                    arguments: [
+                        OrderStatus.completed.rawValue,
+                        date.timeIntervalSince1970,
+                    ]
+                )
+            else {
                 return .empty
             }
             let totalBalance: Double = row["total_balance"]
@@ -794,7 +809,7 @@ extension GRDBCoreDataRepository {
                 OrderStatus.draft.rawValue,
                 OrderStatus.confirmed.rawValue,
                 OrderStatus.inProgress.rawValue,
-                OrderStatus.ready.rawValue
+                OrderStatus.ready.rawValue,
             ])
             if let dueAtRange {
                 predicates.append("due_at_unix_time BETWEEN ? AND ?")
@@ -811,7 +826,7 @@ extension GRDBCoreDataRepository {
                 OrderStatus.draft.rawValue,
                 OrderStatus.confirmed.rawValue,
                 OrderStatus.inProgress.rawValue,
-                OrderStatus.ready.rawValue
+                OrderStatus.ready.rawValue,
             ])
             predicates.append("due_at_unix_time BETWEEN ? AND ?")
             values.append(from.timeIntervalSince1970)
@@ -885,7 +900,8 @@ extension GRDBCoreDataRepository {
             )
             let candidates = rows.map(order)
             let pageOrders = Array(candidates.prefix(limit))
-            let nextCursor = candidates.count > limit
+            let nextCursor =
+                candidates.count > limit
                 ? pageOrders.last.map {
                     OrderPageCursor(dueAt: $0.dueAt, orderId: $0.id)
                 }
@@ -911,10 +927,12 @@ extension GRDBCoreDataRepository {
 
     func fetchDefaultOrderReminderConfiguration() throws -> OrderReminderConfiguration {
         try writer.read { db in
-            guard let row = try Row.fetchOne(
-                db,
-                sql: "SELECT * FROM order_reminder_defaults WHERE id = 1"
-            ) else {
+            guard
+                let row = try Row.fetchOne(
+                    db,
+                    sql: "SELECT * FROM order_reminder_defaults WHERE id = 1"
+                )
+            else {
                 throw OrderReminderConfigurationPersistenceError.defaultConfigurationMissing
             }
             return try orderReminderConfiguration(
@@ -941,7 +959,7 @@ extension GRDBCoreDataRepository {
                 arguments: [
                     try orderReminderDayOffsetsJSON(snapshot.dayOffsets),
                     snapshot.includesDueTime,
-                    updatedAt.timeIntervalSince1970
+                    updatedAt.timeIntervalSince1970,
                 ]
             )
             guard db.changesCount == 1 else {
@@ -952,10 +970,12 @@ extension GRDBCoreDataRepository {
 
     func fetchPaymentReminderConfiguration() throws -> PaymentReminderConfiguration {
         try writer.read { db in
-            guard let row = try Row.fetchOne(
-                db,
-                sql: "SELECT hour, minute FROM payment_reminder_configuration WHERE id = 1"
-            ) else {
+            guard
+                let row = try Row.fetchOne(
+                    db,
+                    sql: "SELECT hour, minute FROM payment_reminder_configuration WHERE id = 1"
+                )
+            else {
                 throw PaymentReminderConfigurationPersistenceError.configurationMissing
             }
             return try PaymentReminderConfiguration(
@@ -981,7 +1001,7 @@ extension GRDBCoreDataRepository {
                 arguments: [
                     configuration.hour,
                     configuration.minute,
-                    updatedAt.timeIntervalSince1970
+                    updatedAt.timeIntervalSince1970,
                 ]
             )
             guard db.changesCount == 1 else {
@@ -994,15 +1014,17 @@ extension GRDBCoreDataRepository {
         orderId: String
     ) throws -> OrderReminderConfiguration? {
         try writer.read { db in
-            guard let row = try Row.fetchOne(
-                db,
-                sql: """
-                    SELECT *
-                    FROM order_reminder_configurations
-                    WHERE order_id = ?
-                    """,
-                arguments: [orderId]
-            ) else {
+            guard
+                let row = try Row.fetchOne(
+                    db,
+                    sql: """
+                        SELECT *
+                        FROM order_reminder_configurations
+                        WHERE order_id = ?
+                        """,
+                    arguments: [orderId]
+                )
+            else {
                 return nil
             }
             return try orderReminderConfiguration(from: row)
@@ -1050,15 +1072,16 @@ extension GRDBCoreDataRepository {
             guard try order(id: orderId, in: db) != nil else {
                 throw OrderRecipeUsageError.orderNotFound
             }
-            let createdAt = try Double.fetchOne(
-                db,
-                sql: """
-                    SELECT created_at_unix_time
-                    FROM order_reminder_configurations
-                    WHERE order_id = ?
-                    """,
-                arguments: [orderId]
-            ) ?? updatedAt.timeIntervalSince1970
+            let createdAt =
+                try Double.fetchOne(
+                    db,
+                    sql: """
+                        SELECT created_at_unix_time
+                        FROM order_reminder_configurations
+                        WHERE order_id = ?
+                        """,
+                    arguments: [orderId]
+                ) ?? updatedAt.timeIntervalSince1970
             try saveOrderReminderConfiguration(
                 configuration,
                 orderId: orderId,
@@ -1169,15 +1192,16 @@ extension GRDBCoreDataRepository {
 
             try save(updatedOrder, in: db)
             if let reminderConfiguration {
-                let createdAt = try Double.fetchOne(
-                    db,
-                    sql: """
-                        SELECT created_at_unix_time
-                        FROM order_reminder_configurations
-                        WHERE order_id = ?
-                        """,
-                    arguments: [order.id]
-                ).map(Date.init(timeIntervalSince1970:)) ?? updatedAt
+                let createdAt =
+                    try Double.fetchOne(
+                        db,
+                        sql: """
+                            SELECT created_at_unix_time
+                            FROM order_reminder_configurations
+                            WHERE order_id = ?
+                            """,
+                        arguments: [order.id]
+                    ).map(Date.init(timeIntervalSince1970:)) ?? updatedAt
                 try saveOrderReminderConfiguration(
                     reminderConfiguration,
                     orderId: order.id,
@@ -1200,11 +1224,13 @@ extension GRDBCoreDataRepository {
 
     func fetchOrderRecipeUsage(orderId: String) throws -> OrderRecipeUsage? {
         try writer.read { db in
-            guard let row = try Row.fetchOne(
-                db,
-                sql: "SELECT * FROM order_recipe_usages WHERE order_id = ?",
-                arguments: [orderId]
-            ) else {
+            guard
+                let row = try Row.fetchOne(
+                    db,
+                    sql: "SELECT * FROM order_recipe_usages WHERE order_id = ?",
+                    arguments: [orderId]
+                )
+            else {
                 return nil
             }
 
@@ -1224,7 +1250,8 @@ extension GRDBCoreDataRepository {
                 arguments: [orderId]
             ).compactMap { row in
                 guard let unit = InventoryUnit(rawValue: row["unit"]),
-                      let knownCost = optionalDecimal(row["known_cost_decimal"]) else {
+                    let knownCost = optionalDecimal(row["known_cost_decimal"])
+                else {
                     return nil
                 }
                 return OrderIngredientCost(
@@ -1381,15 +1408,17 @@ extension GRDBCoreDataRepository {
         orderId: String
     ) throws -> OrderInventoryReservationRepair? {
         try writer.read { db in
-            guard let row = try Row.fetchOne(
-                db,
-                sql: """
-                    SELECT *
-                    FROM order_inventory_reservation_repairs
-                    WHERE order_id = ?
-                    """,
-                arguments: [orderId]
-            ) else {
+            guard
+                let row = try Row.fetchOne(
+                    db,
+                    sql: """
+                        SELECT *
+                        FROM order_inventory_reservation_repairs
+                        WHERE order_id = ?
+                        """,
+                    arguments: [orderId]
+                )
+            else {
                 return nil
             }
             let stateValue: String = row["state"]
@@ -1399,9 +1428,11 @@ extension GRDBCoreDataRepository {
             let failureCodeValue: String? = row["failure_code"]
             let failureCode: OrderInventoryReservationRepairFailureCode?
             if let failureCodeValue {
-                guard let parsedFailureCode = OrderInventoryReservationRepairFailureCode(
-                    rawValue: failureCodeValue
-                ) else {
+                guard
+                    let parsedFailureCode = OrderInventoryReservationRepairFailureCode(
+                        rawValue: failureCodeValue
+                    )
+                else {
                     throw OrderInventoryReservationPersistenceError.invalidRepairFailureCode(
                         failureCodeValue
                     )
@@ -1467,8 +1498,9 @@ extension GRDBCoreDataRepository {
                     let unitValue: String = row["unit"]
                     let requiredQuantity: Double = row["required_quantity"]
                     guard let unit = InventoryUnit(rawValue: unitValue),
-                          requiredQuantity.isFinite,
-                          requiredQuantity > 0 else {
+                        requiredQuantity.isFinite,
+                        requiredQuantity > 0
+                    else {
                         invalidOrderIds.insert(orderId)
                         continue
                     }
@@ -1496,9 +1528,11 @@ extension GRDBCoreDataRepository {
                     let failureCodeValue: String? = row["failure_code"]
                     let failureCode: OrderInventoryReservationRepairFailureCode?
                     if let failureCodeValue {
-                        guard let parsedFailureCode = OrderInventoryReservationRepairFailureCode(
-                            rawValue: failureCodeValue
-                        ) else {
+                        guard
+                            let parsedFailureCode = OrderInventoryReservationRepairFailureCode(
+                                rawValue: failureCodeValue
+                            )
+                        else {
                             invalidOrderIds.insert(orderId)
                             continue
                         }
@@ -1542,11 +1576,12 @@ extension GRDBCoreDataRepository {
                     let quantity: Double = row["quantity"]
                     let unitValue: String = row["unit"]
                     guard let unit = InventoryUnit(rawValue: unitValue),
-                          scaleDouble.isFinite,
-                          scaleDouble > 0,
-                          quantity.isFinite,
-                          quantity > 0,
-                          (quantity * scaleDouble).isFinite else {
+                        scaleDouble.isFinite,
+                        scaleDouble > 0,
+                        quantity.isFinite,
+                        quantity > 0,
+                        (quantity * scaleDouble).isFinite
+                    else {
                         invalidLiveRequirementOrderIds.insert(orderId)
                         continue
                     }
@@ -1575,8 +1610,9 @@ extension GRDBCoreDataRepository {
                     let quantity: Double = row["quantity"]
                     let unitValue: String = row["unit"]
                     guard let unit = InventoryUnit(rawValue: unitValue),
-                          quantity.isFinite,
-                          quantity > 0 else {
+                        quantity.isFinite,
+                        quantity > 0
+                    else {
                         invalidLiveRequirementOrderIds.insert(orderId)
                         continue
                     }
@@ -1785,7 +1821,7 @@ extension GRDBCoreDataRepository {
                     OrderStatus.confirmed.rawValue,
                     OrderStatus.inProgress.rawValue,
                     OrderStatus.ready.rawValue,
-                    date.timeIntervalSince1970
+                    date.timeIntervalSince1970,
                 ])
             )
 
@@ -1799,10 +1835,11 @@ extension GRDBCoreDataRepository {
                 }
                 let orderIdsJSON: String = row["order_ids_json"]
                 guard let orderIdsData = orderIdsJSON.data(using: .utf8),
-                      let orderIds = try? JSONDecoder().decode(
-                          Set<String>.self,
-                          from: orderIdsData
-                      ) else {
+                    let orderIds = try? JSONDecoder().decode(
+                        Set<String>.self,
+                        from: orderIdsData
+                    )
+                else {
                     throw ProjectedIngredientDemandPersistenceError.invalidOrderIds
                 }
                 let requiredQuantity: Double = row["required_quantity"]
@@ -1951,32 +1988,32 @@ extension GRDBCoreDataRepository {
 
     func save(_ photo: OrderPhoto, in db: Database) throws {
         try db.execute(
-                sql: """
-                    INSERT INTO order_photos
-                    (id, order_id, kind, local_photo_path, caption, tags_json, is_favorite,
-                     created_at_unix_time, updated_at_unix_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(id) DO UPDATE SET
-                    order_id = excluded.order_id,
-                    kind = excluded.kind,
-                    local_photo_path = excluded.local_photo_path,
-                    caption = excluded.caption,
-                    tags_json = excluded.tags_json,
-                    is_favorite = excluded.is_favorite,
-                    created_at_unix_time = excluded.created_at_unix_time,
-                    updated_at_unix_time = excluded.updated_at_unix_time
-                    """,
-                arguments: arguments([
-                    photo.id,
-                    photo.orderId,
-                    photo.kind.rawValue,
-                    photo.localPhotoPath,
-                    photo.caption,
-                    designTagsJSON(photo.tags),
-                    photo.isFavorite,
-                    photo.createdAt.timeIntervalSince1970,
-                    photo.updatedAt.timeIntervalSince1970
-                ])
+            sql: """
+                INSERT INTO order_photos
+                (id, order_id, kind, local_photo_path, caption, tags_json, is_favorite,
+                 created_at_unix_time, updated_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                order_id = excluded.order_id,
+                kind = excluded.kind,
+                local_photo_path = excluded.local_photo_path,
+                caption = excluded.caption,
+                tags_json = excluded.tags_json,
+                is_favorite = excluded.is_favorite,
+                created_at_unix_time = excluded.created_at_unix_time,
+                updated_at_unix_time = excluded.updated_at_unix_time
+                """,
+            arguments: arguments([
+                photo.id,
+                photo.orderId,
+                photo.kind.rawValue,
+                photo.localPhotoPath,
+                photo.caption,
+                designTagsJSON(photo.tags),
+                photo.isFavorite,
+                photo.createdAt.timeIntervalSince1970,
+                photo.updatedAt.timeIntervalSince1970,
+            ])
         )
     }
 
@@ -2049,14 +2086,15 @@ extension GRDBCoreDataRepository {
     ) throws {
         try writer.write { db in
             if let originatingPhotoId = design.originatingOrderPhotoId {
-                let existingCount = try Int.fetchOne(
-                    db,
-                    sql: """
-                        SELECT COUNT(*) FROM cake_designs
-                        WHERE originating_order_photo_id = ? AND id != ?
-                        """,
-                    arguments: [originatingPhotoId, design.id]
-                ) ?? 0
+                let existingCount =
+                    try Int.fetchOne(
+                        db,
+                        sql: """
+                            SELECT COUNT(*) FROM cake_designs
+                            WHERE originating_order_photo_id = ? AND id != ?
+                            """,
+                        arguments: [originatingPhotoId, design.id]
+                    ) ?? 0
                 if existingCount > 0 {
                     throw CakeDesignPromotionError.originatingPhotoAlreadyPromoted
                 }
@@ -2122,8 +2160,10 @@ private extension GRDBCoreDataRepository {
             sql: "SELECT recipe_id FROM recipe_components WHERE id = ?",
             arguments: [component.id]
         )
-        guard persistedComponentRecipeId == nil
-                || persistedComponentRecipeId == component.recipeId else {
+        guard
+            persistedComponentRecipeId == nil
+                || persistedComponentRecipeId == component.recipeId
+        else {
             throw RecipeIngredientReservationMutationError.recipeReassignmentNotAllowed
         }
         guard ingredient.componentId == component.id else {
@@ -2169,33 +2209,37 @@ private extension GRDBCoreDataRepository {
     }
 
     func ensureOrderRecipeUsageIsNotRecorded(orderId: String, in db: Database) throws {
-        let existingUsageCount = try Int.fetchOne(
-            db,
-            sql: "SELECT COUNT(*) FROM order_recipe_usages WHERE order_id = ?",
-            arguments: [orderId]
-        ) ?? 0
+        let existingUsageCount =
+            try Int.fetchOne(
+                db,
+                sql: "SELECT COUNT(*) FROM order_recipe_usages WHERE order_id = ?",
+                arguments: [orderId]
+            ) ?? 0
         guard existingUsageCount == 0 else {
             throw OrderRecipeUsageError.alreadyRecorded
         }
     }
 
     func order(id: String, in db: Database) throws -> Order? {
-        guard let row = try Row.fetchOne(
-            db,
-            sql: "SELECT * FROM orders WHERE id = ?",
-            arguments: [id]
-        ) else {
+        guard
+            let row = try Row.fetchOne(
+                db,
+                sql: "SELECT * FROM orders WHERE id = ?",
+                arguments: [id]
+            )
+        else {
             return nil
         }
         return order(from: row)
     }
 
     func hasOrderRecipeUsage(orderId: String, in db: Database) throws -> Bool {
-        let existingUsageCount = try Int.fetchOne(
-            db,
-            sql: "SELECT COUNT(*) FROM order_recipe_usages WHERE order_id = ?",
-            arguments: [orderId]
-        ) ?? 0
+        let existingUsageCount =
+            try Int.fetchOne(
+                db,
+                sql: "SELECT COUNT(*) FROM order_recipe_usages WHERE order_id = ?",
+                arguments: [orderId]
+            ) ?? 0
         return existingUsageCount > 0
     }
 
@@ -2312,7 +2356,7 @@ private extension GRDBCoreDataRepository {
             arguments: [
                 recipeId,
                 OrderStatus.confirmed.rawValue,
-                OrderStatus.inProgress.rawValue
+                OrderStatus.inProgress.rawValue,
             ]
         ).map(order)
         guard !affectedOrders.isEmpty else { return }
@@ -2380,38 +2424,40 @@ private extension GRDBCoreDataRepository {
                 batches: batches,
                 at: timestamp
             )
-            let reservedQuantity = try Double.fetchOne(
-                db,
-                sql: """
-                    SELECT COALESCE(SUM(required_quantity), 0)
-                    FROM order_inventory_reservations
-                    WHERE inventory_item_id = ?
-                    """,
-                arguments: [proposed.item.id]
-            ) ?? 0
-            let affectedExistingQuantity = try Double.fetchOne(
-                db,
-                sql: """
-                    SELECT COALESCE(SUM(order_inventory_reservations.required_quantity), 0)
-                    FROM order_inventory_reservations
-                    JOIN orders
-                      ON orders.id = order_inventory_reservations.order_id
-                    WHERE order_inventory_reservations.inventory_item_id = ?
-                      AND orders.recipe_id = ?
-                      AND orders.status IN (?, ?)
-                      AND NOT EXISTS (
-                          SELECT 1
-                          FROM order_recipe_usages
-                          WHERE order_recipe_usages.order_id = orders.id
-                      )
-                    """,
-                arguments: [
-                    proposed.item.id,
-                    recipeId,
-                    OrderStatus.confirmed.rawValue,
-                    OrderStatus.inProgress.rawValue
-                ]
-            ) ?? 0
+            let reservedQuantity =
+                try Double.fetchOne(
+                    db,
+                    sql: """
+                        SELECT COALESCE(SUM(required_quantity), 0)
+                        FROM order_inventory_reservations
+                        WHERE inventory_item_id = ?
+                        """,
+                    arguments: [proposed.item.id]
+                ) ?? 0
+            let affectedExistingQuantity =
+                try Double.fetchOne(
+                    db,
+                    sql: """
+                        SELECT COALESCE(SUM(order_inventory_reservations.required_quantity), 0)
+                        FROM order_inventory_reservations
+                        JOIN orders
+                          ON orders.id = order_inventory_reservations.order_id
+                        WHERE order_inventory_reservations.inventory_item_id = ?
+                          AND orders.recipe_id = ?
+                          AND orders.status IN (?, ?)
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM order_recipe_usages
+                              WHERE order_recipe_usages.order_id = orders.id
+                          )
+                        """,
+                    arguments: [
+                        proposed.item.id,
+                        recipeId,
+                        OrderStatus.confirmed.rawValue,
+                        OrderStatus.inProgress.rawValue,
+                    ]
+                ) ?? 0
             let reservedByUnaffectedOrders = max(
                 reservedQuantity - affectedExistingQuantity,
                 0
@@ -2460,16 +2506,17 @@ private extension GRDBCoreDataRepository {
                 batches: batches,
                 at: timestamp
             )
-            let otherReservedQuantity = try Double.fetchOne(
-                db,
-                sql: """
-                    SELECT COALESCE(SUM(required_quantity), 0)
-                    FROM order_inventory_reservations
-                    WHERE inventory_item_id = ?
-                      AND order_id != ?
-                    """,
-                arguments: [pendingUsage.item.id, excludingOrderId]
-            ) ?? 0
+            let otherReservedQuantity =
+                try Double.fetchOne(
+                    db,
+                    sql: """
+                        SELECT COALESCE(SUM(required_quantity), 0)
+                        FROM order_inventory_reservations
+                        WHERE inventory_item_id = ?
+                          AND order_id != ?
+                        """,
+                    arguments: [pendingUsage.item.id, excludingOrderId]
+                ) ?? 0
             let availableToPromise = max(usableQuantity - otherReservedQuantity, 0)
             guard pendingUsage.quantity > availableToPromise else {
                 return nil
@@ -2507,7 +2554,7 @@ private extension GRDBCoreDataRepository {
                 arguments: [
                     OrderInventoryReservationRepairState.pending.rawValue,
                     OrderInventoryReservationRepairState.failed.rawValue,
-                    activationId
+                    activationId,
                 ]
             ) ?? false
         }
@@ -2532,7 +2579,7 @@ private extension GRDBCoreDataRepository {
                 timestamp.timeIntervalSince1970,
                 orderId,
                 OrderInventoryReservationRepairState.pending.rawValue,
-                OrderInventoryReservationRepairState.failed.rawValue
+                OrderInventoryReservationRepairState.failed.rawValue,
             ]
         )
     }
@@ -2583,7 +2630,7 @@ private extension GRDBCoreDataRepository {
                     timestamp.timeIntervalSince1970,
                     orderId,
                     OrderInventoryReservationRepairState.pending.rawValue,
-                    OrderInventoryReservationRepairState.failed.rawValue
+                    OrderInventoryReservationRepairState.failed.rawValue,
                 ]
             )
             guard db.changesCount > 0 else { return false }
@@ -2603,7 +2650,7 @@ private extension GRDBCoreDataRepository {
                     0,
                     0,
                     nil,
-                    timestamp.timeIntervalSince1970
+                    timestamp.timeIntervalSince1970,
                 ])
             )
             return true
@@ -2667,7 +2714,7 @@ private extension GRDBCoreDataRepository {
                     pendingUsage.quantity,
                     pendingUsage.item.unit.rawValue,
                     (existing?.createdAt ?? timestamp).timeIntervalSince1970,
-                    timestamp.timeIntervalSince1970
+                    timestamp.timeIntervalSince1970,
                 ])
             )
         }
@@ -2703,7 +2750,7 @@ private extension GRDBCoreDataRepository {
                     previousQuantity,
                     newQuantity,
                     unit.rawValue,
-                    timestamp.timeIntervalSince1970
+                    timestamp.timeIntervalSince1970,
                 ])
             )
         }
@@ -2773,12 +2820,11 @@ private extension GRDBCoreDataRepository {
         if let persistedOrder, persistedOrder.depositPaid != order.depositPaid {
             throw PaymentReceiptPersistenceError.directPaidTotalMutation
         }
-        let completedAt = persistedOrder?.completedAt
-            ?? (
-                persistedOrder?.status != .completed && order.status == .completed
-                    ? order.completedAt ?? order.updatedAt
-                    : order.completedAt
-            )
+        let completedAt =
+            persistedOrder?.completedAt
+            ?? (persistedOrder?.status != .completed && order.status == .completed
+                ? order.completedAt ?? order.updatedAt
+                : order.completedAt)
         try db.execute(
             sql: """
                 INSERT INTO orders
@@ -2846,7 +2892,7 @@ private extension GRDBCoreDataRepository {
                 order.paymentNotes,
                 completedAt?.timeIntervalSince1970,
                 order.createdAt.timeIntervalSince1970,
-                order.updatedAt.timeIntervalSince1970
+                order.updatedAt.timeIntervalSince1970,
             ])
         )
         try ensureOrderReminderConfiguration(for: order, in: db)
@@ -2880,20 +2926,22 @@ private extension GRDBCoreDataRepository {
             arguments: [
                 order.id,
                 order.createdAt.timeIntervalSince1970,
-                order.updatedAt.timeIntervalSince1970
+                order.updatedAt.timeIntervalSince1970,
             ]
         )
-        guard try Bool.fetchOne(
-            db,
-            sql: """
-                SELECT EXISTS (
-                    SELECT 1
-                    FROM order_reminder_configurations
-                    WHERE order_id = ?
-                )
-                """,
-            arguments: [order.id]
-        ) == true else {
+        guard
+            try Bool.fetchOne(
+                db,
+                sql: """
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM order_reminder_configurations
+                        WHERE order_id = ?
+                    )
+                    """,
+                arguments: [order.id]
+            ) == true
+        else {
             throw OrderReminderConfigurationPersistenceError.defaultConfigurationMissing
         }
     }
@@ -2929,7 +2977,7 @@ private extension GRDBCoreDataRepository {
                 try orderReminderDayOffsetsJSON(configuration.dayOffsets),
                 configuration.includesDueTime,
                 createdAt.timeIntervalSince1970,
-                updatedAt.timeIntervalSince1970
+                updatedAt.timeIntervalSince1970,
             ]
         )
     }
@@ -2950,7 +2998,8 @@ private extension GRDBCoreDataRepository {
         }
         let offsetsJSON: String = row["day_offsets_json"]
         guard let data = offsetsJSON.data(using: .utf8),
-              let offsets = try? JSONDecoder().decode([Int].self, from: data) else {
+            let offsets = try? JSONDecoder().decode([Int].self, from: data)
+        else {
             throw OrderReminderConfigurationPersistenceError.invalidDayOffsets
         }
         return try OrderReminderConfiguration(
@@ -2989,7 +3038,7 @@ private extension GRDBCoreDataRepository {
                 item.isCompleted,
                 item.sortOrder,
                 item.createdAt.timeIntervalSince1970,
-                item.updatedAt.timeIntervalSince1970
+                item.updatedAt.timeIntervalSince1970,
             ])
         )
     }
@@ -3017,7 +3066,7 @@ private extension GRDBCoreDataRepository {
                 ingredient.unit.rawValue,
                 ingredient.note,
                 ingredient.createdAt.timeIntervalSince1970,
-                ingredient.updatedAt.timeIntervalSince1970
+                ingredient.updatedAt.timeIntervalSince1970,
             ])
         )
     }
@@ -3173,7 +3222,8 @@ private extension GRDBCoreDataRepository {
     ) -> Double {
         let currentQuantity = max(0, item.currentQuantity)
         guard !batches.isEmpty else { return currentQuantity }
-        let usableBatchQuantity = batches
+        let usableBatchQuantity =
+            batches
             .filter { $0.isUsable(at: date) }
             .reduce(0) { $0 + $1.remainingQuantity }
         return min(currentQuantity, usableBatchQuantity)
@@ -3264,7 +3314,7 @@ private extension GRDBCoreDataRepository {
                 decimalString(usage.recipeScaleMultiplier),
                 usage.usedAt.timeIntervalSince1970,
                 usage.createdAt.timeIntervalSince1970,
-                usage.updatedAt.timeIntervalSince1970
+                usage.updatedAt.timeIntervalSince1970,
             ])
         )
     }
@@ -3292,7 +3342,7 @@ private extension GRDBCoreDataRepository {
                 decimalString(cost.knownCost),
                 cost.missingPriceQuantity,
                 cost.shortfallQuantity,
-                cost.recordedAt.timeIntervalSince1970
+                cost.recordedAt.timeIntervalSince1970,
             ])
         )
     }

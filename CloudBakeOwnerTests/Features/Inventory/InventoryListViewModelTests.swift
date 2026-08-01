@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import CloudBakeOwner
 
 @MainActor
@@ -70,12 +71,14 @@ final class InventoryListViewModelTests: XCTestCase {
 
         viewModel.load()
 
-        XCTAssertEqual(viewModel.items.map(\.id), [
-            "inventory-expired",
-            "inventory-low",
-            "inventory-expiring",
-            "inventory-normal"
-        ])
+        XCTAssertEqual(
+            viewModel.items.map(\.id),
+            [
+                "inventory-expired",
+                "inventory-low",
+                "inventory-expiring",
+                "inventory-normal",
+            ])
     }
 
     func testVisibleItemsFilterBySearchTextAndKeepAttentionOrder() {
@@ -114,10 +117,12 @@ final class InventoryListViewModelTests: XCTestCase {
 
         viewModel.searchText = " flour "
 
-        XCTAssertEqual(viewModel.visibleItems.map(\.id), [
-            "inventory-low-flour",
-            "inventory-normal-flour"
-        ])
+        XCTAssertEqual(
+            viewModel.visibleItems.map(\.id),
+            [
+                "inventory-low-flour",
+                "inventory-normal-flour",
+            ])
     }
 
     func testVisibleItemsFilterByLowStock() {

@@ -15,7 +15,8 @@ extension GRDBCoreDataRepository {
             }
         } catch let error as DatabaseError
             where error.resultCode == .SQLITE_CONSTRAINT
-                || error.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY {
+            || error.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY
+        {
             throw InventoryItemDeletionError.inUse
         }
     }
@@ -23,7 +24,8 @@ extension GRDBCoreDataRepository {
     func fetchInventoryItem(id: String) throws -> InventoryItem? {
         try writer.read { db in
             guard let row = try Row.fetchOne(db, sql: "SELECT * FROM inventory_items WHERE id = ?", arguments: [id]),
-                  let unit = InventoryUnit(rawValue: row["unit"]) else {
+                let unit = InventoryUnit(rawValue: row["unit"])
+            else {
                 return nil
             }
 
@@ -50,7 +52,8 @@ extension GRDBCoreDataRepository {
         try writer.read { db in
             try Row.fetchAll(
                 db,
-                sql: "SELECT * FROM inventory_items WHERE archived_at_unix_time IS NOT NULL ORDER BY archived_at_unix_time DESC, lower(name), name"
+                sql:
+                    "SELECT * FROM inventory_items WHERE archived_at_unix_time IS NOT NULL ORDER BY archived_at_unix_time DESC, lower(name), name"
             ).compactMap { row in
                 guard let unit = InventoryUnit(rawValue: row["unit"]) else {
                     return nil
@@ -70,7 +73,8 @@ extension GRDBCoreDataRepository {
     func fetchInventoryTransaction(id: String) throws -> InventoryTransaction? {
         try writer.read { db in
             guard let row = try Row.fetchOne(db, sql: "SELECT * FROM inventory_transactions WHERE id = ?", arguments: [id]),
-                  let kind = InventoryTransactionKind(rawValue: row["kind"]) else {
+                let kind = InventoryTransactionKind(rawValue: row["kind"])
+            else {
                 return nil
             }
 
@@ -174,8 +178,9 @@ extension GRDBCoreDataRepository {
         _ right: InventoryStockBatch
     ) -> Bool {
         guard left.inventoryItemId == right.inventoryItemId,
-              left.amount == nil,
-              right.amount == nil else {
+            left.amount == nil,
+            right.amount == nil
+        else {
             return false
         }
         switch (left.expiresAt, right.expiresAt) {
@@ -255,9 +260,11 @@ extension GRDBCoreDataRepository {
                     limit,
                 ]
             ).compactMap { row in
-                guard let unit = InventoryUnit(
-                    rawValue: row["inventory_item_unit"]
-                ) else {
+                guard
+                    let unit = InventoryUnit(
+                        rawValue: row["inventory_item_unit"]
+                    )
+                else {
                     return nil
                 }
                 return InventoryExpiryReminderCandidate(
@@ -299,7 +306,7 @@ extension GRDBCoreDataRepository {
                 item.minimumQuantity,
                 item.createdAt.timeIntervalSince1970,
                 item.updatedAt.timeIntervalSince1970,
-                item.archivedAt?.timeIntervalSince1970
+                item.archivedAt?.timeIntervalSince1970,
             ])
         )
     }
@@ -319,7 +326,7 @@ extension GRDBCoreDataRepository {
                 transaction.occurredAt.timeIntervalSince1970,
                 transaction.note,
                 transaction.createdAt.timeIntervalSince1970,
-                transaction.updatedAt.timeIntervalSince1970
+                transaction.updatedAt.timeIntervalSince1970,
             ])
         )
     }
@@ -347,14 +354,15 @@ extension GRDBCoreDataRepository {
                 decimalString(batch.amount),
                 decimalString(batch.unitCost),
                 batch.createdAt.timeIntervalSince1970,
-                batch.updatedAt.timeIntervalSince1970
+                batch.updatedAt.timeIntervalSince1970,
             ])
         )
     }
 
     func inventoryItem(id: String, in db: Database) throws -> InventoryItem? {
         guard let row = try Row.fetchOne(db, sql: "SELECT * FROM inventory_items WHERE id = ?", arguments: [id]),
-              let unit = InventoryUnit(rawValue: row["unit"]) else {
+            let unit = InventoryUnit(rawValue: row["unit"])
+        else {
             return nil
         }
 
