@@ -439,9 +439,9 @@ extension CloudBakeOwnerUITests {
         tapInventoryHeaderAction(
             "inventory.purchaseBill.import",
             in: app,
-            waitingFor: app.navigationBars["Import Bill"]
+            waitingFor: app.staticTexts["inventory.purchaseBill.screenTitle"]
         )
-        XCTAssertTrue(app.navigationBars["Import Bill"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["inventory.purchaseBill.screenTitle"].waitForExistence(timeout: 5))
 
         XCTAssertTrue(app.buttons["inventory.purchaseBill.camera"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["inventory.purchaseBill.library"].waitForExistence(timeout: 5))
@@ -458,13 +458,13 @@ extension CloudBakeOwnerUITests {
         tapInventoryHeaderAction(
             "inventory.voice.add",
             in: app,
-            waitingFor: app.navigationBars["Add by Voice"]
+            waitingFor: app.staticTexts["inventory.voice.screenTitle"]
         )
 
-        XCTAssertFalse(app.staticTexts["inventory.voice.guidance"].exists)
+        let guidance = app.descendants(matching: .any)["inventory.voice.guidance"]
+        XCTAssertFalse(guidance.exists)
         tapWhenReady(app.buttons["inventory.voice.guidance.toggle"])
-        XCTAssertTrue(app.staticTexts["inventory.voice.guidance"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["inventory.voice.guidance.examples"].exists)
+        XCTAssertTrue(guidance.waitForExistence(timeout: 5))
 
         let transcript = app.textViews["inventory.voice.transcript"]
         XCTAssertTrue(transcript.waitForExistence(timeout: 5))

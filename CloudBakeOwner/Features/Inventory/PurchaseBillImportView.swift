@@ -95,7 +95,14 @@ struct PurchaseBillImportView: View {
             }
         }
         .cloudBakeFormScreenStyle()
-        .navigationTitle("Import Bill")
+        .safeAreaInset(edge: .top, spacing: 0) {
+            InventoryImportScreenHeader(
+                title: "Import Bill",
+                accessibilityIdentifier: "inventory.purchaseBill.screenTitle"
+            )
+        }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else {
                 return
@@ -295,19 +302,40 @@ struct VoiceInventoryImportView: View {
 
     var body: some View {
         Form {
-            Section {
+            Section("Voice Inventory") {
+                Button {
+                    isShowingVoiceGuidance.toggle()
+                } label: {
+                    HStack {
+                        Label("What should I say?", systemImage: "info.circle")
+
+                        Spacer()
+
+                        Image(systemName: isShowingVoiceGuidance ? "chevron.up" : "chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .frame(minHeight: 44)
+                .accessibilityLabel(
+                    isShowingVoiceGuidance ? "Hide voice inventory guidance" : "Show voice inventory guidance"
+                )
+                .accessibilityIdentifier("inventory.voice.guidance.toggle")
+
                 if isShowingVoiceGuidance {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Say one item at a time using its name, quantity, and unit.")
-                            .accessibilityIdentifier("inventory.voice.guidance")
 
                         Text("For example: Flour 800 grams, Strawberries 100 grams, or Eggs 12 pieces.")
-                            .accessibilityIdentifier("inventory.voice.guidance.examples")
 
                         Text("Pause between items to start a new line. You can edit the transcript before creating drafts.")
                     }
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("inventory.voice.guidance")
                 }
 
                 Text("Recognition stays on this iPhone and uses the current iPhone language.")
@@ -340,23 +368,6 @@ struct VoiceInventoryImportView: View {
                 }
                 .disabled(viewModel.voiceInventoryTranscript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityIdentifier("inventory.voice.createDrafts")
-            } header: {
-                HStack {
-                    Text("Voice Inventory")
-
-                    Spacer()
-
-                    Button {
-                        isShowingVoiceGuidance.toggle()
-                    } label: {
-                        Image(systemName: "info.circle")
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(
-                        isShowingVoiceGuidance ? "Hide voice inventory guidance" : "Show voice inventory guidance"
-                    )
-                    .accessibilityIdentifier("inventory.voice.guidance.toggle")
-                }
             }
 
             if !viewModel.voiceInventoryDrafts.isEmpty {
@@ -385,7 +396,13 @@ struct VoiceInventoryImportView: View {
             }
         }
         .cloudBakeFormScreenStyle()
-        .navigationTitle("Add by Voice")
+        .safeAreaInset(edge: .top, spacing: 0) {
+            InventoryImportScreenHeader(
+                title: "Add by Voice",
+                accessibilityIdentifier: "inventory.voice.screenTitle"
+            )
+        }
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -547,6 +564,27 @@ struct VoiceInventoryImportView: View {
             return "Requesting Access"
         }
         return recognitionSession.isListening ? "Stop Listening" : "Start Listening"
+    }
+}
+
+private struct InventoryImportScreenHeader: View {
+    let title: String
+    let accessibilityIdentifier: String
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(CloudBakeTheme.Typography.screenTitle)
+                .foregroundStyle(.primary)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier(accessibilityIdentifier)
+
+            Spacer()
+        }
+        .padding(.horizontal, CloudBakeTheme.Spacing.screenHorizontal)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(CloudBakeScreenBackground())
     }
 }
 
