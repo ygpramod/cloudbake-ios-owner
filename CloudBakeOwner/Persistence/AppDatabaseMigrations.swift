@@ -884,6 +884,42 @@ enum AppDatabaseMigrations {
             )
         }
 
+        migrator.registerMigration("0041_add_structured_order_requirements") { db in
+            for tableName in ["orders", "order_templates"] {
+                try db.alter(table: tableName) { table in
+                    table.add(column: "cake_occasion", .text)
+                    table.add(column: "cake_servings", .integer)
+                    table.add(column: "cake_size", .text)
+                    table.add(column: "cake_weight_kilograms_decimal", .text)
+                    table.add(column: "cake_shape", .text)
+                    table.add(column: "cake_tiers", .text)
+                    table.add(column: "cake_sponge_flavour", .text)
+                    table.add(column: "cake_filling", .text)
+                    table.add(column: "cake_frosting", .text)
+                    table.add(column: "cake_colour_palette", .text)
+                    table.add(column: "cake_theme", .text)
+                    table.add(column: "cake_topper_requirements", .text)
+                    table.add(column: "cake_candles_accessories", .text)
+                    table.add(column: "cake_packaging", .text)
+                }
+            }
+
+            try db.create(table: "order_cake_requirement_choices") { table in
+                table.column("id", .text).primaryKey()
+                table.column("field", .text).notNull()
+                table.column("value", .text).notNull()
+                table.column("normalized_value", .text).notNull()
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+                table.uniqueKey(["field", "normalized_value"])
+            }
+            try db.create(
+                index: "order_cake_requirement_choices_on_field_value",
+                on: "order_cake_requirement_choices",
+                columns: ["field", "value", "id"]
+            )
+        }
+
         return migrator
     }
 }

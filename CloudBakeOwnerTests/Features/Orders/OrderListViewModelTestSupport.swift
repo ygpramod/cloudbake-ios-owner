@@ -127,6 +127,7 @@ func orderWithPayment(
         deliveryAddress: order.deliveryAddress,
         cakeNotes: order.cakeNotes,
         cakeMessage: order.cakeMessage,
+        cakeSpecification: order.cakeSpecification,
         quotedPrice: order.quotedPrice,
         depositPaid: depositPaid,
         paymentNotes: order.paymentNotes,
@@ -152,6 +153,7 @@ func orderWithoutRecordedPayment(_ order: Order) -> Order {
         deliveryAddress: order.deliveryAddress,
         cakeNotes: order.cakeNotes,
         cakeMessage: order.cakeMessage,
+        cakeSpecification: order.cakeSpecification,
         quotedPrice: order.quotedPrice,
         depositPaid: nil,
         paymentNotes: order.paymentNotes,
@@ -352,6 +354,7 @@ final class FakeOrderRepository: OrderRepository,
     var extraIngredients: [OrderExtraIngredient] = []
     var checklistItems: [OrderChecklistItem] = []
     var orderTemplates: [OrderTemplate] = []
+    var cakeRequirementChoices: [OrderCakeRequirementField: [String]] = [:]
     var orderPhotos: [OrderPhoto] = []
     var inventoryReservations: [OrderInventoryReservation] = []
     var inventoryReservationEvents: [OrderInventoryReservationEvent] = []
@@ -958,6 +961,23 @@ final class FakeOrderRepository: OrderRepository,
 
     func deleteOrderTemplate(id: String) throws {
         orderTemplates.removeAll { $0.id == id }
+    }
+
+    func fetchOrderCakeRequirementChoices(field: OrderCakeRequirementField) throws -> [String] {
+        cakeRequirementChoices[field] ?? []
+    }
+
+    func saveOrderCakeRequirementChoices(
+        _ choices: [(field: OrderCakeRequirementField, value: String)],
+        at _: Date
+    ) throws {
+        for choice in choices {
+            cakeRequirementChoices[choice.field] = OrderCakeSpecification.mergedChoices(
+                defaults: [],
+                saved: cakeRequirementChoices[choice.field] ?? [],
+                current: choice.value
+            )
+        }
     }
 
     func deleteOrderPhoto(id: String, cleanupRelativePath: String?) throws {

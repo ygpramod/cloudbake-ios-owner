@@ -4,6 +4,30 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class GRDBCoreDataRepositoryTests: XCTestCase {
+    func testOrderCakeRequirementChoicesAreCaseInsensitivelyReusable() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let firstDate = Date(timeIntervalSince1970: 1_800_001_000)
+        let secondDate = firstDate.addingTimeInterval(60)
+
+        try repository.saveOrderCakeRequirementChoices(
+            [(.spongeFlavour, "Pandan"), (.shape, "Hexagon")],
+            at: firstDate
+        )
+        try repository.saveOrderCakeRequirementChoices(
+            [(.spongeFlavour, "pandan")],
+            at: secondDate
+        )
+
+        XCTAssertEqual(
+            try repository.fetchOrderCakeRequirementChoices(field: .spongeFlavour),
+            ["pandan"]
+        )
+        XCTAssertEqual(
+            try repository.fetchOrderCakeRequirementChoices(field: .shape),
+            ["Hexagon"]
+        )
+    }
+
     func testOrderTemplateRoundTripsAndDeletesChildren() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamp = Date(timeIntervalSince1970: 1_800_001_000)
@@ -19,6 +43,22 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             fulfillmentType: .pickup,
             cakeNotes: "Pink flowers",
             cakeMessage: "Happy Birthday",
+            cakeSpecification: OrderCakeSpecification(
+                occasion: "Birthday",
+                servings: 28,
+                size: "8 inch",
+                weightKilograms: 2,
+                shape: "Circle",
+                tiers: "2",
+                spongeFlavour: "Chocolate",
+                filling: "Chocolate ganache",
+                frosting: "Fondant",
+                colourPalette: "Pink and gold",
+                theme: "Floral",
+                topperRequirements: "Name topper",
+                candlesAndAccessories: "None",
+                packaging: "Standard Box"
+            ),
             reminderConfiguration: try OrderReminderConfiguration(
                 mode: .custom,
                 dayOffsets: [5, 1],
@@ -229,6 +269,22 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             deliveryAddress: "10 Cake Street",
             cakeNotes: "Vanilla sponge with pink flowers",
             cakeMessage: "Happy Birthday Amy",
+            cakeSpecification: OrderCakeSpecification(
+                occasion: "Birthday",
+                servings: 28,
+                size: "8 inch",
+                weightKilograms: 2,
+                shape: "Circle",
+                tiers: "2",
+                spongeFlavour: "Vanilla",
+                filling: "Strawberry compote",
+                frosting: "Buttercream",
+                colourPalette: "Pink",
+                theme: "Rose garden",
+                topperRequirements: "Happy Birthday topper",
+                candlesAndAccessories: "Gold candles",
+                packaging: "Tall Box"
+            ),
             quotedPrice: Decimal(string: "180.75"),
             depositPaid: Decimal(string: "50.25"),
             paymentNotes: "Deposit paid by bank transfer",
@@ -248,6 +304,7 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             deliveryAddress: order.deliveryAddress,
             cakeNotes: order.cakeNotes,
             cakeMessage: order.cakeMessage,
+            cakeSpecification: order.cakeSpecification,
             quotedPrice: order.quotedPrice,
             depositPaid: nil,
             paymentNotes: order.paymentNotes,

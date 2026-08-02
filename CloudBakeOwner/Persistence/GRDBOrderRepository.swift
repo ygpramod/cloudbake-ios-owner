@@ -1205,6 +1205,7 @@ extension GRDBCoreDataRepository {
             deliveryAddress: order.deliveryAddress,
             cakeNotes: order.cakeNotes,
             cakeMessage: order.cakeMessage,
+            cakeSpecification: order.cakeSpecification,
             quotedPrice: order.quotedPrice,
             depositPaid: order.depositPaid,
             paymentNotes: order.paymentNotes,
@@ -2051,6 +2052,55 @@ extension GRDBCoreDataRepository {
                 sql: "DELETE FROM order_templates WHERE id = ?",
                 arguments: [id]
             )
+        }
+    }
+
+    func fetchOrderCakeRequirementChoices(field: OrderCakeRequirementField) throws -> [String] {
+        try writer.read { db in
+            try String.fetchAll(
+                db,
+                sql: """
+                    SELECT value FROM order_cake_requirement_choices
+                    WHERE field = ?
+                    ORDER BY updated_at_unix_time DESC, value COLLATE NOCASE
+                    """,
+                arguments: [field.rawValue]
+            )
+        }
+    }
+
+    func saveOrderCakeRequirementChoices(
+        _ choices: [(field: OrderCakeRequirementField, value: String)],
+        at date: Date
+    ) throws {
+        try writer.write { db in
+            for choice in choices {
+                let value = choice.value.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !value.isEmpty else { continue }
+                let normalizedValue = value.folding(
+                    options: [.caseInsensitive, .diacriticInsensitive],
+                    locale: .current
+                )
+                try db.execute(
+                    sql: """
+                        INSERT INTO order_cake_requirement_choices (
+                            id, field, value, normalized_value,
+                            created_at_unix_time, updated_at_unix_time
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(field, normalized_value) DO UPDATE SET
+                            value = excluded.value,
+                            updated_at_unix_time = excluded.updated_at_unix_time
+                        """,
+                    arguments: [
+                        UUID().uuidString,
+                        choice.field.rawValue,
+                        value,
+                        normalizedValue,
+                        date.timeIntervalSince1970,
+                        date.timeIntervalSince1970,
+                    ]
+                )
+            }
         }
     }
 
@@ -2917,6 +2967,20 @@ private extension GRDBCoreDataRepository {
                     delivery_address,
                     cake_notes,
                     cake_message,
+                    cake_occasion,
+                    cake_servings,
+                    cake_size,
+                    cake_weight_kilograms_decimal,
+                    cake_shape,
+                    cake_tiers,
+                    cake_sponge_flavour,
+                    cake_filling,
+                    cake_frosting,
+                    cake_colour_palette,
+                    cake_theme,
+                    cake_topper_requirements,
+                    cake_candles_accessories,
+                    cake_packaging,
                     quoted_price_decimal,
                     deposit_paid_decimal,
                     payment_notes,
@@ -2924,7 +2988,7 @@ private extension GRDBCoreDataRepository {
                     created_at_unix_time,
                     updated_at_unix_time
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                 customer_id = excluded.customer_id,
                 cake_design_id = excluded.cake_design_id,
@@ -2939,6 +3003,20 @@ private extension GRDBCoreDataRepository {
                 delivery_address = excluded.delivery_address,
                 cake_notes = excluded.cake_notes,
                 cake_message = excluded.cake_message,
+                cake_occasion = excluded.cake_occasion,
+                cake_servings = excluded.cake_servings,
+                cake_size = excluded.cake_size,
+                cake_weight_kilograms_decimal = excluded.cake_weight_kilograms_decimal,
+                cake_shape = excluded.cake_shape,
+                cake_tiers = excluded.cake_tiers,
+                cake_sponge_flavour = excluded.cake_sponge_flavour,
+                cake_filling = excluded.cake_filling,
+                cake_frosting = excluded.cake_frosting,
+                cake_colour_palette = excluded.cake_colour_palette,
+                cake_theme = excluded.cake_theme,
+                cake_topper_requirements = excluded.cake_topper_requirements,
+                cake_candles_accessories = excluded.cake_candles_accessories,
+                cake_packaging = excluded.cake_packaging,
                 quoted_price_decimal = excluded.quoted_price_decimal,
                 deposit_paid_decimal = excluded.deposit_paid_decimal,
                 payment_notes = excluded.payment_notes,
@@ -2961,6 +3039,20 @@ private extension GRDBCoreDataRepository {
                 order.deliveryAddress,
                 order.cakeNotes,
                 order.cakeMessage,
+                order.cakeSpecification.occasion,
+                order.cakeSpecification.servings,
+                order.cakeSpecification.size,
+                decimalString(order.cakeSpecification.weightKilograms),
+                order.cakeSpecification.shape,
+                order.cakeSpecification.tiers,
+                order.cakeSpecification.spongeFlavour,
+                order.cakeSpecification.filling,
+                order.cakeSpecification.frosting,
+                order.cakeSpecification.colourPalette,
+                order.cakeSpecification.theme,
+                order.cakeSpecification.topperRequirements,
+                order.cakeSpecification.candlesAndAccessories,
+                order.cakeSpecification.packaging,
                 decimalString(order.quotedPrice),
                 decimalString(order.depositPaid),
                 order.paymentNotes,
@@ -3166,6 +3258,7 @@ private extension GRDBCoreDataRepository {
             fulfillmentType: fulfillmentType,
             cakeNotes: row["cake_notes"],
             cakeMessage: row["cake_message"],
+            cakeSpecification: orderCakeSpecification(from: row),
             reminderConfiguration: reminderConfiguration,
             extraIngredients: extraIngredients,
             checklistItems: checklistItems,
@@ -3180,9 +3273,13 @@ private extension GRDBCoreDataRepository {
                 INSERT INTO order_templates
                 (id, name, cake_title, cake_design_id, recipe_id,
                  recipe_scale_multiplier_decimal, fulfillment_type, cake_notes, cake_message,
+                 cake_occasion, cake_servings, cake_size, cake_weight_kilograms_decimal,
+                 cake_shape, cake_tiers, cake_sponge_flavour, cake_filling, cake_frosting,
+                 cake_colour_palette, cake_theme, cake_topper_requirements,
+                 cake_candles_accessories, cake_packaging,
                  reminder_mode, reminder_day_offsets_json,
                  reminder_includes_due_time, created_at_unix_time, updated_at_unix_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     cake_title = excluded.cake_title,
@@ -3192,6 +3289,20 @@ private extension GRDBCoreDataRepository {
                     fulfillment_type = excluded.fulfillment_type,
                     cake_notes = excluded.cake_notes,
                     cake_message = excluded.cake_message,
+                    cake_occasion = excluded.cake_occasion,
+                    cake_servings = excluded.cake_servings,
+                    cake_size = excluded.cake_size,
+                    cake_weight_kilograms_decimal = excluded.cake_weight_kilograms_decimal,
+                    cake_shape = excluded.cake_shape,
+                    cake_tiers = excluded.cake_tiers,
+                    cake_sponge_flavour = excluded.cake_sponge_flavour,
+                    cake_filling = excluded.cake_filling,
+                    cake_frosting = excluded.cake_frosting,
+                    cake_colour_palette = excluded.cake_colour_palette,
+                    cake_theme = excluded.cake_theme,
+                    cake_topper_requirements = excluded.cake_topper_requirements,
+                    cake_candles_accessories = excluded.cake_candles_accessories,
+                    cake_packaging = excluded.cake_packaging,
                     reminder_mode = excluded.reminder_mode,
                     reminder_day_offsets_json = excluded.reminder_day_offsets_json,
                     reminder_includes_due_time = excluded.reminder_includes_due_time,
@@ -3207,6 +3318,20 @@ private extension GRDBCoreDataRepository {
                 template.fulfillmentType.rawValue,
                 template.cakeNotes,
                 template.cakeMessage,
+                template.cakeSpecification.occasion,
+                template.cakeSpecification.servings,
+                template.cakeSpecification.size,
+                decimalString(template.cakeSpecification.weightKilograms),
+                template.cakeSpecification.shape,
+                template.cakeSpecification.tiers,
+                template.cakeSpecification.spongeFlavour,
+                template.cakeSpecification.filling,
+                template.cakeSpecification.frosting,
+                template.cakeSpecification.colourPalette,
+                template.cakeSpecification.theme,
+                template.cakeSpecification.topperRequirements,
+                template.cakeSpecification.candlesAndAccessories,
+                template.cakeSpecification.packaging,
                 template.reminderConfiguration.mode.rawValue,
                 try orderReminderDayOffsetsJSON(template.reminderConfiguration.dayOffsets),
                 template.reminderConfiguration.includesDueTime,

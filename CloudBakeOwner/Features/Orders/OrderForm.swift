@@ -77,6 +77,8 @@ struct OrderForm: View {
                     .accessibilityIdentifier("orders.form.cakeMessage")
             }
 
+            OrderCakeSpecificationSection(viewModel: viewModel)
+
             if !viewModel.recipes.isEmpty {
                 Section("Recipe") {
                     Button {

@@ -421,6 +421,7 @@ struct OrderPhotoWorkflow {
             deliveryAddress: order.deliveryAddress,
             cakeNotes: order.cakeNotes,
             cakeMessage: order.cakeMessage,
+            cakeSpecification: order.cakeSpecification,
             quotedPrice: order.quotedPrice,
             depositPaid: order.depositPaid,
             paymentNotes: order.paymentNotes,

@@ -423,6 +423,7 @@ struct Order: Equatable {
     let deliveryAddress: String?
     let cakeNotes: String?
     let cakeMessage: String?
+    let cakeSpecification: OrderCakeSpecification
     let quotedPrice: Decimal?
     let depositPaid: Decimal?
     let paymentNotes: String?
@@ -476,6 +477,7 @@ struct Order: Equatable {
         deliveryAddress: String?,
         cakeNotes: String?,
         cakeMessage: String? = nil,
+        cakeSpecification: OrderCakeSpecification = .empty,
         quotedPrice: Decimal? = nil,
         depositPaid: Decimal? = nil,
         paymentNotes: String? = nil,
@@ -497,6 +499,7 @@ struct Order: Equatable {
         self.deliveryAddress = deliveryAddress
         self.cakeNotes = cakeNotes
         self.cakeMessage = cakeMessage
+        self.cakeSpecification = cakeSpecification
         self.quotedPrice = quotedPrice
         self.depositPaid = depositPaid
         self.paymentNotes = paymentNotes
@@ -818,11 +821,46 @@ struct OrderTemplate: Identifiable, Equatable {
     let fulfillmentType: OrderFulfillmentType
     let cakeNotes: String?
     let cakeMessage: String?
+    let cakeSpecification: OrderCakeSpecification
     let reminderConfiguration: OrderReminderConfiguration
     let extraIngredients: [OrderTemplateExtraIngredient]
     let checklistItems: [OrderTemplateChecklistItem]
     let createdAt: Date
     let updatedAt: Date
+
+    init(
+        id: String,
+        name: String,
+        cakeTitle: String,
+        cakeDesignId: String?,
+        recipeId: String?,
+        recipeScaleMultiplier: Decimal,
+        fulfillmentType: OrderFulfillmentType,
+        cakeNotes: String?,
+        cakeMessage: String?,
+        cakeSpecification: OrderCakeSpecification = .empty,
+        reminderConfiguration: OrderReminderConfiguration,
+        extraIngredients: [OrderTemplateExtraIngredient],
+        checklistItems: [OrderTemplateChecklistItem],
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.name = name
+        self.cakeTitle = cakeTitle
+        self.cakeDesignId = cakeDesignId
+        self.recipeId = recipeId
+        self.recipeScaleMultiplier = recipeScaleMultiplier
+        self.fulfillmentType = fulfillmentType
+        self.cakeNotes = cakeNotes
+        self.cakeMessage = cakeMessage
+        self.cakeSpecification = cakeSpecification
+        self.reminderConfiguration = reminderConfiguration
+        self.extraIngredients = extraIngredients
+        self.checklistItems = checklistItems
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
 struct OrderTemplateExtraIngredient: Identifiable, Equatable {
