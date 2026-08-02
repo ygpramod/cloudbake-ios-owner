@@ -25,7 +25,8 @@ exist on a new installation.
 3. Do not seed customer, delivery address, due date, status, quoted price, payment, recipe,
    inventory ingredient, design, photo, checklist, or history data.
 4. Keep starter requirements concise and editable. Empty fields remain empty rather than inventing
-   servings, weight, size, colour, topper, or accessory decisions the owner has not made.
+   servings, weight, size, sponge flavour, filling, frosting, colour, topper, or accessory
+   decisions the owner has not made.
 5. Seed through one database migration so existing installations receive the catalogue on upgrade
    and new installations receive it on first launch.
 6. Starter templates become ordinary owner templates after seeding. The owner may apply, rename, or
@@ -34,17 +35,23 @@ exist on a new installation.
 8. Use deterministic private identifiers and conflict-safe insertion so migration replay cannot
    duplicate a template.
 9. Templates are included automatically in the existing full database backup and restore.
+10. A normal tap on the Orders add button continues to create an order. A long press offers Create
+    Template without changing the normal tap behavior.
+11. Template creation offers Blank Template, Existing Order, and Another Template as starting
+    points. Order and template source lists are searchable.
+12. Every path opens an editable template draft. The editor excludes customer, due date, status,
+    quoted price, payments, payment notes, and delivery address, and saving never creates an order.
 
 ## Starter Contents
 
 | Template | Occasion | Shape/Tiers | Sponge | Filling/Frosting | Theme | Packaging |
 | --- | --- | --- | --- | --- | --- | --- |
-| Classic Birthday Cake | Birthday | Circle / 1 | Vanilla | Buttercream / Buttercream | — | Standard Box |
-| Chocolate Birthday Cake | Birthday | Circle / 1 | Chocolate | Chocolate Ganache / Ganache | — | Standard Box |
-| Anniversary Cake | Anniversary | Circle / 1 | Vanilla | Fruit / Buttercream | Elegant | Standard Box |
-| Baby Shower Cake | Baby Shower | Circle / 1 | Vanilla | Buttercream / Buttercream | Baby Shower | Standard Box |
-| Floral Celebration Cake | Celebration | Circle / 1 | Vanilla | Fruit / Buttercream | Floral | Tall Box |
-| Two-Tier Wedding Cake | Wedding | Circle / 2 | Vanilla | Fruit / Buttercream | Elegant | Tall Box |
+| Classic Birthday Cake | Birthday | Circle / 1 | Not set | Not set | — | Standard Box |
+| Chocolate Birthday Cake | Birthday | Circle / 1 | Not set | Not set | — | Standard Box |
+| Anniversary Cake | Anniversary | Circle / 1 | Not set | Not set | Elegant | Standard Box |
+| Baby Shower Cake | Baby Shower | Circle / 1 | Not set | Not set | Baby Shower | Standard Box |
+| Floral Celebration Cake | Celebration | Circle / 1 | Not set | Not set | Floral | Tall Box |
+| Two-Tier Wedding Cake | Wedding | Circle / 2 | Not set | Not set | Elegant | Tall Box |
 
 All starters default topper and candles/accessories to None. Values omitted from this table remain
 empty.
@@ -56,6 +63,9 @@ empty.
 3. Deleting or renaming a starter remains durable after repository reload.
 4. A focused acceptance test opens Add Order, applies one starter, and verifies the structured
    requirement summary while customer and commercial inputs remain empty.
+5. Acceptance coverage long-presses the Orders add button, proves all three source choices are
+   available, saves a blank template without creating an order, and opens editable drafts from an
+   existing order and another template.
 
 ## Out Of Scope
 

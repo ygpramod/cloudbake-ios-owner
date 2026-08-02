@@ -170,6 +170,9 @@ plain-English order summary are specified in
 `docs/rfc/slices/0131-structured-order-requirements.md`.
 A once-seeded, fully editable starter order-template catalogue is specified in
 `docs/rfc/slices/0132-starter-order-template-catalogue.md`.
+The same slice keeps starter sponge, filling, and frosting choices unset and adds long-press
+template creation from a blank draft, an existing order, or another template without changing the
+normal Add Order tap.
 Order detail can change status without opening the full edit form. Moving an order with an unused
 linked recipe to Ready or Completed records one-time recipe usage and deducts recipe
 ingredients from inventory through
