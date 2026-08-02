@@ -240,6 +240,9 @@ The app currently supports:
     customer, cake, fulfilment, recipe, extra-ingredient, design, reminder, and checklist details
     while resetting due time and excluding price, payment, photo, inventory, status, and completion
     history.
+145. named reusable order templates for cake, fulfilment, recipe, extra-ingredient, saved-design,
+    reminder, and checklist combinations, with Add Order application plus rename/delete management
+    and structural exclusion of customer, due date, status, price, payment, photo, and history data.
 
 ## Partially Prepared
 

@@ -488,6 +488,7 @@ Today, the owner can:
 23. add customer reference photos and final cake photos from the camera or photo library,
 24. preview, caption, and delete saved order photos from order detail,
 25. duplicate an existing order into the standard Add Order form for review before saving.
+26. save, apply, rename, and delete named reusable order templates.
 
 A new order starts with a due time one calendar day after creation, rounded to the nearest whole
 hour. For example, 12:23 PM defaults to 12:00 PM the next day, while 12:31 PM defaults to 1:00 PM
@@ -500,6 +501,15 @@ time is recalculated using the normal next-day nearest-hour rule, and checklist 
 incomplete. Quoted price, payments, payment notes, customer-reference and final photos, inventory
 reservations or deductions, actual costs, status, and completion history are not copied. Cancel
 discards the draft without changing either order.
+
+For combinations used repeatedly, configure the reusable fields in Add Order and choose Save Current
+as Template. Name the template, then select it later through Use Order Template. Templates include
+cake details, pickup or delivery, linked recipe and multiplier, extra ingredients, linked saved
+design, reminders, and checklist titles. They never include customer, due date, status, quoted
+price, payments, payment notes, photos, reservations, inventory consumption, actual costs, or
+history. Applying a template keeps any customer and due date already entered in the current draft,
+clears commercial inputs, and does not create an order until Save is selected. Swipe a template in
+the template library to rename or delete it; existing orders are unchanged.
 
 Active orders are grouped by due day, with orders inside each day ordered by delivery or pickup time
 ascending. Completed and cancelled orders are kept out of active work and appear in a simple
@@ -593,9 +603,9 @@ to deduct.
 Order detail includes a Checklist section for owner preparation tasks such as crumb coat, topper
 pickup, box ready, or final photo. The owner can add checklist items, edit item titles, and tap any
 checklist row to mark it complete or incomplete. Checklist items stay in entry order and can be
-deleted from order detail. Add Order also shows checklist items copied during duplication and lets
-the owner add or remove rows before saving. Checklist reordering, reusable templates, and
-checklist-driven status changes are future work.
+deleted from order detail. Add Order also shows checklist items copied during duplication or a
+reusable order template and lets the owner add or remove rows before saving. Checklist reordering
+and checklist-driven status changes are future work.
 
 Add Order includes quoted price, an optional initial payment, and payment notes. The initial payment
 is saved atomically with the order as its opening receipt. Amount Paid is read-only in Edit Order.
