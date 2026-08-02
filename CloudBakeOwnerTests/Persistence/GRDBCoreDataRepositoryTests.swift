@@ -140,7 +140,9 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             try db.execute(sql: "DELETE FROM cake_designs WHERE id = ?", arguments: [design.id])
         }
 
-        let unlinkedTemplate = try XCTUnwrap(repository.fetchOrderTemplates().first)
+        let unlinkedTemplate = try XCTUnwrap(
+            repository.fetchOrderTemplates().first { $0.id == template.id }
+        )
         XCTAssertNil(unlinkedTemplate.recipeId)
         XCTAssertNil(unlinkedTemplate.cakeDesignId)
         XCTAssertEqual(unlinkedTemplate.extraIngredients, template.extraIngredients)
@@ -717,6 +719,46 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         ) { error in
             XCTAssertEqual(error as? OrderPageQueryError, .invalidDateRange)
         }
+    }
+
+    func testTemplateSourceOrderSearchFindsMatchesBeyondFirstPage() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        for index in 0..<30 {
+            let id = index == 0 ? "needle-order" : "order-\(index)"
+            try repository.save(
+                pagedOrder(
+                    id: id,
+                    status: .confirmed,
+                    dueAt: timestamp.addingTimeInterval(TimeInterval(index * 60))
+                )
+            )
+        }
+
+        let firstPage = try repository.fetchOrderPage(
+            query: .all(searchText: ""),
+            after: nil,
+            limit: 25
+        )
+        XCTAssertEqual(firstPage.orders.count, 25)
+        XCTAssertFalse(firstPage.orders.contains { $0.id == "needle-order" })
+        let cursor = try XCTUnwrap(firstPage.nextCursor)
+
+        let secondPage = try repository.fetchOrderPage(
+            query: .all(searchText: ""),
+            after: cursor,
+            limit: 25
+        )
+        XCTAssertEqual(secondPage.orders.count, 5)
+        XCTAssertTrue(secondPage.orders.contains { $0.id == "needle-order" })
+
+        let searchPage = try repository.fetchOrderPage(
+            query: .all(searchText: "Needle"),
+            after: nil,
+            limit: 25
+        )
+        XCTAssertEqual(searchPage.orders.map(\.id), ["needle-order"])
+        XCTAssertNil(searchPage.nextCursor)
     }
 
     func testThousandOrderFixtureKeepsMainPagesBoundedIndexedAndUsesBoundedStatements() throws {

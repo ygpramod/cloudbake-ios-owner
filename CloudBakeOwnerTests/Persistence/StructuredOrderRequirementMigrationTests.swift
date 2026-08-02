@@ -58,7 +58,9 @@ final class StructuredOrderRequirementMigrationTests: XCTestCase {
             .empty
         )
         XCTAssertEqual(
-            try repository.fetchOrderTemplates().first?.cakeSpecification,
+            try repository.fetchOrderTemplates().first {
+                $0.id == "legacy-structured-template"
+            }?.cakeSpecification,
             .empty
         )
         XCTAssertTrue(
