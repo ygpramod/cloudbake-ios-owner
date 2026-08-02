@@ -631,7 +631,10 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
-    func saveCurrentDraftAsTemplate(named name: String) -> Bool {
+    func saveCurrentDraftAsTemplate(
+        named name: String,
+        replacing existingTemplate: OrderTemplate? = nil
+    ) -> Bool {
         let trimmedName = TextInputFormatting.trimmed(name)
         guard !trimmedName.isEmpty else {
             errorMessage = "Template name is required."
@@ -651,7 +654,7 @@ final class OrderListViewModel: ObservableObject {
         do {
             let now = dateProvider()
             let template = OrderTemplate(
-                id: idGenerator(),
+                id: existingTemplate?.id ?? idGenerator(),
                 name: trimmedName,
                 cakeTitle: TextInputFormatting.trimmed(draftTitle),
                 cakeDesignId: draftCakeDesignId.isEmpty ? nil : draftCakeDesignId,
@@ -679,7 +682,7 @@ final class OrderListViewModel: ObservableObject {
                         sortOrder: index
                     )
                 },
-                createdAt: now,
+                createdAt: existingTemplate?.createdAt ?? now,
                 updatedAt: now
             )
             try repository.save(template)
