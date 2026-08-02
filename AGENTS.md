@@ -53,6 +53,9 @@ It must:
   `CloudBakeDetailRow` for detail/settings rows, `cloudBakeFormScreenStyle()` for forms,
   native `Alert` for short input/acknowledgement flows, and native `confirmationDialog` for
   confirmations and choices.
+- Do not ship a user-facing screen, sheet, search surface, or workflow that looks visually detached
+  from CloudBake. Use the shared background, typography, spacing, search, card, and form primitives
+  wherever those patterns apply.
 - Owner-facing transient decisions must use native iOS presentation:
   `Menu` for anchored compact choices, `confirmationDialog` for action lists and confirmations,
   `Alert` for acknowledgement or short supported text input, and a sheet only when the workflow

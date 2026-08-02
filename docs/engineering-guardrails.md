@@ -52,6 +52,9 @@ A slice is done only when:
 
 ## UI Consistency
 
+- No user-facing screen, sheet, or workflow may look visually detached from CloudBake. Full-screen
+  and sheet content must use the shared CloudBake background, typography, spacing, search, card,
+  and form primitives wherever those patterns apply.
 - Reuse the established CloudBake visual language before adding new styling.
 - Use `CloudBakeTheme` semantic tokens for repeated colors, typography, spacing, corner radii,
   elevation, and app chrome. Do not add raw feature-local styling values when a shared token exists.
@@ -67,6 +70,9 @@ A slice is done only when:
 - Use a native sheet when a workflow needs richer controls that an alert cannot safely host.
   Preserve destructive roles, explicit cancel behavior, concise copy, and accessibility
   identifiers for acceptance-testable actions.
+- Native iOS presentation and CloudBake styling are complementary: dialogs, menus, and system
+  pickers remain native, while any custom content inside a sheet must retain CloudBake's visual
+  language.
 - Native dialog cancellation must run the same cleanup exactly once whether the owner chooses
   Cancel, uses the accessibility escape action, or dismisses a system popover by tapping outside.
 - Do not introduce custom popup overlays, one-off dialog styling, nested cards inside system
