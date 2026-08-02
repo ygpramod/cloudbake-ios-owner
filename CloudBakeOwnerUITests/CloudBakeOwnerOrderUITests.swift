@@ -1,6 +1,93 @@
 import XCTest
 
 extension CloudBakeOwnerUITests {
+    func testOrderAddLongPressCanCreateABlankTemplate() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        openDashboardDestination("Orders", in: app)
+        let addOrder = app.buttons["orders.add"]
+        XCTAssertTrue(addOrder.waitForExistence(timeout: transitionTimeout))
+        addOrder.press(forDuration: 1)
+
+        let createTemplate = app.buttons["Create Template"]
+        XCTAssertTrue(createTemplate.waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(createTemplate, timeout: transitionTimeout)
+        let blankTemplate = nativeDialogAction(labeled: "Blank Template", in: app)
+        XCTAssertTrue(blankTemplate.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(nativeDialogAction(labeled: "Existing Order", in: app).exists)
+        XCTAssertTrue(nativeDialogAction(labeled: "Another Template", in: app).exists)
+        tapWhenReady(blankTemplate, timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["New Template"].waitForExistence(timeout: transitionTimeout))
+        let templateName = app.textFields["orders.template.form.name"]
+        typeText("Quick Custom Template", into: templateName, timeout: transitionTimeout)
+        dismissKeyboard(in: app)
+        tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
+
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["No orders yet"].exists)
+        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.form.template.choose"], timeout: transitionTimeout)
+        XCTAssertTrue(
+            app.buttons.matching(
+                NSPredicate(format: "label CONTAINS %@", "Quick Custom Template")
+            ).firstMatch.waitForExistence(timeout: transitionTimeout)
+        )
+    }
+
+    func testOrderAddLongPressCanStartFromOrderOrTemplate() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_CUSTOMER_LINK_FIXTURE"] = "1"
+        app.launch()
+
+        openDashboardDestination("Orders", in: app)
+        openTemplateSource("Existing Order", in: app, timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Choose Order"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            app.buttons["orders.template.source.order.order-ui-fixture-customer-link"],
+            timeout: transitionTimeout
+        )
+        XCTAssertTrue(app.navigationBars["New Template"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertEqual(
+            app.textFields["orders.template.form.name"].value as? String,
+            "Vanilla Birthday Template"
+        )
+        XCTAssertEqual(app.textFields["orders.form.title"].value as? String, "Vanilla Birthday")
+        tapWhenReady(app.buttons["orders.form.cancel"], timeout: transitionTimeout)
+
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
+        openTemplateSource("Another Template", in: app, timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Choose Template"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            app.buttons["orders.template.source.template.starter-template-two-tier-wedding"],
+            timeout: transitionTimeout
+        )
+        XCTAssertTrue(app.navigationBars["New Template"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertEqual(
+            app.textFields["orders.template.form.name"].value as? String,
+            "Two-Tier Wedding Cake Copy"
+        )
+        XCTAssertEqual(
+            app.textFields["orders.form.title"].value as? String,
+            "Two-Tier Wedding Cake"
+        )
+    }
+
+    private func openTemplateSource(
+        _ source: String,
+        in app: XCUIApplication,
+        timeout: TimeInterval
+    ) {
+        let addOrder = app.buttons["orders.add"]
+        XCTAssertTrue(addOrder.waitForExistence(timeout: timeout))
+        addOrder.press(forDuration: 1)
+        tapWhenReady(app.buttons["Create Template"], timeout: timeout)
+        tapWhenReady(nativeDialogAction(labeled: source, in: app), timeout: timeout)
+    }
+
     func testStarterOrderTemplateCanBeAppliedOnFirstUse() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
