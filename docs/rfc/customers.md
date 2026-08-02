@@ -64,6 +64,8 @@ The app should make customer memory useful without becoming a heavy CRM.
 - The owner must be able to edit customer details after creation.
 - The owner must be able to delete a customer record after confirmation.
 - The owner must be able to search or select an existing customer when creating an order.
+- The owner must be able to start a new unsaved order from a specific order in customer history
+  using the safe order-duplication contract.
 
 ## Non Functional Requirements
 
@@ -159,6 +161,9 @@ presentation inside order detail is implemented in
 `docs/rfc/slices/0040-order-customer-preferences.md`.
 Customer order history in customer detail is implemented in
 `docs/rfc/slices/0041-customer-order-history.md`.
+Starting a new unsaved order from a specific customer-history entry is implemented in
+`docs/rfc/slices/0130-customer-previous-order.md`. It reuses cake and fulfilment details while
+excluding commercial, photo, inventory, completion, and transaction history.
 Searchable customer record selection from the order form is implemented in
 `docs/rfc/slices/0042-order-customer-search-selection.md`.
 iPad customer list/detail layout is deferred until iPad support is reintroduced by a future RFC.
@@ -177,6 +182,7 @@ Customers should eventually include these screens:
 - Customer detail view.
 - Edit customer flow.
 - Customer order history.
+- New order from a customer-history entry.
 - Customer selection from add order.
 - Customer deletion from detail.
 
