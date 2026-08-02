@@ -626,6 +626,12 @@ protocol OrderChecklistRepository {
     func deleteOrderChecklistItem(id: String) throws
 }
 
+protocol OrderTemplateRepository {
+    func fetchOrderTemplates() throws -> [OrderTemplate]
+    func save(_ template: OrderTemplate) throws
+    func deleteOrderTemplate(id: String) throws
+}
+
 protocol OrderPhotoRepository {
     func save(_ photo: OrderPhoto) throws
     func fetchOrderPhoto(id: String) throws -> OrderPhoto?

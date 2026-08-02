@@ -4,6 +4,57 @@ import XCTest
 @testable import CloudBakeOwner
 
 final class GRDBCoreDataRepositoryTests: XCTestCase {
+    func testOrderTemplateRoundTripsAndDeletesChildren() throws {
+        let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_001_000)
+        let inventoryItem = makeInventoryItem(id: "template-inventory", name: "Berries")
+        try repository.save(inventoryItem)
+        let template = OrderTemplate(
+            id: "template-birthday",
+            name: "Birthday Standard",
+            cakeTitle: "Vanilla Birthday",
+            cakeDesignId: nil,
+            recipeId: nil,
+            recipeScaleMultiplier: 1,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: "Pink flowers",
+            cakeMessage: "Happy Birthday",
+            reminderConfiguration: try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [5, 1],
+                includesDueTime: false
+            ),
+            extraIngredients: [
+                OrderTemplateExtraIngredient(
+                    id: "template-extra",
+                    inventoryItemId: inventoryItem.id,
+                    quantity: 100,
+                    unit: .gram,
+                    note: "Decoration",
+                    sortOrder: 0
+                )
+            ],
+            checklistItems: [
+                OrderTemplateChecklistItem(
+                    id: "template-checklist",
+                    title: "Add topper",
+                    sortOrder: 0
+                )
+            ],
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.save(template)
+
+        XCTAssertEqual(try repository.fetchOrderTemplates(), [template])
+
+        try repository.deleteOrderTemplate(id: template.id)
+
+        XCTAssertTrue(try repository.fetchOrderTemplates().isEmpty)
+    }
+
     func testCoreEntitiesRoundTripThroughFreshDatabase() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamps = TestTimestamps(

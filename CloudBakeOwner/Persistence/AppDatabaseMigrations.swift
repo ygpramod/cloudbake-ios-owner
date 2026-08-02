@@ -577,7 +577,7 @@ enum AppDatabaseMigrations {
                     """,
                 arguments: [
                     OrderStatus.confirmed.rawValue,
-                    OrderStatus.inProgress.rawValue
+                    OrderStatus.inProgress.rawValue,
                 ]
             )
         }
@@ -772,7 +772,7 @@ enum AppDatabaseMigrations {
                 columns: [
                     "expires_at_unix_time",
                     "remaining_quantity",
-                    "id"
+                    "id",
                 ]
             )
         }
@@ -823,6 +823,66 @@ enum AppDatabaseMigrations {
                 table.column("voided_at_unix_time", .double).notNull()
                 table.column("created_at_unix_time", .double).notNull()
             }
+        }
+
+        migrator.registerMigration("0040_add_order_templates") { db in
+            try db.create(table: "order_templates") { table in
+                table.column("id", .text).primaryKey()
+                table.column("name", .text).notNull()
+                table.column("cake_title", .text).notNull()
+                table.column("cake_design_id", .text)
+                    .references("cake_designs", onDelete: .setNull)
+                table.column("recipe_id", .text)
+                    .references("recipes", onDelete: .setNull)
+                table.column("recipe_scale_multiplier_decimal", .text).notNull()
+                table.column("fulfillment_type", .text).notNull()
+                table.column("delivery_address", .text)
+                table.column("cake_notes", .text)
+                table.column("cake_message", .text)
+                table.column("reminder_mode", .text).notNull()
+                table.column("reminder_day_offsets_json", .text).notNull()
+                table.column("reminder_includes_due_time", .boolean).notNull()
+                table.column("created_at_unix_time", .double).notNull()
+                table.column("updated_at_unix_time", .double).notNull()
+            }
+            try db.create(
+                index: "order_templates_on_name_id",
+                on: "order_templates",
+                columns: ["name", "id"]
+            )
+
+            try db.create(table: "order_template_extra_ingredients") { table in
+                table.column("id", .text).primaryKey()
+                table.column("template_id", .text)
+                    .notNull()
+                    .references("order_templates", onDelete: .cascade)
+                table.column("inventory_item_id", .text)
+                    .notNull()
+                    .references("inventory_items", onDelete: .restrict)
+                table.column("quantity", .double).notNull()
+                table.column("unit", .text).notNull()
+                table.column("note", .text)
+                table.column("sort_order", .integer).notNull()
+            }
+            try db.create(
+                index: "order_template_extra_ingredients_on_template_order",
+                on: "order_template_extra_ingredients",
+                columns: ["template_id", "sort_order", "id"]
+            )
+
+            try db.create(table: "order_template_checklist_items") { table in
+                table.column("id", .text).primaryKey()
+                table.column("template_id", .text)
+                    .notNull()
+                    .references("order_templates", onDelete: .cascade)
+                table.column("title", .text).notNull()
+                table.column("sort_order", .integer).notNull()
+            }
+            try db.create(
+                index: "order_template_checklist_items_on_template_order",
+                on: "order_template_checklist_items",
+                columns: ["template_id", "sort_order", "id"]
+            )
         }
 
         return migrator

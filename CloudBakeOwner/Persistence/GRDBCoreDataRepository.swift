@@ -46,13 +46,15 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
     OrderInventoryReservationMutationRepository,
     OrderReminderPlanOrderMutationRepository,
     OrderChecklistRepository,
+    OrderTemplateRepository,
     OrderPhotoRepository,
     InventoryTransactionRepository,
     InventoryStockBatchRepository,
     InventoryExpiryReminderRepository,
     VoiceInventoryImportRepository,
     ExpiredStockDisposalRepository,
-    PricingRuleRepository {
+    PricingRuleRepository
+{
     let writer: any DatabaseWriter
     let idProvider: () -> String
 
@@ -90,8 +92,9 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 
     func inventoryAliases(from json: String?) -> [String] {
         guard let json,
-              let data = json.data(using: .utf8),
-              let aliases = try? JSONDecoder().decode([String].self, from: data) else {
+            let data = json.data(using: .utf8),
+            let aliases = try? JSONDecoder().decode([String].self, from: data)
+        else {
             return []
         }
 
@@ -100,7 +103,8 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 
     func inventoryAliasesJSON(_ aliases: [String]) -> String {
         guard let data = try? JSONEncoder().encode(InventoryAliases.aliases(from: aliases.joined(separator: "\n"))),
-              let json = String(data: data, encoding: .utf8) else {
+            let json = String(data: data, encoding: .utf8)
+        else {
             return "[]"
         }
 
@@ -109,14 +113,16 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
 
     func designTags(from json: String?) -> [String] {
         guard let json,
-              let data = json.data(using: .utf8),
-              let tags = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+            let data = json.data(using: .utf8),
+            let tags = try? JSONDecoder().decode([String].self, from: data)
+        else { return [] }
         return DesignTags.normalized(tags)
     }
 
     func designTagsJSON(_ tags: [String]) -> String {
         guard let data = try? JSONEncoder().encode(DesignTags.normalized(tags)),
-              let json = String(data: data, encoding: .utf8) else { return "[]" }
+            let json = String(data: data, encoding: .utf8)
+        else { return "[]" }
         return json
     }
 
@@ -353,31 +359,33 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
                 """,
             arguments: [inventoryItemId]
         )
-        let expiredBatchCount = try Int.fetchOne(
-            db,
-            sql: """
-                SELECT COUNT(*)
-                FROM inventory_stock_batches
-                WHERE inventory_item_id = ?
-                AND remaining_quantity > 0
-                AND expires_at_unix_time IS NOT NULL
-                AND expires_at_unix_time < ?
-                """,
-            arguments: [inventoryItemId, nowUnixTime]
-        ) ?? 0
-        let expiringSoonBatchCount = try Int.fetchOne(
-            db,
-            sql: """
-                SELECT COUNT(*)
-                FROM inventory_stock_batches
-                WHERE inventory_item_id = ?
-                AND remaining_quantity > 0
-                AND expires_at_unix_time IS NOT NULL
-                AND expires_at_unix_time >= ?
-                AND expires_at_unix_time <= ?
-                """,
-            arguments: [inventoryItemId, nowUnixTime, expiringSoonThreshold.timeIntervalSince1970]
-        ) ?? 0
+        let expiredBatchCount =
+            try Int.fetchOne(
+                db,
+                sql: """
+                    SELECT COUNT(*)
+                    FROM inventory_stock_batches
+                    WHERE inventory_item_id = ?
+                    AND remaining_quantity > 0
+                    AND expires_at_unix_time IS NOT NULL
+                    AND expires_at_unix_time < ?
+                    """,
+                arguments: [inventoryItemId, nowUnixTime]
+            ) ?? 0
+        let expiringSoonBatchCount =
+            try Int.fetchOne(
+                db,
+                sql: """
+                    SELECT COUNT(*)
+                    FROM inventory_stock_batches
+                    WHERE inventory_item_id = ?
+                    AND remaining_quantity > 0
+                    AND expires_at_unix_time IS NOT NULL
+                    AND expires_at_unix_time >= ?
+                    AND expires_at_unix_time <= ?
+                    """,
+                arguments: [inventoryItemId, nowUnixTime, expiringSoonThreshold.timeIntervalSince1970]
+            ) ?? 0
 
         return (
             earliestExpiryAt: earliestExpiryUnixTime.map(Date.init(timeIntervalSince1970:)),
