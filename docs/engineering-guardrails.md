@@ -64,9 +64,11 @@ A slice is done only when:
   `CloudBakeDetailDivider`.
 - Data-entry flows should keep native controls and use `cloudBakeFormScreenStyle()` unless there is
   an explicit UX reason to introduce a different form shell.
-- Owner-facing transient decisions must use native iOS controls: `Menu` for anchored compact
-  choices, `confirmationDialog` for action lists and confirmations, and `Alert` for
-  acknowledgement or short supported text input.
+- Anchored/in-place action lists must use `Menu` and preserve the compact native presentation.
+- Branded multi-choice selection may use only the shared `cloudBakeActionPopup` component, with
+  full-row tap targets, semantic icon colors, outside-tap and accessibility-escape dismissal.
+- Destructive decisions and state-changing confirmations must use `confirmationDialog`; short
+  acknowledgement or supported text input must use `Alert`.
 - Use a native sheet when a workflow needs richer controls that an alert cannot safely host.
   Preserve destructive roles, explicit cancel behavior, concise copy, and accessibility
   identifiers for acceptance-testable actions.
@@ -75,8 +77,9 @@ A slice is done only when:
   language.
 - Native dialog cancellation must run the same cleanup exactly once whether the owner chooses
   Cancel, uses the accessibility escape action, or dismisses a system popover by tapping outside.
-- Do not introduce custom popup overlays, one-off dialog styling, nested cards inside system
-  dialogs, or custom action-button treatments.
+- Do not introduce feature-local popup overlays, one-off dialog styling, nested cards inside system
+  dialogs, or custom action-button treatments. Extend the shared popup only when the pattern is
+  reusable across the app.
 - If a new UI pattern is truly needed, document the reason in the slice RFC or PR, update these
   guardrails when the pattern becomes reusable, and avoid mixing the new pattern into unrelated
   screens in the same change.

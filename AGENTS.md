@@ -51,17 +51,18 @@ It must:
 - Reuse established CloudBake UI primitives before creating new visual structures:
   `CloudBakeScreenScaffold` for second-level screens, `CloudBakeDetailCard` and
   `CloudBakeDetailRow` for detail/settings rows, `cloudBakeFormScreenStyle()` for forms,
-  native `Alert` for short input/acknowledgement flows, and native `confirmationDialog` for
-  confirmations and choices.
+  native `Alert` for short input/acknowledgement flows, native `confirmationDialog` for destructive
+  or state-changing confirmations, native `Menu` for anchored action lists, and
+  `cloudBakeActionPopup` for branded multi-choice selection.
 - Do not ship a user-facing screen, sheet, search surface, or workflow that looks visually detached
   from CloudBake. Use the shared background, typography, spacing, search, card, and form primitives
   wherever those patterns apply.
-- Owner-facing transient decisions must use native iOS presentation:
-  `Menu` for anchored compact choices, `confirmationDialog` for action lists and confirmations,
-  `Alert` for acknowledgement or short supported text input, and a sheet only when the workflow
-  needs controls that a native alert cannot safely host.
+- Owner-facing transient decisions must use the matching shared presentation: `Menu` for anchored
+  compact choices, `cloudBakeActionPopup` for branded multi-choice selection,
+  `confirmationDialog` for destructive or state-changing confirmations, `Alert` for
+  acknowledgement or short supported text input, and a sheet only for richer controls.
 - Preserve destructive roles, clear cancel behavior, concise system copy, and stable accessibility
-  identifiers. Do not introduce a custom popup overlay or one-off dialog style.
+  identifiers. Do not introduce a feature-local popup overlay or one-off dialog style.
 - Avoid force unwraps, `try!`, `as!`, ignored errors, blocking the main thread, hardcoded API URLs,
   committed secrets, and silent failures.
 - Add or update unit, integration, and acceptance tests according to risk.
