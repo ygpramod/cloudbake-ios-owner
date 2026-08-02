@@ -531,8 +531,10 @@ price, payment, recipe, inventory, design, or history data. They behave like ord
 renaming or deleting one is permanent and it does not return on a later launch. Starter sponge,
 filling, and frosting values remain Not Set so the owner makes those choices for the actual work.
 
-To create a template directly, long-press the Orders `+` button and choose Create Template. Start
-with a blank template, search for an existing order, or search for another template. Each route
+To create a template directly, long-press the Orders `+` button. The native **Create New Template
+From** dialog immediately offers a blank template, an existing order, or another template. The
+order and template searches retain CloudBake's standard background, search field, and card styling.
+Each route
 opens an editable template draft. Customer, due date, status, delivery address, quoted price, and
 payment controls are excluded, and Save creates only the template. A normal tap on `+` continues to
 open Add Order.

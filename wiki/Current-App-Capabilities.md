@@ -252,8 +252,9 @@ The app currently supports:
 148. six once-seeded, fully editable starter order templates for common birthday, anniversary,
     baby-shower, celebration, and wedding combinations, without customer, commercial, recipe,
     inventory, design, or history data; starter sponge, filling, and frosting remain unset, while a
-    long press on Orders `+` can create an editable template from blank, an existing order, or
-    another template without creating an order.
+    long press on Orders `+` opens a native source dialog that can create an editable template from
+    blank, an existing order, or another template without creating an order; source searches use
+    CloudBake styling and repository-backed paginated order results.
 
 ## Partially Prepared
 

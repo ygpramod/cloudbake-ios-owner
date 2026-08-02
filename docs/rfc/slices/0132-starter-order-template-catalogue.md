@@ -35,10 +35,12 @@ exist on a new installation.
 8. Use deterministic private identifiers and conflict-safe insertion so migration replay cannot
    duplicate a template.
 9. Templates are included automatically in the existing full database backup and restore.
-10. A normal tap on the Orders add button continues to create an order. A long press offers Create
-    Template without changing the normal tap behavior.
-11. Template creation offers Blank Template, Existing Order, and Another Template as starting
-    points. Order and template source lists are searchable.
+10. A normal tap on the Orders add button continues to create an order. A long press directly opens
+    the native `Create New Template From` action dialog without changing the normal tap behavior.
+11. The dialog offers Blank Template, Existing Order, and Another Template as starting points.
+    Source searches use the established CloudBake background, search field, typography, spacing,
+    and cards. Order results are repository-backed and paginated rather than limited to the Orders
+    screen's currently loaded rows.
 12. Every path opens an editable template draft. The editor excludes customer, due date, status,
     quoted price, payments, payment notes, and delivery address, and saving never creates an order.
 
@@ -63,9 +65,9 @@ empty.
 3. Deleting or renaming a starter remains durable after repository reload.
 4. A focused acceptance test opens Add Order, applies one starter, and verifies the structured
    requirement summary while customer and commercial inputs remain empty.
-5. Acceptance coverage long-presses the Orders add button, proves all three source choices are
-   available, saves a blank template without creating an order, and opens editable drafts from an
-   existing order and another template.
+5. Acceptance coverage long-presses the Orders add button, proves the direct native source dialog
+   exposes all three choices, saves a blank template without creating an order, and opens editable
+   drafts from an existing order and another template.
 
 ## Out Of Scope
 
