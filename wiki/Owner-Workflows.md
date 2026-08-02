@@ -510,8 +510,9 @@ price, payments, payment notes, delivery address, photos, reservations, inventor
 actual costs, or history. Applying a template keeps any customer, customer-derived delivery
 address, and due date already entered in the current draft, clears commercial inputs, and does not
 create an order until Save is selected. Archived template ingredients are omitted with a warning to
-add an active replacement. Swipe a template in the template library to rename or delete it;
-existing orders are unchanged.
+add an active replacement. If a linked recipe was deleted, its dependent extra ingredients are
+also omitted with a warning to choose a recipe and review ingredients. Swipe a template in the
+template library to rename or delete it; existing orders are unchanged.
 
 Active orders are grouped by due day, with orders inside each day ordered by delivery or pickup time
 ascending. Completed and cancelled orders are kept out of active work and appear in a simple

@@ -437,6 +437,8 @@ final class OrderListViewModel: ObservableObject {
         draftDepositPaid = ""
         draftPaymentNotes = ""
         applyReminderConfiguration(template.reminderConfiguration)
+        let omittedIngredientsWithDeletedRecipe =
+            template.recipeId == nil && !template.extraIngredients.isEmpty
         var omittedUnavailableIngredient = false
         draftExtraIngredientRows = (template.recipeId == nil ? [] : template.extraIngredients).compactMap { ingredient in
             guard
@@ -461,10 +463,15 @@ final class OrderListViewModel: ObservableObject {
             OrderChecklistDraftItem(id: idGenerator(), title: item.title)
         }
         refreshDraftIngredientCost()
-        errorMessage =
-            omittedUnavailableIngredient
-            ? "Some template ingredients are archived and were not added. Add an active replacement before saving."
-            : nil
+        if omittedIngredientsWithDeletedRecipe {
+            errorMessage =
+                "The template recipe is no longer available, so its extra ingredients were not added. Choose a recipe and review ingredients before saving."
+        } else if omittedUnavailableIngredient {
+            errorMessage =
+                "Some template ingredients are archived and were not added. Add an active replacement before saving."
+        } else {
+            errorMessage = nil
+        }
     }
 
     func saveCurrentDraftAsTemplate(named name: String) -> Bool {

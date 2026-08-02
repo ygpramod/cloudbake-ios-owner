@@ -46,6 +46,8 @@ and payment inputs. A pickup template clears a hidden delivery address.
 - inventory used by a template extra ingredient remains protected from deletion,
 - archived template ingredients are omitted on application with a warning to add an active
   replacement,
+- deleting a linked recipe preserves the template but omits its dependent extra ingredients on
+  application with a warning to choose a recipe and review ingredients,
 - saving a template and replacing its child rows is atomic,
 - deleting a template cascades only to its own template child rows.
 
