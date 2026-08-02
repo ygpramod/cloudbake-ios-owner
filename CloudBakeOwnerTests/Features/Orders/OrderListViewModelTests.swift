@@ -118,6 +118,46 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.orderTemplates.isEmpty)
     }
 
+    func testTemplateWithDeletedRecipeDoesNotApplyHiddenExtraIngredients() {
+        let repository = FakeOrderRepository()
+        repository.inventoryItems = [
+            makeInventoryItem(id: "inventory-berries", name: "Berries")
+        ]
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let template = OrderTemplate(
+            id: "template-with-deleted-recipe",
+            name: "Historical Template",
+            cakeTitle: "Cake",
+            cakeDesignId: nil,
+            recipeId: nil,
+            recipeScaleMultiplier: 1,
+            fulfillmentType: .pickup,
+            deliveryAddress: nil,
+            cakeNotes: nil,
+            cakeMessage: nil,
+            reminderConfiguration: .initialDefault,
+            extraIngredients: [
+                OrderTemplateExtraIngredient(
+                    id: "stale-extra",
+                    inventoryItemId: "inventory-berries",
+                    quantity: 10,
+                    unit: .gram,
+                    note: nil,
+                    sortOrder: 0
+                )
+            ],
+            checklistItems: [],
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginAddingOrder()
+        viewModel.applyOrderTemplate(template)
+
+        XCTAssertTrue(viewModel.draftExtraIngredientRows.isEmpty)
+    }
+
     func testOrderDetailOnlyOffersDuplicateWhenHostProvidesWorkflow() {
         XCTAssertTrue(OrderDetailView.duplicateActions(onDuplicate: nil).isEmpty)
 

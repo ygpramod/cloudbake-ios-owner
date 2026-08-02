@@ -435,7 +435,7 @@ final class OrderListViewModel: ObservableObject {
         draftDepositPaid = ""
         draftPaymentNotes = ""
         applyReminderConfiguration(template.reminderConfiguration)
-        draftExtraIngredientRows = template.extraIngredients.map { ingredient in
+        draftExtraIngredientRows = (template.recipeId == nil ? [] : template.extraIngredients).map { ingredient in
             OrderExtraIngredientDraftRow(
                 id: idGenerator(),
                 existingIngredient: nil,
