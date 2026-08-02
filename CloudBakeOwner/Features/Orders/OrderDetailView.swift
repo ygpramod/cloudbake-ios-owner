@@ -247,6 +247,7 @@ struct OrderDetailView: View {
                 designSection(order: order)
                 photosSection
                 customerContextSection
+                cakeSpecificationSection(order: order)
                 notesSection(order: order)
                 paymentSection(order: order)
                 if viewModel.isIngredientCostBreakdownExpanded,
@@ -845,6 +846,67 @@ struct OrderDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 14)
+    }
+
+    @ViewBuilder
+    private func cakeSpecificationSection(order: Order) -> some View {
+        let rows = cakeSpecificationRows(order.cakeSpecification)
+        if order.cakeSpecification.summary != nil || !rows.isEmpty {
+            CloudBakeSection("Cake Requirements") {
+                CloudBakeDetailCard {
+                    if let summary = order.cakeSpecification.summary {
+                        orderDetailBlockRow("Summary") {
+                            Text(summary)
+                                .accessibilityIdentifier("orders.detail.cakeSpecification.summary")
+                        }
+                    }
+
+                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                        if index > 0 || order.cakeSpecification.summary != nil {
+                            CloudBakeDetailDivider()
+                        }
+                        CloudBakeDetailRow(row.label) {
+                            Text(row.value)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func cakeSpecificationRows(
+        _ specification: OrderCakeSpecification
+    ) -> [(label: String, value: String)] {
+        [
+            ("Occasion", specification.occasion),
+            ("Servings", specification.servings.map(String.init)),
+            ("Size", specification.size),
+            (
+                "Weight",
+                specification.weightKilograms.map {
+                    "\(NSDecimalNumber(decimal: $0).stringValue) kg"
+                }
+            ),
+            ("Shape", specification.shape),
+            ("Tiers", specification.tiers),
+            ("Sponge", specification.spongeFlavour),
+            ("Filling", specification.filling),
+            ("Frosting", specification.frosting),
+            ("Colour Palette", specification.colourPalette),
+            ("Theme", specification.theme),
+            ("Topper", meaningfulRequirement(specification.topperRequirements)),
+            ("Candles And Accessories", meaningfulRequirement(specification.candlesAndAccessories)),
+            ("Packaging", specification.packaging),
+        ].compactMap { label, value in
+            value.map { (label, $0) }
+        }
+    }
+
+    private func meaningfulRequirement(_ value: String?) -> String? {
+        guard let value, value.caseInsensitiveCompare("None") != .orderedSame else {
+            return nil
+        }
+        return value
     }
 
     @ViewBuilder

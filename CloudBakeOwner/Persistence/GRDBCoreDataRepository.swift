@@ -231,12 +231,32 @@ final class GRDBCoreDataRepository: InventoryItemRepository,
             deliveryAddress: row["delivery_address"],
             cakeNotes: row["cake_notes"],
             cakeMessage: row["cake_message"],
+            cakeSpecification: orderCakeSpecification(from: row),
             quotedPrice: optionalDecimal(row["quoted_price_decimal"]),
             depositPaid: optionalDecimal(row["deposit_paid_decimal"]),
             paymentNotes: row["payment_notes"],
             completedAt: optionalDate(row["completed_at_unix_time"]),
             createdAt: date(row["created_at_unix_time"]),
             updatedAt: date(row["updated_at_unix_time"])
+        )
+    }
+
+    func orderCakeSpecification(from row: Row) -> OrderCakeSpecification {
+        OrderCakeSpecification(
+            occasion: row["cake_occasion"],
+            servings: row["cake_servings"],
+            size: row["cake_size"],
+            weightKilograms: optionalDecimal(row["cake_weight_kilograms_decimal"]),
+            shape: row["cake_shape"],
+            tiers: row["cake_tiers"],
+            spongeFlavour: row["cake_sponge_flavour"],
+            filling: row["cake_filling"],
+            frosting: row["cake_frosting"],
+            colourPalette: row["cake_colour_palette"],
+            theme: row["cake_theme"],
+            topperRequirements: row["cake_topper_requirements"],
+            candlesAndAccessories: row["cake_candles_accessories"],
+            packaging: row["cake_packaging"]
         )
     }
 

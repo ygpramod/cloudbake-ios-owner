@@ -21,6 +21,14 @@ final class OrderListViewModelTests: XCTestCase {
             fulfillmentType: .delivery,
             cakeNotes: "Pink flowers",
             cakeMessage: "Happy Birthday",
+            cakeSpecification: OrderCakeSpecification(
+                occasion: "Birthday",
+                servings: 28,
+                weightKilograms: 2,
+                shape: "Circle",
+                spongeFlavour: "Chocolate",
+                packaging: "Tall Box"
+            ),
             reminderConfiguration: try OrderReminderConfiguration(
                 mode: .custom,
                 dayOffsets: [5, 1],
@@ -73,6 +81,12 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftCakeDesignId, "design-floral")
         XCTAssertEqual(viewModel.draftFulfillmentType, .delivery)
         XCTAssertEqual(viewModel.draftDeliveryAddress, "Amy's current address")
+        XCTAssertEqual(viewModel.draftCakeOccasion, "Birthday")
+        XCTAssertEqual(viewModel.draftCakeServings, "28")
+        XCTAssertEqual(viewModel.draftCakeWeightKilograms, "2")
+        XCTAssertEqual(viewModel.draftCakeShape, "Circle")
+        XCTAssertEqual(viewModel.draftCakeSpongeFlavour, "Chocolate")
+        XCTAssertEqual(viewModel.draftCakePackaging, "Tall Box")
         XCTAssertEqual(viewModel.draftQuotedPrice, "")
         XCTAssertEqual(viewModel.draftDepositPaid, "")
         XCTAssertEqual(viewModel.draftPaymentNotes, "")
@@ -99,6 +113,8 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.draftQuotedPrice = "150"
         viewModel.draftPaymentNotes = "Payment that must not be stored"
         viewModel.draftCakeNotes = "Ganache"
+        viewModel.draftCakeSpongeFlavour = "Pandan"
+        viewModel.draftCakePackaging = "Window Box"
         viewModel.draftFulfillmentType = .pickup
 
         XCTAssertTrue(viewModel.saveCurrentDraftAsTemplate(named: "  Chocolate Standard  "))
@@ -107,6 +123,9 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(saved.name, "Chocolate Standard")
         XCTAssertEqual(saved.cakeTitle, "Chocolate Cake")
         XCTAssertEqual(saved.cakeNotes, "Ganache")
+        XCTAssertEqual(saved.cakeSpecification.spongeFlavour, "Pandan")
+        XCTAssertEqual(saved.cakeSpecification.packaging, "Window Box")
+        XCTAssertEqual(repository.cakeRequirementChoices[.spongeFlavour], ["Pandan"])
 
         XCTAssertTrue(viewModel.renameOrderTemplate(saved, to: "Chocolate Celebration"))
         let renamed = try XCTUnwrap(repository.orderTemplates.first)
@@ -116,6 +135,24 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.deleteOrderTemplate(renamed))
         XCTAssertTrue(repository.orderTemplates.isEmpty)
         XCTAssertTrue(viewModel.orderTemplates.isEmpty)
+    }
+
+    func testCakeCapacitySuggestionsNeverOverwriteEnteredValues() {
+        let viewModel = OrderListViewModel(repository: FakeOrderRepository())
+
+        viewModel.beginAddingOrder()
+        viewModel.draftCakeServings = "28"
+        viewModel.applySuggestedCakeWeight()
+        XCTAssertEqual(viewModel.draftCakeWeightKilograms, "2")
+
+        viewModel.draftCakeWeightKilograms = "3"
+        viewModel.draftCakeServings = ""
+        viewModel.applySuggestedCakeServings()
+        XCTAssertEqual(viewModel.draftCakeServings, "42")
+
+        viewModel.draftCakeServings = "30"
+        viewModel.applySuggestedCakeServings()
+        XCTAssertEqual(viewModel.draftCakeServings, "30")
     }
 
     func testTemplateWithDeletedRecipeDoesNotApplyHiddenExtraIngredients() {

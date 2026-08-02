@@ -630,6 +630,22 @@ protocol OrderTemplateRepository {
     func fetchOrderTemplates() throws -> [OrderTemplate]
     func save(_ template: OrderTemplate) throws
     func deleteOrderTemplate(id: String) throws
+    func fetchOrderCakeRequirementChoices(field: OrderCakeRequirementField) throws -> [String]
+    func saveOrderCakeRequirementChoices(
+        _ choices: [(field: OrderCakeRequirementField, value: String)],
+        at date: Date
+    ) throws
+}
+
+extension OrderTemplateRepository {
+    func fetchOrderCakeRequirementChoices(field: OrderCakeRequirementField) throws -> [String] {
+        []
+    }
+
+    func saveOrderCakeRequirementChoices(
+        _: [(field: OrderCakeRequirementField, value: String)],
+        at _: Date
+    ) throws {}
 }
 
 protocol OrderPhotoRepository {

@@ -186,6 +186,10 @@
 		C13000000000000000000003 /* CloudBakeOwnerOrderUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14000000000000000000003 /* CloudBakeOwnerOrderUITests.swift */; };
 		410000000000000000000062 /* OrderDraftValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006A /* OrderDraftValidation.swift */; };
 		410000000000000000000063 /* OrderDraftValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006B /* OrderDraftValidationTests.swift */; };
+		D31000000000000000000001 /* OrderCakeSpecification.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32000000000000000000001 /* OrderCakeSpecification.swift */; };
+		D31000000000000000000003 /* OrderCakeSpecificationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32000000000000000000003 /* OrderCakeSpecificationSection.swift */; };
+		D31000000000000000000004 /* StructuredOrderRequirementMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32000000000000000000004 /* StructuredOrderRequirementMigrationTests.swift */; };
+		D31000000000000000000002 /* OrderCakeSpecificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32000000000000000000002 /* OrderCakeSpecificationTests.swift */; };
 		410000000000000000000064 /* OrderPhotoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006C /* OrderPhotoViewModelTests.swift */; };
 		410000000000000000000065 /* OrderPaymentViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006D /* OrderPaymentViewModelTests.swift */; };
 		410000000000000000000066 /* OrderStatusEditingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006E /* OrderStatusEditingViewModelTests.swift */; };
@@ -416,6 +420,10 @@
 		C14000000000000000000003 /* CloudBakeOwnerOrderUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBakeOwnerOrderUITests.swift; sourceTree = "<group>"; };
 		42000000000000000000006A /* OrderDraftValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDraftValidation.swift; sourceTree = "<group>"; };
 		42000000000000000000006B /* OrderDraftValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDraftValidationTests.swift; sourceTree = "<group>"; };
+		D32000000000000000000001 /* OrderCakeSpecification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCakeSpecification.swift; sourceTree = "<group>"; };
+		D32000000000000000000003 /* OrderCakeSpecificationSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCakeSpecificationSection.swift; sourceTree = "<group>"; };
+		D32000000000000000000004 /* StructuredOrderRequirementMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StructuredOrderRequirementMigrationTests.swift; sourceTree = "<group>"; };
+		D32000000000000000000002 /* OrderCakeSpecificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCakeSpecificationTests.swift; sourceTree = "<group>"; };
 		42000000000000000000006C /* OrderPhotoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoViewModelTests.swift; sourceTree = "<group>"; };
 		42000000000000000000006D /* OrderPaymentViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPaymentViewModelTests.swift; sourceTree = "<group>"; };
 		42000000000000000000006E /* OrderStatusEditingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderStatusEditingViewModelTests.swift; sourceTree = "<group>"; };
@@ -701,6 +709,7 @@
 				42000000000000000000003F /* OrderDetailPhotosSection.swift */,
 				420000000000000000000052 /* OrderDetailView.swift */,
 				420000000000000000000050 /* OrderForm.swift */,
+				D32000000000000000000003 /* OrderCakeSpecificationSection.swift */,
 				420000000000000000000033 /* OrderListView.swift */,
 				420000000000000000000034 /* OrderListViewModel.swift */,
 				C18000000000000000000001 /* OrderChecklistWorkflow.swift */,
@@ -739,6 +748,7 @@
 			children = (
 				42000000000000000000001F /* BakingCatalog.swift */,
 				420000000000000000000015 /* CoreModels.swift */,
+				D32000000000000000000001 /* OrderCakeSpecification.swift */,
 					42000000000000000000003C /* CustomerConsumerProfile.swift */,
 					4200000000000000000000B4 /* InventoryAliases.swift */,
 					4200000000000000000000B6 /* InventoryLowInventoryAlertRules.swift */,
@@ -778,6 +788,7 @@
 			children = (
 					420000000000000000000020 /* BakingCatalogTests.swift */,
 					420000000000000000000018 /* CoreModelsTests.swift */,
+					D32000000000000000000002 /* OrderCakeSpecificationTests.swift */,
 					4200000000000000000000B5 /* InventoryAliasesTests.swift */,
 					4200000000000000000000C2 /* ProjectedIngredientDemandTests.swift */,
 					4200000000000000000000C4 /* OrderIngredientCostCalculationTests.swift */,
@@ -804,6 +815,7 @@
 				420000000000000000000014 /* AppDatabaseTests.swift */,
 				420000000000000000000019 /* CoreDataRepositoryTests.swift */,
 				4200000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift */,
+				D32000000000000000000004 /* StructuredOrderRequirementMigrationTests.swift */,
 				4200000000000000000000FD /* GRDBInventoryRepositoryTests.swift */,
 				4200000000000000000000FC /* GRDBOrderLifecycleRepositoryTests.swift */,
 				4200000000000000000000FB /* GRDBOrderPhotoDesignRepositoryTests.swift */,
@@ -1196,10 +1208,12 @@
 				410000000000000000000037 /* OrderDetailPhotosSection.swift in Sources */,
 				41000000000000000000004A /* OrderDetailView.swift in Sources */,
 				410000000000000000000048 /* OrderForm.swift in Sources */,
+				D31000000000000000000003 /* OrderCakeSpecificationSection.swift in Sources */,
 				41000000000000000000002F /* OrderConsumerPreview.swift in Sources */,
 				41000000000000000000002E /* OrderDisplay.swift in Sources */,
 				41000000000000000000004C /* OrderListPresentation.swift in Sources */,
 				410000000000000000000062 /* OrderDraftValidation.swift in Sources */,
+				D31000000000000000000001 /* OrderCakeSpecification.swift in Sources */,
 				410000000000000000000047 /* CameraImagePickerView.swift in Sources */,
 				41000000000000000000005F /* PhotoPickerImageLoader.swift in Sources */,
 				410000000000000000000046 /* OrderPhotoPreviewView.swift in Sources */,
@@ -1259,6 +1273,7 @@
 					410000000000000000000010 /* CoreModelsTests.swift in Sources */,
 					410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
 					4100000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift in Sources */,
+					D31000000000000000000004 /* StructuredOrderRequirementMigrationTests.swift in Sources */,
 					4100000000000000000000FD /* GRDBInventoryRepositoryTests.swift in Sources */,
 					4100000000000000000000FC /* GRDBOrderLifecycleRepositoryTests.swift in Sources */,
 					4100000000000000000000FB /* GRDBOrderPhotoDesignRepositoryTests.swift in Sources */,
@@ -1282,6 +1297,7 @@
 				410000000000000000000067 /* InventoryPurchaseBillViewModelTests.swift in Sources */,
 				41000000000000000000006C /* InventoryStockOperationViewModelTests.swift in Sources */,
 				410000000000000000000063 /* OrderDraftValidationTests.swift in Sources */,
+				D31000000000000000000002 /* OrderCakeSpecificationTests.swift in Sources */,
 				41000000000000000000002D /* OrderListViewModelTests.swift in Sources */,
 				410000000000000000000074 /* OrderListViewModelTestSupport.swift in Sources */,
 				410000000000000000000065 /* OrderPaymentViewModelTests.swift in Sources */,

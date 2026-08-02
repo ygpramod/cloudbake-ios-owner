@@ -43,6 +43,21 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftDeliveryAddress = ""
     @Published var draftCakeNotes = ""
     @Published var draftCakeMessage = ""
+    @Published var draftCakeOccasion = ""
+    @Published var draftCakeServings = ""
+    @Published var draftCakeSize = ""
+    @Published var draftCakeWeightKilograms = ""
+    @Published var draftCakeShape = ""
+    @Published var draftCakeTiers = ""
+    @Published var draftCakeSpongeFlavour = ""
+    @Published var draftCakeFilling = ""
+    @Published var draftCakeFrosting = ""
+    @Published var draftCakeColourPalette = ""
+    @Published var draftCakeTheme = ""
+    @Published var draftCakeTopperRequirements = "None"
+    @Published var draftCakeCandlesAndAccessories = "None"
+    @Published var draftCakePackaging = "Standard Box"
+    @Published private(set) var savedCakeRequirementChoices: [OrderCakeRequirementField: [String]] = [:]
     @Published var draftQuotedPrice = ""
     @Published var draftDepositPaid = ""
     @Published var draftPaymentNotes = ""
@@ -163,6 +178,38 @@ final class OrderListViewModel: ObservableObject {
         }
 
         return true
+    }
+
+    var draftCakeSpecificationSummary: String? {
+        draftCakeSpecification().summary
+    }
+
+    func cakeRequirementChoices(
+        for field: OrderCakeRequirementField,
+        defaults: [String],
+        current: String
+    ) -> [String] {
+        OrderCakeSpecification.mergedChoices(
+            defaults: defaults,
+            saved: savedCakeRequirementChoices[field] ?? [],
+            current: current
+        )
+    }
+
+    func applySuggestedCakeWeight() {
+        guard draftCakeWeightKilograms.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            let servings = Int(TextInputFormatting.trimmed(draftCakeServings)),
+            let suggestion = OrderCakeSpecification.suggestedWeight(forServings: servings)
+        else { return }
+        draftCakeWeightKilograms = TextInputFormatting.decimalText(suggestion)
+    }
+
+    func applySuggestedCakeServings() {
+        guard draftCakeServings.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            let weight = Decimal(string: TextInputFormatting.trimmed(draftCakeWeightKilograms)),
+            let suggestion = OrderCakeSpecification.suggestedServings(forWeightKilograms: weight)
+        else { return }
+        draftCakeServings = String(suggestion)
     }
 
     var overdueAlert: OrderOverdueAlert? {
@@ -292,6 +339,7 @@ final class OrderListViewModel: ObservableObject {
             recipes = loadedRecipes
             cakeDesigns = loadedCakeDesigns
             orderTemplates = loadedOrderTemplates
+            loadCakeRequirementChoices()
             errorMessage =
                 retryPendingDesignPhotoCleanups()
                 ? nil
@@ -456,6 +504,7 @@ final class OrderListViewModel: ObservableObject {
         draftDeliveryAddress = sourceOrder.deliveryAddress ?? ""
         draftCakeNotes = sourceOrder.cakeNotes ?? ""
         draftCakeMessage = sourceOrder.cakeMessage ?? ""
+        applyDraftCakeSpecification(sourceOrder.cakeSpecification)
         applyReminderConfiguration(source.reminderConfiguration)
         draftExtraIngredientRows = source.extraIngredients.map { ingredient in
             OrderExtraIngredientDraftRow(
@@ -493,6 +542,7 @@ final class OrderListViewModel: ObservableObject {
         }
         draftCakeNotes = template.cakeNotes ?? ""
         draftCakeMessage = template.cakeMessage ?? ""
+        applyDraftCakeSpecification(template.cakeSpecification)
         draftStatus = .draft
         draftQuotedPrice = ""
         draftDepositPaid = ""
@@ -557,6 +607,7 @@ final class OrderListViewModel: ObservableObject {
                 fulfillmentType: draftFulfillmentType,
                 cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
                 cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
+                cakeSpecification: draftCakeSpecification(),
                 reminderConfiguration: try draftReminderConfiguration(),
                 extraIngredients: draftExtraIngredientRows.enumerated().map { index, row in
                     OrderTemplateExtraIngredient(
@@ -579,6 +630,7 @@ final class OrderListViewModel: ObservableObject {
                 updatedAt: now
             )
             try repository.save(template)
+            persistDraftCakeRequirementChoices(at: now)
             orderTemplates = try repository.fetchOrderTemplates()
             errorMessage = nil
             return true
@@ -606,6 +658,7 @@ final class OrderListViewModel: ObservableObject {
             fulfillmentType: template.fulfillmentType,
             cakeNotes: template.cakeNotes,
             cakeMessage: template.cakeMessage,
+            cakeSpecification: template.cakeSpecification,
             reminderConfiguration: template.reminderConfiguration,
             extraIngredients: template.extraIngredients,
             checklistItems: template.checklistItems,
@@ -841,6 +894,7 @@ final class OrderListViewModel: ObservableObject {
             deliveryAddress: TextInputFormatting.optionalText(draftDeliveryAddress),
             cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
             cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
+            cakeSpecification: draftCakeSpecification(),
             quotedPrice: draft.quotedPrice,
             depositPaid: nil,
             paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
@@ -868,6 +922,7 @@ final class OrderListViewModel: ObservableObject {
                 },
                 allowInventoryShortage: allowingInventoryShortage
             )
+            persistDraftCakeRequirementChoices(at: now)
             resetDraft()
             draftExtraIngredientRows = []
             load()
@@ -916,6 +971,7 @@ final class OrderListViewModel: ObservableObject {
         draftDeliveryAddress = selectedOrder.deliveryAddress ?? ""
         draftCakeNotes = selectedOrder.cakeNotes ?? ""
         draftCakeMessage = selectedOrder.cakeMessage ?? ""
+        applyDraftCakeSpecification(selectedOrder.cakeSpecification)
         draftQuotedPrice = TextInputFormatting.decimalText(selectedOrder.quotedPrice)
         draftDepositPaid = TextInputFormatting.decimalText(selectedOrder.depositPaid)
         draftPaymentNotes = selectedOrder.paymentNotes ?? ""
@@ -979,6 +1035,7 @@ final class OrderListViewModel: ObservableObject {
             deliveryAddress: TextInputFormatting.optionalText(draftDeliveryAddress),
             cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
             cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
+            cakeSpecification: draftCakeSpecification(),
             quotedPrice: draft.quotedPrice,
             depositPaid: editingOrder.depositPaid,
             paymentNotes: TextInputFormatting.optionalText(draftPaymentNotes),
@@ -1006,6 +1063,7 @@ final class OrderListViewModel: ObservableObject {
                     deliveryAddress: order.deliveryAddress,
                     cakeNotes: order.cakeNotes,
                     cakeMessage: order.cakeMessage,
+                    cakeSpecification: order.cakeSpecification,
                     quotedPrice: order.quotedPrice,
                     depositPaid: order.depositPaid,
                     paymentNotes: order.paymentNotes,
@@ -1032,6 +1090,7 @@ final class OrderListViewModel: ObservableObject {
                 )
                 savedOrder = order
             }
+            persistDraftCakeRequirementChoices(at: now)
             selectedOrder = savedOrder
             self.editingOrder = nil
             resetDraft()
@@ -1497,6 +1556,7 @@ final class OrderListViewModel: ObservableObject {
             deliveryAddress: order.deliveryAddress,
             cakeNotes: order.cakeNotes,
             cakeMessage: order.cakeMessage,
+            cakeSpecification: order.cakeSpecification,
             quotedPrice: order.quotedPrice,
             depositPaid: depositPaid ?? order.depositPaid,
             paymentNotes: order.paymentNotes,
@@ -1722,6 +1782,7 @@ final class OrderListViewModel: ObservableObject {
             }
             availableInventoryItems = try repository.fetchInventoryItems()
             orderTemplates = try repository.fetchOrderTemplates()
+            loadCakeRequirementChoices()
         } catch {
             customers = []
             recipes = []
@@ -2091,6 +2152,7 @@ final class OrderListViewModel: ObservableObject {
         draftDeliveryAddress = ""
         draftCakeNotes = ""
         draftCakeMessage = ""
+        applyDraftCakeSpecification(.newOrderDefaults)
         draftQuotedPrice = ""
         draftDepositPaid = ""
         draftPaymentNotes = ""
@@ -2101,6 +2163,59 @@ final class OrderListViewModel: ObservableObject {
         draftChecklistItems = []
         draftIngredientCost = nil
         draftIngredientCostIsActual = false
+    }
+
+    private func draftCakeSpecification() -> OrderCakeSpecification {
+        OrderCakeSpecification(
+            occasion: draftCakeOccasion,
+            servings: Int(TextInputFormatting.trimmed(draftCakeServings)),
+            size: draftCakeSize,
+            weightKilograms: Decimal(string: TextInputFormatting.trimmed(draftCakeWeightKilograms)),
+            shape: draftCakeShape,
+            tiers: draftCakeTiers,
+            spongeFlavour: draftCakeSpongeFlavour,
+            filling: draftCakeFilling,
+            frosting: draftCakeFrosting,
+            colourPalette: draftCakeColourPalette,
+            theme: draftCakeTheme,
+            topperRequirements: draftCakeTopperRequirements,
+            candlesAndAccessories: draftCakeCandlesAndAccessories,
+            packaging: draftCakePackaging
+        )
+    }
+
+    private func applyDraftCakeSpecification(_ specification: OrderCakeSpecification) {
+        draftCakeOccasion = specification.occasion ?? ""
+        draftCakeServings = specification.servings.map(String.init) ?? ""
+        draftCakeSize = specification.size ?? ""
+        draftCakeWeightKilograms = TextInputFormatting.decimalText(specification.weightKilograms)
+        draftCakeShape = specification.shape ?? ""
+        draftCakeTiers = specification.tiers ?? ""
+        draftCakeSpongeFlavour = specification.spongeFlavour ?? ""
+        draftCakeFilling = specification.filling ?? ""
+        draftCakeFrosting = specification.frosting ?? ""
+        draftCakeColourPalette = specification.colourPalette ?? ""
+        draftCakeTheme = specification.theme ?? ""
+        draftCakeTopperRequirements = specification.topperRequirements ?? ""
+        draftCakeCandlesAndAccessories = specification.candlesAndAccessories ?? ""
+        draftCakePackaging = specification.packaging ?? ""
+    }
+
+    private func persistDraftCakeRequirementChoices(at date: Date) {
+        let specification = draftCakeSpecification()
+        try? repository.saveOrderCakeRequirementChoices(
+            specification.reusableChoiceValues,
+            at: date
+        )
+        loadCakeRequirementChoices()
+    }
+
+    private func loadCakeRequirementChoices() {
+        savedCakeRequirementChoices = Dictionary(
+            uniqueKeysWithValues: OrderCakeRequirementField.allCases.map { field in
+                (field, (try? repository.fetchOrderCakeRequirementChoices(field: field)) ?? [])
+            }
+        )
     }
 
     private func resetExtraIngredientDraft(keepingInventoryItems: Bool = false) {
