@@ -189,6 +189,7 @@
 		D31000000000000000000001 /* OrderCakeSpecification.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32000000000000000000001 /* OrderCakeSpecification.swift */; };
 		D31000000000000000000003 /* OrderCakeSpecificationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32000000000000000000003 /* OrderCakeSpecificationSection.swift */; };
 		D31000000000000000000004 /* StructuredOrderRequirementMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32000000000000000000004 /* StructuredOrderRequirementMigrationTests.swift */; };
+		D31000000000000000000005 /* StarterOrderTemplateMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32000000000000000000005 /* StarterOrderTemplateMigrationTests.swift */; };
 		D31000000000000000000002 /* OrderCakeSpecificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32000000000000000000002 /* OrderCakeSpecificationTests.swift */; };
 		410000000000000000000064 /* OrderPhotoViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006C /* OrderPhotoViewModelTests.swift */; };
 		410000000000000000000065 /* OrderPaymentViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42000000000000000000006D /* OrderPaymentViewModelTests.swift */; };
@@ -423,6 +424,7 @@
 		D32000000000000000000001 /* OrderCakeSpecification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCakeSpecification.swift; sourceTree = "<group>"; };
 		D32000000000000000000003 /* OrderCakeSpecificationSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCakeSpecificationSection.swift; sourceTree = "<group>"; };
 		D32000000000000000000004 /* StructuredOrderRequirementMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StructuredOrderRequirementMigrationTests.swift; sourceTree = "<group>"; };
+		D32000000000000000000005 /* StarterOrderTemplateMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarterOrderTemplateMigrationTests.swift; sourceTree = "<group>"; };
 		D32000000000000000000002 /* OrderCakeSpecificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCakeSpecificationTests.swift; sourceTree = "<group>"; };
 		42000000000000000000006C /* OrderPhotoViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPhotoViewModelTests.swift; sourceTree = "<group>"; };
 		42000000000000000000006D /* OrderPaymentViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderPaymentViewModelTests.swift; sourceTree = "<group>"; };
@@ -816,6 +818,7 @@
 				420000000000000000000019 /* CoreDataRepositoryTests.swift */,
 				4200000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift */,
 				D32000000000000000000004 /* StructuredOrderRequirementMigrationTests.swift */,
+				D32000000000000000000005 /* StarterOrderTemplateMigrationTests.swift */,
 				4200000000000000000000FD /* GRDBInventoryRepositoryTests.swift */,
 				4200000000000000000000FC /* GRDBOrderLifecycleRepositoryTests.swift */,
 				4200000000000000000000FB /* GRDBOrderPhotoDesignRepositoryTests.swift */,
@@ -1274,6 +1277,7 @@
 					410000000000000000000011 /* CoreDataRepositoryTests.swift in Sources */,
 					4100000000000000000000F8 /* GRDBCoreDataRepositoryTests.swift in Sources */,
 					D31000000000000000000004 /* StructuredOrderRequirementMigrationTests.swift in Sources */,
+					D31000000000000000000005 /* StarterOrderTemplateMigrationTests.swift in Sources */,
 					4100000000000000000000FD /* GRDBInventoryRepositoryTests.swift in Sources */,
 					4100000000000000000000FC /* GRDBOrderLifecycleRepositoryTests.swift in Sources */,
 					4100000000000000000000FB /* GRDBOrderPhotoDesignRepositoryTests.swift in Sources */,
