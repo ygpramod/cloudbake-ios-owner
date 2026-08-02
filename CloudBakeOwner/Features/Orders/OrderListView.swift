@@ -16,6 +16,11 @@ struct OrderListView: View {
     @State private var partialPaymentAmount = ""
     @State private var canOpenWhatsApp = false
     @State private var isConfirmingAddedOrderInventoryShortage = false
+    @State private var isChoosingTemplateSource = false
+    @State private var templateSourcePicker: TemplateSourcePicker?
+    @State private var opensTemplateEditorAfterSourceDismiss = false
+    @State private var isEditingTemplateDraft = false
+    @State private var templateDraftName = ""
     @FocusState private var isSearchFocused: Bool
 
     init(viewModel: OrderListViewModel) {
@@ -58,6 +63,35 @@ struct OrderListView: View {
                         viewModel: viewModel,
                         isPresented: $isViewingOrder,
                         onDuplicate: duplicateSelectedOrder
+                    )
+                }
+            }
+            .sheet(
+                item: $templateSourcePicker,
+                onDismiss: openTemplateEditorAfterSourceDismiss
+            ) { source in
+                NavigationStack {
+                    TemplateSourceSelectionView(
+                        source: source,
+                        orders: viewModel.orders,
+                        templates: viewModel.orderTemplates,
+                        onCancel: { templateSourcePicker = nil },
+                        onSelectOrder: prepareTemplateDraft,
+                        onSelectTemplate: prepareTemplateDraft
+                    )
+                }
+            }
+            .sheet(isPresented: $isEditingTemplateDraft, onDismiss: viewModel.cancelAddOrder) {
+                NavigationStack {
+                    OrderForm(
+                        title: "New Template",
+                        viewModel: viewModel,
+                        isPresented: $isEditingTemplateDraft,
+                        templateName: $templateDraftName,
+                        onCancel: viewModel.cancelAddOrder,
+                        onSave: {
+                            viewModel.saveCurrentDraftAsTemplate(named: templateDraftName)
+                        }
                     )
                 }
             }
@@ -106,6 +140,36 @@ struct OrderListView: View {
         isAddingOrder = true
     }
 
+    private func beginBlankTemplate() {
+        viewModel.beginAddingOrder()
+        templateDraftName = ""
+        isEditingTemplateDraft = true
+    }
+
+    private func prepareTemplateDraft(from order: Order) {
+        guard viewModel.beginDuplicatingOrder(id: order.id) else {
+            templateSourcePicker = nil
+            return
+        }
+        templateDraftName = "\(order.title) Template"
+        opensTemplateEditorAfterSourceDismiss = true
+        templateSourcePicker = nil
+    }
+
+    private func prepareTemplateDraft(from template: OrderTemplate) {
+        viewModel.beginAddingOrder()
+        viewModel.applyOrderTemplate(template)
+        templateDraftName = "\(template.name) Copy"
+        opensTemplateEditorAfterSourceDismiss = true
+        templateSourcePicker = nil
+    }
+
+    private func openTemplateEditorAfterSourceDismiss() {
+        guard opensTemplateEditorAfterSourceDismiss else { return }
+        opensTemplateEditorAfterSourceDismiss = false
+        isEditingTemplateDraft = true
+    }
+
     private var orderList: some View {
         CloudBakeScreenScaffold(
             title: "Orders",
@@ -114,6 +178,8 @@ struct OrderListView: View {
                 title: "Add Order",
                 systemImage: "plus",
                 accessibilityIdentifier: "orders.add",
+                longPressTitle: "Create Template",
+                longPressAction: { isChoosingTemplateSource = true },
                 action: {
                     viewModel.beginAddingOrder()
                     isAddingOrder = true
@@ -124,6 +190,19 @@ struct OrderListView: View {
         }
         .contentShape(Rectangle())
         .simultaneousGesture(orderScopeSwipeGesture)
+        .confirmationDialog(
+            "Start Template From",
+            isPresented: $isChoosingTemplateSource,
+            titleVisibility: .visible
+        ) {
+            Button("Blank Template") { beginBlankTemplate() }
+                .accessibilityIdentifier("orders.template.create.blank")
+            Button("Existing Order") { templateSourcePicker = .order }
+                .accessibilityIdentifier("orders.template.create.order")
+            Button("Another Template") { templateSourcePicker = .template }
+                .accessibilityIdentifier("orders.template.create.template")
+            Button("Cancel", role: .cancel) {}
+        }
         .orderConfirmationDialog(
             isPresented: optionalPresentationBinding($pendingStatusChange),
             title: "Confirm Status Change",
@@ -465,6 +544,117 @@ private enum OrderScope: CaseIterable {
             return "Active"
         case .completed:
             return "Completed"
+        }
+    }
+}
+
+private enum TemplateSourcePicker: String, Identifiable {
+    case order
+    case template
+
+    var id: String { rawValue }
+}
+
+private struct TemplateSourceSelectionView: View {
+    let source: TemplateSourcePicker
+    let orders: [Order]
+    let templates: [OrderTemplate]
+    let onCancel: () -> Void
+    let onSelectOrder: (Order) -> Void
+    let onSelectTemplate: (OrderTemplate) -> Void
+    @State private var searchText = ""
+
+    var body: some View {
+        Group {
+            if source == .order {
+                orderList
+            } else {
+                templateList
+            }
+        }
+        .navigationTitle(source == .order ? "Choose Order" : "Choose Template")
+        .searchable(text: $searchText, prompt: source == .order ? "Search orders" : "Search templates")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel", action: onCancel)
+                    .accessibilityIdentifier("orders.template.source.cancel")
+            }
+        }
+    }
+
+    private var filteredOrders: [Order] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return orders }
+        return orders.filter {
+            $0.title.localizedCaseInsensitiveContains(query)
+                || $0.customerName.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    private var filteredTemplates: [OrderTemplate] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return templates }
+        return templates.filter {
+            $0.name.localizedCaseInsensitiveContains(query)
+                || $0.cakeTitle.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    @ViewBuilder
+    private var orderList: some View {
+        if filteredOrders.isEmpty {
+            ContentUnavailableView(
+                searchText.isEmpty ? "No Orders" : "No Matching Orders",
+                systemImage: "calendar.badge.exclamationmark"
+            )
+        } else {
+            List(filteredOrders, id: \.id) { order in
+                Button {
+                    onSelectOrder(order)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(order.title)
+                            .font(.headline)
+                        Text(order.customerName)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("orders.template.source.order.\(order.id)")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var templateList: some View {
+        if filteredTemplates.isEmpty {
+            ContentUnavailableView(
+                searchText.isEmpty ? "No Templates" : "No Matching Templates",
+                systemImage: "square.on.square"
+            )
+        } else {
+            List(filteredTemplates, id: \.id) { template in
+                Button {
+                    onSelectTemplate(template)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(template.name)
+                            .font(.headline)
+                        if !template.cakeTitle.isEmpty {
+                            Text(template.cakeTitle)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("orders.template.source.template.\(template.id)")
+            }
         }
     }
 }
