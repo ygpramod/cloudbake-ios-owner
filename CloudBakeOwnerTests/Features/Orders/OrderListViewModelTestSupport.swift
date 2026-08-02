@@ -896,7 +896,8 @@ final class FakeOrderRepository: OrderRepository,
             throw fetchOrderChecklistItemsError
         }
 
-        return checklistItems
+        return
+            checklistItems
             .filter { $0.orderId == orderId }
             .sorted {
                 if $0.sortOrder == $1.sortOrder {
