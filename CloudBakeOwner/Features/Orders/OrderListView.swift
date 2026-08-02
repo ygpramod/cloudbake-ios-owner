@@ -16,7 +16,6 @@ struct OrderListView: View {
     @State private var partialPaymentAmount = ""
     @State private var canOpenWhatsApp = false
     @State private var isConfirmingAddedOrderInventoryShortage = false
-    @State private var isChoosingTemplateAction = false
     @State private var isChoosingTemplateSource = false
     @State private var templateSourcePicker: TemplateSourcePicker?
     @State private var opensTemplateEditorAfterSourceDismiss = false
@@ -205,8 +204,20 @@ struct OrderListView: View {
                 title: "Add Order",
                 systemImage: "plus",
                 accessibilityIdentifier: "orders.add",
-                longPressTitle: "Manage Templates",
-                longPressAction: { isChoosingTemplateAction = true },
+                menuActions: [
+                    CloudBakeScreenMenuAction(
+                        title: "Create Template",
+                        systemImage: "plus.square.on.square",
+                        accessibilityIdentifier: "orders.template.action.create",
+                        action: { isChoosingTemplateSource = true }
+                    ),
+                    CloudBakeScreenMenuAction(
+                        title: "Edit Template",
+                        systemImage: "pencil",
+                        accessibilityIdentifier: "orders.template.action.edit",
+                        action: { templateSourcePicker = .editTemplate }
+                    ),
+                ],
                 action: {
                     viewModel.beginAddingOrder()
                     isAddingOrder = true
@@ -217,53 +228,12 @@ struct OrderListView: View {
         }
         .contentShape(Rectangle())
         .simultaneousGesture(orderScopeSwipeGesture)
-        .orderConfirmationDialog(
-            isPresented: $isChoosingTemplateAction,
-            title: "Templates",
-            message: "Create a new template or edit an existing one.",
-            cancelAccessibilityIdentifier: "orders.template.action.cancel",
-            onCancel: { isChoosingTemplateAction = false }
-        ) {
-            nativeDialogButton("Create Template") {
-                isChoosingTemplateAction = false
-                Task { @MainActor in
-                    await Task.yield()
-                    isChoosingTemplateSource = true
-                }
-            }
-            .accessibilityIdentifier("orders.template.action.create")
-            nativeDialogButton("Edit Template") {
-                isChoosingTemplateAction = false
-                Task { @MainActor in
-                    await Task.yield()
-                    templateSourcePicker = .editTemplate
-                }
-            }
-            .accessibilityIdentifier("orders.template.action.edit")
-        }
-        .orderConfirmationDialog(
+        .cloudBakeActionPopup(
             isPresented: $isChoosingTemplateSource,
             title: "Start New Template From",
-            message: "Choose a starting point for the new template.",
-            cancelAccessibilityIdentifier: "orders.template.source.cancel",
-            onCancel: { isChoosingTemplateSource = false }
-        ) {
-            nativeDialogButton("Blank Template") {
-                isChoosingTemplateSource = false
-                beginBlankTemplate()
-            }
-            .accessibilityIdentifier("orders.template.create.blank")
-            nativeDialogButton("Existing Order") {
-                isChoosingTemplateSource = false
-                templateSourcePicker = .order
-            }
-            .accessibilityIdentifier("orders.template.create.order")
-            nativeDialogButton("Another Template") {
-                isChoosingTemplateSource = false
-                templateSourcePicker = .template
-            }
-            .accessibilityIdentifier("orders.template.create.template")
-        }
+            accessibilityIdentifier: "orders.template.source.popup",
+            actions: templateSourceActions
+        )
         .orderConfirmationDialog(
             isPresented: optionalPresentationBinding($pendingStatusChange),
             title: "Confirm Status Change",
@@ -331,6 +301,32 @@ struct OrderListView: View {
         } message: {
             Text("Add the amount received.")
         }
+    }
+
+    private var templateSourceActions: [CloudBakePopupAction] {
+        [
+            CloudBakePopupAction(
+                title: "Blank Template",
+                systemImage: "doc.text",
+                tint: CloudBakeTheme.ColorToken.primaryAction,
+                accessibilityIdentifier: "orders.template.create.blank",
+                action: beginBlankTemplate
+            ),
+            CloudBakePopupAction(
+                title: "Existing Order",
+                systemImage: "calendar.badge.plus",
+                tint: CloudBakeTheme.ColorToken.inventoryAccent,
+                accessibilityIdentifier: "orders.template.create.order",
+                action: { templateSourcePicker = .order }
+            ),
+            CloudBakePopupAction(
+                title: "Another Template",
+                systemImage: "square.on.square",
+                tint: CloudBakeTheme.ColorToken.secondaryAction,
+                accessibilityIdentifier: "orders.template.create.template",
+                action: { templateSourcePicker = .template }
+            ),
+        ]
     }
 
     private var orderScopeContent: some View {
