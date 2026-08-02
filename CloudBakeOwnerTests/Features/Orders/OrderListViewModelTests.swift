@@ -4,6 +4,120 @@ import XCTest
 
 @MainActor
 final class OrderListViewModelTests: XCTestCase {
+    func testApplyingOrderTemplatePreservesOrderContextAndClearsCommercialFields() throws {
+        let repository = FakeOrderRepository()
+        let now = Date(timeIntervalSince1970: 1_800_060_000)
+        let dueAt = now.addingTimeInterval(172_800)
+        repository.inventoryItems = [
+            makeInventoryItem(id: "inventory-berries", name: "Berries")
+        ]
+        let template = OrderTemplate(
+            id: "template-birthday",
+            name: "Birthday Standard",
+            cakeTitle: "Vanilla Birthday Cake",
+            cakeDesignId: "design-floral",
+            recipeId: "recipe-vanilla",
+            recipeScaleMultiplier: 2,
+            fulfillmentType: .delivery,
+            deliveryAddress: "Template address",
+            cakeNotes: "Pink flowers",
+            cakeMessage: "Happy Birthday",
+            reminderConfiguration: try OrderReminderConfiguration(
+                mode: .custom,
+                dayOffsets: [5, 1],
+                includesDueTime: false
+            ),
+            extraIngredients: [
+                OrderTemplateExtraIngredient(
+                    id: "template-extra",
+                    inventoryItemId: "inventory-berries",
+                    quantity: 100,
+                    unit: .gram,
+                    note: "Decoration",
+                    sortOrder: 0
+                )
+            ],
+            checklistItems: [
+                OrderTemplateChecklistItem(
+                    id: "template-checklist",
+                    title: "Add topper",
+                    sortOrder: 0
+                )
+            ],
+            createdAt: now,
+            updatedAt: now
+        )
+        repository.orderTemplates = [template]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "applied"),
+            dateProvider: { now }
+        )
+
+        viewModel.beginAddingOrder()
+        viewModel.draftCustomerId = "customer-amy"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.draftDueAt = dueAt
+        viewModel.draftQuotedPrice = "200"
+        viewModel.draftDepositPaid = "50"
+        viewModel.draftPaymentNotes = "Cash"
+
+        viewModel.applyOrderTemplate(template)
+
+        XCTAssertEqual(viewModel.draftCustomerId, "customer-amy")
+        XCTAssertEqual(viewModel.draftCustomerName, "Amy")
+        XCTAssertEqual(viewModel.draftDueAt, dueAt)
+        XCTAssertEqual(viewModel.draftTitle, "Vanilla Birthday Cake")
+        XCTAssertEqual(viewModel.draftRecipeId, "recipe-vanilla")
+        XCTAssertEqual(viewModel.draftRecipeScaleMultiplier, "2")
+        XCTAssertEqual(viewModel.draftCakeDesignId, "design-floral")
+        XCTAssertEqual(viewModel.draftFulfillmentType, .delivery)
+        XCTAssertEqual(viewModel.draftDeliveryAddress, "Template address")
+        XCTAssertEqual(viewModel.draftQuotedPrice, "")
+        XCTAssertEqual(viewModel.draftDepositPaid, "")
+        XCTAssertEqual(viewModel.draftPaymentNotes, "")
+        XCTAssertEqual(viewModel.draftExtraIngredientRows.map(\.id), ["applied-1"])
+        XCTAssertEqual(viewModel.draftExtraIngredientRows.map(\.inventoryItemName), ["Berries"])
+        XCTAssertEqual(
+            viewModel.draftChecklistItems,
+            [OrderChecklistDraftItem(id: "applied-2", title: "Add topper")]
+        )
+    }
+
+    func testDraftCanBeSavedRenamedAndDeletedAsOrderTemplate() throws {
+        let repository = FakeOrderRepository()
+        let now = Date(timeIntervalSince1970: 1_800_060_000)
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: makeIncrementingIdGenerator(prefix: "template"),
+            dateProvider: { now }
+        )
+
+        viewModel.beginAddingOrder()
+        viewModel.draftTitle = "Chocolate Cake"
+        viewModel.draftCustomerName = "Customer who must not be stored"
+        viewModel.draftQuotedPrice = "150"
+        viewModel.draftPaymentNotes = "Payment that must not be stored"
+        viewModel.draftCakeNotes = "Ganache"
+        viewModel.draftFulfillmentType = .pickup
+
+        XCTAssertTrue(viewModel.saveCurrentDraftAsTemplate(named: "  Chocolate Standard  "))
+        let saved = try XCTUnwrap(repository.orderTemplates.first)
+        XCTAssertEqual(saved.id, "template-1")
+        XCTAssertEqual(saved.name, "Chocolate Standard")
+        XCTAssertEqual(saved.cakeTitle, "Chocolate Cake")
+        XCTAssertEqual(saved.cakeNotes, "Ganache")
+
+        XCTAssertTrue(viewModel.renameOrderTemplate(saved, to: "Chocolate Celebration"))
+        let renamed = try XCTUnwrap(repository.orderTemplates.first)
+        XCTAssertEqual(renamed.name, "Chocolate Celebration")
+        XCTAssertEqual(renamed.createdAt, now)
+
+        XCTAssertTrue(viewModel.deleteOrderTemplate(renamed))
+        XCTAssertTrue(repository.orderTemplates.isEmpty)
+        XCTAssertTrue(viewModel.orderTemplates.isEmpty)
+    }
+
     func testOrderDetailOnlyOffersDuplicateWhenHostProvidesWorkflow() {
         XCTAssertTrue(OrderDetailView.duplicateActions(onDuplicate: nil).isEmpty)
 

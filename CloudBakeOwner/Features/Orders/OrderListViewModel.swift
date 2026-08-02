@@ -7,6 +7,7 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var customers: [Customer] = []
     @Published private(set) var recipes: [Recipe] = []
     @Published private(set) var cakeDesigns: [CakeDesign] = []
+    @Published private(set) var orderTemplates: [OrderTemplate] = []
     @Published private(set) var selectedOrder: Order?
     @Published private(set) var selectedOrderCustomer: Customer?
     @Published private(set) var selectedOrderRecipe: Recipe?
@@ -68,7 +69,7 @@ final class OrderListViewModel: ObservableObject {
             & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository
             & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository
             & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository
-            & OrderPhotoRepository & PaymentReceiptRepository
+            & OrderTemplateRepository & OrderPhotoRepository & PaymentReceiptRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private let calendar: Calendar
@@ -88,7 +89,7 @@ final class OrderListViewModel: ObservableObject {
             & InventoryStockBatchRepository & OrderRecipeUsageRepository & OrderIngredientCostRepository & OrderStatusChangeRepository
             & OrderExtraIngredientRepository & OrderInventoryReservationRepository & ProjectedIngredientDemandRepository
             & OrderInventoryReservationMutationRepository & OrderReminderPlanOrderMutationRepository & OrderChecklistRepository
-            & OrderPhotoRepository & PaymentReceiptRepository,
+            & OrderTemplateRepository & OrderPhotoRepository & PaymentReceiptRepository,
         photoFileStore: OrderPhotoFileStore = LocalOrderPhotoFileStore(),
         designPhotoLibrary: DesignPhotoLibrary =
             AcceptanceTestDependencyFactory.designPhotoLibrary(),
@@ -279,6 +280,7 @@ final class OrderListViewModel: ObservableObject {
             let loadedCakeDesigns = try repository.fetchCakeDesigns().filter {
                 $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference
             }
+            let loadedOrderTemplates = try repository.fetchOrderTemplates()
 
             orders = loadedOrders
             activeOrderCursor = activePage.nextCursor
@@ -289,6 +291,7 @@ final class OrderListViewModel: ObservableObject {
             customers = loadedCustomers
             recipes = loadedRecipes
             cakeDesigns = loadedCakeDesigns
+            orderTemplates = loadedOrderTemplates
             errorMessage =
                 retryPendingDesignPhotoCleanups()
                 ? nil
@@ -413,6 +416,145 @@ final class OrderListViewModel: ObservableObject {
         refreshDraftIngredientCost()
         pendingInventoryShortages = []
         return true
+    }
+
+    func applyOrderTemplate(_ template: OrderTemplate) {
+        draftTitle = template.cakeTitle
+        draftRecipeId = template.recipeId ?? ""
+        draftRecipeScaleMultiplier = TextInputFormatting.decimalText(
+            template.recipeScaleMultiplier
+        )
+        draftCakeDesignId = template.cakeDesignId ?? ""
+        draftCustomerReferencePhotoId = ""
+        draftFulfillmentType = template.fulfillmentType
+        draftDeliveryAddress = template.deliveryAddress ?? ""
+        draftCakeNotes = template.cakeNotes ?? ""
+        draftCakeMessage = template.cakeMessage ?? ""
+        draftStatus = .draft
+        draftQuotedPrice = ""
+        draftDepositPaid = ""
+        draftPaymentNotes = ""
+        applyReminderConfiguration(template.reminderConfiguration)
+        draftExtraIngredientRows = template.extraIngredients.map { ingredient in
+            OrderExtraIngredientDraftRow(
+                id: idGenerator(),
+                existingIngredient: nil,
+                inventoryItemId: ingredient.inventoryItemId,
+                inventoryItemName: availableInventoryItems.first {
+                    $0.id == ingredient.inventoryItemId
+                }?.name ?? "Inventory item",
+                quantity: ingredient.quantity,
+                unit: ingredient.unit,
+                note: ingredient.note
+            )
+        }
+        draftChecklistItems = template.checklistItems.map { item in
+            OrderChecklistDraftItem(id: idGenerator(), title: item.title)
+        }
+        refreshDraftIngredientCost()
+        errorMessage = nil
+    }
+
+    func saveCurrentDraftAsTemplate(named name: String) -> Bool {
+        let trimmedName = TextInputFormatting.trimmed(name)
+        guard !trimmedName.isEmpty else {
+            errorMessage = "Template name is required."
+            return false
+        }
+        guard let multiplier = Decimal(string: draftRecipeScaleMultiplier), multiplier > 0 else {
+            errorMessage = "Recipe multiplier must be greater than zero."
+            return false
+        }
+        do {
+            let now = dateProvider()
+            let template = OrderTemplate(
+                id: idGenerator(),
+                name: trimmedName,
+                cakeTitle: TextInputFormatting.trimmed(draftTitle),
+                cakeDesignId: draftCakeDesignId.isEmpty ? nil : draftCakeDesignId,
+                recipeId: draftRecipeId.isEmpty ? nil : draftRecipeId,
+                recipeScaleMultiplier: draftRecipeId.isEmpty ? 1 : multiplier,
+                fulfillmentType: draftFulfillmentType,
+                deliveryAddress: TextInputFormatting.optionalText(draftDeliveryAddress),
+                cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
+                cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
+                reminderConfiguration: try draftReminderConfiguration(),
+                extraIngredients: draftExtraIngredientRows.enumerated().map { index, row in
+                    OrderTemplateExtraIngredient(
+                        id: idGenerator(),
+                        inventoryItemId: row.inventoryItemId,
+                        quantity: row.quantity,
+                        unit: row.unit,
+                        note: row.note,
+                        sortOrder: index
+                    )
+                },
+                checklistItems: draftChecklistItems.enumerated().map { index, item in
+                    OrderTemplateChecklistItem(
+                        id: idGenerator(),
+                        title: item.title,
+                        sortOrder: index
+                    )
+                },
+                createdAt: now,
+                updatedAt: now
+            )
+            try repository.save(template)
+            orderTemplates = try repository.fetchOrderTemplates()
+            errorMessage = nil
+            return true
+        } catch is OrderDraftValidationError {
+            return false
+        } catch {
+            errorMessage = "Template could not be saved."
+            return false
+        }
+    }
+
+    func renameOrderTemplate(_ template: OrderTemplate, to name: String) -> Bool {
+        let trimmedName = TextInputFormatting.trimmed(name)
+        guard !trimmedName.isEmpty else {
+            errorMessage = "Template name is required."
+            return false
+        }
+        let renamed = OrderTemplate(
+            id: template.id,
+            name: trimmedName,
+            cakeTitle: template.cakeTitle,
+            cakeDesignId: template.cakeDesignId,
+            recipeId: template.recipeId,
+            recipeScaleMultiplier: template.recipeScaleMultiplier,
+            fulfillmentType: template.fulfillmentType,
+            deliveryAddress: template.deliveryAddress,
+            cakeNotes: template.cakeNotes,
+            cakeMessage: template.cakeMessage,
+            reminderConfiguration: template.reminderConfiguration,
+            extraIngredients: template.extraIngredients,
+            checklistItems: template.checklistItems,
+            createdAt: template.createdAt,
+            updatedAt: dateProvider()
+        )
+        do {
+            try repository.save(renamed)
+            orderTemplates = try repository.fetchOrderTemplates()
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Template could not be renamed."
+            return false
+        }
+    }
+
+    func deleteOrderTemplate(_ template: OrderTemplate) -> Bool {
+        do {
+            try repository.deleteOrderTemplate(id: template.id)
+            orderTemplates = try repository.fetchOrderTemplates()
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Template could not be deleted."
+            return false
+        }
     }
 
     func selectDraftReminderMode(_ mode: OrderReminderDraftMode) {
@@ -1501,11 +1643,13 @@ final class OrderListViewModel: ObservableObject {
                 cakeDesigns.append(linkedDesign)
             }
             availableInventoryItems = try repository.fetchInventoryItems()
+            orderTemplates = try repository.fetchOrderTemplates()
         } catch {
             customers = []
             recipes = []
             cakeDesigns = []
             availableInventoryItems = []
+            orderTemplates = []
             errorMessage = "Order form references could not be loaded."
         }
     }

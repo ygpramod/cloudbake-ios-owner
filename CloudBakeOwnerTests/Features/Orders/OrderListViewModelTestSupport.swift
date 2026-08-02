@@ -332,6 +332,7 @@ final class FakeOrderRepository: OrderRepository,
     OrderInventoryReservationMutationRepository,
     OrderReminderPlanOrderMutationRepository,
     OrderChecklistRepository,
+    OrderTemplateRepository,
     OrderPhotoRepository,
     PaymentReceiptRepository
 {
@@ -350,6 +351,7 @@ final class FakeOrderRepository: OrderRepository,
     var ingredientCosts: [OrderIngredientCost] = []
     var extraIngredients: [OrderExtraIngredient] = []
     var checklistItems: [OrderChecklistItem] = []
+    var orderTemplates: [OrderTemplate] = []
     var orderPhotos: [OrderPhoto] = []
     var inventoryReservations: [OrderInventoryReservation] = []
     var inventoryReservationEvents: [OrderInventoryReservationEvent] = []
@@ -935,6 +937,21 @@ final class FakeOrderRepository: OrderRepository,
 
     func deleteOrderPhoto(id: String) throws {
         orderPhotos.removeAll { $0.id == id }
+    }
+
+    func fetchOrderTemplates() throws -> [OrderTemplate] {
+        orderTemplates.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    func save(_ template: OrderTemplate) throws {
+        orderTemplates.removeAll { $0.id == template.id }
+        orderTemplates.append(template)
+    }
+
+    func deleteOrderTemplate(id: String) throws {
+        orderTemplates.removeAll { $0.id == id }
     }
 
     func deleteOrderPhoto(id: String, cleanupRelativePath: String?) throws {
