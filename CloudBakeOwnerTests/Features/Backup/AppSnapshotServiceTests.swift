@@ -1,6 +1,7 @@
 import Foundation
 import GRDB
 import XCTest
+
 @testable import CloudBakeOwner
 
 final class AppSnapshotServiceTests: XCTestCase {
@@ -37,6 +38,29 @@ final class AppSnapshotServiceTests: XCTestCase {
             paymentReminderConfiguration,
             updatedAt: reminderOrder.updatedAt
         )
+        let orderTemplate = OrderTemplate(
+            id: "captured-order-template",
+            name: "Birthday Standard",
+            cakeTitle: "Vanilla Birthday",
+            cakeDesignId: nil,
+            recipeId: nil,
+            recipeScaleMultiplier: 1,
+            fulfillmentType: .delivery,
+            cakeNotes: "Pink flowers",
+            cakeMessage: "Happy Birthday",
+            reminderConfiguration: reminderConfiguration,
+            extraIngredients: [],
+            checklistItems: [
+                OrderTemplateChecklistItem(
+                    id: "captured-template-checklist",
+                    title: "Add topper",
+                    sortOrder: 0
+                )
+            ],
+            createdAt: reminderOrder.createdAt,
+            updatedAt: reminderOrder.updatedAt
+        )
+        try repository.save(orderTemplate)
 
         let service = fixture.service(didCaptureDatabase: {
             try repository.save(fixture.design(id: "created-later", photoReference: nil))
@@ -71,18 +95,22 @@ final class AppSnapshotServiceTests: XCTestCase {
             try snapshotRepository.fetchOrder(id: reminderOrder.id)?.completedAt,
             completedAt
         )
+        XCTAssertEqual(
+            try snapshotRepository.fetchOrderTemplates(),
+            [orderTemplate]
+        )
 
         let manifest = try fixture.decodeManifest(at: package.manifestURL)
         XCTAssertEqual(
             manifest.databaseSchemaVersion,
-            "0039_add_payment_receipt_ledger"
+            "0040_add_order_templates"
         )
         XCTAssertEqual(
             manifest.assets.map(\.originalRelativePath),
             [
                 "Branding/custom-logo.jpg",
                 "OrderPhotos/design.jpg",
-                try XCTUnwrap(recoveredExternalReference)
+                try XCTUnwrap(recoveredExternalReference),
             ].sorted()
         )
         let designAsset = try XCTUnwrap(
