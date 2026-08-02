@@ -504,12 +504,14 @@ discards the draft without changing either order.
 
 For combinations used repeatedly, configure the reusable fields in Add Order and choose Save Current
 as Template. Name the template, then select it later through Use Order Template. Templates include
-cake details, pickup or delivery, linked recipe and multiplier, extra ingredients, linked saved
+cake details, pickup or delivery method, linked recipe and multiplier, extra ingredients, linked saved
 design, reminders, and checklist titles. They never include customer, due date, status, quoted
-price, payments, payment notes, photos, reservations, inventory consumption, actual costs, or
-history. Applying a template keeps any customer and due date already entered in the current draft,
-clears commercial inputs, and does not create an order until Save is selected. Swipe a template in
-the template library to rename or delete it; existing orders are unchanged.
+price, payments, payment notes, delivery address, photos, reservations, inventory consumption,
+actual costs, or history. Applying a template keeps any customer, customer-derived delivery
+address, and due date already entered in the current draft, clears commercial inputs, and does not
+create an order until Save is selected. Archived template ingredients are omitted with a warning to
+add an active replacement. Swipe a template in the template library to rename or delete it;
+existing orders are unchanged.
 
 Active orders are grouped by due day, with orders inside each day ordered by delivery or pickup time
 ascending. Completed and cancelled orders are kept out of active work and appear in a simple

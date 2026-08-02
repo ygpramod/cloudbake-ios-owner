@@ -19,7 +19,6 @@ final class OrderListViewModelTests: XCTestCase {
             recipeId: "recipe-vanilla",
             recipeScaleMultiplier: 2,
             fulfillmentType: .delivery,
-            deliveryAddress: "Template address",
             cakeNotes: "Pink flowers",
             cakeMessage: "Happy Birthday",
             reminderConfiguration: try OrderReminderConfiguration(
@@ -57,6 +56,7 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.beginAddingOrder()
         viewModel.draftCustomerId = "customer-amy"
         viewModel.draftCustomerName = "Amy"
+        viewModel.draftDeliveryAddress = "Amy's current address"
         viewModel.draftDueAt = dueAt
         viewModel.draftQuotedPrice = "200"
         viewModel.draftDepositPaid = "50"
@@ -72,7 +72,7 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftRecipeScaleMultiplier, "2")
         XCTAssertEqual(viewModel.draftCakeDesignId, "design-floral")
         XCTAssertEqual(viewModel.draftFulfillmentType, .delivery)
-        XCTAssertEqual(viewModel.draftDeliveryAddress, "Template address")
+        XCTAssertEqual(viewModel.draftDeliveryAddress, "Amy's current address")
         XCTAssertEqual(viewModel.draftQuotedPrice, "")
         XCTAssertEqual(viewModel.draftDepositPaid, "")
         XCTAssertEqual(viewModel.draftPaymentNotes, "")
@@ -132,7 +132,6 @@ final class OrderListViewModelTests: XCTestCase {
             recipeId: nil,
             recipeScaleMultiplier: 1,
             fulfillmentType: .pickup,
-            deliveryAddress: nil,
             cakeNotes: nil,
             cakeMessage: nil,
             reminderConfiguration: .initialDefault,
@@ -156,6 +155,46 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.applyOrderTemplate(template)
 
         XCTAssertTrue(viewModel.draftExtraIngredientRows.isEmpty)
+    }
+
+    func testTemplateOmitsArchivedExtraIngredientsWithWarning() {
+        let repository = FakeOrderRepository()
+        let timestamp = Date(timeIntervalSince1970: 1_800_060_000)
+        let template = OrderTemplate(
+            id: "template-archived-extra",
+            name: "Archived Extra",
+            cakeTitle: "Cake",
+            cakeDesignId: nil,
+            recipeId: "recipe-cake",
+            recipeScaleMultiplier: 1,
+            fulfillmentType: .pickup,
+            cakeNotes: nil,
+            cakeMessage: nil,
+            reminderConfiguration: .initialDefault,
+            extraIngredients: [
+                OrderTemplateExtraIngredient(
+                    id: "archived-extra",
+                    inventoryItemId: "archived-inventory",
+                    quantity: 10,
+                    unit: .gram,
+                    note: nil,
+                    sortOrder: 0
+                )
+            ],
+            checklistItems: [],
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        let viewModel = OrderListViewModel(repository: repository)
+
+        viewModel.beginAddingOrder()
+        viewModel.applyOrderTemplate(template)
+
+        XCTAssertTrue(viewModel.draftExtraIngredientRows.isEmpty)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "Some template ingredients are archived and were not added. Add an active replacement before saving."
+        )
     }
 
     func testOrderDetailOnlyOffersDuplicateWhenHostProvidesWorkflow() {

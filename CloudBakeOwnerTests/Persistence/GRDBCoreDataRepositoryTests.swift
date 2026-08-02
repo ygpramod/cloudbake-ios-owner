@@ -17,7 +17,6 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             recipeId: nil,
             recipeScaleMultiplier: 1,
             fulfillmentType: .pickup,
-            deliveryAddress: nil,
             cakeNotes: "Pink flowers",
             cakeMessage: "Happy Birthday",
             reminderConfiguration: try OrderReminderConfiguration(
