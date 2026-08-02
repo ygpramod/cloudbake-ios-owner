@@ -137,6 +137,25 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.orderTemplates.isEmpty)
     }
 
+    func testTemplateRejectsInvalidCakeCapacityWithoutCustomerFields() {
+        let repository = FakeOrderRepository()
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.beginAddingOrder()
+        viewModel.draftTitle = "Pandan Cake"
+        viewModel.draftCakeServings = "3.5"
+
+        XCTAssertFalse(viewModel.saveCurrentDraftAsTemplate(named: "Pandan Standard"))
+        XCTAssertEqual(viewModel.errorMessage, "Servings must be a positive whole number.")
+        XCTAssertEqual(viewModel.draftCakeServings, "3.5")
+
+        viewModel.draftCakeServings = "28"
+        viewModel.draftCakeWeightKilograms = "0"
+        XCTAssertFalse(viewModel.saveCurrentDraftAsTemplate(named: "Pandan Standard"))
+        XCTAssertEqual(viewModel.errorMessage, "Weight must be greater than zero.")
+        XCTAssertEqual(viewModel.draftCakeWeightKilograms, "0")
+        XCTAssertTrue(repository.orderTemplates.isEmpty)
+    }
+
     func testCakeCapacitySuggestionsNeverOverwriteEnteredValues() {
         let viewModel = OrderListViewModel(repository: FakeOrderRepository())
 
