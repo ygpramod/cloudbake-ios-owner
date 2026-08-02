@@ -134,27 +134,16 @@ struct OrderDetailView: View {
                         CloudBakeDetailRow("Status") {
                             HStack(spacing: 8) {
                                 Text(order.status.displayName)
-                                Menu {
-                                    ForEach(OrderStatus.allCases, id: \.self) { status in
-                                        Button {
-                                            changeStatus(status, for: order)
-                                        } label: {
-                                            if status == order.status {
-                                                Label(status.displayName, systemImage: "checkmark")
-                                            } else {
-                                                Text(status.displayName)
-                                            }
-                                        }
-                                        .accessibilityIdentifier("orders.detail.status.\(status.rawValue)")
-                                    }
-                                } label: {
+                                CloudBakeAnchoredPopupButton(
+                                    title: "Status",
+                                    actions: statusPopupActions(for: order),
+                                    accessibilityLabel: "Change Status",
+                                    accessibilityIdentifier: "orders.detail.statusMenu"
+                                ) {
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                         .imageScale(.small)
+                                        .foregroundStyle(Color.cloudBakePink)
                                 }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(Color.cloudBakePink)
-                                .accessibilityLabel("Change Status")
-                                .accessibilityIdentifier("orders.detail.statusMenu")
                             }
                         }
                         CloudBakeDetailDivider()
@@ -936,6 +925,42 @@ struct OrderDetailView: View {
         }
     }
 
+    private func statusPopupActions(for order: Order) -> [CloudBakeScreenMenuAction] {
+        OrderStatus.allCases.map { status in
+            CloudBakeScreenMenuAction(
+                title: status.displayName,
+                systemImage: status.popupSystemImage,
+                tint: status == .cancelled ? .red : .cloudBakePurple,
+                isSelected: status == order.status,
+                accessibilityIdentifier: "orders.detail.status.\(status.rawValue)",
+                action: { changeStatus(status, for: order) }
+            )
+        }
+    }
+
+    private var paymentPopupActions: [CloudBakeScreenMenuAction] {
+        [
+            CloudBakeScreenMenuAction(
+                title: "Mark Paid",
+                systemImage: "checkmark.circle",
+                tint: CloudBakeTheme.ColorToken.success,
+                accessibilityIdentifier: "orders.detail.payment.paid",
+                action: { _ = viewModel.markSelectedOrderPaid() }
+            ),
+            CloudBakeScreenMenuAction(
+                title: "Add Partial Payment",
+                systemImage: "plus.circle",
+                tint: CloudBakeTheme.ColorToken.recipeAccent,
+                accessibilityIdentifier: "orders.detail.payment.partial",
+                action: {
+                    partialPaymentAmount = ""
+                    partialPaymentNote = ""
+                    isAddingPartialPayment = true
+                }
+            ),
+        ]
+    }
+
     private func paymentSection(order: Order) -> some View {
         CloudBakeSection("Pricing And Payment") {
             CloudBakeDetailCard {
@@ -944,26 +969,16 @@ struct OrderDetailView: View {
                         Text(order.paymentStatus)
                             .foregroundStyle(.green)
                             .accessibilityIdentifier("orders.detail.paymentStatus")
-                        Menu {
-                            Button("Mark Paid") {
-                                _ = viewModel.markSelectedOrderPaid()
-                            }
-                            .accessibilityIdentifier("orders.detail.payment.paid")
-
-                            Button("Add Partial Payment") {
-                                partialPaymentAmount = ""
-                                partialPaymentNote = ""
-                                isAddingPartialPayment = true
-                            }
-                            .accessibilityIdentifier("orders.detail.payment.partial")
-                        } label: {
+                        CloudBakeAnchoredPopupButton(
+                            title: "Payment",
+                            actions: paymentPopupActions,
+                            accessibilityLabel: "Change Payment Status",
+                            accessibilityIdentifier: "orders.detail.paymentStatusMenu"
+                        ) {
                             Image(systemName: "banknote")
                                 .imageScale(.small)
+                                .foregroundStyle(Color.cloudBakePink)
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Color.cloudBakePink)
-                        .accessibilityLabel("Change Payment Status")
-                        .accessibilityIdentifier("orders.detail.paymentStatusMenu")
                     }
                 }
 
@@ -1074,17 +1089,25 @@ struct OrderDetailView: View {
                 .strikethrough(isVoided)
                 .foregroundStyle(isVoided ? .secondary : .primary)
             if let receipt, !receipt.isVoided {
-                Menu {
-                    Button("Void Payment", role: .destructive) {
-                        paymentVoidReason = ""
-                        receiptPendingVoid = receipt
-                    }
-                } label: {
+                CloudBakeAnchoredPopupButton(
+                    title: "Payment Actions",
+                    actions: [
+                        CloudBakeScreenMenuAction(
+                            title: "Void Payment",
+                            systemImage: "xmark.circle",
+                            tint: .red,
+                            accessibilityIdentifier: "orders.detail.payment.void.\(receipt.id)"
+                        ) {
+                            paymentVoidReason = ""
+                            receiptPendingVoid = receipt
+                        }
+                    ],
+                    accessibilityLabel: "Payment Actions",
+                    accessibilityIdentifier: "orders.detail.payment.actions.\(receipt.id)"
+                ) {
                     Image(systemName: "ellipsis")
                         .frame(width: 32, height: 32)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Payment Actions")
             }
         }
         .padding(.vertical, 12)

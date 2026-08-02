@@ -156,16 +156,27 @@ struct OrderCakeSpecificationSection: View {
                 current: text.wrappedValue
             )
             if !choices.isEmpty {
-                Menu {
-                    ForEach(choices, id: \.self) { choice in
-                        Button(choice) { text.wrappedValue = choice }
-                    }
-                } label: {
+                CloudBakeAnchoredPopupButton(
+                    title: "Previous \(label) Choices",
+                    actions: choices.map { choice in
+                        CloudBakeScreenMenuAction(
+                            title: choice,
+                            systemImage: "clock.arrow.circlepath",
+                            tint: .purple,
+                            isSelected: text.wrappedValue == choice,
+                            accessibilityIdentifier: "orders.form.cakeSpecification.previous.\(field.rawValue).\(choice)"
+                        ) {
+                            text.wrappedValue = choice
+                        }
+                    },
+                    accessibilityLabel: "Previous \(label) choices",
+                    accessibilityValue: text.wrappedValue,
+                    accessibilityIdentifier: "orders.form.cakeSpecification.previous.\(field.rawValue)"
+                ) {
                     Image(systemName: "clock.arrow.circlepath")
                         .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
-                .accessibilityLabel("Previous \(label) choices")
             }
         }
     }
@@ -190,17 +201,13 @@ private struct OrderCakeChoiceRow: View {
 
     var body: some View {
         LabeledContent(label) {
-            Menu {
-                Button("Not Set") { value = "" }
-                ForEach(choices, id: \.self) { choice in
-                    Button(choice) { value = choice }
-                }
-                Divider()
-                Button("Other…") {
-                    customValue = choices.contains(value) ? "" : value
-                    isEnteringCustomValue = true
-                }
-            } label: {
+            CloudBakeAnchoredPopupButton(
+                title: label,
+                actions: popupActions,
+                accessibilityLabel: label,
+                accessibilityValue: value.isEmpty ? "Not Set" : value,
+                accessibilityIdentifier: identifier
+            ) {
                 HStack(spacing: 5) {
                     Text(value.isEmpty ? "Not Set" : value)
                         .lineLimit(1)
@@ -208,7 +215,6 @@ private struct OrderCakeChoiceRow: View {
                         .font(.caption2)
                 }
             }
-            .accessibilityIdentifier(identifier)
         }
         .alert("Other \(label)", isPresented: $isEnteringCustomValue) {
             TextField(label, text: $customValue)
@@ -220,5 +226,44 @@ private struct OrderCakeChoiceRow: View {
                 }
             }
         }
+    }
+
+    private var popupActions: [CloudBakeScreenMenuAction] {
+        var actions = [
+            CloudBakeScreenMenuAction(
+                title: "Not Set",
+                systemImage: "minus.circle",
+                tint: .secondary,
+                isSelected: value.isEmpty,
+                accessibilityIdentifier: "\(identifier).notSet"
+            ) {
+                value = ""
+            }
+        ]
+        actions.append(
+            contentsOf: choices.map { choice in
+                CloudBakeScreenMenuAction(
+                    title: choice,
+                    systemImage: "checkmark.circle",
+                    tint: Color.cloudBakePink,
+                    isSelected: value == choice,
+                    accessibilityIdentifier: "\(identifier).choice.\(choice)"
+                ) {
+                    value = choice
+                }
+            }
+        )
+        actions.append(
+            CloudBakeScreenMenuAction(
+                title: "Other…",
+                systemImage: "square.and.pencil",
+                tint: .purple,
+                accessibilityIdentifier: "\(identifier).other"
+            ) {
+                customValue = choices.contains(value) ? "" : value
+                isEnteringCustomValue = true
+            }
+        )
+        return actions
     }
 }

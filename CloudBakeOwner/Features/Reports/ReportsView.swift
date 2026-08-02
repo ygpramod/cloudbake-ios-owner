@@ -77,19 +77,13 @@ struct ReportsView: View {
     }
 
     private var reportPicker: some View {
-        Menu {
-            ForEach(ReportKind.allCases) { report in
-                Button {
-                    viewModel.selectedReport = report
-                } label: {
-                    if viewModel.selectedReport == report {
-                        Label(report.title, systemImage: "checkmark")
-                    } else {
-                        Text(report.title)
-                    }
-                }
-            }
-        } label: {
+        CloudBakeAnchoredPopupButton(
+            title: "Reports",
+            actions: reportActions,
+            accessibilityLabel: "Report",
+            accessibilityValue: viewModel.selectedReport.title,
+            accessibilityIdentifier: "reports.kind"
+        ) {
             HStack(spacing: 12) {
                 Text(viewModel.selectedReport.title)
                     .font(CloudBakeTheme.Typography.reportTitle)
@@ -106,11 +100,6 @@ struct ReportsView: View {
             .frame(maxWidth: .infinity, minHeight: 44)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .tint(Color.cloudBakePink)
-        .accessibilityLabel("Report")
-        .accessibilityValue(viewModel.selectedReport.title)
-        .accessibilityIdentifier("reports.kind")
     }
 
     private var filterCard: some View {
@@ -131,23 +120,13 @@ struct ReportsView: View {
                 .font(.subheadline)
 
                 HStack {
-                    Menu {
-                        ForEach(OrderStatus.allCases, id: \.self) { status in
-                            Button {
-                                if viewModel.selectedStatuses.contains(status) {
-                                    viewModel.selectedStatuses.remove(status)
-                                } else {
-                                    viewModel.selectedStatuses.insert(status)
-                                }
-                            } label: {
-                                if viewModel.selectedStatuses.contains(status) {
-                                    Label(status.displayName, systemImage: "checkmark")
-                                } else {
-                                    Text(status.displayName)
-                                }
-                            }
-                        }
-                    } label: {
+                    CloudBakeAnchoredPopupButton(
+                        title: "Statuses",
+                        actions: statusActions,
+                        accessibilityLabel: "Order statuses",
+                        accessibilityValue: "\(viewModel.selectedStatuses.count) selected",
+                        accessibilityIdentifier: "reports.statuses"
+                    ) {
                         Label(
                             "\(viewModel.selectedStatuses.count) Statuses",
                             systemImage: "line.3.horizontal.decrease.circle"
@@ -157,12 +136,15 @@ struct ReportsView: View {
                     Spacer()
 
                     if viewModel.selectedReport != .orderProfitability {
-                        Picker("Group", selection: $viewModel.grouping) {
-                            ForEach(ReportGrouping.allCases) { grouping in
-                                Text(grouping.title).tag(grouping)
-                            }
+                        CloudBakeAnchoredPopupButton(
+                            title: "Group Report By",
+                            actions: groupingActions,
+                            accessibilityLabel: "Group report by",
+                            accessibilityValue: viewModel.grouping.title,
+                            accessibilityIdentifier: "reports.grouping"
+                        ) {
+                            Label(viewModel.grouping.title, systemImage: "calendar")
                         }
-                        .pickerStyle(.menu)
                     }
 
                     Button("Apply", action: viewModel.load)
@@ -174,6 +156,53 @@ struct ReportsView: View {
             .padding(16)
         }
         .accessibilityIdentifier("reports.filters")
+    }
+
+    private var reportActions: [CloudBakeScreenMenuAction] {
+        ReportKind.allCases.map { report in
+            CloudBakeScreenMenuAction(
+                title: report.title,
+                systemImage: report.popupSystemImage,
+                tint: report.popupTint,
+                isSelected: viewModel.selectedReport == report,
+                accessibilityIdentifier: "reports.kind.\(report.rawValue)"
+            ) {
+                viewModel.selectedReport = report
+            }
+        }
+    }
+
+    private var statusActions: [CloudBakeScreenMenuAction] {
+        OrderStatus.allCases.map { status in
+            CloudBakeScreenMenuAction(
+                title: status.displayName,
+                systemImage: status.popupSystemImage,
+                tint: status == .cancelled ? .red : .purple,
+                isSelected: viewModel.selectedStatuses.contains(status),
+                dismissesPopup: false,
+                accessibilityIdentifier: "reports.statuses.\(status.rawValue)"
+            ) {
+                if viewModel.selectedStatuses.contains(status) {
+                    viewModel.selectedStatuses.remove(status)
+                } else {
+                    viewModel.selectedStatuses.insert(status)
+                }
+            }
+        }
+    }
+
+    private var groupingActions: [CloudBakeScreenMenuAction] {
+        ReportGrouping.allCases.map { grouping in
+            CloudBakeScreenMenuAction(
+                title: grouping.title,
+                systemImage: grouping.popupSystemImage,
+                tint: Color.cloudBakePink,
+                isSelected: viewModel.grouping == grouping,
+                accessibilityIdentifier: "reports.grouping.\(grouping.rawValue)"
+            ) {
+                viewModel.grouping = grouping
+            }
+        }
     }
 
     @ViewBuilder
@@ -488,6 +517,34 @@ struct ReportsView: View {
         orderDetailRequest?.viewModel.closeOrderDetail()
         orderDetailRequest = nil
         viewModel.load()
+    }
+}
+
+private extension ReportKind {
+    var popupSystemImage: String {
+        switch self {
+        case .paymentLedger: "creditcard"
+        case .orderProfitability: "chart.line.uptrend.xyaxis"
+        case .salesAndOrders: "chart.bar"
+        }
+    }
+
+    var popupTint: Color {
+        switch self {
+        case .paymentLedger: .mint
+        case .orderProfitability: .orange
+        case .salesAndOrders: Color.cloudBakePink
+        }
+    }
+}
+
+private extension ReportGrouping {
+    var popupSystemImage: String {
+        switch self {
+        case .day: "calendar.day.timeline.left"
+        case .week: "calendar.badge.clock"
+        case .month: "calendar"
+        }
     }
 }
 
