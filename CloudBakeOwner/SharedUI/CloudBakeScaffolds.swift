@@ -62,6 +62,8 @@ struct CloudBakeScreenAction: Identifiable {
     let title: String
     let systemImage: String
     let accessibilityIdentifier: String
+    let menuTitle: String?
+    let menuAccessibilityLabel: String?
     let menuActions: [CloudBakeScreenMenuAction]
     let action: () -> Void
 
@@ -69,23 +71,48 @@ struct CloudBakeScreenAction: Identifiable {
         title: String,
         systemImage: String,
         accessibilityIdentifier: String,
+        menuTitle: String? = nil,
+        menuAccessibilityLabel: String? = nil,
         menuActions: [CloudBakeScreenMenuAction] = [],
         action: @escaping () -> Void
     ) {
         self.title = title
         self.systemImage = systemImage
         self.accessibilityIdentifier = accessibilityIdentifier
+        self.menuTitle = menuTitle
+        self.menuAccessibilityLabel = menuAccessibilityLabel
         self.menuActions = menuActions
         self.action = action
     }
 }
 
 struct CloudBakeScreenMenuAction: Identifiable {
-    let id = UUID()
+    var id: String { accessibilityIdentifier }
     let title: String
     let systemImage: String
+    let tint: Color
+    let isSelected: Bool
+    let dismissesPopup: Bool
     let accessibilityIdentifier: String
     let action: () -> Void
+
+    init(
+        title: String,
+        systemImage: String,
+        tint: Color = CloudBakeTheme.ColorToken.primaryAction,
+        isSelected: Bool = false,
+        dismissesPopup: Bool = true,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.tint = tint
+        self.isSelected = isSelected
+        self.dismissesPopup = dismissesPopup
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.action = action
+    }
 }
 
 struct CloudBakeDetailScaffold<Content: View>: View {
@@ -289,22 +316,50 @@ private struct CloudBakeDetailHeaderButton: View {
 
 private struct CloudBakeHeaderActionButton: View {
     let action: CloudBakeScreenAction
+    @State private var isMenuPresented = false
+    @State private var longPressFeedbackTrigger = 0
 
     @ViewBuilder
     var body: some View {
         if !action.menuActions.isEmpty {
-            Menu {
-                ForEach(action.menuActions) { menuAction in
-                    menuButton(menuAction)
+            actionLabel
+                .contentShape(Circle())
+                .gesture(
+                    LongPressGesture(minimumDuration: 0.6)
+                        .exclusively(before: TapGesture())
+                        .onEnded { gesture in
+                            switch gesture {
+                            case .first:
+                                longPressFeedbackTrigger += 1
+                                isMenuPresented = true
+                            case .second:
+                                action.action()
+                            }
+                        }
+                )
+                .accessibilityElement()
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(action.title)
+                .accessibilityIdentifier(action.accessibilityIdentifier)
+                .accessibilityAction {
+                    action.action()
                 }
-            } label: {
-                actionLabel
-            } primaryAction: {
-                action.action()
-            }
-            .menuIndicator(.hidden)
-            .accessibilityLabel(action.title)
-            .accessibilityIdentifier(action.accessibilityIdentifier)
+                .accessibilityAction(named: Text(action.menuAccessibilityLabel ?? "Show Actions")) {
+                    isMenuPresented = true
+                }
+                .sensoryFeedback(.impact(weight: .medium), trigger: longPressFeedbackTrigger)
+                .popover(
+                    isPresented: $isMenuPresented,
+                    attachmentAnchor: .rect(.bounds),
+                    arrowEdge: .top
+                ) {
+                    CloudBakeAnchoredActionPopup(
+                        title: action.menuTitle ?? action.title,
+                        actions: action.menuActions,
+                        isPresented: $isMenuPresented
+                    )
+                    .presentationCompactAdaptation(.popover)
+                }
         } else {
             Button(action: action.action) {
                 actionLabel
@@ -312,13 +367,6 @@ private struct CloudBakeHeaderActionButton: View {
             .accessibilityLabel(action.title)
             .accessibilityIdentifier(action.accessibilityIdentifier)
         }
-    }
-
-    private func menuButton(_ menuAction: CloudBakeScreenMenuAction) -> some View {
-        Button(action: menuAction.action) {
-            Label(menuAction.title, systemImage: menuAction.systemImage)
-        }
-        .accessibilityIdentifier(menuAction.accessibilityIdentifier)
     }
 
     private var actionLabel: some View {
@@ -340,14 +388,12 @@ private struct CloudBakeHeaderActionMenu: View {
     let actions: [CloudBakeScreenAction]
 
     var body: some View {
-        Menu {
-            ForEach(actions) { action in
-                Button(action: action.action) {
-                    Label(action.title, systemImage: action.systemImage)
-                }
-                .accessibilityIdentifier(action.accessibilityIdentifier)
-            }
-        } label: {
+        CloudBakeAnchoredPopupButton(
+            title: "Actions",
+            actions: popupActions,
+            accessibilityLabel: "More actions",
+            accessibilityIdentifier: "screen.actions.more"
+        ) {
             Image(systemName: "ellipsis")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
@@ -359,7 +405,16 @@ private struct CloudBakeHeaderActionMenu: View {
                     y: CloudBakeTheme.Elevation.controlYOffset
                 )
         }
-        .accessibilityLabel("More actions")
-        .accessibilityIdentifier("screen.actions.more")
+    }
+
+    private var popupActions: [CloudBakeScreenMenuAction] {
+        actions.map { action in
+            CloudBakeScreenMenuAction(
+                title: action.title,
+                systemImage: action.systemImage,
+                accessibilityIdentifier: action.accessibilityIdentifier,
+                action: action.action
+            )
+        }
     }
 }

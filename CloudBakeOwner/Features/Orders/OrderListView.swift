@@ -204,6 +204,8 @@ struct OrderListView: View {
                 title: "Add Order",
                 systemImage: "plus",
                 accessibilityIdentifier: "orders.add",
+                menuTitle: "Templates",
+                menuAccessibilityLabel: "Manage Templates",
                 menuActions: [
                     CloudBakeScreenMenuAction(
                         title: "Create Template",
@@ -214,6 +216,7 @@ struct OrderListView: View {
                     CloudBakeScreenMenuAction(
                         title: "Edit Template",
                         systemImage: "pencil",
+                        tint: CloudBakeTheme.ColorToken.secondaryAction,
                         accessibilityIdentifier: "orders.template.action.edit",
                         action: { templateSourcePicker = .editTemplate }
                     ),
