@@ -57,9 +57,6 @@ final class StarterOrderTemplateMigrationTests: XCTestCase {
                 id: "starter-template-classic-birthday",
                 occasion: "Birthday",
                 tiers: "1",
-                sponge: "Vanilla",
-                filling: "Buttercream",
-                frosting: "Buttercream",
                 theme: nil as String?,
                 packaging: "Standard Box"
             ),
@@ -67,9 +64,6 @@ final class StarterOrderTemplateMigrationTests: XCTestCase {
                 id: "starter-template-chocolate-birthday",
                 occasion: "Birthday",
                 tiers: "1",
-                sponge: "Chocolate",
-                filling: "Chocolate Ganache",
-                frosting: "Ganache",
                 theme: nil,
                 packaging: "Standard Box"
             ),
@@ -77,9 +71,6 @@ final class StarterOrderTemplateMigrationTests: XCTestCase {
                 id: "starter-template-anniversary",
                 occasion: "Anniversary",
                 tiers: "1",
-                sponge: "Vanilla",
-                filling: "Fruit",
-                frosting: "Buttercream",
                 theme: "Elegant",
                 packaging: "Standard Box"
             ),
@@ -87,9 +78,6 @@ final class StarterOrderTemplateMigrationTests: XCTestCase {
                 id: "starter-template-baby-shower",
                 occasion: "Baby Shower",
                 tiers: "1",
-                sponge: "Vanilla",
-                filling: "Buttercream",
-                frosting: "Buttercream",
                 theme: "Baby Shower",
                 packaging: "Standard Box"
             ),
@@ -97,9 +85,6 @@ final class StarterOrderTemplateMigrationTests: XCTestCase {
                 id: "starter-template-floral-celebration",
                 occasion: "Celebration",
                 tiers: "1",
-                sponge: "Vanilla",
-                filling: "Fruit",
-                frosting: "Buttercream",
                 theme: "Floral",
                 packaging: "Tall Box"
             ),
@@ -107,9 +92,6 @@ final class StarterOrderTemplateMigrationTests: XCTestCase {
                 id: "starter-template-two-tier-wedding",
                 occasion: "Wedding",
                 tiers: "2",
-                sponge: "Vanilla",
-                filling: "Fruit",
-                frosting: "Buttercream",
                 theme: "Elegant",
                 packaging: "Tall Box"
             ),
@@ -131,9 +113,9 @@ final class StarterOrderTemplateMigrationTests: XCTestCase {
             XCTAssertNil(template.cakeSpecification.weightKilograms)
             XCTAssertEqual(template.cakeSpecification.shape, "Circle")
             XCTAssertEqual(template.cakeSpecification.tiers, expected.tiers)
-            XCTAssertEqual(template.cakeSpecification.spongeFlavour, expected.sponge)
-            XCTAssertEqual(template.cakeSpecification.filling, expected.filling)
-            XCTAssertEqual(template.cakeSpecification.frosting, expected.frosting)
+            XCTAssertNil(template.cakeSpecification.spongeFlavour)
+            XCTAssertNil(template.cakeSpecification.filling)
+            XCTAssertNil(template.cakeSpecification.frosting)
             XCTAssertNil(template.cakeSpecification.colourPalette)
             XCTAssertEqual(template.cakeSpecification.theme, expected.theme)
             XCTAssertEqual(template.cakeSpecification.topperRequirements, "None")

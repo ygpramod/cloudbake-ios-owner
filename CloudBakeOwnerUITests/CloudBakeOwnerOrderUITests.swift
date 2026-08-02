@@ -22,7 +22,7 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(summary.waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(summary.label.contains("Wedding cake"))
         XCTAssertTrue(summary.label.contains("2 tiers"))
-        XCTAssertTrue(summary.label.contains("vanilla sponge"))
+        XCTAssertFalse(summary.label.contains("sponge"))
 
         let customerName = app.textFields["orders.form.customerName"]
         scrollToHittable(customerName, in: app, timeout: transitionTimeout)
