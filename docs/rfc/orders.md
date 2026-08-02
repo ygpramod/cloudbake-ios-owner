@@ -63,6 +63,8 @@ notes, and changing customer requests without forcing the owner into a rigid ret
 - The owner must be able to edit an order while it is active.
 - The owner must be able to open an existing order as a new, unsaved Draft while excluding quoted
   price, payments, photos, inventory history, and completion history.
+- The owner must be able to save, apply, rename, and delete named reusable order templates whose
+  schema excludes customer, due date, status, quoted price, payments, photos, and history.
 - The owner must be able to create a new customer from order customer selection when the customer
   does not already exist.
 - Each order must have a status.
@@ -362,6 +364,10 @@ pricing, and recipe links.
   details, fresh extra-ingredient and checklist identifiers, an incomplete checklist, and the
   normal next-day due default. Price, payments, photos, reservations, consumption, actual costs,
   status, and completion history are deliberately excluded.
+- Add Order can now save and apply named reusable templates through
+  `docs/rfc/slices/0129-reusable-order-templates.md`. Templates store reusable cake, fulfilment,
+  recipe, extra-ingredient, saved-design, reminder, and checklist data only. Applying one leaves the
+  current customer and due date intact while resetting status and commercial inputs.
 - iPad order split view is deferred while the initial owner app targets iPhone only. Orders keep the
   modal detail flow on supported iPhones.
 - Orders now expose only Active and Completed tabs. Active work is always shown as due-day groups
@@ -388,7 +394,7 @@ pricing, and recipe links.
 The following Orders RFC items are intentionally deferred until after other MVP areas are stronger:
 
 - reminder snooze, preparation-start reminders, and calendar integration,
-- checklist reordering, reusable order templates, and checklist-driven status suggestions,
+- checklist reordering and checklist-driven status suggestions,
 - partial recipe usage, multi-recipe orders, inventory reservation, and serving/yield modeling,
 - pricing calculator and recipe-cost suggestions,
 - multiple design references and broader design library management,
