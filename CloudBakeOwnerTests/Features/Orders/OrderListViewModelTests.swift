@@ -155,6 +155,42 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftCakeServings, "30")
     }
 
+    func testEditingOrderLoadsAndPersistsStructuredCakeRequirements() {
+        let repository = FakeOrderRepository()
+        let now = Date(timeIntervalSince1970: 1_800_060_000)
+        let order = makeOrder(
+            id: "structured-edit",
+            dueAt: now.addingTimeInterval(86_400),
+            cakeSpecification: OrderCakeSpecification(
+                occasion: "Anniversary",
+                servings: 28,
+                weightKilograms: 2,
+                shape: "Oval",
+                spongeFlavour: "Pandan",
+                packaging: "Tall Box"
+            )
+        )
+        repository.orders = [order]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            dateProvider: { now }
+        )
+
+        viewModel.beginViewingOrder(order)
+        viewModel.beginEditingOrder()
+
+        XCTAssertEqual(viewModel.draftCakeOccasion, "Anniversary")
+        XCTAssertEqual(viewModel.draftCakeServings, "28")
+        XCTAssertEqual(viewModel.draftCakeWeightKilograms, "2")
+        XCTAssertEqual(viewModel.draftCakeShape, "Oval")
+        XCTAssertEqual(viewModel.draftCakeSpongeFlavour, "Pandan")
+        viewModel.draftCakeTheme = "Botanical"
+
+        XCTAssertTrue(viewModel.saveEditedOrder())
+        XCTAssertEqual(repository.orders.first?.cakeSpecification.theme, "Botanical")
+        XCTAssertEqual(repository.orders.first?.cakeSpecification.spongeFlavour, "Pandan")
+    }
+
     func testTemplateWithDeletedRecipeDoesNotApplyHiddenExtraIngredients() {
         let repository = FakeOrderRepository()
         repository.inventoryItems = [
@@ -891,6 +927,7 @@ final class OrderListViewModelTests: XCTestCase {
                     deliveryAddress: "10 Cake Street",
                     cakeNotes: "Less sweet",
                     cakeMessage: "Happy Birthday Amy",
+                    cakeSpecification: .newOrderDefaults,
                     quotedPrice: Decimal(string: "125.50"),
                     depositPaid: Decimal(string: "25.50"),
                     paymentNotes: "Bank transfer received",
@@ -920,6 +957,25 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.draftRecipeScaleMultiplier = "abc"
         XCTAssertFalse(viewModel.addOrder())
         XCTAssertEqual(viewModel.errorMessage, "Recipe multiplier must be greater than zero.")
+        XCTAssertTrue(repository.orders.isEmpty)
+    }
+
+    func testAddOrderRejectsInvalidCakeCapacityWithoutDiscardingInput() {
+        let repository = FakeOrderRepository()
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.draftTitle = "Vanilla Birthday"
+        viewModel.draftCustomerName = "Amy"
+        viewModel.draftCakeServings = "3.5"
+
+        XCTAssertFalse(viewModel.addOrder())
+        XCTAssertEqual(viewModel.errorMessage, "Servings must be a positive whole number.")
+        XCTAssertEqual(viewModel.draftCakeServings, "3.5")
+
+        viewModel.draftCakeServings = "28"
+        viewModel.draftCakeWeightKilograms = "0"
+        XCTAssertFalse(viewModel.addOrder())
+        XCTAssertEqual(viewModel.errorMessage, "Weight must be greater than zero.")
+        XCTAssertEqual(viewModel.draftCakeWeightKilograms, "0")
         XCTAssertTrue(repository.orders.isEmpty)
     }
 

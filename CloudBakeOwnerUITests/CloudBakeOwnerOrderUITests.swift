@@ -37,6 +37,20 @@ extension CloudBakeOwnerUITests {
         assertExistsAfterScrolling(summary, in: app, timeout: transitionTimeout)
         XCTAssertTrue(summary.label.contains("28 servings (2 kg)"))
         XCTAssertTrue(summary.label.contains("standard box"))
+
+        tapWhenReady(app.buttons["orders.detail.edit"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Edit Order"].waitForExistence(timeout: transitionTimeout))
+        let reopenedServings = app.textFields["orders.form.cakeSpecification.servings"]
+        scrollToHittable(reopenedServings, in: app, timeout: transitionTimeout)
+        XCTAssertEqual(reopenedServings.value as? String, "28")
+        XCTAssertEqual(
+            app.textFields["orders.form.cakeSpecification.weight"].value as? String,
+            "2"
+        )
+        XCTAssertTrue(
+            app.staticTexts["orders.form.cakeSpecification.summary"]
+                .waitForExistence(timeout: transitionTimeout)
+        )
     }
 
     func testOrderCanBeAddedAndListed() throws {

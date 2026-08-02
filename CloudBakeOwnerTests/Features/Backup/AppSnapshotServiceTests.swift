@@ -17,7 +17,13 @@ final class AppSnapshotServiceTests: XCTestCase {
         let reminderOrder = fixture.order(
             id: "captured-reminder-order",
             status: .completed,
-            completedAt: completedAt
+            completedAt: completedAt,
+            cakeSpecification: OrderCakeSpecification(
+                occasion: "Birthday",
+                servings: 28,
+                spongeFlavour: "Pandan",
+                packaging: "Tall Box"
+            )
         )
         let reminderConfiguration = try OrderReminderConfiguration(
             mode: .custom,
@@ -48,6 +54,7 @@ final class AppSnapshotServiceTests: XCTestCase {
             fulfillmentType: .delivery,
             cakeNotes: "Pink flowers",
             cakeMessage: "Happy Birthday",
+            cakeSpecification: reminderOrder.cakeSpecification,
             reminderConfiguration: reminderConfiguration,
             extraIngredients: [],
             checklistItems: [
@@ -61,6 +68,10 @@ final class AppSnapshotServiceTests: XCTestCase {
             updatedAt: reminderOrder.updatedAt
         )
         try repository.save(orderTemplate)
+        try repository.saveOrderCakeRequirementChoices(
+            [(.spongeFlavour, "Pandan")],
+            at: reminderOrder.updatedAt
+        )
 
         let service = fixture.service(didCaptureDatabase: {
             try repository.save(fixture.design(id: "created-later", photoReference: nil))
@@ -96,14 +107,22 @@ final class AppSnapshotServiceTests: XCTestCase {
             completedAt
         )
         XCTAssertEqual(
+            try snapshotRepository.fetchOrder(id: reminderOrder.id)?.cakeSpecification,
+            reminderOrder.cakeSpecification
+        )
+        XCTAssertEqual(
             try snapshotRepository.fetchOrderTemplates(),
             [orderTemplate]
+        )
+        XCTAssertEqual(
+            try snapshotRepository.fetchOrderCakeRequirementChoices(field: .spongeFlavour),
+            ["Pandan"]
         )
 
         let manifest = try fixture.decodeManifest(at: package.manifestURL)
         XCTAssertEqual(
             manifest.databaseSchemaVersion,
-            "0040_add_order_templates"
+            "0041_add_structured_order_requirements"
         )
         XCTAssertEqual(
             manifest.assets.map(\.originalRelativePath),
@@ -629,7 +648,8 @@ private final class Fixture: @unchecked Sendable {
         id: String,
         customerReferencePhotoId: String? = nil,
         status: OrderStatus = .draft,
-        completedAt: Date? = nil
+        completedAt: Date? = nil,
+        cakeSpecification: OrderCakeSpecification = .empty
     ) -> Order {
         let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
         return Order(
@@ -644,6 +664,7 @@ private final class Fixture: @unchecked Sendable {
             fulfillmentType: .pickup,
             deliveryAddress: nil,
             cakeNotes: nil,
+            cakeSpecification: cakeSpecification,
             completedAt: completedAt,
             createdAt: timestamp,
             updatedAt: timestamp

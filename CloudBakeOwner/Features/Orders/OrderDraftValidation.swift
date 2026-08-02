@@ -6,6 +6,26 @@ struct OrderDraftValidationInput {
     let recipeScaleMultiplier: String
     let quotedPrice: String
     let depositPaid: String
+    let cakeServings: String
+    let cakeWeightKilograms: String
+
+    init(
+        title: String,
+        customerName: String,
+        recipeScaleMultiplier: String,
+        quotedPrice: String,
+        depositPaid: String,
+        cakeServings: String = "",
+        cakeWeightKilograms: String = ""
+    ) {
+        self.title = title
+        self.customerName = customerName
+        self.recipeScaleMultiplier = recipeScaleMultiplier
+        self.quotedPrice = quotedPrice
+        self.depositPaid = depositPaid
+        self.cakeServings = cakeServings
+        self.cakeWeightKilograms = cakeWeightKilograms
+    }
 }
 
 struct ValidatedOrderDraft: Equatable {
@@ -32,6 +52,20 @@ enum OrderDraftValidation {
             return .failure(OrderDraftValidationError(message: "Customer name is required."))
         }
 
+        let servings = TextInputFormatting.trimmed(input.cakeServings)
+        if !servings.isEmpty, Int(servings).map({ $0 > 0 }) != true {
+            return .failure(
+                OrderDraftValidationError(message: "Servings must be a positive whole number.")
+            )
+        }
+
+        let weight = TextInputFormatting.trimmed(input.cakeWeightKilograms)
+        if !weight.isEmpty, Decimal(string: weight).map({ $0 > 0 }) != true {
+            return .failure(
+                OrderDraftValidationError(message: "Weight must be greater than zero.")
+            )
+        }
+
         switch decimalAmount(from: input.quotedPrice, fieldName: "Quoted price") {
         case .failure(let error):
             return .failure(error)
@@ -40,10 +74,12 @@ enum OrderDraftValidation {
             case .failure(let error):
                 return .failure(error)
             case .success(let depositPaid):
-                guard let recipeScaleMultiplier = requiredPositiveDecimalAmount(
-                    from: input.recipeScaleMultiplier,
-                    fieldName: "Recipe multiplier"
-                ) else {
+                guard
+                    let recipeScaleMultiplier = requiredPositiveDecimalAmount(
+                        from: input.recipeScaleMultiplier,
+                        fieldName: "Recipe multiplier"
+                    )
+                else {
                     return .failure(OrderDraftValidationError(message: "Recipe multiplier must be greater than zero."))
                 }
 
@@ -117,7 +153,8 @@ enum OrderReminderDraftValidation {
             return .disabled
         }
 
-        let tokens = dayOffsetsText
+        let tokens =
+            dayOffsetsText
             .split(separator: ",", omittingEmptySubsequences: false)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         let offsets: [Int]
@@ -125,7 +162,8 @@ enum OrderReminderDraftValidation {
             offsets = []
         } else {
             guard !tokens.contains(where: \.isEmpty),
-                  tokens.allSatisfy({ Int($0) != nil }) else {
+                tokens.allSatisfy({ Int($0) != nil })
+            else {
                 throw OrderDraftValidationError(
                     message: "Enter reminder days as whole numbers separated by commas, for example 7, 3, 1."
                 )

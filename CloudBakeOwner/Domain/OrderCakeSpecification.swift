@@ -142,7 +142,10 @@ struct OrderCakeSpecification: Equatable {
             (.candlesAndAccessories, candlesAndAccessories),
             (.packaging, packaging),
         ].compactMap { field, value in
-            Self.optionalText(value).map { (field, $0) }
+            guard let value = Self.optionalText(value), !Self.isBuiltInChoice(value, for: field) else {
+                return nil
+            }
+            return (field, value)
         }
     }
 
@@ -180,6 +183,27 @@ struct OrderCakeSpecification: Equatable {
         guard let value else { return nil }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func isBuiltInChoice(
+        _ value: String,
+        for field: OrderCakeRequirementField
+    ) -> Bool {
+        let builtInChoices: [OrderCakeRequirementField: [String]] = [
+            .occasion: ["Birthday", "Wedding", "Anniversary", "Baby Shower", "Celebration"],
+            .size: ["4 in", "6 in", "8 in", "10 in", "12 in"],
+            .shape: ["Circle", "Square", "Oval"],
+            .tiers: ["1", "2", "3"],
+            .spongeFlavour: ["Vanilla", "Chocolate"],
+            .filling: ["Buttercream", "Chocolate Ganache", "Fruit"],
+            .frosting: ["Buttercream", "Whipped Cream", "Ganache", "Fondant"],
+            .topperRequirements: ["None"],
+            .candlesAndAccessories: ["None"],
+            .packaging: ["Standard Box", "Tall Box", "Window Box"],
+        ]
+        return builtInChoices[field, default: []].contains {
+            $0.caseInsensitiveCompare(value) == .orderedSame
+        }
     }
 
     private static func rounded(_ value: Decimal, scale: Int) -> Decimal {
