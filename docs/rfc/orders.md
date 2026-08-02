@@ -165,6 +165,9 @@ Owner-visible order reminder planning is implemented in
 `docs/rfc/slices/0044-order-reminders.md`.
 Order add/edit can link one saved recipe for preparation context through
 `docs/rfc/slices/0046-order-recipe-link.md`.
+Structured cake requirements, reusable custom choices, servings/weight suggestions, and the derived
+plain-English order summary are specified in
+`docs/rfc/slices/0131-structured-order-requirements.md`.
 Order detail can change status without opening the full edit form. Moving an order with an unused
 linked recipe to Ready or Completed records one-time recipe usage and deducts recipe
 ingredients from inventory through
@@ -305,6 +308,7 @@ Recommended order slices:
 12. Order Workflow Polish
 13. Pricing And Payment Summary
 14. Order Recipe Usage Scaling
+15. Structured Order Requirements And Summary
 
 Each slice must include its own RFC under `docs/rfc/slices/`, focused tests, and wiki updates when
 owner workflow truth changes.
