@@ -87,11 +87,14 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
 
         try repository.save(template)
 
-        XCTAssertEqual(try repository.fetchOrderTemplates(), [template])
+        XCTAssertEqual(
+            try repository.fetchOrderTemplates().first { $0.id == template.id },
+            template
+        )
 
         try repository.deleteOrderTemplate(id: template.id)
 
-        XCTAssertTrue(try repository.fetchOrderTemplates().isEmpty)
+        XCTAssertFalse(try repository.fetchOrderTemplates().contains { $0.id == template.id })
     }
 
     func testOrderTemplateForeignKeysClearReusableLinksAndProtectIngredients() throws {

@@ -1,3 +1,4 @@
+import Foundation
 import GRDB
 
 enum AppDatabaseMigrations {
@@ -917,6 +918,124 @@ enum AppDatabaseMigrations {
                 index: "order_cake_requirement_choices_on_field_value",
                 on: "order_cake_requirement_choices",
                 columns: ["field", "value", "id"]
+            )
+        }
+
+        migrator.registerMigration("0042_seed_starter_order_templates") { db in
+            let timestamp = Date().timeIntervalSince1970
+
+            func insertStarterTemplate(
+                id: String,
+                name: String,
+                occasion: String,
+                tiers: String,
+                spongeFlavour: String,
+                filling: String,
+                frosting: String,
+                theme: String?,
+                packaging: String
+            ) throws {
+                try db.execute(
+                    sql: """
+                        INSERT OR IGNORE INTO order_templates (
+                            id, name, cake_title, recipe_scale_multiplier_decimal,
+                            fulfillment_type, reminder_mode, reminder_day_offsets_json,
+                            reminder_includes_due_time, cake_occasion, cake_shape, cake_tiers,
+                            cake_sponge_flavour, cake_filling, cake_frosting, cake_theme,
+                            cake_topper_requirements, cake_candles_accessories, cake_packaging,
+                            created_at_unix_time, updated_at_unix_time
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        id,
+                        name,
+                        name,
+                        "1",
+                        OrderFulfillmentType.pickup.rawValue,
+                        OrderReminderConfigurationMode.defaultSnapshot.rawValue,
+                        "[3,2,1]",
+                        true,
+                        occasion,
+                        "Circle",
+                        tiers,
+                        spongeFlavour,
+                        filling,
+                        frosting,
+                        theme,
+                        "None",
+                        "None",
+                        packaging,
+                        timestamp,
+                        timestamp,
+                    ]
+                )
+            }
+
+            try insertStarterTemplate(
+                id: "starter-template-classic-birthday",
+                name: "Classic Birthday Cake",
+                occasion: "Birthday",
+                tiers: "1",
+                spongeFlavour: "Vanilla",
+                filling: "Buttercream",
+                frosting: "Buttercream",
+                theme: nil,
+                packaging: "Standard Box"
+            )
+            try insertStarterTemplate(
+                id: "starter-template-chocolate-birthday",
+                name: "Chocolate Birthday Cake",
+                occasion: "Birthday",
+                tiers: "1",
+                spongeFlavour: "Chocolate",
+                filling: "Chocolate Ganache",
+                frosting: "Ganache",
+                theme: nil,
+                packaging: "Standard Box"
+            )
+            try insertStarterTemplate(
+                id: "starter-template-anniversary",
+                name: "Anniversary Cake",
+                occasion: "Anniversary",
+                tiers: "1",
+                spongeFlavour: "Vanilla",
+                filling: "Fruit",
+                frosting: "Buttercream",
+                theme: "Elegant",
+                packaging: "Standard Box"
+            )
+            try insertStarterTemplate(
+                id: "starter-template-baby-shower",
+                name: "Baby Shower Cake",
+                occasion: "Baby Shower",
+                tiers: "1",
+                spongeFlavour: "Vanilla",
+                filling: "Buttercream",
+                frosting: "Buttercream",
+                theme: "Baby Shower",
+                packaging: "Standard Box"
+            )
+            try insertStarterTemplate(
+                id: "starter-template-floral-celebration",
+                name: "Floral Celebration Cake",
+                occasion: "Celebration",
+                tiers: "1",
+                spongeFlavour: "Vanilla",
+                filling: "Fruit",
+                frosting: "Buttercream",
+                theme: "Floral",
+                packaging: "Tall Box"
+            )
+            try insertStarterTemplate(
+                id: "starter-template-two-tier-wedding",
+                name: "Two-Tier Wedding Cake",
+                occasion: "Wedding",
+                tiers: "2",
+                spongeFlavour: "Vanilla",
+                filling: "Fruit",
+                frosting: "Buttercream",
+                theme: "Elegant",
+                packaging: "Tall Box"
             )
         }
 
