@@ -151,10 +151,14 @@ extension CloudBakeOwnerUITests {
         scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: transitionTimeout)
         typeText("150", into: app.textFields["orders.form.quotedPrice"])
         dismissKeyboard(in: app)
+        scrollToTop(in: app)
         scrollToHittable(app.buttons["orders.form.template.save"], in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.form.template.save"], timeout: transitionTimeout)
-        typeText("Chocolate Standard", into: app.textFields["orders.form.template.name"])
-        tapWhenReady(app.buttons["orders.form.template.confirmSave"], timeout: transitionTimeout)
+        let templateAlert = app.alerts["Save Order Template"]
+        XCTAssertTrue(templateAlert.waitForExistence(timeout: transitionTimeout))
+        typeText("Chocolate Standard", into: templateAlert.textFields.firstMatch)
+        tapExisting(templateAlert.buttons["Save"], timeout: transitionTimeout)
+        XCTAssertTrue(templateAlert.waitForNonExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.form.cancel"], timeout: transitionTimeout)
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
 
