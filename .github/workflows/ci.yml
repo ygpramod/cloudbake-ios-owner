@@ -155,6 +155,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanSelectCustomerReferenceFromPhotoFirstDesignPicker
           - feature: customers
             only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerPreviousOrderCanStartANewDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeAddedAndViewed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerAddOffersContactsImportAndManualEntry
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerDuplicateWarningAppearsBeforeSaving

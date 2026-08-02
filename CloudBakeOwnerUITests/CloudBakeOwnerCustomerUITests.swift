@@ -1,6 +1,30 @@
 import XCTest
 
 extension CloudBakeOwnerUITests {
+    func testCustomerPreviousOrderCanStartANewDraft() throws {
+        let app = makeApp(initialDestination: "customers")
+        let transitionTimeout: TimeInterval = 15
+        app.launchEnvironment["CLOUDBAKE_SEED_ORDER_CUSTOMER_LINK_FIXTURE"] = "1"
+        app.launch()
+
+        assertScreenVisible("screen.customers", in: app, timeout: transitionTimeout)
+        tapWhenReady(
+            app.buttons.matching(
+                NSPredicate(format: "identifier BEGINSWITH %@", "customers.item.")
+            ).firstMatch,
+            timeout: transitionTimeout
+        )
+        let repeatButton = app.buttons["customers.detail.order.repeat.order-ui-fixture-customer-link"]
+        scrollToHittable(repeatButton, in: app, timeout: transitionTimeout)
+        tapWhenReady(repeatButton, timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertEqual(app.textFields["orders.form.title"].value as? String, "Vanilla Birthday")
+        XCTAssertEqual(app.textFields["orders.form.customerName"].value as? String, "Amy")
+        scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: transitionTimeout)
+        XCTAssertNotEqual(app.textFields["orders.form.quotedPrice"].value as? String, "0")
+    }
+
     func testCustomerCanBeAddedAndViewed() throws {
         let app = makeApp(initialDestination: "customers")
         app.launch()
@@ -70,7 +94,9 @@ extension CloudBakeOwnerUITests {
         typeText("5550101", into: app.textFields["customers.form.phone"], timeout: transitionTimeout)
         tapWhenReady(app.buttons["customers.form.save"], timeout: transitionTimeout)
 
-        XCTAssertTrue(app.staticTexts["Possible duplicate: Amy already exists. Tap Save again to add a separate customer."].waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(
+            app.staticTexts["Possible duplicate: Amy already exists. Tap Save again to add a separate customer."].waitForExistence(
+                timeout: transitionTimeout))
     }
 
     func testCustomerCanBeEditedFromDetail() throws {
