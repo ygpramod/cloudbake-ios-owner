@@ -934,9 +934,6 @@ enum AppDatabaseMigrations {
                 name: String,
                 occasion: String,
                 tiers: String,
-                spongeFlavour: String,
-                filling: String,
-                frosting: String,
                 theme: String?,
                 packaging: String
             ) throws {
@@ -964,9 +961,9 @@ enum AppDatabaseMigrations {
                         occasion,
                         "Circle",
                         tiers,
-                        spongeFlavour,
-                        filling,
-                        frosting,
+                        nil,
+                        nil,
+                        nil,
                         theme,
                         "None",
                         "None",
@@ -982,9 +979,6 @@ enum AppDatabaseMigrations {
                 name: "Classic Birthday Cake",
                 occasion: "Birthday",
                 tiers: "1",
-                spongeFlavour: "Vanilla",
-                filling: "Buttercream",
-                frosting: "Buttercream",
                 theme: nil,
                 packaging: "Standard Box"
             )
@@ -993,9 +987,6 @@ enum AppDatabaseMigrations {
                 name: "Chocolate Birthday Cake",
                 occasion: "Birthday",
                 tiers: "1",
-                spongeFlavour: "Chocolate",
-                filling: "Chocolate Ganache",
-                frosting: "Ganache",
                 theme: nil,
                 packaging: "Standard Box"
             )
@@ -1004,9 +995,6 @@ enum AppDatabaseMigrations {
                 name: "Anniversary Cake",
                 occasion: "Anniversary",
                 tiers: "1",
-                spongeFlavour: "Vanilla",
-                filling: "Fruit",
-                frosting: "Buttercream",
                 theme: "Elegant",
                 packaging: "Standard Box"
             )
@@ -1015,9 +1003,6 @@ enum AppDatabaseMigrations {
                 name: "Baby Shower Cake",
                 occasion: "Baby Shower",
                 tiers: "1",
-                spongeFlavour: "Vanilla",
-                filling: "Buttercream",
-                frosting: "Buttercream",
                 theme: "Baby Shower",
                 packaging: "Standard Box"
             )
@@ -1026,9 +1011,6 @@ enum AppDatabaseMigrations {
                 name: "Floral Celebration Cake",
                 occasion: "Celebration",
                 tiers: "1",
-                spongeFlavour: "Vanilla",
-                filling: "Fruit",
-                frosting: "Buttercream",
                 theme: "Floral",
                 packaging: "Tall Box"
             )
@@ -1037,9 +1019,6 @@ enum AppDatabaseMigrations {
                 name: "Two-Tier Wedding Cake",
                 occasion: "Wedding",
                 tiers: "2",
-                spongeFlavour: "Vanilla",
-                filling: "Fruit",
-                frosting: "Buttercream",
                 theme: "Elegant",
                 packaging: "Tall Box"
             )
