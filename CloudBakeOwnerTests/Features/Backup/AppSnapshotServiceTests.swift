@@ -110,9 +110,13 @@ final class AppSnapshotServiceTests: XCTestCase {
             try snapshotRepository.fetchOrder(id: reminderOrder.id)?.cakeSpecification,
             reminderOrder.cakeSpecification
         )
+        let snapshotTemplates = try snapshotRepository.fetchOrderTemplates()
         XCTAssertEqual(
-            try snapshotRepository.fetchOrderTemplates(),
-            [orderTemplate]
+            snapshotTemplates.first { $0.id == orderTemplate.id },
+            orderTemplate
+        )
+        XCTAssertTrue(
+            snapshotTemplates.contains { $0.id == "starter-template-classic-birthday" }
         )
         XCTAssertEqual(
             try snapshotRepository.fetchOrderCakeRequirementChoices(field: .spongeFlavour),
@@ -122,7 +126,7 @@ final class AppSnapshotServiceTests: XCTestCase {
         let manifest = try fixture.decodeManifest(at: package.manifestURL)
         XCTAssertEqual(
             manifest.databaseSchemaVersion,
-            "0041_add_structured_order_requirements"
+            "0042_seed_starter_order_templates"
         )
         XCTAssertEqual(
             manifest.assets.map(\.originalRelativePath),

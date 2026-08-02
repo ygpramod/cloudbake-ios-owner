@@ -524,6 +524,12 @@ add an active replacement. If a linked recipe was deleted, its dependent extra i
 also omitted with a warning to choose a recipe and review ingredients. Swipe a template in the
 template library to rename or delete it; existing orders are unchanged.
 
+CloudBake provides six editable starter templates after the catalogue migration: Classic Birthday,
+Chocolate Birthday, Anniversary, Baby Shower, Floral Celebration, and Two-Tier Wedding. They contain
+only reusable cake requirements, pickup fulfilment, and the default reminder plan—never customer,
+price, payment, recipe, inventory, design, or history data. They behave like ordinary templates, so
+renaming or deleting one is permanent and it does not return on a later launch.
+
 To repeat work for a customer, open Customers, choose the customer, and use the new-order icon beside
 a previous order. CloudBake opens that order through the same safe duplication flow: customer and
 reusable cake details are copied into an unsaved Draft, the due date is recalculated, checklist rows
