@@ -124,6 +124,7 @@ jobs:
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeAddedAndListed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderPersistsStructuredCakeRequirementsAndSummary
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testStarterOrderTemplateCanBeAppliedOnFirstUse
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeOpenedFromListAndViewed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeDuplicatedIntoAnUnsavedDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testReusableOrderTemplateCanBeSavedAndAppliedWithoutCommercialData

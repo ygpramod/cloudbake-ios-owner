@@ -1,6 +1,37 @@
 import XCTest
 
 extension CloudBakeOwnerUITests {
+    func testStarterOrderTemplateCanBeAppliedOnFirstUse() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        openDashboardDestination("Orders", in: app)
+        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.form.template.choose"], timeout: transitionTimeout)
+        tapWhenReady(
+            app.buttons["orders.template.use.starter-template-two-tier-wedding"],
+            timeout: transitionTimeout
+        )
+
+        XCTAssertEqual(
+            app.textFields["orders.form.title"].value as? String,
+            "Two-Tier Wedding Cake"
+        )
+        let summary = app.staticTexts["orders.form.cakeSpecification.summary"]
+        XCTAssertTrue(summary.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(summary.label.contains("Wedding cake"))
+        XCTAssertTrue(summary.label.contains("2 tiers"))
+        XCTAssertTrue(summary.label.contains("vanilla sponge"))
+
+        let customerName = app.textFields["orders.form.customerName"]
+        scrollToHittable(customerName, in: app, timeout: transitionTimeout)
+        XCTAssertNotEqual(customerName.value as? String, "Amy")
+        let quotedPrice = app.textFields["orders.form.quotedPrice"]
+        scrollToHittable(quotedPrice, in: app, timeout: transitionTimeout)
+        XCTAssertNotEqual(quotedPrice.value as? String, "150")
+    }
+
     func testOrderPersistsStructuredCakeRequirementsAndSummary() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
