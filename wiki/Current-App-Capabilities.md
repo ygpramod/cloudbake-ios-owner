@@ -244,6 +244,8 @@ The app currently supports:
     reminder, and checklist combinations, with Add Order application plus rename/delete management
     and structural exclusion of customer, delivery address, due date, status, price, payment, photo,
     and history data; archived ingredients are omitted with an active-replacement warning.
+146. new-order entry from a specific previous order in customer history, using the safe unsaved
+    duplication contract and fresh due-date rule.
 
 ## Partially Prepared
 
