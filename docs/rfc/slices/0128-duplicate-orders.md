@@ -68,4 +68,3 @@ order. Existing source records are never mutated.
 - automatic suggestions from frequently used combinations,
 - starting from a customer's previous order,
 - copying quoted prices or payment history.
-

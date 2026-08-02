@@ -1140,7 +1140,7 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         )
     }
 
-    func testInvalidNewOrderChecklistRollsBackOrder() throws {
+    func testMismatchedNewOrderChecklistRollsBackOrder() throws {
         let queue = try DatabaseQueue(path: ":memory:")
         try AppDatabaseMigrations.makeMigrator().migrate(queue)
         let repository = GRDBCoreDataRepository(writer: queue)
@@ -1169,12 +1169,76 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 openingPayment: nil,
                 allowInventoryShortage: false
             )
-        )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderChecklistPersistenceError,
+                .parentOrderMismatch
+            )
+        }
 
         XCTAssertNil(try repository.fetchOrder(id: order.id))
         XCTAssertEqual(
             try repository.fetchOrderChecklistItems(orderId: order.id),
             []
+        )
+    }
+
+    func testExistingChecklistCannotBeMovedWhileSavingAnotherOrder() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        let existingOrder = pagedOrder(
+            id: "existing-checklist-order",
+            status: .confirmed,
+            dueAt: timestamp
+        )
+        let existingItem = OrderChecklistItem(
+            id: "owned-checklist",
+            orderId: existingOrder.id,
+            title: "Keep ownership",
+            isCompleted: true,
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(existingOrder)
+        try repository.save(existingItem)
+        let newOrder = pagedOrder(
+            id: "new-checklist-order",
+            status: .draft,
+            dueAt: timestamp
+        )
+        let reassignedItem = OrderChecklistItem(
+            id: existingItem.id,
+            orderId: newOrder.id,
+            title: "Move ownership",
+            isCompleted: false,
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        XCTAssertThrowsError(
+            try repository.saveOrder(
+                newOrder,
+                replacingExtraIngredients: [],
+                replacingChecklistItems: [reassignedItem],
+                reminderConfiguration: .initialDefault,
+                openingPayment: nil,
+                allowInventoryShortage: false
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? OrderChecklistPersistenceError,
+                .itemBelongsToAnotherOrder
+            )
+        }
+
+        XCTAssertNil(try repository.fetchOrder(id: newOrder.id))
+        XCTAssertEqual(
+            try repository.fetchOrderChecklistItems(orderId: existingOrder.id),
+            [existingItem]
         )
     }
 
