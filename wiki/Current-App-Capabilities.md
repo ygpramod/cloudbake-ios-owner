@@ -251,7 +251,9 @@ The app currently supports:
     choices; and a derived plain-English summary carried by order duplication and templates.
 148. six once-seeded, fully editable starter order templates for common birthday, anniversary,
     baby-shower, celebration, and wedding combinations, without customer, commercial, recipe,
-    inventory, design, or history data.
+    inventory, design, or history data; starter sponge, filling, and frosting remain unset, while a
+    long press on Orders `+` can create an editable template from blank, an existing order, or
+    another template without creating an order.
 
 ## Partially Prepared
 
