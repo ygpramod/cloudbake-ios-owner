@@ -249,6 +249,9 @@ The app currently supports:
 147. optional structured cake requirements for occasion, capacity, physical form, flavours,
     decoration, accessories, and packaging; explicit servings/weight suggestions; reusable custom
     choices; and a derived plain-English summary carried by order duplication and templates.
+148. six once-seeded, fully editable starter order templates for common birthday, anniversary,
+    baby-shower, celebration, and wedding combinations, without customer, commercial, recipe,
+    inventory, design, or history data.
 
 ## Partially Prepared
 
