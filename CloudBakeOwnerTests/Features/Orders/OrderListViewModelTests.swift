@@ -155,6 +155,10 @@ final class OrderListViewModelTests: XCTestCase {
         viewModel.applyOrderTemplate(template)
 
         XCTAssertTrue(viewModel.draftExtraIngredientRows.isEmpty)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "The template recipe is no longer available, so its extra ingredients were not added. Choose a recipe and review ingredients before saving."
+        )
     }
 
     func testTemplateOmitsArchivedExtraIngredientsWithWarning() {

@@ -54,6 +54,64 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         XCTAssertTrue(try repository.fetchOrderTemplates().isEmpty)
     }
 
+    func testOrderTemplateForeignKeysClearReusableLinksAndProtectIngredients() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_001_000)
+        let recipe = makeRecipe(id: "template-recipe", name: "Vanilla")
+        let design = makeCakeDesign(id: "template-design", name: "Florals")
+        let inventoryItem = makeInventoryItem(id: "template-ingredient", name: "Berries")
+        try repository.save(recipe)
+        try repository.save(design)
+        try repository.save(inventoryItem)
+        let template = OrderTemplate(
+            id: "template-foreign-keys",
+            name: "Reusable Links",
+            cakeTitle: "Vanilla Floral",
+            cakeDesignId: design.id,
+            recipeId: recipe.id,
+            recipeScaleMultiplier: 1,
+            fulfillmentType: .pickup,
+            cakeNotes: nil,
+            cakeMessage: nil,
+            reminderConfiguration: .initialDefault,
+            extraIngredients: [
+                OrderTemplateExtraIngredient(
+                    id: "template-protected-extra",
+                    inventoryItemId: inventoryItem.id,
+                    quantity: 50,
+                    unit: .gram,
+                    note: nil,
+                    sortOrder: 0
+                )
+            ],
+            checklistItems: [],
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+        try repository.save(template)
+
+        try queue.write { db in
+            try db.execute(sql: "DELETE FROM recipes WHERE id = ?", arguments: [recipe.id])
+            try db.execute(sql: "DELETE FROM cake_designs WHERE id = ?", arguments: [design.id])
+        }
+
+        let unlinkedTemplate = try XCTUnwrap(repository.fetchOrderTemplates().first)
+        XCTAssertNil(unlinkedTemplate.recipeId)
+        XCTAssertNil(unlinkedTemplate.cakeDesignId)
+        XCTAssertEqual(unlinkedTemplate.extraIngredients, template.extraIngredients)
+        XCTAssertThrowsError(
+            try queue.write { db in
+                try db.execute(
+                    sql: "DELETE FROM inventory_items WHERE id = ?",
+                    arguments: [inventoryItem.id]
+                )
+            }
+        )
+        XCTAssertNotNil(try repository.fetchInventoryItem(id: inventoryItem.id))
+    }
+
     func testCoreEntitiesRoundTripThroughFreshDatabase() throws {
         let repository = try AppDatabase.makeInMemory().makeCoreDataRepository()
         let timestamps = TestTimestamps(
