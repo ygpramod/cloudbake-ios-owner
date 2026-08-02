@@ -284,9 +284,10 @@ private struct CloudBakeDetailHeaderButton: View {
 
 private struct CloudBakeHeaderActionButton: View {
     let action: CloudBakeScreenAction
+    @State private var didTriggerLongPress = false
 
     var body: some View {
-        Button(action: action.action) {
+        Button(action: performPrimaryAction) {
             Image(systemName: action.systemImage)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
@@ -300,22 +301,43 @@ private struct CloudBakeHeaderActionButton: View {
         }
         .accessibilityLabel(action.title)
         .accessibilityIdentifier(action.accessibilityIdentifier)
-        .modifier(CloudBakeLongPressActionModifier(action: action))
+        .modifier(
+            CloudBakeLongPressActionModifier(
+                action: action,
+                didTriggerLongPress: $didTriggerLongPress
+            )
+        )
+    }
+
+    private func performPrimaryAction() {
+        guard !didTriggerLongPress else {
+            didTriggerLongPress = false
+            return
+        }
+        action.action()
     }
 }
 
 private struct CloudBakeLongPressActionModifier: ViewModifier {
     let action: CloudBakeScreenAction
+    @Binding var didTriggerLongPress: Bool
 
     @ViewBuilder
     func body(content: Content) -> some View {
         if let longPressTitle = action.longPressTitle,
             let longPressAction = action.longPressAction
         {
-            content.contextMenu {
-                Button(longPressTitle, action: longPressAction)
-                    .accessibilityIdentifier("\(action.accessibilityIdentifier).longPress")
-            }
+            content
+                .onLongPressGesture(minimumDuration: 0.6) {
+                    didTriggerLongPress = true
+                    longPressAction()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        didTriggerLongPress = false
+                    }
+                }
+                .accessibilityAction(named: Text(longPressTitle)) {
+                    longPressAction()
+                }
         } else {
             content
         }

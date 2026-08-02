@@ -73,8 +73,7 @@ struct OrderListView: View {
                 NavigationStack {
                     TemplateSourceSelectionView(
                         source: source,
-                        orders: viewModel.orders,
-                        templates: viewModel.orderTemplates,
+                        viewModel: viewModel,
                         onCancel: { templateSourcePicker = nil },
                         onSelectOrder: prepareTemplateDraft,
                         onSelectTemplate: prepareTemplateDraft
@@ -191,7 +190,7 @@ struct OrderListView: View {
         .contentShape(Rectangle())
         .simultaneousGesture(orderScopeSwipeGesture)
         .confirmationDialog(
-            "Start Template From",
+            "Create New Template From",
             isPresented: $isChoosingTemplateSource,
             titleVisibility: .visible
         ) {
@@ -557,104 +556,165 @@ private enum TemplateSourcePicker: String, Identifiable {
 
 private struct TemplateSourceSelectionView: View {
     let source: TemplateSourcePicker
-    let orders: [Order]
-    let templates: [OrderTemplate]
+    @ObservedObject var viewModel: OrderListViewModel
     let onCancel: () -> Void
     let onSelectOrder: (Order) -> Void
     let onSelectTemplate: (OrderTemplate) -> Void
     @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
-        Group {
-            if source == .order {
-                orderList
-            } else {
-                templateList
+        ZStack {
+            CloudBakeScreenBackground().ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    CloudBakeSearchField(
+                        text: $searchText,
+                        prompt: source == .order ? "Search orders" : "Search templates",
+                        accessibilityIdentifier: "orders.template.source.search",
+                        isFocused: $isSearchFocused
+                    )
+
+                    if source == .order {
+                        orderContent
+                    } else {
+                        templateContent
+                    }
+                }
+                .padding(CloudBakeTheme.Spacing.screenHorizontal)
+                .padding(.bottom, 32)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationTitle(source == .order ? "Choose Order" : "Choose Template")
-        .searchable(text: $searchText, prompt: source == .order ? "Search orders" : "Search templates")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel", action: onCancel)
                     .accessibilityIdentifier("orders.template.source.cancel")
             }
         }
-    }
-
-    private var filteredOrders: [Order] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return orders }
-        return orders.filter {
-            $0.title.localizedCaseInsensitiveContains(query)
-                || $0.customerName.localizedCaseInsensitiveContains(query)
+        .onAppear {
+            if source == .order {
+                viewModel.searchTemplateSourceOrders(matching: searchText)
+            }
+        }
+        .onChange(of: searchText) { _, newValue in
+            if source == .order {
+                viewModel.searchTemplateSourceOrders(matching: newValue)
+            }
         }
     }
 
     private var filteredTemplates: [OrderTemplate] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return templates }
-        return templates.filter {
+        guard !query.isEmpty else { return viewModel.orderTemplates }
+        return viewModel.orderTemplates.filter {
             $0.name.localizedCaseInsensitiveContains(query)
                 || $0.cakeTitle.localizedCaseInsensitiveContains(query)
         }
     }
 
     @ViewBuilder
-    private var orderList: some View {
-        if filteredOrders.isEmpty {
-            ContentUnavailableView(
-                searchText.isEmpty ? "No Orders" : "No Matching Orders",
-                systemImage: "calendar.badge.exclamationmark"
+    private var orderContent: some View {
+        if let errorMessage = viewModel.templateSourceOrderErrorMessage {
+            CloudBakeErrorBanner(
+                message: errorMessage,
+                accessibilityIdentifier: "orders.template.source.error"
+            )
+        }
+
+        if viewModel.templateSourceOrders.isEmpty {
+            CloudBakeEmptyState(
+                title: searchText.isEmpty ? "No Orders" : "No Matching Orders",
+                systemImage: "calendar.badge.exclamationmark",
+                message: searchText.isEmpty
+                    ? "Create an order before using one as a template."
+                    : "Try another cake or customer name."
             )
         } else {
-            List(filteredOrders, id: \.id) { order in
-                Button {
-                    onSelectOrder(order)
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(order.title)
-                            .font(.headline)
-                        Text(order.customerName)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+            LazyVStack(spacing: 14) {
+                ForEach(viewModel.templateSourceOrders, id: \.id) { order in
+                    sourceCard(
+                        title: order.title,
+                        subtitle: order.customerName,
+                        accessibilityIdentifier: "orders.template.source.order.\(order.id)"
+                    ) {
+                        onSelectOrder(order)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("orders.template.source.order.\(order.id)")
+
+                if viewModel.canLoadMoreTemplateSourceOrders {
+                    Button(action: viewModel.loadMoreTemplateSourceOrders) {
+                        Label("Load More Orders", systemImage: "arrow.down.circle")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .cloudBakeCardStyle()
+                    .accessibilityIdentifier("orders.template.source.loadMore")
+                }
             }
         }
     }
 
     @ViewBuilder
-    private var templateList: some View {
+    private var templateContent: some View {
         if filteredTemplates.isEmpty {
-            ContentUnavailableView(
-                searchText.isEmpty ? "No Templates" : "No Matching Templates",
-                systemImage: "square.on.square"
+            CloudBakeEmptyState(
+                title: searchText.isEmpty ? "No Templates" : "No Matching Templates",
+                systemImage: "square.on.square",
+                message: searchText.isEmpty
+                    ? "Create a template before copying one."
+                    : "Try another template or cake name."
             )
         } else {
-            List(filteredTemplates, id: \.id) { template in
-                Button {
-                    onSelectTemplate(template)
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(template.name)
-                            .font(.headline)
-                        if !template.cakeTitle.isEmpty {
-                            Text(template.cakeTitle)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
+            LazyVStack(spacing: 14) {
+                ForEach(filteredTemplates, id: \.id) { template in
+                    sourceCard(
+                        title: template.name,
+                        subtitle: template.cakeTitle.isEmpty ? nil : template.cakeTitle,
+                        accessibilityIdentifier: "orders.template.source.template.\(template.id)"
+                    ) {
+                        onSelectTemplate(template)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("orders.template.source.template.\(template.id)")
             }
         }
+    }
+
+    private func sourceCard(
+        title: String,
+        subtitle: String?,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(CloudBakeTheme.Typography.rowTitle)
+                        .foregroundStyle(.primary)
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 12)
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(18)
+        .cloudBakeCardStyle()
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }

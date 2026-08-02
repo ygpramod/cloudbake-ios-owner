@@ -77,6 +77,9 @@ final class OrderListViewModel: ObservableObject {
     @Published private(set) var pendingInventoryShortages: [OrderInventoryShortage] = []
     @Published private(set) var canLoadMoreActiveOrders = false
     @Published private(set) var canLoadMoreCompletedOrders = false
+    @Published private(set) var templateSourceOrders: [Order] = []
+    @Published private(set) var canLoadMoreTemplateSourceOrders = false
+    @Published private(set) var templateSourceOrderErrorMessage: String?
 
     private let repository:
         any OrderRepository & OrderReminderConfigurationRepository & CustomerRepository & CustomerImportantDateRepository & RecipeRepository
@@ -96,6 +99,8 @@ final class OrderListViewModel: ObservableObject {
     private var pendingSelectedOrderExtraIngredientId: String?
     private var activeOrderCursor: OrderPageCursor?
     private var completedOrderCursor: OrderPageCursor?
+    private var templateSourceOrderCursor: OrderPageCursor?
+    private var templateSourceOrderSearchText = ""
     private static let orderPageSize = 25
 
     init(
@@ -367,6 +372,45 @@ final class OrderListViewModel: ObservableObject {
             updateCursor: { completedOrderCursor = $0 },
             updateAvailability: { canLoadMoreCompletedOrders = $0 }
         )
+    }
+
+    func searchTemplateSourceOrders(matching searchText: String) {
+        let normalizedSearch = TextInputFormatting.trimmed(searchText)
+        do {
+            let page = try repository.fetchOrderPage(
+                query: .all(searchText: normalizedSearch),
+                after: nil,
+                limit: Self.orderPageSize
+            )
+            templateSourceOrders = page.orders
+            templateSourceOrderCursor = page.nextCursor
+            templateSourceOrderSearchText = normalizedSearch
+            canLoadMoreTemplateSourceOrders = page.nextCursor != nil
+            templateSourceOrderErrorMessage = nil
+        } catch {
+            templateSourceOrders = []
+            templateSourceOrderCursor = nil
+            templateSourceOrderSearchText = normalizedSearch
+            canLoadMoreTemplateSourceOrders = false
+            templateSourceOrderErrorMessage = "Orders could not be searched."
+        }
+    }
+
+    func loadMoreTemplateSourceOrders() {
+        guard let templateSourceOrderCursor else { return }
+        do {
+            let page = try repository.fetchOrderPage(
+                query: .all(searchText: templateSourceOrderSearchText),
+                after: templateSourceOrderCursor,
+                limit: Self.orderPageSize
+            )
+            templateSourceOrders.append(contentsOf: page.orders)
+            self.templateSourceOrderCursor = page.nextCursor
+            canLoadMoreTemplateSourceOrders = page.nextCursor != nil
+            templateSourceOrderErrorMessage = nil
+        } catch {
+            templateSourceOrderErrorMessage = "More orders could not be loaded."
+        }
     }
 
     func makeCustomerListViewModel() -> CustomerListViewModel {
