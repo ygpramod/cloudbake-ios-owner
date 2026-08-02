@@ -1,6 +1,44 @@
 import XCTest
 
 extension CloudBakeOwnerUITests {
+    func testOrderPersistsStructuredCakeRequirementsAndSummary() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        openDashboardDestination("Orders", in: app)
+        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+
+        typeText("Floral Celebration", into: app.textFields["orders.form.title"])
+        dismissKeyboard(in: app)
+        let servings = app.textFields["orders.form.cakeSpecification.servings"]
+        scrollToHittable(servings, in: app, timeout: transitionTimeout)
+        typeText("28", into: servings)
+        dismissKeyboard(in: app)
+        tapWhenReady(app.buttons["Use suggested weight: 2 kg"], timeout: transitionTimeout)
+
+        let customerName = app.textFields["orders.form.customerName"]
+        scrollToHittable(customerName, in: app, timeout: transitionTimeout)
+        typeText("Amy", into: customerName)
+        dismissKeyboard(in: app)
+        scrollToHittable(app.buttons["orders.form.save"], in: app, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.form.save"], timeout: transitionTimeout)
+
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Floral Celebration"
+            )
+        ).firstMatch
+        tapWhenReady(orderRow, timeout: transitionTimeout)
+        let summary = app.staticTexts["orders.detail.cakeSpecification.summary"]
+        assertExistsAfterScrolling(summary, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(summary.label.contains("28 servings (2 kg)"))
+        XCTAssertTrue(summary.label.contains("standard box"))
+    }
+
     func testOrderCanBeAddedAndListed() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
