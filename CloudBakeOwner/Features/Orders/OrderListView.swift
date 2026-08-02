@@ -205,7 +205,7 @@ struct OrderListView: View {
                 title: "Add Order",
                 systemImage: "plus",
                 accessibilityIdentifier: "orders.add",
-                longPressTitle: "Create Template",
+                longPressTitle: "Manage Templates",
                 longPressAction: { isChoosingTemplateAction = true },
                 action: {
                     viewModel.beginAddingOrder()
@@ -217,37 +217,52 @@ struct OrderListView: View {
         }
         .contentShape(Rectangle())
         .simultaneousGesture(orderScopeSwipeGesture)
-        .confirmationDialog(
-            "Templates",
+        .orderConfirmationDialog(
             isPresented: $isChoosingTemplateAction,
-            titleVisibility: .visible
+            title: "Templates",
+            message: "Create a new template or edit an existing one.",
+            cancelAccessibilityIdentifier: "orders.template.action.cancel",
+            onCancel: { isChoosingTemplateAction = false }
         ) {
-            Button("Create Template") {
-                DispatchQueue.main.async {
+            nativeDialogButton("Create Template") {
+                isChoosingTemplateAction = false
+                Task { @MainActor in
+                    await Task.yield()
                     isChoosingTemplateSource = true
                 }
             }
             .accessibilityIdentifier("orders.template.action.create")
-            Button("Edit Template") {
-                DispatchQueue.main.async {
+            nativeDialogButton("Edit Template") {
+                isChoosingTemplateAction = false
+                Task { @MainActor in
+                    await Task.yield()
                     templateSourcePicker = .editTemplate
                 }
             }
             .accessibilityIdentifier("orders.template.action.edit")
-            Button("Cancel", role: .cancel) {}
         }
-        .confirmationDialog(
-            "Start New Template From",
+        .orderConfirmationDialog(
             isPresented: $isChoosingTemplateSource,
-            titleVisibility: .visible
+            title: "Start New Template From",
+            message: "Choose a starting point for the new template.",
+            cancelAccessibilityIdentifier: "orders.template.source.cancel",
+            onCancel: { isChoosingTemplateSource = false }
         ) {
-            Button("Blank Template") { beginBlankTemplate() }
-                .accessibilityIdentifier("orders.template.create.blank")
-            Button("Existing Order") { templateSourcePicker = .order }
-                .accessibilityIdentifier("orders.template.create.order")
-            Button("Another Template") { templateSourcePicker = .template }
-                .accessibilityIdentifier("orders.template.create.template")
-            Button("Cancel", role: .cancel) {}
+            nativeDialogButton("Blank Template") {
+                isChoosingTemplateSource = false
+                beginBlankTemplate()
+            }
+            .accessibilityIdentifier("orders.template.create.blank")
+            nativeDialogButton("Existing Order") {
+                isChoosingTemplateSource = false
+                templateSourcePicker = .order
+            }
+            .accessibilityIdentifier("orders.template.create.order")
+            nativeDialogButton("Another Template") {
+                isChoosingTemplateSource = false
+                templateSourcePicker = .template
+            }
+            .accessibilityIdentifier("orders.template.create.template")
         }
         .orderConfirmationDialog(
             isPresented: optionalPresentationBinding($pendingStatusChange),
