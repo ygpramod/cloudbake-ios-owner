@@ -6,6 +6,7 @@ struct OrderDetailView: View {
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
     let showsDoneButton: Bool
+    let onDuplicate: () -> Void
     @State private var isEditingOrder = false
     @State private var statusPendingInventoryDeduction: OrderStatus?
     @State private var statusPendingInventoryShortage: OrderStatus?
@@ -31,11 +32,13 @@ struct OrderDetailView: View {
     init(
         viewModel: OrderListViewModel,
         isPresented: Binding<Bool>,
-        showsDoneButton: Bool = true
+        showsDoneButton: Bool = true,
+        onDuplicate: @escaping () -> Void = {}
     ) {
         self.viewModel = viewModel
         _isPresented = isPresented
         self.showsDoneButton = showsDoneButton
+        self.onDuplicate = onDuplicate
     }
 
     var body: some View {
@@ -52,6 +55,14 @@ struct OrderDetailView: View {
                     isEditingOrder = true
                 }
             ),
+            secondaryActions: [
+                CloudBakeDetailAction(
+                    title: "Duplicate Order",
+                    systemImage: "doc.on.doc",
+                    accessibilityIdentifier: "orders.detail.duplicate",
+                    action: onDuplicate
+                )
+            ],
             onBack: {
                 isPresented = false
             }
@@ -114,7 +125,8 @@ struct OrderDetailView: View {
                         }
 
                         if order.fulfillmentType == .delivery,
-                           let deliveryAddress = order.deliveryAddress {
+                            let deliveryAddress = order.deliveryAddress
+                        {
                             CloudBakeDetailDivider()
                             orderDetailBlockRow("Delivery Address") {
                                 Text(deliveryAddress)
@@ -155,7 +167,7 @@ struct OrderDetailView: View {
                         CloudBakeDetailDivider()
                         CloudBakeDetailRow("Due") {
                             Text(order.dueAt.formatted(date: .abbreviated, time: .shortened))
-                            .accessibilityIdentifier("orders.detail.due")
+                                .accessibilityIdentifier("orders.detail.due")
                         }
                     }
                 }
@@ -245,7 +257,8 @@ struct OrderDetailView: View {
                 notesSection(order: order)
                 paymentSection(order: order)
                 if viewModel.isIngredientCostBreakdownExpanded,
-                   let summary = viewModel.selectedOrderIngredientCost {
+                    let summary = viewModel.selectedOrderIngredientCost
+                {
                     OrderIngredientCostBreakdownContent(
                         summary: summary,
                         isActual: viewModel.selectedOrderIngredientCostIsActual
@@ -361,7 +374,8 @@ struct OrderDetailView: View {
                     photoSource: viewModel.orderPhotoSource(previewingPhoto),
                     onSaveCaption: { caption in
                         guard viewModel.updateOrderPhotoCaption(previewingPhoto, caption: caption),
-                              let updatedPhoto = viewModel.selectedOrderPhotos.first(where: { $0.id == previewingPhoto.id }) else {
+                            let updatedPhoto = viewModel.selectedOrderPhotos.first(where: { $0.id == previewingPhoto.id })
+                        else {
                             return nil
                         }
 
@@ -382,9 +396,10 @@ struct OrderDetailView: View {
                             tags: tags
                         )
                         if didAdd,
-                           let updatedPhoto = viewModel.selectedOrderPhotos.first(where: {
-                               $0.id == previewingPhoto.id
-                           }) {
+                            let updatedPhoto = viewModel.selectedOrderPhotos.first(where: {
+                                $0.id == previewingPhoto.id
+                            })
+                        {
                             self.previewingPhoto = updatedPhoto
                         }
                         return didAdd
@@ -418,7 +433,8 @@ struct OrderDetailView: View {
                     if !didChangeStatus, !viewModel.pendingInventoryShortages.isEmpty {
                         statusPendingInventoryShortage = status
                     } else if !didChangeStatus {
-                        statusChangeErrorMessage = viewModel.errorMessage
+                        statusChangeErrorMessage =
+                            viewModel.errorMessage
                             ?? "Order status could not be updated."
                     }
                 }
@@ -471,7 +487,8 @@ struct OrderDetailView: View {
                     )
                     statusPendingInventoryShortage = nil
                     if !didChangeStatus {
-                        statusChangeErrorMessage = viewModel.errorMessage
+                        statusChangeErrorMessage =
+                            viewModel.errorMessage
                             ?? "Order status could not be updated."
                     }
                 }
@@ -609,8 +626,10 @@ struct OrderDetailView: View {
                     CloudBakeDetailDivider()
                     CloudBakeDetailRow("Usage") {
                         if let recipeUsage = viewModel.selectedOrderRecipeUsage {
-                            Text("\(recipeUsage.usedAt.formatted(date: .abbreviated, time: .shortened)) at \(TextInputFormatting.decimalText(recipeUsage.recipeScaleMultiplier))x")
-                                .accessibilityIdentifier("orders.detail.recipeUsage")
+                            Text(
+                                "\(recipeUsage.usedAt.formatted(date: .abbreviated, time: .shortened)) at \(TextInputFormatting.decimalText(recipeUsage.recipeScaleMultiplier))x"
+                            )
+                            .accessibilityIdentifier("orders.detail.recipeUsage")
                         } else {
                             Text("When Ready")
                                 .accessibilityIdentifier("orders.detail.recipeUsage")
@@ -681,7 +700,7 @@ struct OrderDetailView: View {
                                 ?? viewModel.selectedOrderCustomerReferencePhoto?.caption
                                 ?? "Customer Reference"
                         )
-                            .accessibilityIdentifier("orders.detail.designName")
+                        .accessibilityIdentifier("orders.detail.designName")
                     }
 
                     if let notes = viewModel.selectedOrderCakeDesign?.notes {
@@ -726,8 +745,9 @@ struct OrderDetailView: View {
 
     private var linkedDesignPreview: LinkedDesignPreview? {
         if let design = viewModel.selectedOrderCakeDesign,
-           design.photoReference != nil,
-           let photoSource = viewModel.designPhotoSource(for: design) {
+            design.photoReference != nil,
+            let photoSource = viewModel.designPhotoSource(for: design)
+        {
             return LinkedDesignPreview(
                 title: design.name,
                 sourceName: viewModel.selectedOrderDesignSourceName ?? "My Designs",
@@ -736,7 +756,8 @@ struct OrderDetailView: View {
         }
 
         if let photo = viewModel.selectedOrderCustomerReferencePhoto,
-           let photoSource = viewModel.orderPhotoSource(photo) {
+            let photoSource = viewModel.orderPhotoSource(photo)
+        {
             return LinkedDesignPreview(
                 title: photo.caption ?? "Customer Reference",
                 sourceName: "Customer Reference",
@@ -771,8 +792,11 @@ struct OrderDetailView: View {
         if let customer = viewModel.selectedOrderCustomer, customer.hasDetailOrderContext {
             CloudBakeSection("Customer Details") {
                 CloudBakeDetailCard {
-                    orderContextRow("Allergies", value: customer.detailOrderAllergies, identifier: "orders.detail.customerAllergies", tint: .red)
-                    orderContextRow("Dietary Restrictions", value: customer.detailOrderDietaryRestrictions, identifier: "orders.detail.customerDietaryRestrictions")
+                    orderContextRow(
+                        "Allergies", value: customer.detailOrderAllergies, identifier: "orders.detail.customerAllergies", tint: .red)
+                    orderContextRow(
+                        "Dietary Restrictions", value: customer.detailOrderDietaryRestrictions,
+                        identifier: "orders.detail.customerDietaryRestrictions")
                     orderContextRow("Likes", value: customer.detailOrderLikes, identifier: "orders.detail.customerLikes")
                     orderContextRow("Dislikes", value: customer.detailOrderDislikes, identifier: "orders.detail.customerDislikes")
                     orderContextRow("Notes", value: customer.detailOrderNotes, identifier: "orders.detail.customerNotes")
@@ -881,7 +905,8 @@ struct OrderDetailView: View {
                 }
 
                 if let ingredientCost = viewModel.selectedOrderIngredientCost,
-                   !ingredientCost.lines.isEmpty {
+                    !ingredientCost.lines.isEmpty
+                {
                     CloudBakeDetailDivider()
                     HStack(spacing: 12) {
                         Text(viewModel.selectedOrderIngredientCostIsActual ? "Actual Ingredient Cost" : "Estimated Ingredient Cost")
@@ -1051,9 +1076,7 @@ struct OrderDetailView: View {
     }
 
     private func shouldConfirmInventoryDeduction(from order: Order, to status: OrderStatus) -> Bool {
-        order.status.recordsRecipeUsage(whenChangingTo: status) &&
-            order.recipeId != nil &&
-            viewModel.selectedOrderRecipeUsage == nil
+        order.status.recordsRecipeUsage(whenChangingTo: status) && order.recipeId != nil && viewModel.selectedOrderRecipeUsage == nil
     }
 
     private func saveEditedOrder() -> Bool {
@@ -1170,7 +1193,8 @@ private struct OrderIngredientCostBreakdownContent: View {
 
             if !summary.itemsMissingPrice.isEmpty {
                 CloudBakeErrorBanner(
-                    message: "Missing inventory prices for \(summary.itemsMissingPrice.joined(separator: ", ")). The total includes every ingredient cost that can be calculated.",
+                    message:
+                        "Missing inventory prices for \(summary.itemsMissingPrice.joined(separator: ", ")). The total includes every ingredient cost that can be calculated.",
                     accessibilityIdentifier: "orders.ingredientCost.warning"
                 )
             }

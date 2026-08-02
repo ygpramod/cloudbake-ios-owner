@@ -1,5 +1,6 @@
 import GRDB
 import XCTest
+
 @testable import CloudBakeOwner
 
 final class GRDBCoreDataRepositoryTests: XCTestCase {
@@ -354,7 +355,7 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 id: "cancelled-a",
                 status: .cancelled,
                 dueAt: start.addingTimeInterval(180)
-            )
+            ),
         ]
         for order in orders {
             try repository.save(orderWithoutRecordedPayment(order))
@@ -458,7 +459,7 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 dueAt: now.addingTimeInterval(-120),
                 quotedPrice: 100,
                 depositPaid: 100
-            )
+            ),
         ]
         for order in orders {
             try repository.save(orderWithoutRecordedPayment(order))
@@ -687,7 +688,7 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             end: now.addingTimeInterval(1_000 * 3_600)
         )
         let reportStatuses: Set<OrderStatus> = [
-            .confirmed, .inProgress, .ready, .completed
+            .confirmed, .inProgress, .ready, .completed,
         ]
 
         recorder.reset()
@@ -821,7 +822,7 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 OrderStatus.draft.rawValue,
                 OrderStatus.confirmed.rawValue,
                 OrderStatus.inProgress.rawValue,
-                OrderStatus.ready.rawValue
+                OrderStatus.ready.rawValue,
             ]
         )
         XCTAssertTrue(
@@ -856,7 +857,7 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
                 """,
             arguments: [
                 OrderStatus.completed.rawValue,
-                now.addingTimeInterval(1_000 * 3_600).timeIntervalSince1970
+                now.addingTimeInterval(1_000 * 3_600).timeIntervalSince1970,
             ]
         )
         XCTAssertTrue(
@@ -1100,6 +1101,80 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
         XCTAssertEqual(
             try repository.fetchPaymentReceipts(orderId: order.id).map(\.amount),
             [25]
+        )
+    }
+
+    func testNewOrderChecklistIsSavedAtomicallyWithOrder() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        let order = pagedOrder(
+            id: "checklist-order",
+            status: .draft,
+            dueAt: timestamp
+        )
+        let checklistItem = OrderChecklistItem(
+            id: "checklist-decoration",
+            orderId: order.id,
+            title: "Finish decoration",
+            isCompleted: false,
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        try repository.saveOrder(
+            order,
+            replacingExtraIngredients: [],
+            replacingChecklistItems: [checklistItem],
+            reminderConfiguration: .initialDefault,
+            openingPayment: nil,
+            allowInventoryShortage: false
+        )
+
+        XCTAssertEqual(try repository.fetchOrder(id: order.id), order)
+        XCTAssertEqual(
+            try repository.fetchOrderChecklistItems(orderId: order.id),
+            [checklistItem]
+        )
+    }
+
+    func testInvalidNewOrderChecklistRollsBackOrder() throws {
+        let queue = try DatabaseQueue(path: ":memory:")
+        try AppDatabaseMigrations.makeMigrator().migrate(queue)
+        let repository = GRDBCoreDataRepository(writer: queue)
+        let timestamp = Date(timeIntervalSince1970: 1_800_000_000)
+        let order = pagedOrder(
+            id: "rolled-back-checklist-order",
+            status: .draft,
+            dueAt: timestamp
+        )
+        let invalidChecklistItem = OrderChecklistItem(
+            id: "orphan-checklist",
+            orderId: "missing-order",
+            title: "Cannot persist",
+            isCompleted: false,
+            sortOrder: 0,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        )
+
+        XCTAssertThrowsError(
+            try repository.saveOrder(
+                order,
+                replacingExtraIngredients: [],
+                replacingChecklistItems: [invalidChecklistItem],
+                reminderConfiguration: .initialDefault,
+                openingPayment: nil,
+                allowInventoryShortage: false
+            )
+        )
+
+        XCTAssertNil(try repository.fetchOrder(id: order.id))
+        XCTAssertEqual(
+            try repository.fetchOrderChecklistItems(orderId: order.id),
+            []
         )
     }
 
@@ -1411,7 +1486,7 @@ final class GRDBCoreDataRepositoryTests: XCTestCase {
             end: start.addingTimeInterval(60)
         )
         let statuses: Set<OrderStatus> = [
-            .confirmed, .inProgress, .ready, .completed
+            .confirmed, .inProgress, .ready, .completed,
         ]
 
         let page = try repository.fetchOutstandingPaymentOrderPage(

@@ -398,6 +398,40 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
+        replacingChecklistItems checklistItems: [OrderChecklistItem],
+        reminderConfiguration: OrderReminderConfiguration,
+        openingPayment: NewPaymentReceipt?,
+        allowInventoryShortage: Bool
+    ) throws {
+        try writer.write { db in
+            try saveOrder(
+                order,
+                replacingExtraIngredients: extraIngredients,
+                reminderConfiguration: reminderConfiguration,
+                allowInventoryShortage: allowInventoryShortage,
+                in: db
+            )
+            try replaceOrderChecklistItems(
+                orderId: order.id,
+                with: checklistItems,
+                in: db
+            )
+            if let openingPayment {
+                _ = try recordPayment(
+                    orderId: order.id,
+                    amount: openingPayment.amount,
+                    receivedAt: openingPayment.receivedAt,
+                    note: openingPayment.note,
+                    createdAt: openingPayment.createdAt,
+                    in: db
+                )
+            }
+        }
+    }
+
     private func saveOrder(
         _ order: Order,
         replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
@@ -3041,6 +3075,20 @@ private extension GRDBCoreDataRepository {
                 item.updatedAt.timeIntervalSince1970,
             ])
         )
+    }
+
+    private func replaceOrderChecklistItems(
+        orderId: String,
+        with items: [OrderChecklistItem],
+        in db: Database
+    ) throws {
+        try db.execute(
+            sql: "DELETE FROM order_checklist_items WHERE order_id = ?",
+            arguments: [orderId]
+        )
+        for item in items {
+            try save(item, in: db)
+        }
     }
 
     func save(_ ingredient: OrderExtraIngredient, in db: Database) throws {

@@ -8,6 +8,7 @@ struct OrderListView: View {
     @EnvironmentObject private var orderNavigationRouter: OrderNavigationRouter
     @State private var isAddingOrder = false
     @State private var isViewingOrder = false
+    @State private var opensDuplicatedOrderAfterDetailDismiss = false
     @State private var orderScope: OrderScope = .active
     @State private var pendingStatusChange: OrderStatusChangeRequest?
     @State private var shortageOverrideRequest: OrderStatusChangeRequest?
@@ -23,55 +24,56 @@ struct OrderListView: View {
 
     var body: some View {
         orderList
-        .sheet(isPresented: $isAddingOrder, onDismiss: cancelAddingOrder) {
-            NavigationStack {
-                OrderForm(
-                    viewModel: viewModel,
-                    isPresented: $isAddingOrder,
-                    onCancel: viewModel.cancelAddOrder,
-                    onSave: saveAddedOrder
-                )
-                .orderConfirmationDialog(
-                    isPresented: $isConfirmingAddedOrderInventoryShortage,
-                    title: "Inventory Shortage",
-                    message: viewModel.inventoryShortageWarningMessage,
-                    messageAccessibilityIdentifier: "orders.form.inventoryShortage.message",
-                    onCancel: {
-                        isConfirmingAddedOrderInventoryShortage = false
-                        viewModel.cancelInventoryShortageOverride()
-                    }
-                ) {
-                    nativeDialogButton("Continue And Save", role: .destructive) {
-                        if viewModel.addOrder(allowingInventoryShortage: true) {
+            .sheet(isPresented: $isAddingOrder, onDismiss: cancelAddingOrder) {
+                NavigationStack {
+                    OrderForm(
+                        viewModel: viewModel,
+                        isPresented: $isAddingOrder,
+                        onCancel: viewModel.cancelAddOrder,
+                        onSave: saveAddedOrder
+                    )
+                    .orderConfirmationDialog(
+                        isPresented: $isConfirmingAddedOrderInventoryShortage,
+                        title: "Inventory Shortage",
+                        message: viewModel.inventoryShortageWarningMessage,
+                        messageAccessibilityIdentifier: "orders.form.inventoryShortage.message",
+                        onCancel: {
                             isConfirmingAddedOrderInventoryShortage = false
-                            isAddingOrder = false
+                            viewModel.cancelInventoryShortageOverride()
                         }
+                    ) {
+                        nativeDialogButton("Continue And Save", role: .destructive) {
+                            if viewModel.addOrder(allowingInventoryShortage: true) {
+                                isConfirmingAddedOrderInventoryShortage = false
+                                isAddingOrder = false
+                            }
+                        }
+                        .accessibilityIdentifier("orders.form.inventoryShortage.continue")
                     }
-                    .accessibilityIdentifier("orders.form.inventoryShortage.continue")
                 }
             }
-        }
-        .sheet(isPresented: $isViewingOrder, onDismiss: viewModel.closeOrderDetail) {
-            NavigationStack {
-                OrderDetailView(
-                    viewModel: viewModel,
-                    isPresented: $isViewingOrder
-                )
+            .sheet(isPresented: $isViewingOrder, onDismiss: closeOrderDetail) {
+                NavigationStack {
+                    OrderDetailView(
+                        viewModel: viewModel,
+                        isPresented: $isViewingOrder,
+                        onDuplicate: duplicateSelectedOrder
+                    )
+                }
             }
-        }
-        .onAppear {
-            viewModel.load()
-            refreshWhatsAppAvailability()
-            openPendingNotificationOrder()
-            openPendingNewOrder()
-        }
-        .onChange(of: orderNotificationRouter.pendingOrderId) { _, _ in
-            openPendingNotificationOrder()
-        }
-        .onChange(of: orderNavigationRouter.pendingNewOrderRequest) { _, _ in
-            openPendingNewOrder()
-        }
-        .accessibilityIdentifier(AppDestination.orders.screenAccessibilityIdentifier)
+            .onAppear {
+                viewModel.load()
+                refreshWhatsAppAvailability()
+                openPendingNotificationOrder()
+                openPendingNewOrder()
+            }
+            .onChange(of: orderNotificationRouter.pendingOrderId) { _, _ in
+                openPendingNotificationOrder()
+            }
+            .onChange(of: orderNavigationRouter.pendingNewOrderRequest) { _, _ in
+                openPendingNewOrder()
+            }
+            .accessibilityIdentifier(AppDestination.orders.screenAccessibilityIdentifier)
     }
 
     private func saveAddedOrder() -> Bool {
@@ -85,6 +87,23 @@ struct OrderListView: View {
     private func cancelAddingOrder() {
         isConfirmingAddedOrderInventoryShortage = false
         viewModel.cancelAddOrder()
+    }
+
+    private func duplicateSelectedOrder() {
+        guard viewModel.beginDuplicatingSelectedOrder() else {
+            return
+        }
+        opensDuplicatedOrderAfterDetailDismiss = true
+        isViewingOrder = false
+    }
+
+    private func closeOrderDetail() {
+        viewModel.closeOrderDetail()
+        guard opensDuplicatedOrderAfterDetailDismiss else {
+            return
+        }
+        opensDuplicatedOrderAfterDetailDismiss = false
+        isAddingOrder = true
     }
 
     private var orderList: some View {
@@ -162,7 +181,8 @@ struct OrderListView: View {
 
             Button("Save") {
                 if let order = orderAddingPartialPayment,
-                   viewModel.addPayment(to: order, amountText: partialPaymentAmount) {
+                    viewModel.addPayment(to: order, amountText: partialPaymentAmount)
+                {
                     orderAddingPartialPayment = nil
                     partialPaymentAmount = ""
                 }
@@ -324,7 +344,8 @@ struct OrderListView: View {
 
     private func messageAction(for order: Order) -> (() -> Void)? {
         guard canOpenWhatsApp,
-              let url = viewModel.whatsappMessageURL(for: order) else {
+            let url = viewModel.whatsappMessageURL(for: order)
+        else {
             return nil
         }
 
@@ -334,7 +355,8 @@ struct OrderListView: View {
     }
 
     private func refreshWhatsAppAvailability() {
-        canOpenWhatsApp = URL(string: "whatsapp://send")
+        canOpenWhatsApp =
+            URL(string: "whatsapp://send")
             .map { UIApplication.shared.canOpenURL($0) } ?? false
     }
 
@@ -360,7 +382,8 @@ struct OrderListView: View {
 
     private func openPendingNotificationOrder() {
         guard let orderId = orderNotificationRouter.pendingOrderId,
-              let order = viewModel.order(id: orderId) else {
+            let order = viewModel.order(id: orderId)
+        else {
             return
         }
 
@@ -402,7 +425,8 @@ struct OrderListView: View {
         let horizontalDistance = value.translation.width
         let verticalDistance = value.translation.height
         guard abs(horizontalDistance) >= 72,
-              abs(horizontalDistance) > abs(verticalDistance) * 1.4 else {
+            abs(horizontalDistance) > abs(verticalDistance) * 1.4
+        else {
             return
         }
 
