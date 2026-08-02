@@ -134,6 +134,51 @@ extension CloudBakeOwnerUITests {
         )
     }
 
+    func testReusableOrderTemplateCanBeSavedAndAppliedWithoutCommercialData() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        openDashboardDestination("Orders", in: app)
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+        typeText("Chocolate Celebration", into: app.textFields["orders.form.title"])
+        dismissKeyboard(in: app)
+        scrollToHittable(app.textFields["orders.form.customerName"], in: app, timeout: transitionTimeout)
+        typeText("Amy", into: app.textFields["orders.form.customerName"])
+        dismissKeyboard(in: app)
+        scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: transitionTimeout)
+        typeText("150", into: app.textFields["orders.form.quotedPrice"])
+        dismissKeyboard(in: app)
+        scrollToHittable(app.buttons["orders.form.template.save"], in: app, timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.form.template.save"], timeout: transitionTimeout)
+        typeText("Chocolate Standard", into: app.textFields["orders.form.template.name"])
+        tapWhenReady(app.buttons["orders.form.template.confirmSave"], timeout: transitionTimeout)
+        tapWhenReady(app.buttons["orders.form.cancel"], timeout: transitionTimeout)
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
+
+        tapWhenReady(app.buttons["orders.add"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(app.buttons["orders.form.template.choose"], timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Order Templates"].waitForExistence(timeout: transitionTimeout))
+        tapWhenReady(
+            app.buttons.matching(
+                NSPredicate(format: "identifier BEGINSWITH %@", "orders.template.use.")
+            ).firstMatch,
+            timeout: transitionTimeout
+        )
+
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertEqual(
+            app.textFields["orders.form.title"].value as? String,
+            "Chocolate Celebration"
+        )
+        XCTAssertNotEqual(app.textFields["orders.form.customerName"].value as? String, "Amy")
+        scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: transitionTimeout)
+        XCTAssertNotEqual(app.textFields["orders.form.quotedPrice"].value as? String, "150")
+    }
+
     func testOrderDetailCanMarkPaymentPaid() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
