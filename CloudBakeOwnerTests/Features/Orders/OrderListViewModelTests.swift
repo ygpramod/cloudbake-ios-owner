@@ -4,6 +4,19 @@ import XCTest
 
 @MainActor
 final class OrderListViewModelTests: XCTestCase {
+    func testOrderDetailOnlyOffersDuplicateWhenHostProvidesWorkflow() {
+        XCTAssertTrue(OrderDetailView.duplicateActions(onDuplicate: nil).isEmpty)
+
+        var didDuplicate = false
+        let actions = OrderDetailView.duplicateActions {
+            didDuplicate = true
+        }
+
+        XCTAssertEqual(actions.map(\.accessibilityIdentifier), ["orders.detail.duplicate"])
+        actions[0].action()
+        XCTAssertTrue(didDuplicate)
+    }
+
     func testBeginAddingOrderDefaultsDueTimeToNextDayAtNearestHour() {
         let repository = FakeOrderRepository()
         var calendar = Calendar(identifier: .gregorian)

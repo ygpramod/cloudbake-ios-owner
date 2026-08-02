@@ -6,7 +6,7 @@ struct OrderDetailView: View {
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
     let showsDoneButton: Bool
-    let onDuplicate: () -> Void
+    let onDuplicate: (() -> Void)?
     @State private var isEditingOrder = false
     @State private var statusPendingInventoryDeduction: OrderStatus?
     @State private var statusPendingInventoryShortage: OrderStatus?
@@ -33,7 +33,7 @@ struct OrderDetailView: View {
         viewModel: OrderListViewModel,
         isPresented: Binding<Bool>,
         showsDoneButton: Bool = true,
-        onDuplicate: @escaping () -> Void = {}
+        onDuplicate: (() -> Void)? = nil
     ) {
         self.viewModel = viewModel
         _isPresented = isPresented
@@ -55,14 +55,7 @@ struct OrderDetailView: View {
                     isEditingOrder = true
                 }
             ),
-            secondaryActions: [
-                CloudBakeDetailAction(
-                    title: "Duplicate Order",
-                    systemImage: "doc.on.doc",
-                    accessibilityIdentifier: "orders.detail.duplicate",
-                    action: onDuplicate
-                )
-            ],
+            secondaryActions: Self.duplicateActions(onDuplicate: onDuplicate),
             onBack: {
                 isPresented = false
             }
@@ -588,6 +581,22 @@ struct OrderDetailView: View {
                 }
             }
         }
+    }
+
+    static func duplicateActions(
+        onDuplicate: (() -> Void)?
+    ) -> [CloudBakeDetailAction] {
+        guard let onDuplicate else {
+            return []
+        }
+        return [
+            CloudBakeDetailAction(
+                title: "Duplicate Order",
+                systemImage: "doc.on.doc",
+                accessibilityIdentifier: "orders.detail.duplicate",
+                action: onDuplicate
+            )
+        ]
     }
 
     @ViewBuilder
