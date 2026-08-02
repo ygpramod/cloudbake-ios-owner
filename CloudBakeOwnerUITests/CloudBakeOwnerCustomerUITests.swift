@@ -90,8 +90,8 @@ extension CloudBakeOwnerUITests {
         assertScreenVisible("screen.customers", in: app, timeout: transitionTimeout)
         addCustomer(named: "Amy", phone: "5550101", in: app)
         openManualCustomerForm(in: app, timeout: transitionTimeout)
-        typeText("Amy", into: app.textFields["customers.form.name"], timeout: transitionTimeout)
-        typeText("5550101", into: app.textFields["customers.form.phone"], timeout: transitionTimeout)
+        typeCustomerFormText("Amy", into: "customers.form.name", in: app, timeout: transitionTimeout)
+        typeCustomerFormText("5550101", into: "customers.form.phone", in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["customers.form.save"], timeout: transitionTimeout)
 
         XCTAssertTrue(

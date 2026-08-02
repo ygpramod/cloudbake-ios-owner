@@ -149,10 +149,10 @@ extension CloudBakeOwnerUITests {
     func addCustomer(named name: String, phone: String, in app: XCUIApplication) {
         assertScreenVisible("screen.customers", in: app, timeout: 10)
         openManualCustomerForm(in: app)
-        typeText(name, into: app.textFields["customers.form.name"])
-        typeText(phone, into: app.textFields["customers.form.phone"])
-        typeText("amy@example.com", into: app.textFields["customers.form.email"])
-        typeText("10 Cake Street", into: app.textFields["customers.form.address"])
+        typeCustomerFormText(name, into: "customers.form.name", in: app)
+        typeCustomerFormText(phone, into: "customers.form.phone", in: app)
+        typeCustomerFormText("amy@example.com", into: "customers.form.email", in: app)
+        typeCustomerFormText("10 Cake Street", into: "customers.form.address", in: app)
         dismissKeyboard(in: app)
         let importantDateField = app.textFields["customers.form.importantDate.label"]
         scrollToHittable(importantDateField, in: app)
@@ -163,6 +163,33 @@ extension CloudBakeOwnerUITests {
         typeText("Nuts", into: allergiesField)
         tapWhenReady(app.buttons["customers.form.save"])
         assertScreenVisible("screen.customers", in: app, timeout: 10)
+    }
+
+    func typeCustomerFormText(
+        _ text: String,
+        into identifier: String,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let formScroll = app.descendants(matching: .any)["customers.form.scroll"]
+        XCTAssertTrue(
+            formScroll.waitForExistence(timeout: timeout),
+            "Customer form did not expose its scroll container.",
+            file: file,
+            line: line
+        )
+        let field = app.textFields[identifier]
+        scrollToHittable(
+            field,
+            in: app,
+            scrollContainer: formScroll,
+            timeout: timeout,
+            file: file,
+            line: line
+        )
+        typeText(text, into: field, timeout: timeout, file: file, line: line)
     }
 
     func openManualCustomerForm(

@@ -101,6 +101,7 @@ struct CustomerForm: View {
             }
         }
         .cloudBakeFormScreenStyle()
+        .accessibilityIdentifier("customers.form.scroll")
         .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
