@@ -913,9 +913,12 @@ extension CloudBakeOwnerUITests {
         tapWhenReady(reference, timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(app.buttons["orders.form.design"].label.contains("Customer sketch"))
+        let returnedDesignField = app.buttons["orders.form.design"]
+        scrollToHittable(returnedDesignField, in: app, timeout: transitionTimeout)
+        XCTAssertTrue(returnedDesignField.label.contains("Customer sketch"))
 
         let titleField = app.textFields["orders.form.title"]
+        scrollToTop(in: app)
         scrollToHittable(titleField, in: app, timeout: transitionTimeout)
         typeText("Customer Reference Cake", into: titleField, timeout: transitionTimeout)
         dismissKeyboard(in: app)

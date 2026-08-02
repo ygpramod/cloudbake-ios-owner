@@ -48,7 +48,7 @@ extension CloudBakeOwnerUITests {
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 10))
         let linkedDesign = app.buttons["orders.form.design"]
-        XCTAssertTrue(linkedDesign.waitForExistence(timeout: 5))
+        scrollToHittable(linkedDesign, in: app, timeout: 10)
         XCTAssertTrue(linkedDesign.label.contains("Pink Floral Cake"))
         tapWhenReady(app.buttons["orders.form.cancel"])
 
@@ -73,7 +73,7 @@ extension CloudBakeOwnerUITests {
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 10))
         let designField = app.buttons["orders.form.design"]
-        XCTAssertTrue(designField.waitForExistence(timeout: 5))
+        scrollToHittable(designField, in: app, timeout: 10)
         XCTAssertTrue(designField.label.contains("Customer sketch"))
         tapWhenReady(designField)
 
