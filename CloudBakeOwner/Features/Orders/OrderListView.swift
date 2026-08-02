@@ -16,10 +16,12 @@ struct OrderListView: View {
     @State private var partialPaymentAmount = ""
     @State private var canOpenWhatsApp = false
     @State private var isConfirmingAddedOrderInventoryShortage = false
+    @State private var isChoosingTemplateAction = false
     @State private var isChoosingTemplateSource = false
     @State private var templateSourcePicker: TemplateSourcePicker?
     @State private var opensTemplateEditorAfterSourceDismiss = false
     @State private var isEditingTemplateDraft = false
+    @State private var existingTemplateBeingEdited: OrderTemplate?
     @State private var templateDraftName = ""
     @FocusState private var isSearchFocused: Bool
 
@@ -76,20 +78,29 @@ struct OrderListView: View {
                         viewModel: viewModel,
                         onCancel: { templateSourcePicker = nil },
                         onSelectOrder: prepareTemplateDraft,
-                        onSelectTemplate: prepareTemplateDraft
+                        onSelectTemplate: { template in
+                            if source == .editTemplate {
+                                prepareExistingTemplateForEditing(template)
+                            } else {
+                                prepareTemplateDraft(from: template)
+                            }
+                        }
                     )
                 }
             }
-            .sheet(isPresented: $isEditingTemplateDraft, onDismiss: viewModel.cancelAddOrder) {
+            .sheet(isPresented: $isEditingTemplateDraft, onDismiss: cancelTemplateEditing) {
                 NavigationStack {
                     OrderForm(
-                        title: "New Template",
+                        title: existingTemplateBeingEdited == nil ? "New Template" : "Edit Template",
                         viewModel: viewModel,
                         isPresented: $isEditingTemplateDraft,
                         templateName: $templateDraftName,
                         onCancel: viewModel.cancelAddOrder,
                         onSave: {
-                            viewModel.saveCurrentDraftAsTemplate(named: templateDraftName)
+                            viewModel.saveCurrentDraftAsTemplate(
+                                named: templateDraftName,
+                                replacing: existingTemplateBeingEdited
+                            )
                         }
                     )
                 }
@@ -140,12 +151,14 @@ struct OrderListView: View {
     }
 
     private func beginBlankTemplate() {
+        existingTemplateBeingEdited = nil
         viewModel.beginAddingOrder()
         templateDraftName = ""
         isEditingTemplateDraft = true
     }
 
     private func prepareTemplateDraft(from order: Order) {
+        existingTemplateBeingEdited = nil
         guard viewModel.beginDuplicatingOrder(id: order.id) else {
             templateSourcePicker = nil
             return
@@ -156,11 +169,26 @@ struct OrderListView: View {
     }
 
     private func prepareTemplateDraft(from template: OrderTemplate) {
+        existingTemplateBeingEdited = nil
         viewModel.beginAddingOrder()
         viewModel.applyOrderTemplate(template)
         templateDraftName = "\(template.name) Copy"
         opensTemplateEditorAfterSourceDismiss = true
         templateSourcePicker = nil
+    }
+
+    private func prepareExistingTemplateForEditing(_ template: OrderTemplate) {
+        viewModel.beginAddingOrder()
+        viewModel.applyOrderTemplate(template)
+        existingTemplateBeingEdited = template
+        templateDraftName = template.name
+        opensTemplateEditorAfterSourceDismiss = true
+        templateSourcePicker = nil
+    }
+
+    private func cancelTemplateEditing() {
+        existingTemplateBeingEdited = nil
+        viewModel.cancelAddOrder()
     }
 
     private func openTemplateEditorAfterSourceDismiss() {
@@ -178,7 +206,7 @@ struct OrderListView: View {
                 systemImage: "plus",
                 accessibilityIdentifier: "orders.add",
                 longPressTitle: "Create Template",
-                longPressAction: { isChoosingTemplateSource = true },
+                longPressAction: { isChoosingTemplateAction = true },
                 action: {
                     viewModel.beginAddingOrder()
                     isAddingOrder = true
@@ -190,7 +218,26 @@ struct OrderListView: View {
         .contentShape(Rectangle())
         .simultaneousGesture(orderScopeSwipeGesture)
         .confirmationDialog(
-            "Create New Template From",
+            "Templates",
+            isPresented: $isChoosingTemplateAction,
+            titleVisibility: .visible
+        ) {
+            Button("Create Template") {
+                DispatchQueue.main.async {
+                    isChoosingTemplateSource = true
+                }
+            }
+            .accessibilityIdentifier("orders.template.action.create")
+            Button("Edit Template") {
+                DispatchQueue.main.async {
+                    templateSourcePicker = .editTemplate
+                }
+            }
+            .accessibilityIdentifier("orders.template.action.edit")
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "Start New Template From",
             isPresented: $isChoosingTemplateSource,
             titleVisibility: .visible
         ) {
@@ -550,6 +597,7 @@ private enum OrderScope: CaseIterable {
 private enum TemplateSourcePicker: String, Identifiable {
     case order
     case template
+    case editTemplate
 
     var id: String { rawValue }
 }
@@ -568,7 +616,7 @@ private struct TemplateSourceSelectionView: View {
             CloudBakeScreenBackground().ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: CloudBakeTheme.Spacing.sectionContent) {
                     CloudBakeSearchField(
                         text: $searchText,
                         prompt: source == .order ? "Search orders" : "Search templates",
@@ -583,11 +631,11 @@ private struct TemplateSourceSelectionView: View {
                     }
                 }
                 .padding(CloudBakeTheme.Spacing.screenHorizontal)
-                .padding(.bottom, 32)
+                .padding(.bottom, CloudBakeTheme.Spacing.section)
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .navigationTitle(source == .order ? "Choose Order" : "Choose Template")
+        .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -604,6 +652,17 @@ private struct TemplateSourceSelectionView: View {
             if source == .order {
                 viewModel.searchTemplateSourceOrders(matching: newValue)
             }
+        }
+    }
+
+    private var navigationTitle: String {
+        switch source {
+        case .order:
+            return "Choose Order"
+        case .template:
+            return "Choose Template"
+        case .editTemplate:
+            return "Edit Template"
         }
     }
 
@@ -634,7 +693,7 @@ private struct TemplateSourceSelectionView: View {
                     : "Try another cake or customer name."
             )
         } else {
-            LazyVStack(spacing: 14) {
+            LazyVStack(spacing: CloudBakeTheme.Spacing.sectionContent) {
                 ForEach(viewModel.templateSourceOrders, id: \.id) { order in
                     sourceCard(
                         title: order.title,
@@ -672,7 +731,7 @@ private struct TemplateSourceSelectionView: View {
                     : "Try another template or cake name."
             )
         } else {
-            LazyVStack(spacing: 14) {
+            LazyVStack(spacing: CloudBakeTheme.Spacing.sectionContent) {
                 ForEach(filteredTemplates, id: \.id) { template in
                     sourceCard(
                         title: template.name,
@@ -693,7 +752,7 @@ private struct TemplateSourceSelectionView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            HStack(spacing: CloudBakeTheme.Spacing.sectionContent) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(CloudBakeTheme.Typography.rowTitle)
@@ -713,7 +772,7 @@ private struct TemplateSourceSelectionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(18)
+        .padding(CloudBakeTheme.Spacing.rowContent)
         .cloudBakeCardStyle()
         .accessibilityIdentifier(accessibilityIdentifier)
     }
