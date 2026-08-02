@@ -64,19 +64,21 @@ A slice is done only when:
   `CloudBakeDetailDivider`.
 - Data-entry flows should keep native controls and use `cloudBakeFormScreenStyle()` unless there is
   an explicit UX reason to introduce a different form shell.
-- Anchored/in-place action lists must use `Menu` and preserve the compact native presentation.
+- Anchored/in-place action lists must use the shared `CloudBakeAnchoredActionPopup` inside a native
+  popover, preserving the compact pointer-attached presentation, semantic icons, separators,
+  chevrons, full-row tap targets, outside-tap dismissal, and accessibility escape.
 - Branded multi-choice selection may use only the shared `cloudBakeActionPopup` component, with
   full-row tap targets, semantic icon colors, outside-tap and accessibility-escape dismissal.
-- Destructive decisions and state-changing confirmations must use `confirmationDialog`; short
-  acknowledgement or supported text input must use `Alert`.
+- Destructive decisions, acknowledgements, and state-changing confirmations must use the shared,
+  content-sized `cloudBakeConfirmationDialog`; supported short text input must use `Alert`.
 - Use a native sheet when a workflow needs richer controls that an alert cannot safely host.
   Preserve destructive roles, explicit cancel behavior, concise copy, and accessibility
   identifiers for acceptance-testable actions.
-- Native iOS presentation and CloudBake styling are complementary: dialogs, menus, and system
-  pickers remain native, while any custom content inside a sheet must retain CloudBake's visual
-  language.
-- Native dialog cancellation must run the same cleanup exactly once whether the owner chooses
-  Cancel, uses the accessibility escape action, or dismisses a system popover by tapping outside.
+- Native iOS presentation and CloudBake styling are complementary: Apple-owned permission, photo,
+  file, share, and keyboard surfaces remain native, while app-owned transient actions use the
+  shared CloudBake popup family.
+- Popup cancellation must run the same cleanup exactly once whether the owner chooses Cancel, uses
+  the accessibility escape action, or dismisses by tapping outside.
 - Do not introduce feature-local popup overlays, one-off dialog styling, nested cards inside system
   dialogs, or custom action-button treatments. Extend the shared popup only when the pattern is
   reusable across the app.

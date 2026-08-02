@@ -35,9 +35,9 @@ exist on a new installation.
 8. Use deterministic private identifiers and conflict-safe insertion so migration replay cannot
    duplicate a template.
 9. Templates are included automatically in the existing full database backup and restore.
-10. The Orders add control is a native iOS Menu with a primary action. A normal tap creates an order;
-    a long press opens an anchored Create Template and Edit Template menu with the standard system
-    haptic feedback.
+10. A normal tap on the Orders add control creates an order. A long press provides haptic feedback
+    and opens the shared CloudBake popover anchored to `+`, with the Templates heading, colored
+    Create Template and Edit Template icons, separators, chevrons, and full-row tap targets.
 11. Create Template opens the shared, content-sized CloudBake action popup offering Blank Template,
     Existing Order, and Another Template as full-width rows with semantic icons, separators,
     chevrons, Cancel, outside-tap dismissal, and accessibility escape. Edit Template opens the
