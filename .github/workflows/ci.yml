@@ -124,6 +124,7 @@ jobs:
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeAddedAndListed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeOpenedFromListAndViewed
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeDuplicatedIntoAnUnsavedDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderDetailCanMarkPaymentPaid
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsDueRemindersAndReminderPlan
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderReminderPlanCanBeDisabledAndPersists

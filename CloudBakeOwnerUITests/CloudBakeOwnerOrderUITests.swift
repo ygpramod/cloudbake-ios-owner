@@ -79,6 +79,61 @@ extension CloudBakeOwnerUITests {
         assertExistsAfterScrolling(app.staticTexts["orders.detail.balanceDue"], in: app, timeout: transitionTimeout)
     }
 
+    func testOrderCanBeDuplicatedIntoAnUnsavedDraft() throws {
+        let app = makeApp()
+        let transitionTimeout: TimeInterval = 15
+        app.launch()
+
+        openDashboardDestination("Orders", in: app)
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
+        addOrder(
+            named: "Reusable Birthday Cake",
+            notes: "Pink flowers",
+            customerName: "Amy",
+            cakeMessage: "Happy Birthday",
+            quotedPrice: "125.50",
+            depositPaid: "25.50",
+            paymentNotes: "Bank transfer",
+            in: app
+        )
+
+        let orderRow = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.item.",
+                "Reusable Birthday Cake"
+            )
+        ).firstMatch
+        tapWhenReady(orderRow, timeout: transitionTimeout)
+        XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
+
+        tapWhenReady(app.buttons["orders.detail.duplicate"], timeout: transitionTimeout)
+
+        XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertEqual(
+            app.textFields["orders.form.title"].value as? String,
+            "Reusable Birthday Cake"
+        )
+        XCTAssertEqual(app.textFields["orders.form.customerName"].value as? String, "Amy")
+        XCTAssertEqual(app.textFields["orders.form.cakeNotes"].value as? String, "Pink flowers")
+        XCTAssertEqual(
+            app.textFields["orders.form.cakeMessage"].value as? String,
+            "Happy Birthday"
+        )
+        scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: transitionTimeout)
+        XCTAssertNotEqual(app.textFields["orders.form.quotedPrice"].value as? String, "125.50")
+        XCTAssertNotEqual(app.textFields["orders.form.depositPaid"].value as? String, "25.50")
+        XCTAssertNotEqual(app.textFields["orders.form.paymentNotes"].value as? String, "Bank transfer")
+
+        tapWhenReady(app.buttons["orders.form.cancel"], timeout: transitionTimeout)
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
+        XCTAssertEqual(
+            app.staticTexts.matching(NSPredicate(format: "label == %@", "Reusable Birthday Cake"))
+                .count,
+            1
+        )
+    }
+
     func testOrderDetailCanMarkPaymentPaid() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 15
