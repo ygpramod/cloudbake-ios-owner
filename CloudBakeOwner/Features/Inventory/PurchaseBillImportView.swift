@@ -394,19 +394,13 @@ private struct PurchaseBillDraftRow: View {
                     .accessibilityIdentifier("inventory.purchaseBill.draft.quantity.\(draft.id)")
             }
 
-            Menu {
-                ForEach(InventoryUnit.inventoryInputCases, id: \.self) { unit in
-                    Button {
-                        draft.unit = unit
-                    } label: {
-                        if unit == draft.unit {
-                            Label(unit.displayName, systemImage: "checkmark")
-                        } else {
-                            Text(unit.displayName)
-                        }
-                    }
-                }
-            } label: {
+            CloudBakeAnchoredPopupButton(
+                title: "Unit",
+                actions: unitActions,
+                accessibilityLabel: "Unit",
+                accessibilityValue: draft.unit.displayName,
+                accessibilityIdentifier: "inventory.purchaseBill.draft.unit.\(draft.id)"
+            ) {
                 HStack(spacing: 4) {
                     Text(draft.unit.displayName)
                     Image(systemName: "chevron.up.chevron.down")
@@ -414,9 +408,6 @@ private struct PurchaseBillDraftRow: View {
                 }
             }
             .fixedSize(horizontal: true, vertical: false)
-            .accessibilityLabel("Unit")
-            .accessibilityValue(draft.unit.displayName)
-            .accessibilityIdentifier("inventory.purchaseBill.draft.unit.\(draft.id)")
         }
 
         VStack(alignment: .leading, spacing: 6) {
@@ -464,6 +455,20 @@ private struct PurchaseBillDraftRow: View {
                 displayedComponents: .date
             )
             .accessibilityIdentifier("inventory.purchaseBill.draft.expiry.\(draft.id)")
+        }
+    }
+
+    private var unitActions: [CloudBakeScreenMenuAction] {
+        InventoryUnit.inventoryInputCases.map { unit in
+            CloudBakeScreenMenuAction(
+                title: unit.displayName,
+                systemImage: "scalemass",
+                tint: .orange,
+                isSelected: unit == draft.unit,
+                accessibilityIdentifier: "inventory.purchaseBill.draft.unit.\(draft.id).\(unit.rawValue)"
+            ) {
+                draft.unit = unit
+            }
         }
     }
 
