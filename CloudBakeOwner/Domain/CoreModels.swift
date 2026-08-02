@@ -808,6 +808,39 @@ struct OrderChecklistItem: Equatable {
     let updatedAt: Date
 }
 
+struct OrderTemplate: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let cakeTitle: String
+    let cakeDesignId: String?
+    let recipeId: String?
+    let recipeScaleMultiplier: Decimal
+    let fulfillmentType: OrderFulfillmentType
+    let deliveryAddress: String?
+    let cakeNotes: String?
+    let cakeMessage: String?
+    let reminderConfiguration: OrderReminderConfiguration
+    let extraIngredients: [OrderTemplateExtraIngredient]
+    let checklistItems: [OrderTemplateChecklistItem]
+    let createdAt: Date
+    let updatedAt: Date
+}
+
+struct OrderTemplateExtraIngredient: Identifiable, Equatable {
+    let id: String
+    let inventoryItemId: String
+    let quantity: Double
+    let unit: InventoryUnit
+    let note: String?
+    let sortOrder: Int
+}
+
+struct OrderTemplateChecklistItem: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let sortOrder: Int
+}
+
 enum OrderPhotoKind: String, Equatable, CaseIterable {
     case customerReference
     case finalCake

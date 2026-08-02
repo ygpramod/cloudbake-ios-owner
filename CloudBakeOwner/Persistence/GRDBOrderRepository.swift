@@ -16,6 +16,12 @@ enum OrderChecklistPersistenceError: Error, Equatable {
     case itemBelongsToAnotherOrder
 }
 
+enum OrderTemplatePersistenceError: Error, Equatable {
+    case invalidRecipeScaleMultiplier
+    case invalidFulfillmentType(String)
+    case invalidInventoryUnit(String)
+}
+
 extension GRDBCoreDataRepository {
     func recordPayment(
         orderId: String,
@@ -2019,6 +2025,35 @@ extension GRDBCoreDataRepository {
         }
     }
 
+    func fetchOrderTemplates() throws -> [OrderTemplate] {
+        try writer.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM order_templates
+                    ORDER BY name COLLATE NOCASE, id
+                    """
+            ).map { row in
+                try orderTemplate(from: row, in: db)
+            }
+        }
+    }
+
+    func save(_ template: OrderTemplate) throws {
+        try writer.write { db in
+            try save(template, in: db)
+        }
+    }
+
+    func deleteOrderTemplate(id: String) throws {
+        try writer.write { db in
+            try db.execute(
+                sql: "DELETE FROM order_templates WHERE id = ?",
+                arguments: [id]
+            )
+        }
+    }
+
     func save(_ photo: OrderPhoto) throws {
         try writer.write { db in
             try save(photo, in: db)
@@ -3054,6 +3089,170 @@ private extension GRDBCoreDataRepository {
             throw OrderReminderConfigurationPersistenceError.invalidDayOffsets
         }
         return json
+    }
+
+    private func orderTemplate(
+        from row: Row,
+        in db: Database
+    ) throws -> OrderTemplate {
+        let scaleValue: String = row["recipe_scale_multiplier_decimal"]
+        guard let recipeScaleMultiplier = Decimal(string: scaleValue) else {
+            throw OrderTemplatePersistenceError.invalidRecipeScaleMultiplier
+        }
+        let fulfillmentValue: String = row["fulfillment_type"]
+        guard let fulfillmentType = OrderFulfillmentType(rawValue: fulfillmentValue) else {
+            throw OrderTemplatePersistenceError.invalidFulfillmentType(fulfillmentValue)
+        }
+        let reminderModeValue: String = row["reminder_mode"]
+        guard let reminderMode = OrderReminderConfigurationMode(rawValue: reminderModeValue) else {
+            throw OrderReminderConfigurationPersistenceError.invalidMode(reminderModeValue)
+        }
+        let reminderOffsetsJSON: String = row["reminder_day_offsets_json"]
+        guard let reminderOffsetsData = reminderOffsetsJSON.data(using: .utf8),
+            let reminderOffsets = try? JSONDecoder().decode([Int].self, from: reminderOffsetsData)
+        else {
+            throw OrderReminderConfigurationPersistenceError.invalidDayOffsets
+        }
+        let reminderConfiguration = try OrderReminderConfiguration(
+            mode: reminderMode,
+            dayOffsets: reminderOffsets,
+            includesDueTime: row["reminder_includes_due_time"]
+        )
+        let templateId: String = row["id"]
+        let extraIngredients = try Row.fetchAll(
+            db,
+            sql: """
+                SELECT * FROM order_template_extra_ingredients
+                WHERE template_id = ?
+                ORDER BY sort_order, id
+                """,
+            arguments: [templateId]
+        ).map { ingredientRow in
+            let unitValue: String = ingredientRow["unit"]
+            guard let unit = InventoryUnit(rawValue: unitValue) else {
+                throw OrderTemplatePersistenceError.invalidInventoryUnit(unitValue)
+            }
+            return OrderTemplateExtraIngredient(
+                id: ingredientRow["id"],
+                inventoryItemId: ingredientRow["inventory_item_id"],
+                quantity: ingredientRow["quantity"],
+                unit: unit,
+                note: ingredientRow["note"],
+                sortOrder: ingredientRow["sort_order"]
+            )
+        }
+        let checklistItems = try Row.fetchAll(
+            db,
+            sql: """
+                SELECT * FROM order_template_checklist_items
+                WHERE template_id = ?
+                ORDER BY sort_order, id
+                """,
+            arguments: [templateId]
+        ).map { checklistRow in
+            OrderTemplateChecklistItem(
+                id: checklistRow["id"],
+                title: checklistRow["title"],
+                sortOrder: checklistRow["sort_order"]
+            )
+        }
+        return OrderTemplate(
+            id: templateId,
+            name: row["name"],
+            cakeTitle: row["cake_title"],
+            cakeDesignId: row["cake_design_id"],
+            recipeId: row["recipe_id"],
+            recipeScaleMultiplier: recipeScaleMultiplier,
+            fulfillmentType: fulfillmentType,
+            deliveryAddress: row["delivery_address"],
+            cakeNotes: row["cake_notes"],
+            cakeMessage: row["cake_message"],
+            reminderConfiguration: reminderConfiguration,
+            extraIngredients: extraIngredients,
+            checklistItems: checklistItems,
+            createdAt: Date(timeIntervalSince1970: row["created_at_unix_time"]),
+            updatedAt: Date(timeIntervalSince1970: row["updated_at_unix_time"])
+        )
+    }
+
+    private func save(_ template: OrderTemplate, in db: Database) throws {
+        try db.execute(
+            sql: """
+                INSERT INTO order_templates
+                (id, name, cake_title, cake_design_id, recipe_id,
+                 recipe_scale_multiplier_decimal, fulfillment_type, delivery_address,
+                 cake_notes, cake_message, reminder_mode, reminder_day_offsets_json,
+                 reminder_includes_due_time, created_at_unix_time, updated_at_unix_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    cake_title = excluded.cake_title,
+                    cake_design_id = excluded.cake_design_id,
+                    recipe_id = excluded.recipe_id,
+                    recipe_scale_multiplier_decimal = excluded.recipe_scale_multiplier_decimal,
+                    fulfillment_type = excluded.fulfillment_type,
+                    delivery_address = excluded.delivery_address,
+                    cake_notes = excluded.cake_notes,
+                    cake_message = excluded.cake_message,
+                    reminder_mode = excluded.reminder_mode,
+                    reminder_day_offsets_json = excluded.reminder_day_offsets_json,
+                    reminder_includes_due_time = excluded.reminder_includes_due_time,
+                    updated_at_unix_time = excluded.updated_at_unix_time
+                """,
+            arguments: arguments([
+                template.id,
+                template.name,
+                template.cakeTitle,
+                template.cakeDesignId,
+                template.recipeId,
+                decimalString(template.recipeScaleMultiplier),
+                template.fulfillmentType.rawValue,
+                template.deliveryAddress,
+                template.cakeNotes,
+                template.cakeMessage,
+                template.reminderConfiguration.mode.rawValue,
+                try orderReminderDayOffsetsJSON(template.reminderConfiguration.dayOffsets),
+                template.reminderConfiguration.includesDueTime,
+                template.createdAt.timeIntervalSince1970,
+                template.updatedAt.timeIntervalSince1970,
+            ])
+        )
+        try db.execute(
+            sql: "DELETE FROM order_template_extra_ingredients WHERE template_id = ?",
+            arguments: [template.id]
+        )
+        for ingredient in template.extraIngredients {
+            try db.execute(
+                sql: """
+                    INSERT INTO order_template_extra_ingredients
+                    (id, template_id, inventory_item_id, quantity, unit, note, sort_order)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: arguments([
+                    ingredient.id,
+                    template.id,
+                    ingredient.inventoryItemId,
+                    ingredient.quantity,
+                    ingredient.unit.rawValue,
+                    ingredient.note,
+                    ingredient.sortOrder,
+                ])
+            )
+        }
+        try db.execute(
+            sql: "DELETE FROM order_template_checklist_items WHERE template_id = ?",
+            arguments: [template.id]
+        )
+        for item in template.checklistItems {
+            try db.execute(
+                sql: """
+                    INSERT INTO order_template_checklist_items
+                    (id, template_id, title, sort_order)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                arguments: [item.id, template.id, item.title, item.sortOrder]
+            )
+        }
     }
 
     func save(_ item: OrderChecklistItem, in db: Database) throws {
