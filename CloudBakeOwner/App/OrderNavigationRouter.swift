@@ -8,6 +8,7 @@ enum NewOrderDesignReference: Equatable {
 struct NewOrderRequest: Equatable {
     let customerId: String?
     let designReference: NewOrderDesignReference?
+    let sourceOrderId: String?
 }
 
 @MainActor
@@ -17,14 +18,24 @@ final class OrderNavigationRouter: ObservableObject {
     func beginNewOrder(customerId: String) {
         pendingNewOrderRequest = NewOrderRequest(
             customerId: customerId,
-            designReference: nil
+            designReference: nil,
+            sourceOrderId: nil
         )
     }
 
     func beginNewOrder(designReference: NewOrderDesignReference) {
         pendingNewOrderRequest = NewOrderRequest(
             customerId: nil,
-            designReference: designReference
+            designReference: designReference,
+            sourceOrderId: nil
+        )
+    }
+
+    func beginNewOrder(from sourceOrderId: String) {
+        pendingNewOrderRequest = NewOrderRequest(
+            customerId: nil,
+            designReference: nil,
+            sourceOrderId: sourceOrderId
         )
     }
 

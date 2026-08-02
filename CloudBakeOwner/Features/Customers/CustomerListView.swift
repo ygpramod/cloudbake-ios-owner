@@ -19,59 +19,60 @@ struct CustomerListView: View {
 
     var body: some View {
         customerList
-        .accessibilityIdentifier(AppDestination.customers.screenAccessibilityIdentifier)
-        .cloudBakeConfirmationDialog(
-            isPresented: $isChoosingAddMode,
-            title: "Add Customer",
-            message: "Choose how to start this customer record",
-            cancelAccessibilityIdentifier: "customers.add.cancel",
-            onCancel: { isChoosingAddMode = false }
-        ) {
-            nativeDialogButton("Import From Contacts") {
-                isChoosingAddMode = false
-                isImportingContact = true
-            }
-            .accessibilityIdentifier("customers.add.importContacts")
+            .accessibilityIdentifier(AppDestination.customers.screenAccessibilityIdentifier)
+            .cloudBakeConfirmationDialog(
+                isPresented: $isChoosingAddMode,
+                title: "Add Customer",
+                message: "Choose how to start this customer record",
+                cancelAccessibilityIdentifier: "customers.add.cancel",
+                onCancel: { isChoosingAddMode = false }
+            ) {
+                nativeDialogButton("Import From Contacts") {
+                    isChoosingAddMode = false
+                    isImportingContact = true
+                }
+                .accessibilityIdentifier("customers.add.importContacts")
 
-            nativeDialogButton("Enter Manually") {
-                isChoosingAddMode = false
-                viewModel.beginAddingCustomer()
-                isAddingCustomer = true
-            }
-            .accessibilityIdentifier("customers.add.manual")
-        }
-        .sheet(isPresented: $isImportingContact) {
-            CustomerContactPicker { contact in
-                let draft = CustomerContactDraftMapper().draft(from: contact)
-                viewModel.beginAddingCustomer(importedDraft: draft)
-                isImportingContact = false
-                DispatchQueue.main.async {
+                nativeDialogButton("Enter Manually") {
+                    isChoosingAddMode = false
+                    viewModel.beginAddingCustomer()
                     isAddingCustomer = true
                 }
+                .accessibilityIdentifier("customers.add.manual")
             }
-        }
-        .sheet(isPresented: $isAddingCustomer, onDismiss: viewModel.cancelAddCustomer) {
-            NavigationStack {
-                CustomerForm(
-                    viewModel: viewModel,
-                    isPresented: $isAddingCustomer,
-                    onCancel: viewModel.cancelAddCustomer,
-                    onSave: viewModel.addCustomer
-                )
+            .sheet(isPresented: $isImportingContact) {
+                CustomerContactPicker { contact in
+                    let draft = CustomerContactDraftMapper().draft(from: contact)
+                    viewModel.beginAddingCustomer(importedDraft: draft)
+                    isImportingContact = false
+                    DispatchQueue.main.async {
+                        isAddingCustomer = true
+                    }
+                }
             }
-        }
-        .sheet(isPresented: $isViewingCustomer, onDismiss: viewModel.closeCustomerDetail) {
-            NavigationStack {
-                CustomerDetailView(
-                    viewModel: viewModel,
-                    isPresented: $isViewingCustomer
-                )
+            .sheet(isPresented: $isAddingCustomer, onDismiss: viewModel.cancelAddCustomer) {
+                NavigationStack {
+                    CustomerForm(
+                        viewModel: viewModel,
+                        isPresented: $isAddingCustomer,
+                        onCancel: viewModel.cancelAddCustomer,
+                        onSave: viewModel.addCustomer
+                    )
+                }
             }
-        }
-        .onAppear {
-            viewModel.load()
-            refreshWhatsAppAvailability()
-        }
+            .sheet(isPresented: $isViewingCustomer, onDismiss: viewModel.closeCustomerDetail) {
+                NavigationStack {
+                    CustomerDetailView(
+                        viewModel: viewModel,
+                        isPresented: $isViewingCustomer,
+                        onRepeatOrder: repeatCustomerOrder
+                    )
+                }
+            }
+            .onAppear {
+                viewModel.load()
+                refreshWhatsAppAvailability()
+            }
     }
 
     private var customerList: some View {
@@ -190,7 +191,8 @@ struct CustomerListView: View {
                 }
 
                 if canOpenWhatsApp,
-                   let messageURL = viewModel.whatsappMessageURL(for: customer) {
+                    let messageURL = viewModel.whatsappMessageURL(for: customer)
+                {
                     CloudBakeAdaptiveActionButton(
                         title: "WhatsApp",
                         systemImage: "message",
@@ -224,8 +226,17 @@ struct CustomerListView: View {
         isViewingCustomer = true
     }
 
+    private func repeatCustomerOrder(_ order: Order) {
+        orderNavigationRouter.beginNewOrder(from: order.id)
+        isViewingCustomer = false
+        DispatchQueue.main.async {
+            navigate(.orders)
+        }
+    }
+
     private func refreshWhatsAppAvailability() {
-        canOpenWhatsApp = URL(string: "whatsapp://send")
+        canOpenWhatsApp =
+            URL(string: "whatsapp://send")
             .map { UIApplication.shared.canOpenURL($0) } ?? false
     }
 }

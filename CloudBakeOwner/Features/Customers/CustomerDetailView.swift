@@ -4,17 +4,20 @@ struct CustomerDetailView: View {
     @ObservedObject var viewModel: CustomerListViewModel
     @Binding var isPresented: Bool
     let showsDoneButton: Bool
+    let onRepeatOrder: ((Order) -> Void)?
     @State private var isEditingCustomer = false
     @State private var isConfirmingDelete = false
 
     init(
         viewModel: CustomerListViewModel,
         isPresented: Binding<Bool>,
-        showsDoneButton: Bool = true
+        showsDoneButton: Bool = true,
+        onRepeatOrder: ((Order) -> Void)? = nil
     ) {
         self.viewModel = viewModel
         _isPresented = isPresented
         self.showsDoneButton = showsDoneButton
+        self.onRepeatOrder = onRepeatOrder
     }
 
     var body: some View {
@@ -104,14 +107,14 @@ struct CustomerDetailView: View {
                 if !viewModel.selectedCustomerImportantDates.isEmpty {
                     CloudBakeSection("Important Dates") {
                         CloudBakeDetailCard {
-                        ForEach(viewModel.selectedCustomerImportantDates, id: \.id) { importantDate in
-                            CloudBakeDetailRow(importantDate.label) {
-                                Text(importantDate.date.formatted(date: .abbreviated, time: .omitted))
+                            ForEach(viewModel.selectedCustomerImportantDates, id: \.id) { importantDate in
+                                CloudBakeDetailRow(importantDate.label) {
+                                    Text(importantDate.date.formatted(date: .abbreviated, time: .omitted))
+                                }
+                                if importantDate.id != viewModel.selectedCustomerImportantDates.last?.id {
+                                    CloudBakeDetailDivider()
+                                }
                             }
-                            if importantDate.id != viewModel.selectedCustomerImportantDates.last?.id {
-                                CloudBakeDetailDivider()
-                            }
-                        }
                         }
                     }
                 }
@@ -128,55 +131,70 @@ struct CustomerDetailView: View {
 
                 CloudBakeSection("Orders") {
                     CloudBakeDetailCard {
-                    if viewModel.selectedCustomerOrders.isEmpty {
-                        HStack(spacing: 12) {
-                            Image(systemName: "calendar")
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(Color.cloudBakePink)
-                                .frame(width: 48, height: 48)
-                                .background(Circle().fill(Color.cloudBakePink.opacity(0.10)))
-                            Text("No linked orders yet")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .accessibilityIdentifier("customers.detail.noOrders")
-                            Spacer()
-                        }
-                        .padding(.vertical, 14)
-                    } else {
-                        ForEach(viewModel.selectedCustomerOrders, id: \.id) { order in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(order.title)
-                                    .font(.headline)
-                                    .accessibilityIdentifier("customers.detail.order.title.\(order.id)")
+                        if viewModel.selectedCustomerOrders.isEmpty {
+                            HStack(spacing: 12) {
+                                Image(systemName: "calendar")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(Color.cloudBakePink)
+                                    .frame(width: 48, height: 48)
+                                    .background(Circle().fill(Color.cloudBakePink.opacity(0.10)))
+                                Text("No linked orders yet")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .accessibilityIdentifier("customers.detail.noOrders")
+                                Spacer()
+                            }
+                            .padding(.vertical, 14)
+                        } else {
+                            ForEach(viewModel.selectedCustomerOrders, id: \.id) { order in
+                                HStack(spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(order.title)
+                                            .font(.headline)
+                                            .accessibilityIdentifier("customers.detail.order.title.\(order.id)")
 
-                                HStack {
-                                    Text(order.dueAt.formatted(date: .abbreviated, time: .shortened))
-                                    Text(order.status.displayName)
-                                    Text(order.fulfillmentType.displayName)
+                                        HStack {
+                                            Text(order.dueAt.formatted(date: .abbreviated, time: .shortened))
+                                            Text(order.status.displayName)
+                                            Text(order.fulfillmentType.displayName)
+                                        }
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    if let onRepeatOrder {
+                                        Button {
+                                            onRepeatOrder(order)
+                                        } label: {
+                                            Image(systemName: "calendar.badge.plus")
+                                                .frame(minWidth: 44, minHeight: 44)
+                                                .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .foregroundStyle(Color.cloudBakePink)
+                                        .accessibilityLabel("Create New Order From \(order.title)")
+                                        .accessibilityIdentifier("customers.detail.order.repeat.\(order.id)")
+                                    }
                                 }
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                            }
-                            .padding(.vertical, 12)
-                            .accessibilityIdentifier("customers.detail.order.\(order.id)")
+                                .padding(.vertical, 12)
 
-                            if order.id != viewModel.selectedCustomerOrders.last?.id {
-                                CloudBakeDetailDivider()
+                                if order.id != viewModel.selectedCustomerOrders.last?.id {
+                                    CloudBakeDetailDivider()
+                                }
+                            }
+
+                            if viewModel.canLoadMoreSelectedCustomerOrders {
+                                Button("Load More Orders") {
+                                    viewModel.loadMoreSelectedCustomerOrders()
+                                }
+                                .buttonStyle(.borderless)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.cloudBakePink)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .accessibilityIdentifier("customers.detail.orders.loadMore")
                             }
                         }
-
-                        if viewModel.canLoadMoreSelectedCustomerOrders {
-                            Button("Load More Orders") {
-                                viewModel.loadMoreSelectedCustomerOrders()
-                            }
-                            .buttonStyle(.borderless)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.cloudBakePink)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .accessibilityIdentifier("customers.detail.orders.loadMore")
-                        }
-                    }
                     }
                 }
 

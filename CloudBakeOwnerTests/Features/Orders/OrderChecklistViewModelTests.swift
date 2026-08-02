@@ -4,6 +4,30 @@ import XCTest
 
 @MainActor
 final class OrderChecklistViewModelTests: XCTestCase {
+    func testPreviousOrderIdentifierPreparesDraftWithoutLeavingDetailOpen() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-previous",
+            title: "Previous Birthday",
+            customerId: "customer-amy",
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000),
+            quotedPrice: 120,
+            depositPaid: 40
+        )
+        repository.orders = [order]
+        repository.customers = [makeCustomer(id: "customer-amy", name: "Amy")]
+        let viewModel = OrderListViewModel(repository: repository)
+
+        XCTAssertTrue(viewModel.beginDuplicatingOrder(id: order.id))
+
+        XCTAssertNil(viewModel.selectedOrder)
+        XCTAssertEqual(viewModel.draftTitle, "Previous Birthday")
+        XCTAssertEqual(viewModel.draftCustomerId, "customer-amy")
+        XCTAssertEqual(viewModel.draftStatus, .draft)
+        XCTAssertEqual(viewModel.draftQuotedPrice, "")
+        XCTAssertEqual(viewModel.draftDepositPaid, "")
+    }
+
     func testDuplicateOrderCreatesReviewableDraftWithoutTransactionalHistory() throws {
         let repository = FakeOrderRepository()
         var calendar = Calendar(identifier: .gregorian)
