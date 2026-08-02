@@ -24,7 +24,7 @@ copying customer or commercial history.
 ## Included Data
 
 - cake name, notes, and message,
-- pickup or delivery and optional delivery address,
+- pickup or delivery method,
 - linked saved design,
 - linked recipe and multiplier,
 - extra ingredients,
@@ -33,16 +33,19 @@ copying customer or commercial history.
 
 ## Excluded Data
 
-The template persistence schema has no fields for customer, due date, order status, quoted price,
-payments, payment notes, photos, reservations, inventory consumption, actual costs, or history.
-Applying a template preserves the customer and due date already entered in the current draft, resets
-status to Draft, and clears quoted price and payment inputs.
+The template persistence schema has no fields for customer, delivery address, due date, order
+status, quoted price, payments, payment notes, photos, reservations, inventory consumption, actual
+costs, or history. Applying a template preserves the customer, customer-derived delivery address,
+and due date already entered in the current draft, resets status to Draft, and clears quoted price
+and payment inputs. A pickup template clears a hidden delivery address.
 
 ## Persistence
 
 - templates and ordered child rows are stored locally in dedicated GRDB tables,
 - recipe and saved-design deletion clears the optional link,
 - inventory used by a template extra ingredient remains protected from deletion,
+- archived template ingredients are omitted on application with a warning to add an active
+  replacement,
 - saving a template and replacing its child rows is atomic,
 - deleting a template cascades only to its own template child rows.
 

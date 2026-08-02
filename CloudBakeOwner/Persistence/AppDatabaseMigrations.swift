@@ -836,7 +836,6 @@ enum AppDatabaseMigrations {
                     .references("recipes", onDelete: .setNull)
                 table.column("recipe_scale_multiplier_decimal", .text).notNull()
                 table.column("fulfillment_type", .text).notNull()
-                table.column("delivery_address", .text)
                 table.column("cake_notes", .text)
                 table.column("cake_message", .text)
                 table.column("reminder_mode", .text).notNull()

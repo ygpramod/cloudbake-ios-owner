@@ -3164,7 +3164,6 @@ private extension GRDBCoreDataRepository {
             recipeId: row["recipe_id"],
             recipeScaleMultiplier: recipeScaleMultiplier,
             fulfillmentType: fulfillmentType,
-            deliveryAddress: row["delivery_address"],
             cakeNotes: row["cake_notes"],
             cakeMessage: row["cake_message"],
             reminderConfiguration: reminderConfiguration,
@@ -3180,10 +3179,10 @@ private extension GRDBCoreDataRepository {
             sql: """
                 INSERT INTO order_templates
                 (id, name, cake_title, cake_design_id, recipe_id,
-                 recipe_scale_multiplier_decimal, fulfillment_type, delivery_address,
-                 cake_notes, cake_message, reminder_mode, reminder_day_offsets_json,
+                 recipe_scale_multiplier_decimal, fulfillment_type, cake_notes, cake_message,
+                 reminder_mode, reminder_day_offsets_json,
                  reminder_includes_due_time, created_at_unix_time, updated_at_unix_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     cake_title = excluded.cake_title,
@@ -3191,7 +3190,6 @@ private extension GRDBCoreDataRepository {
                     recipe_id = excluded.recipe_id,
                     recipe_scale_multiplier_decimal = excluded.recipe_scale_multiplier_decimal,
                     fulfillment_type = excluded.fulfillment_type,
-                    delivery_address = excluded.delivery_address,
                     cake_notes = excluded.cake_notes,
                     cake_message = excluded.cake_message,
                     reminder_mode = excluded.reminder_mode,
@@ -3207,7 +3205,6 @@ private extension GRDBCoreDataRepository {
                 template.recipeId,
                 decimalString(template.recipeScaleMultiplier),
                 template.fulfillmentType.rawValue,
-                template.deliveryAddress,
                 template.cakeNotes,
                 template.cakeMessage,
                 template.reminderConfiguration.mode.rawValue,

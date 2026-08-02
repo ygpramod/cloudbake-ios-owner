@@ -816,7 +816,6 @@ struct OrderTemplate: Identifiable, Equatable {
     let recipeId: String?
     let recipeScaleMultiplier: Decimal
     let fulfillmentType: OrderFulfillmentType
-    let deliveryAddress: String?
     let cakeNotes: String?
     let cakeMessage: String?
     let reminderConfiguration: OrderReminderConfiguration

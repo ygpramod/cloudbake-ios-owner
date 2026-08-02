@@ -427,7 +427,9 @@ final class OrderListViewModel: ObservableObject {
         draftCakeDesignId = template.cakeDesignId ?? ""
         draftCustomerReferencePhotoId = ""
         draftFulfillmentType = template.fulfillmentType
-        draftDeliveryAddress = template.deliveryAddress ?? ""
+        if template.fulfillmentType == .pickup {
+            draftDeliveryAddress = ""
+        }
         draftCakeNotes = template.cakeNotes ?? ""
         draftCakeMessage = template.cakeMessage ?? ""
         draftStatus = .draft
@@ -435,14 +437,21 @@ final class OrderListViewModel: ObservableObject {
         draftDepositPaid = ""
         draftPaymentNotes = ""
         applyReminderConfiguration(template.reminderConfiguration)
-        draftExtraIngredientRows = (template.recipeId == nil ? [] : template.extraIngredients).map { ingredient in
-            OrderExtraIngredientDraftRow(
+        var omittedUnavailableIngredient = false
+        draftExtraIngredientRows = (template.recipeId == nil ? [] : template.extraIngredients).compactMap { ingredient in
+            guard
+                let inventoryItem = availableInventoryItems.first(where: {
+                    $0.id == ingredient.inventoryItemId
+                })
+            else {
+                omittedUnavailableIngredient = true
+                return nil
+            }
+            return OrderExtraIngredientDraftRow(
                 id: idGenerator(),
                 existingIngredient: nil,
                 inventoryItemId: ingredient.inventoryItemId,
-                inventoryItemName: availableInventoryItems.first {
-                    $0.id == ingredient.inventoryItemId
-                }?.name ?? "Inventory item",
+                inventoryItemName: inventoryItem.name,
                 quantity: ingredient.quantity,
                 unit: ingredient.unit,
                 note: ingredient.note
@@ -452,7 +461,10 @@ final class OrderListViewModel: ObservableObject {
             OrderChecklistDraftItem(id: idGenerator(), title: item.title)
         }
         refreshDraftIngredientCost()
-        errorMessage = nil
+        errorMessage =
+            omittedUnavailableIngredient
+            ? "Some template ingredients are archived and were not added. Add an active replacement before saving."
+            : nil
     }
 
     func saveCurrentDraftAsTemplate(named name: String) -> Bool {
@@ -475,7 +487,6 @@ final class OrderListViewModel: ObservableObject {
                 recipeId: draftRecipeId.isEmpty ? nil : draftRecipeId,
                 recipeScaleMultiplier: draftRecipeId.isEmpty ? 1 : multiplier,
                 fulfillmentType: draftFulfillmentType,
-                deliveryAddress: TextInputFormatting.optionalText(draftDeliveryAddress),
                 cakeNotes: TextInputFormatting.optionalText(draftCakeNotes),
                 cakeMessage: TextInputFormatting.optionalText(draftCakeMessage),
                 reminderConfiguration: try draftReminderConfiguration(),
@@ -525,7 +536,6 @@ final class OrderListViewModel: ObservableObject {
             recipeId: template.recipeId,
             recipeScaleMultiplier: template.recipeScaleMultiplier,
             fulfillmentType: template.fulfillmentType,
-            deliveryAddress: template.deliveryAddress,
             cakeNotes: template.cakeNotes,
             cakeMessage: template.cakeMessage,
             reminderConfiguration: template.reminderConfiguration,

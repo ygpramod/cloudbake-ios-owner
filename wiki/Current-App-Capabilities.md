@@ -242,7 +242,8 @@ The app currently supports:
     history.
 145. named reusable order templates for cake, fulfilment, recipe, extra-ingredient, saved-design,
     reminder, and checklist combinations, with Add Order application plus rename/delete management
-    and structural exclusion of customer, due date, status, price, payment, photo, and history data.
+    and structural exclusion of customer, delivery address, due date, status, price, payment, photo,
+    and history data; archived ingredients are omitted with an active-replacement warning.
 
 ## Partially Prepared
 

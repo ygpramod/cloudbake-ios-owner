@@ -367,7 +367,9 @@ pricing, and recipe links.
 - Add Order can now save and apply named reusable templates through
   `docs/rfc/slices/0129-reusable-order-templates.md`. Templates store reusable cake, fulfilment,
   recipe, extra-ingredient, saved-design, reminder, and checklist data only. Applying one leaves the
-  current customer and due date intact while resetting status and commercial inputs.
+  current customer, customer-derived delivery address, and due date intact while resetting status
+  and commercial inputs. Archived template ingredients are omitted with a visible replacement
+  warning.
 - iPad order split view is deferred while the initial owner app targets iPhone only. Orders keep the
   modal detail flow on supported iPhones.
 - Orders now expose only Active and Completed tabs. Active work is always shown as due-day groups
