@@ -123,6 +123,7 @@ jobs:
           - feature: orders-core
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeAddedAndListed
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderPersistsStructuredCakeRequirementsAndSummary
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeOpenedFromListAndViewed
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanBeDuplicatedIntoAnUnsavedDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testReusableOrderTemplateCanBeSavedAndAppliedWithoutCommercialData

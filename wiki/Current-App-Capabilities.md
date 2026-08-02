@@ -246,6 +246,9 @@ The app currently supports:
     and history data; archived ingredients are omitted with an active-replacement warning.
 146. new-order entry from a specific previous order in customer history, using the safe unsaved
     duplication contract and fresh due-date rule.
+147. optional structured cake requirements for occasion, capacity, physical form, flavours,
+    decoration, accessories, and packaging; explicit servings/weight suggestions; reusable custom
+    choices; and a derived plain-English summary carried by order duplication and templates.
 
 ## Partially Prepared
 

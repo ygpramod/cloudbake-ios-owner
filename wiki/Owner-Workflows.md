@@ -490,6 +490,14 @@ Today, the owner can:
 25. duplicate an existing order into the standard Add Order form for review before saving.
 26. save, apply, rename, and delete named reusable order templates.
 27. start a new unsaved order from a specific order in customer history.
+28. capture optional occasion, servings, size, weight, shape, tiers, flavours, decoration, and
+    packaging requirements, then review a generated plain-English cake summary.
+
+In Add or Edit Order, expand Cake Requirements only as needed. Compact menus offer common choices,
+while Other accepts a custom value. A custom value saved with an order or template becomes available
+as a future choice. Entering servings offers a 14-servings-per-kilogram weight suggestion, and
+entering weight offers a servings suggestion. Suggestions are explicit actions and never replace a
+value already entered. Empty values and None are omitted from the generated summary.
 
 A new order starts with a due time one calendar day after creation, rounded to the nearest whole
 hour. For example, 12:23 PM defaults to 12:00 PM the next day, while 12:31 PM defaults to 1:00 PM
@@ -505,7 +513,8 @@ discards the draft without changing either order.
 
 For combinations used repeatedly, configure the reusable fields in Add Order and choose Save Current
 as Template. Name the template, then select it later through Use Order Template. Templates include
-cake details, pickup or delivery method, linked recipe and multiplier, extra ingredients, linked saved
+cake details and structured requirements, pickup or delivery method, linked recipe and multiplier,
+extra ingredients, linked saved
 design, reminders, and checklist titles. They never include customer, due date, status, quoted
 price, payments, payment notes, delivery address, photos, reservations, inventory consumption,
 actual costs, or history. Applying a template keeps any customer, customer-derived delivery

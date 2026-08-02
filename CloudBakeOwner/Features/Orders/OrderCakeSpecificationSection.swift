@@ -133,6 +133,7 @@ struct OrderCakeSpecificationSection: View {
     ) -> some View {
         OrderCakeChoiceRow(
             label: label,
+            identifier: "orders.form.cakeSpecification.\(field.rawValue)",
             value: value,
             choices: viewModel.cakeRequirementChoices(
                 for: field,
@@ -181,6 +182,7 @@ struct OrderCakeSpecificationSection: View {
 
 private struct OrderCakeChoiceRow: View {
     let label: String
+    let identifier: String
     @Binding var value: String
     let choices: [String]
     @State private var isEnteringCustomValue = false
@@ -206,6 +208,7 @@ private struct OrderCakeChoiceRow: View {
                         .font(.caption2)
                 }
             }
+            .accessibilityIdentifier(identifier)
         }
         .alert("Other \(label)", isPresented: $isEnteringCustomValue) {
             TextField(label, text: $customValue)
