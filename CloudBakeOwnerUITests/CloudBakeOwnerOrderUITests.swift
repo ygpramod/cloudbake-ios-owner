@@ -11,9 +11,6 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(addOrder.waitForExistence(timeout: transitionTimeout))
         addOrder.press(forDuration: 1)
 
-        let createTemplate = app.buttons["Create Template"]
-        XCTAssertTrue(createTemplate.waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(createTemplate, timeout: transitionTimeout)
         let blankTemplate = nativeDialogAction(labeled: "Blank Template", in: app)
         XCTAssertTrue(blankTemplate.waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(nativeDialogAction(labeled: "Existing Order", in: app).exists)
@@ -84,7 +81,6 @@ extension CloudBakeOwnerUITests {
         let addOrder = app.buttons["orders.add"]
         XCTAssertTrue(addOrder.waitForExistence(timeout: timeout))
         addOrder.press(forDuration: 1)
-        tapWhenReady(app.buttons["Create Template"], timeout: timeout)
         tapWhenReady(nativeDialogAction(labeled: source, in: app), timeout: timeout)
     }
 
@@ -1105,10 +1101,6 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
         typeText("Vanilla Birthday", into: app.textFields["orders.form.title"], timeout: transitionTimeout)
         dismissKeyboard(in: app)
-        let customerNameField = app.textFields["orders.form.customerName"]
-        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
-        typeText("Amy", into: customerNameField, timeout: transitionTimeout)
-        dismissKeyboard(in: app)
         let recipeButton = app.buttons["orders.form.recipe"]
         scrollToHittable(recipeButton, in: app, timeout: transitionTimeout)
         tapWhenReady(recipeButton, timeout: transitionTimeout)
@@ -1119,6 +1111,10 @@ extension CloudBakeOwnerUITests {
             timeout: transitionTimeout
         )
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
+        let customerNameField = app.textFields["orders.form.customerName"]
+        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
+        typeText("Amy", into: customerNameField, timeout: transitionTimeout)
+        dismissKeyboard(in: app)
         let recipeMultiplierField = app.textFields["orders.form.recipeScaleMultiplier"]
         scrollToHittable(recipeMultiplierField, in: app, timeout: transitionTimeout)
         tapWhenReady(recipeMultiplierField, timeout: transitionTimeout)
