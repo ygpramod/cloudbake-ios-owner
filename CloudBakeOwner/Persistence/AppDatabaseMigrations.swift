@@ -1,4 +1,3 @@
-import Foundation
 import GRDB
 
 enum AppDatabaseMigrations {
@@ -922,7 +921,13 @@ enum AppDatabaseMigrations {
         }
 
         migrator.registerMigration("0042_seed_starter_order_templates") { db in
-            let timestamp = Date().timeIntervalSince1970
+            let timestamp = 0.0
+            let reminderDefaults = try Row.fetchOne(
+                db,
+                sql: "SELECT day_offsets_json, includes_due_time FROM order_reminder_defaults WHERE id = 1"
+            )
+            let reminderDayOffsetsJSON: String = reminderDefaults?["day_offsets_json"] ?? "[3,2,1]"
+            let reminderIncludesDueTime: Bool = reminderDefaults?["includes_due_time"] ?? true
 
             func insertStarterTemplate(
                 id: String,
@@ -937,7 +942,7 @@ enum AppDatabaseMigrations {
             ) throws {
                 try db.execute(
                     sql: """
-                        INSERT OR IGNORE INTO order_templates (
+                        INSERT INTO order_templates (
                             id, name, cake_title, recipe_scale_multiplier_decimal,
                             fulfillment_type, reminder_mode, reminder_day_offsets_json,
                             reminder_includes_due_time, cake_occasion, cake_shape, cake_tiers,
@@ -945,16 +950,17 @@ enum AppDatabaseMigrations {
                             cake_topper_requirements, cake_candles_accessories, cake_packaging,
                             created_at_unix_time, updated_at_unix_time
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(id) DO NOTHING
                         """,
                     arguments: [
                         id,
                         name,
                         name,
                         "1",
-                        OrderFulfillmentType.pickup.rawValue,
-                        OrderReminderConfigurationMode.defaultSnapshot.rawValue,
-                        "[3,2,1]",
-                        true,
+                        "pickup",
+                        "defaultSnapshot",
+                        reminderDayOffsetsJSON,
+                        reminderIncludesDueTime,
                         occasion,
                         "Circle",
                         tiers,
