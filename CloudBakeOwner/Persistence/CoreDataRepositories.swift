@@ -600,6 +600,14 @@ protocol OrderReminderPlanOrderMutationRepository {
         openingPayment: NewPaymentReceipt?,
         allowInventoryShortage: Bool
     ) throws
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients extraIngredients: [OrderExtraIngredient],
+        replacingChecklistItems checklistItems: [OrderChecklistItem],
+        reminderConfiguration: OrderReminderConfiguration,
+        openingPayment: NewPaymentReceipt?,
+        allowInventoryShortage: Bool
+    ) throws
     func changeOrderStatus(
         order: Order,
         status: OrderStatus,

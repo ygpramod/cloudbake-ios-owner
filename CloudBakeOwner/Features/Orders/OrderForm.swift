@@ -147,8 +147,8 @@ struct OrderForm: View {
                     .accessibilityIdentifier("orders.form.reminderDueTime")
 
                     Text("Use unique whole days from 1 to 30, separated by commas.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 } else if viewModel.draftReminderMode == .useDefaults {
                     LabeledContent(
                         "Reminder Days",
@@ -186,9 +186,64 @@ struct OrderForm: View {
                 }
             }
 
+            if viewModel.editingOrder == nil {
+                Section("Checklist") {
+                    if viewModel.draftChecklistItems.isEmpty {
+                        Text("No checklist items")
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("orders.form.checklist.empty")
+                    } else {
+                        ForEach(viewModel.draftChecklistItems) { item in
+                            HStack(spacing: 12) {
+                                Text(item.title)
+                                Spacer()
+                                Button {
+                                    viewModel.deleteDraftChecklistItem(item)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .frame(minWidth: 44, minHeight: 44)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.red)
+                                .accessibilityLabel("Delete \(item.title)")
+                                .accessibilityIdentifier("orders.form.checklist.delete.\(item.id)")
+                            }
+                            .accessibilityIdentifier("orders.form.checklist.item.\(item.id)")
+                        }
+                    }
+
+                    HStack(spacing: 12) {
+                        TextField(
+                            "Checklist Item",
+                            text: $viewModel.draftNewChecklistItemTitle
+                        )
+                        .submitLabel(.done)
+                        .onSubmit(viewModel.addChecklistItemToDraftOrder)
+                        .accessibilityIdentifier("orders.form.checklist.title")
+
+                        Button(action: viewModel.addChecklistItemToDraftOrder) {
+                            Image(systemName: "plus")
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.cloudBakePink)
+                        .disabled(
+                            viewModel.draftNewChecklistItemTitle
+                                .trimmingCharacters(in: .whitespacesAndNewlines)
+                                .isEmpty
+                        )
+                        .accessibilityLabel("Add Checklist Item")
+                        .accessibilityIdentifier("orders.form.checklist.add")
+                    }
+                }
+            }
+
             Section("Pricing And Payment") {
                 if let ingredientCost = viewModel.draftIngredientCost,
-                   !ingredientCost.lines.isEmpty {
+                    !ingredientCost.lines.isEmpty
+                {
                     LabeledContent(
                         viewModel.draftIngredientCostIsActual
                             ? "Actual Ingredient Cost"

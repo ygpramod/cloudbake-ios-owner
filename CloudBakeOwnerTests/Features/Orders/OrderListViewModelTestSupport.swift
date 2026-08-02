@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import CloudBakeOwner
 
 func makeInventoryReservationPlanningSnapshot(
@@ -54,7 +55,8 @@ func makeInventoryReservationPlanningSnapshot(
         ),
         reservationsByOrderId: Dictionary(grouping: scopedReservations, by: \.orderId),
         repairsByOrderId: Dictionary(
-            uniqueKeysWithValues: repairs
+            uniqueKeysWithValues:
+                repairs
                 .filter { orderIdSet.contains($0.orderId) }
                 .map { ($0.orderId, $0) }
         ),
@@ -331,7 +333,8 @@ final class FakeOrderRepository: OrderRepository,
     OrderReminderPlanOrderMutationRepository,
     OrderChecklistRepository,
     OrderPhotoRepository,
-    PaymentReceiptRepository {
+    PaymentReceiptRepository
+{
     var orders: [Order] = []
     var defaultOrderReminderConfiguration = OrderReminderConfiguration.initialDefault
     var orderReminderConfigurations: [String: OrderReminderConfiguration] = [:]
@@ -364,7 +367,8 @@ final class FakeOrderRepository: OrderRepository,
 
     func save(_ order: Order) throws {
         if let persistedOrder = orders.first(where: { $0.id == order.id }),
-           persistedOrder.depositPaid != order.depositPaid {
+            persistedOrder.depositPaid != order.depositPaid
+        {
             throw PaymentReceiptPersistenceError.directPaidTotalMutation
         }
         orders.removeAll { $0.id == order.id }
@@ -541,6 +545,25 @@ final class FakeOrderRepository: OrderRepository,
                 createdAt: openingPayment.createdAt
             )
         }
+    }
+
+    func saveOrder(
+        _ order: Order,
+        replacingExtraIngredients replacement: [OrderExtraIngredient],
+        replacingChecklistItems checklistReplacement: [OrderChecklistItem],
+        reminderConfiguration: OrderReminderConfiguration,
+        openingPayment: NewPaymentReceipt?,
+        allowInventoryShortage: Bool
+    ) throws {
+        try saveOrder(
+            order,
+            replacingExtraIngredients: replacement,
+            reminderConfiguration: reminderConfiguration,
+            openingPayment: openingPayment,
+            allowInventoryShortage: allowInventoryShortage
+        )
+        checklistItems.removeAll { $0.orderId == order.id }
+        checklistItems.append(contentsOf: checklistReplacement)
     }
 
     func repairOrderInventoryReservations(
@@ -998,8 +1021,9 @@ final class FakeOrderRepository: OrderRepository,
         try save(updatedOrder)
 
         if shouldRecordRecipeUsage(from: order.status, to: status),
-           let recipeId = order.recipeId,
-           usages.first(where: { $0.orderId == order.id }) == nil {
+            let recipeId = order.recipeId,
+            usages.first(where: { $0.orderId == order.id }) == nil
+        {
             recordedTransactionIds.append(transactionIdProvider())
             usages.append(
                 OrderRecipeUsage(

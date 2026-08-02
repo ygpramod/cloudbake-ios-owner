@@ -34,6 +34,8 @@ final class OrderListViewModel: ObservableObject {
     @Published var draftCakeDesignId = ""
     @Published private(set) var draftCustomerReferencePhotoId = ""
     @Published var draftChecklistItemTitle = ""
+    @Published var draftNewChecklistItemTitle = ""
+    @Published private(set) var draftChecklistItems: [OrderChecklistDraftItem] = []
     @Published var draftDueAt = Date()
     @Published var draftStatus: OrderStatus = .draft
     @Published var draftFulfillmentType: OrderFulfillmentType = .pickup
@@ -368,6 +370,51 @@ final class OrderListViewModel: ObservableObject {
         loadFormReferences()
     }
 
+    func beginDuplicatingSelectedOrder() -> Bool {
+        guard let sourceOrder = selectedOrder else {
+            errorMessage = "Order could not be found."
+            return false
+        }
+
+        resetDraft()
+        loadFormReferences()
+        draftTitle = sourceOrder.title
+        draftCustomerName = sourceOrder.customerName
+        draftCustomerId = sourceOrder.customerId ?? ""
+        draftRecipeId = sourceOrder.recipeId ?? ""
+        draftRecipeScaleMultiplier = TextInputFormatting.decimalText(
+            sourceOrder.recipeScaleMultiplier
+        )
+        draftCakeDesignId = sourceOrder.cakeDesignId ?? ""
+        draftFulfillmentType = sourceOrder.fulfillmentType
+        draftDeliveryAddress = sourceOrder.deliveryAddress ?? ""
+        draftCakeNotes = sourceOrder.cakeNotes ?? ""
+        draftCakeMessage = sourceOrder.cakeMessage ?? ""
+        applyReminderConfiguration(
+            orderReminderConfigurations[sourceOrder.id] ?? .initialDefault
+        )
+        draftExtraIngredientRows = selectedOrderExtraIngredients.map { row in
+            OrderExtraIngredientDraftRow(
+                id: idGenerator(),
+                existingIngredient: nil,
+                inventoryItemId: row.ingredient.inventoryItemId,
+                inventoryItemName: row.inventoryItemName,
+                quantity: row.ingredient.quantity,
+                unit: row.ingredient.unit,
+                note: row.ingredient.note
+            )
+        }
+        draftChecklistItems = selectedOrderChecklistItems.map { item in
+            OrderChecklistDraftItem(
+                id: idGenerator(),
+                title: item.title
+            )
+        }
+        refreshDraftIngredientCost()
+        pendingInventoryShortages = []
+        return true
+    }
+
     func selectDraftReminderMode(_ mode: OrderReminderDraftMode) {
         draftReminderMode = mode
         if mode == .useDefaults {
@@ -586,6 +633,10 @@ final class OrderListViewModel: ObservableObject {
             try repository.saveOrder(
                 order,
                 replacingExtraIngredients: draftExtraIngredients(for: order, updatedAt: now),
+                replacingChecklistItems: draftChecklistItems(
+                    for: order,
+                    updatedAt: now
+                ),
                 reminderConfiguration: reminderConfiguration,
                 openingPayment: draft.depositPaid.map {
                     NewPaymentReceipt(
@@ -1067,6 +1118,21 @@ final class OrderListViewModel: ObservableObject {
     func deleteDraftExtraIngredient(_ row: OrderExtraIngredientDraftRow) {
         draftExtraIngredientRows.removeAll { $0.id == row.id }
         refreshDraftIngredientCost()
+    }
+
+    func addChecklistItemToDraftOrder() {
+        let title = TextInputFormatting.trimmed(draftNewChecklistItemTitle)
+        guard !title.isEmpty else {
+            return
+        }
+        draftChecklistItems.append(
+            OrderChecklistDraftItem(id: idGenerator(), title: title)
+        )
+        draftNewChecklistItemTitle = ""
+    }
+
+    func deleteDraftChecklistItem(_ item: OrderChecklistDraftItem) {
+        draftChecklistItems.removeAll { $0.id == item.id }
     }
 
     func refreshDraftIngredientCost() {
@@ -1681,6 +1747,23 @@ final class OrderListViewModel: ObservableObject {
         }
     }
 
+    private func draftChecklistItems(
+        for order: Order,
+        updatedAt: Date
+    ) -> [OrderChecklistItem] {
+        draftChecklistItems.enumerated().map { index, item in
+            OrderChecklistItem(
+                id: item.id,
+                orderId: order.id,
+                title: item.title,
+                isCompleted: false,
+                sortOrder: index,
+                createdAt: updatedAt,
+                updatedAt: updatedAt
+            )
+        }
+    }
+
     private func draftExtraIngredient(
         from row: OrderExtraIngredientDraftRow,
         order: Order,
@@ -1792,6 +1875,8 @@ final class OrderListViewModel: ObservableObject {
         draftReminderMode = .useDefaults
         draftReminderDayOffsets = "3, 2, 1"
         draftReminderIncludesDueTime = true
+        draftNewChecklistItemTitle = ""
+        draftChecklistItems = []
         draftIngredientCost = nil
         draftIngredientCostIsActual = false
     }
@@ -1940,6 +2025,11 @@ struct OrderExtraIngredientDraftRow: Identifiable, Equatable {
         self.unit = row.ingredient.unit
         self.note = row.ingredient.note
     }
+}
+
+struct OrderChecklistDraftItem: Identifiable, Equatable {
+    let id: String
+    let title: String
 }
 
 private struct ValidatedOrderExtraIngredientDraft {
