@@ -2,6 +2,10 @@ import XCTest
 
 @testable import CloudBakeOwner
 
+private enum OrderDuplicationTestError: Error {
+    case requiredDataUnavailable
+}
+
 @MainActor
 final class OrderChecklistViewModelTests: XCTestCase {
     func testPreviousOrderIdentifierPreparesDraftWithoutLeavingDetailOpen() {
@@ -26,6 +30,31 @@ final class OrderChecklistViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftStatus, .draft)
         XCTAssertEqual(viewModel.draftQuotedPrice, "")
         XCTAssertEqual(viewModel.draftDepositPaid, "")
+    }
+
+    func testPreviousOrderDuplicationPreservesDraftWhenRequiredDataCannotLoad() {
+        let repository = FakeOrderRepository()
+        let order = makeOrder(
+            id: "order-previous",
+            title: "Previous Birthday",
+            customerId: "customer-amy",
+            dueAt: Date(timeIntervalSince1970: 1_800_140_000)
+        )
+        repository.orders = [order]
+        repository.customers = [makeCustomer(id: "customer-amy", name: "Amy")]
+        repository.fetchOrderChecklistItemsError = OrderDuplicationTestError.requiredDataUnavailable
+        let viewModel = OrderListViewModel(repository: repository)
+        viewModel.beginAddingOrder()
+        viewModel.draftTitle = "Unsaved New Order"
+
+        XCTAssertFalse(viewModel.beginDuplicatingOrder(id: order.id))
+
+        XCTAssertEqual(viewModel.draftTitle, "Unsaved New Order")
+        XCTAssertNil(viewModel.selectedOrder)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            "Order could not be duplicated because its details could not be loaded."
+        )
     }
 
     func testDuplicateOrderCreatesReviewableDraftWithoutTransactionalHistory() throws {
