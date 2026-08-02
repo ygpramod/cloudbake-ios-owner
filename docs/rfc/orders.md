@@ -370,6 +370,9 @@ pricing, and recipe links.
   current customer, customer-derived delivery address, and due date intact while resetting status
   and commercial inputs. Archived template ingredients are omitted with a visible replacement
   warning.
+- Customer order history can now start an unsaved order from a specific previous order through
+  `docs/rfc/slices/0130-customer-previous-order.md`, using the same safe duplication exclusions and
+  fresh due-date rule.
 - iPad order split view is deferred while the initial owner app targets iPhone only. Orders keep the
   modal detail flow on supported iPhones.
 - Orders now expose only Active and Completed tabs. Active work is always shown as due-day groups

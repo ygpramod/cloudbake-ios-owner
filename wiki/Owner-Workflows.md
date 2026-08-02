@@ -489,6 +489,7 @@ Today, the owner can:
 24. preview, caption, and delete saved order photos from order detail,
 25. duplicate an existing order into the standard Add Order form for review before saving.
 26. save, apply, rename, and delete named reusable order templates.
+27. start a new unsaved order from a specific order in customer history.
 
 A new order starts with a due time one calendar day after creation, rounded to the nearest whole
 hour. For example, 12:23 PM defaults to 12:00 PM the next day, while 12:31 PM defaults to 1:00 PM
@@ -513,6 +514,12 @@ create an order until Save is selected. Archived template ingredients are omitte
 add an active replacement. If a linked recipe was deleted, its dependent extra ingredients are
 also omitted with a warning to choose a recipe and review ingredients. Swipe a template in the
 template library to rename or delete it; existing orders are unchanged.
+
+To repeat work for a customer, open Customers, choose the customer, and use the new-order icon beside
+a previous order. CloudBake opens that order through the same safe duplication flow: customer and
+reusable cake details are copied into an unsaved Draft, the due date is recalculated, checklist rows
+restart incomplete, and price, payments, photos, status, completion, inventory, and transaction
+history are excluded.
 
 Active orders are grouped by due day, with orders inside each day ordered by delivery or pickup time
 ascending. Completed and cancelled orders are kept out of active work and appear in a simple
