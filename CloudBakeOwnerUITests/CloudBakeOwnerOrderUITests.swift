@@ -166,16 +166,20 @@ extension CloudBakeOwnerUITests {
             app.textFields["orders.form.title"].value as? String,
             "Reusable Birthday Cake"
         )
-        XCTAssertEqual(app.textFields["orders.form.customerName"].value as? String, "Amy")
         XCTAssertEqual(app.textFields["orders.form.cakeNotes"].value as? String, "Pink flowers")
         XCTAssertEqual(
             app.textFields["orders.form.cakeMessage"].value as? String,
             "Happy Birthday"
         )
+        let duplicatedCustomerName = app.textFields["orders.form.customerName"]
+        scrollToHittable(duplicatedCustomerName, in: app, timeout: transitionTimeout)
+        XCTAssertEqual(duplicatedCustomerName.value as? String, "Amy")
         scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: transitionTimeout)
         XCTAssertNotEqual(app.textFields["orders.form.quotedPrice"].value as? String, "125.50")
         XCTAssertNotEqual(app.textFields["orders.form.depositPaid"].value as? String, "25.50")
-        XCTAssertNotEqual(app.textFields["orders.form.paymentNotes"].value as? String, "Bank transfer")
+        let duplicatedPaymentNotes = app.textFields["orders.form.paymentNotes"]
+        scrollToHittable(duplicatedPaymentNotes, in: app, timeout: transitionTimeout)
+        XCTAssertNotEqual(duplicatedPaymentNotes.value as? String, "Bank transfer")
 
         tapWhenReady(app.buttons["orders.form.cancel"], timeout: transitionTimeout)
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
@@ -230,7 +234,9 @@ extension CloudBakeOwnerUITests {
             app.textFields["orders.form.title"].value as? String,
             "Chocolate Celebration"
         )
-        XCTAssertNotEqual(app.textFields["orders.form.customerName"].value as? String, "Amy")
+        let templatedCustomerName = app.textFields["orders.form.customerName"]
+        scrollToHittable(templatedCustomerName, in: app, timeout: transitionTimeout)
+        XCTAssertNotEqual(templatedCustomerName.value as? String, "Amy")
         scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: transitionTimeout)
         XCTAssertNotEqual(app.textFields["orders.form.quotedPrice"].value as? String, "150")
     }
