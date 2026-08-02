@@ -396,7 +396,14 @@ struct OrderListView: View {
             return
         }
 
-        viewModel.beginAddingOrder()
+        if let sourceOrderId = request.sourceOrderId {
+            guard viewModel.beginDuplicatingOrder(id: sourceOrderId) else {
+                orderNavigationRouter.clearPendingNewOrder()
+                return
+            }
+        } else {
+            viewModel.beginAddingOrder()
+        }
         if let customerId = request.customerId {
             viewModel.selectDraftCustomer(id: customerId)
         }

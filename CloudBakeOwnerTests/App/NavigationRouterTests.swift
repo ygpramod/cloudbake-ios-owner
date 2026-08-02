@@ -101,7 +101,7 @@ final class NavigationRouterTests: XCTestCase {
 
         XCTAssertEqual(
             router.pendingNewOrderRequest,
-            NewOrderRequest(customerId: "customer-amy", designReference: nil)
+            NewOrderRequest(customerId: "customer-amy", designReference: nil, sourceOrderId: nil)
         )
 
         router.clearPendingNewOrder()
@@ -118,7 +118,8 @@ final class NavigationRouterTests: XCTestCase {
             router.pendingNewOrderRequest,
             NewOrderRequest(
                 customerId: nil,
-                designReference: .cakeDesign(id: "design-floral")
+                designReference: .cakeDesign(id: "design-floral"),
+                sourceOrderId: nil
             )
         )
     }
@@ -134,7 +135,23 @@ final class NavigationRouterTests: XCTestCase {
             router.pendingNewOrderRequest,
             NewOrderRequest(
                 customerId: nil,
-                designReference: .customerReference(photoId: "photo-reference")
+                designReference: .customerReference(photoId: "photo-reference"),
+                sourceOrderId: nil
+            )
+        )
+    }
+
+    func testOrderNavigationRouterCarriesPreviousOrderIntoNewOrderRequest() {
+        let router = OrderNavigationRouter()
+
+        router.beginNewOrder(from: "order-previous")
+
+        XCTAssertEqual(
+            router.pendingNewOrderRequest,
+            NewOrderRequest(
+                customerId: nil,
+                designReference: nil,
+                sourceOrderId: "order-previous"
             )
         )
     }

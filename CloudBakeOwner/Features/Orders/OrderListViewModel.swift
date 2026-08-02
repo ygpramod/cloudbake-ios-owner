@@ -418,6 +418,22 @@ final class OrderListViewModel: ObservableObject {
         return true
     }
 
+    func beginDuplicatingOrder(id: String) -> Bool {
+        do {
+            guard let order = try repository.fetchOrder(id: id) else {
+                errorMessage = "Previous order could not be found."
+                return false
+            }
+            beginViewingOrder(order)
+            let didPrepareDraft = beginDuplicatingSelectedOrder()
+            closeOrderDetail()
+            return didPrepareDraft
+        } catch {
+            errorMessage = "Previous order could not be loaded."
+            return false
+        }
+    }
+
     func applyOrderTemplate(_ template: OrderTemplate) {
         draftTitle = template.cakeTitle
         draftRecipeId = template.recipeId ?? ""
