@@ -62,7 +62,25 @@ struct CloudBakeScreenAction: Identifiable {
     let title: String
     let systemImage: String
     let accessibilityIdentifier: String
+    let longPressTitle: String?
+    let longPressAction: (() -> Void)?
     let action: () -> Void
+
+    init(
+        title: String,
+        systemImage: String,
+        accessibilityIdentifier: String,
+        longPressTitle: String? = nil,
+        longPressAction: (() -> Void)? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.longPressTitle = longPressTitle
+        self.longPressAction = longPressAction
+        self.action = action
+    }
 }
 
 struct CloudBakeDetailScaffold<Content: View>: View {
@@ -282,6 +300,25 @@ private struct CloudBakeHeaderActionButton: View {
         }
         .accessibilityLabel(action.title)
         .accessibilityIdentifier(action.accessibilityIdentifier)
+        .modifier(CloudBakeLongPressActionModifier(action: action))
+    }
+}
+
+private struct CloudBakeLongPressActionModifier: ViewModifier {
+    let action: CloudBakeScreenAction
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let longPressTitle = action.longPressTitle,
+            let longPressAction = action.longPressAction
+        {
+            content.contextMenu {
+                Button(longPressTitle, action: longPressAction)
+                    .accessibilityIdentifier("\(action.accessibilityIdentifier).longPress")
+            }
+        } else {
+            content
+        }
     }
 }
 

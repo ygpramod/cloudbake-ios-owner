@@ -5,6 +5,7 @@ struct OrderForm: View {
     @ObservedObject var viewModel: OrderListViewModel
     @Binding var isPresented: Bool
     let statusOptions: [OrderStatus]
+    let templateName: Binding<String>?
     let onCancel: () -> Void
     let onSave: () -> Bool
     @State private var isSelectingCustomer = false
@@ -13,13 +14,14 @@ struct OrderForm: View {
     @State private var isAddingExtraIngredient = false
     @State private var isSelectingTemplate = false
     @State private var isNamingTemplate = false
-    @State private var templateName = ""
+    @State private var savedTemplateName = ""
 
     init(
         title: String = "Add Order",
         viewModel: OrderListViewModel,
         isPresented: Binding<Bool>,
         statusOptions: [OrderStatus] = OrderStatus.addOptions,
+        templateName: Binding<String>? = nil,
         onCancel: @escaping () -> Void,
         onSave: @escaping () -> Bool
     ) {
@@ -27,13 +29,19 @@ struct OrderForm: View {
         self.viewModel = viewModel
         _isPresented = isPresented
         self.statusOptions = statusOptions
+        self.templateName = templateName
         self.onCancel = onCancel
         self.onSave = onSave
     }
 
     var body: some View {
         Form {
-            if viewModel.editingOrder == nil {
+            if let templateName {
+                Section("Template") {
+                    TextField("Template Name", text: templateName)
+                        .accessibilityIdentifier("orders.template.form.name")
+                }
+            } else if viewModel.editingOrder == nil {
                 Section("Template") {
                     Button {
                         isSelectingTemplate = true
@@ -55,7 +63,7 @@ struct OrderForm: View {
                     }
 
                     Button {
-                        templateName = ""
+                        savedTemplateName = ""
                         isNamingTemplate = true
                     } label: {
                         Label("Save Current as Template", systemImage: "square.and.arrow.down")
@@ -119,38 +127,40 @@ struct OrderForm: View {
                 }
             }
 
-            Section("Customer") {
-                Button {
-                    isSelectingCustomer = true
-                } label: {
-                    LabeledContent("Customer Record", value: viewModel.draftCustomerRecordName())
-                }
-                .accessibilityIdentifier("orders.form.customerRecord")
-                .sheet(isPresented: $isSelectingCustomer) {
-                    NavigationStack {
-                        CustomerSelectionView(viewModel: viewModel, isPresented: $isSelectingCustomer)
+            if templateName == nil {
+                Section("Customer") {
+                    Button {
+                        isSelectingCustomer = true
+                    } label: {
+                        LabeledContent("Customer Record", value: viewModel.draftCustomerRecordName())
                     }
-                }
-
-                TextField("Customer Name", text: $viewModel.draftCustomerName)
-                    .textContentType(.name)
-                    .accessibilityIdentifier("orders.form.customerName")
-            }
-
-            Section("Due") {
-                DatePicker(
-                    "Due Date",
-                    selection: $viewModel.draftDueAt,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .accessibilityIdentifier("orders.form.dueAt")
-
-                Picker("Status", selection: $viewModel.draftStatus) {
-                    ForEach(statusOptions, id: \.self) { status in
-                        Text(status.displayName).tag(status)
+                    .accessibilityIdentifier("orders.form.customerRecord")
+                    .sheet(isPresented: $isSelectingCustomer) {
+                        NavigationStack {
+                            CustomerSelectionView(viewModel: viewModel, isPresented: $isSelectingCustomer)
+                        }
                     }
+
+                    TextField("Customer Name", text: $viewModel.draftCustomerName)
+                        .textContentType(.name)
+                        .accessibilityIdentifier("orders.form.customerName")
                 }
-                .accessibilityIdentifier("orders.form.status")
+
+                Section("Due") {
+                    DatePicker(
+                        "Due Date",
+                        selection: $viewModel.draftDueAt,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .accessibilityIdentifier("orders.form.dueAt")
+
+                    Picker("Status", selection: $viewModel.draftStatus) {
+                        ForEach(statusOptions, id: \.self) { status in
+                            Text(status.displayName).tag(status)
+                        }
+                    }
+                    .accessibilityIdentifier("orders.form.status")
+                }
             }
 
             Section("Reminders") {
@@ -215,7 +225,7 @@ struct OrderForm: View {
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("orders.form.fulfillmentType")
 
-                if viewModel.draftFulfillmentType == .delivery {
+                if viewModel.draftFulfillmentType == .delivery, templateName == nil {
                     TextField("Delivery Address", text: $viewModel.draftDeliveryAddress, axis: .vertical)
                         .lineLimit(2...4)
                         .accessibilityIdentifier("orders.form.deliveryAddress")
@@ -276,56 +286,58 @@ struct OrderForm: View {
                 }
             }
 
-            Section("Pricing And Payment") {
-                if let ingredientCost = viewModel.draftIngredientCost,
-                    !ingredientCost.lines.isEmpty
-                {
-                    LabeledContent(
-                        viewModel.draftIngredientCostIsActual
-                            ? "Actual Ingredient Cost"
-                            : "Estimated Ingredient Cost"
-                    ) {
-                        Text(MoneyDisplay.formatted(ingredientCost.knownCost))
-                            .fontWeight(.semibold)
-                    }
-                    .accessibilityIdentifier("orders.form.ingredientCost")
+            if templateName == nil {
+                Section("Pricing And Payment") {
+                    if let ingredientCost = viewModel.draftIngredientCost,
+                        !ingredientCost.lines.isEmpty
+                    {
+                        LabeledContent(
+                            viewModel.draftIngredientCostIsActual
+                                ? "Actual Ingredient Cost"
+                                : "Estimated Ingredient Cost"
+                        ) {
+                            Text(MoneyDisplay.formatted(ingredientCost.knownCost))
+                                .fontWeight(.semibold)
+                        }
+                        .accessibilityIdentifier("orders.form.ingredientCost")
 
-                    if !ingredientCost.itemsMissingPrice.isEmpty {
-                        Label(
-                            "Partial total — missing prices for \(ingredientCost.itemsMissingPrice.joined(separator: ", "))",
-                            systemImage: "exclamationmark.triangle.fill"
-                        )
-                        .font(.footnote)
-                        .foregroundStyle(.orange)
-                        .accessibilityIdentifier("orders.form.ingredientCost.warning")
-                    }
-                }
-
-                TextField("Quoted Price", text: $viewModel.draftQuotedPrice)
-                    .keyboardType(.decimalPad)
-                    .accessibilityIdentifier("orders.form.quotedPrice")
-
-                if viewModel.editingOrder == nil {
-                    TextField("Initial Payment", text: $viewModel.draftDepositPaid)
-                        .keyboardType(.decimalPad)
-                        .accessibilityIdentifier("orders.form.depositPaid")
-                } else {
-                    LabeledContent("Amount Paid") {
-                        Text(
-                            MoneyDisplay.formatted(
-                                viewModel.editingOrder?.depositPaid ?? 0
+                        if !ingredientCost.itemsMissingPrice.isEmpty {
+                            Label(
+                                "Partial total — missing prices for \(ingredientCost.itemsMissingPrice.joined(separator: ", "))",
+                                systemImage: "exclamationmark.triangle.fill"
                             )
-                        )
+                            .font(.footnote)
+                            .foregroundStyle(.orange)
+                            .accessibilityIdentifier("orders.form.ingredientCost.warning")
+                        }
                     }
-                    .accessibilityIdentifier("orders.form.amountPaid")
-                }
 
-                TextField("Payment Notes", text: $viewModel.draftPaymentNotes, axis: .vertical)
-                    .lineLimit(2...5)
-                    .accessibilityIdentifier("orders.form.paymentNotes")
-            }
-            .onChange(of: viewModel.draftRecipeScaleMultiplier) { _, _ in
-                viewModel.refreshDraftIngredientCost()
+                    TextField("Quoted Price", text: $viewModel.draftQuotedPrice)
+                        .keyboardType(.decimalPad)
+                        .accessibilityIdentifier("orders.form.quotedPrice")
+
+                    if viewModel.editingOrder == nil {
+                        TextField("Initial Payment", text: $viewModel.draftDepositPaid)
+                            .keyboardType(.decimalPad)
+                            .accessibilityIdentifier("orders.form.depositPaid")
+                    } else {
+                        LabeledContent("Amount Paid") {
+                            Text(
+                                MoneyDisplay.formatted(
+                                    viewModel.editingOrder?.depositPaid ?? 0
+                                )
+                            )
+                        }
+                        .accessibilityIdentifier("orders.form.amountPaid")
+                    }
+
+                    TextField("Payment Notes", text: $viewModel.draftPaymentNotes, axis: .vertical)
+                        .lineLimit(2...5)
+                        .accessibilityIdentifier("orders.form.paymentNotes")
+                }
+                .onChange(of: viewModel.draftRecipeScaleMultiplier) { _, _ in
+                    viewModel.refreshDraftIngredientCost()
+                }
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -353,7 +365,11 @@ struct OrderForm: View {
                         isPresented = false
                     }
                 }
-                .disabled(!viewModel.canSubmitOrderDraft)
+                .disabled(
+                    templateName.map {
+                        $0.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    } ?? !viewModel.canSubmitOrderDraft
+                )
                 .accessibilityIdentifier("orders.form.save")
             }
         }
@@ -370,11 +386,11 @@ struct OrderForm: View {
             }
         }
         .alert("Save Order Template", isPresented: $isNamingTemplate) {
-            TextField("Template Name", text: $templateName)
+            TextField("Template Name", text: $savedTemplateName)
                 .accessibilityIdentifier("orders.form.template.name")
             Button("Cancel", role: .cancel) {}
             Button("Save") {
-                _ = viewModel.saveCurrentDraftAsTemplate(named: templateName)
+                _ = viewModel.saveCurrentDraftAsTemplate(named: savedTemplateName)
             }
             .accessibilityIdentifier("orders.form.template.confirmSave")
         } message: {
