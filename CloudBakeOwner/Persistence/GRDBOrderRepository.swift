@@ -11,6 +11,11 @@ enum ProjectedIngredientDemandPersistenceError: Error, Equatable {
     case invalidOrderIds
 }
 
+enum OrderChecklistPersistenceError: Error, Equatable {
+    case parentOrderMismatch
+    case itemBelongsToAnotherOrder
+}
+
 extension GRDBCoreDataRepository {
     func recordPayment(
         orderId: String,
@@ -3082,6 +3087,20 @@ private extension GRDBCoreDataRepository {
         with items: [OrderChecklistItem],
         in db: Database
     ) throws {
+        guard items.allSatisfy({ $0.orderId == orderId }) else {
+            throw OrderChecklistPersistenceError.parentOrderMismatch
+        }
+        for item in items {
+            let existingOrderId = try String.fetchOne(
+                db,
+                sql: "SELECT order_id FROM order_checklist_items WHERE id = ?",
+                arguments: [item.id]
+            )
+            guard existingOrderId == nil || existingOrderId == orderId else {
+                throw OrderChecklistPersistenceError.itemBelongsToAnotherOrder
+            }
+        }
+
         try db.execute(
             sql: "DELETE FROM order_checklist_items WHERE order_id = ?",
             arguments: [orderId]
