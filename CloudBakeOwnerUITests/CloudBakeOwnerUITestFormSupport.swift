@@ -107,10 +107,13 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: timeout))
         typeText(name, into: app.textFields["orders.form.title"])
         typeText(notes, into: app.textFields["orders.form.cakeNotes"])
-        if let cakeMessage {
-            typeText(cakeMessage, into: app.textFields["orders.form.cakeMessage"], timeout: timeout)
-        }
         dismissKeyboard(in: app)
+        if let cakeMessage {
+            let cakeMessageField = app.textFields["orders.form.cakeMessage"]
+            scrollToHittable(cakeMessageField, in: app, timeout: timeout)
+            typeText(cakeMessage, into: cakeMessageField, timeout: timeout)
+            dismissKeyboard(in: app)
+        }
         let customerNameField = app.textFields["orders.form.customerName"]
         scrollToHittable(customerNameField, in: app, timeout: timeout)
         typeText(customerName, into: customerNameField, timeout: timeout)
