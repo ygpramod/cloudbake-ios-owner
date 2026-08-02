@@ -52,18 +52,11 @@ enum OrderDraftValidation {
             return .failure(OrderDraftValidationError(message: "Customer name is required."))
         }
 
-        let servings = TextInputFormatting.trimmed(input.cakeServings)
-        if !servings.isEmpty, Int(servings).map({ $0 > 0 }) != true {
-            return .failure(
-                OrderDraftValidationError(message: "Servings must be a positive whole number.")
-            )
-        }
-
-        let weight = TextInputFormatting.trimmed(input.cakeWeightKilograms)
-        if !weight.isEmpty, Decimal(string: weight).map({ $0 > 0 }) != true {
-            return .failure(
-                OrderDraftValidationError(message: "Weight must be greater than zero.")
-            )
+        if let cakeCapacityError = cakeCapacityError(
+            servings: input.cakeServings,
+            weightKilograms: input.cakeWeightKilograms
+        ) {
+            return .failure(cakeCapacityError)
         }
 
         switch decimalAmount(from: input.quotedPrice, fieldName: "Quoted price") {
@@ -98,6 +91,23 @@ enum OrderDraftValidation {
                 )
             }
         }
+    }
+
+    static func cakeCapacityError(
+        servings: String,
+        weightKilograms: String
+    ) -> OrderDraftValidationError? {
+        let servings = TextInputFormatting.trimmed(servings)
+        if !servings.isEmpty, Int(servings).map({ $0 > 0 }) != true {
+            return OrderDraftValidationError(message: "Servings must be a positive whole number.")
+        }
+
+        let weight = TextInputFormatting.trimmed(weightKilograms)
+        if !weight.isEmpty, Decimal(string: weight).map({ $0 > 0 }) != true {
+            return OrderDraftValidationError(message: "Weight must be greater than zero.")
+        }
+
+        return nil
     }
 
     private static func decimalAmount(

@@ -597,6 +597,13 @@ final class OrderListViewModel: ObservableObject {
             errorMessage = "Recipe multiplier must be greater than zero."
             return false
         }
+        if let capacityError = OrderDraftValidation.cakeCapacityError(
+            servings: draftCakeServings,
+            weightKilograms: draftCakeWeightKilograms
+        ) {
+            errorMessage = capacityError.message
+            return false
+        }
         do {
             let now = dateProvider()
             let template = OrderTemplate(
