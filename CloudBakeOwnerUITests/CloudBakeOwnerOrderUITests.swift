@@ -21,6 +21,7 @@ extension CloudBakeOwnerUITests {
             app.otherElements["orders.template.source.popup"]
                 .waitForExistence(timeout: transitionTimeout)
         )
+        XCTAssertFalse(app.buttons["orders.add"].exists)
         let blankTemplate = nativeDialogAction(labeled: "Blank Template", in: app)
         XCTAssertTrue(blankTemplate.waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(nativeDialogAction(labeled: "Existing Order", in: app).exists)

@@ -136,7 +136,7 @@ struct CloudBakeAdaptiveActionButton: View {
     }
 }
 
-struct CloudBakeAdaptiveActionMenu<Content: View>: View {
+struct CloudBakeAdaptiveActionPopup: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     let title: String
@@ -144,10 +144,15 @@ struct CloudBakeAdaptiveActionMenu<Content: View>: View {
     let tint: Color
     let accessibilityIdentifier: String
     var isCompact = false
-    @ViewBuilder let content: () -> Content
+    let actions: [CloudBakeScreenMenuAction]
 
     var body: some View {
-        Menu(content: content) {
+        CloudBakeAnchoredPopupButton(
+            title: title,
+            actions: actions,
+            accessibilityLabel: title,
+            accessibilityIdentifier: accessibilityIdentifier
+        ) {
             if isCompact {
                 CloudBakeCompactAdaptiveActionLabel(
                     title: title,
@@ -161,7 +166,7 @@ struct CloudBakeAdaptiveActionMenu<Content: View>: View {
                     .foregroundStyle(tint)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, minHeight: 44)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, CloudBakeTheme.Spacing.compactControl)
                     .background(tint.opacity(0.12), in: Capsule())
             } else {
                 CloudBakeIconActionLabel(
@@ -171,9 +176,6 @@ struct CloudBakeAdaptiveActionMenu<Content: View>: View {
                 )
             }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 
