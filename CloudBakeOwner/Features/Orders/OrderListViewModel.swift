@@ -170,7 +170,9 @@ final class OrderListViewModel: ObservableObject {
             customerName: draftCustomerName,
             recipeScaleMultiplier: draftRecipeScaleMultiplier,
             quotedPrice: draftQuotedPrice,
-            depositPaid: draftDepositPaid
+            depositPaid: draftDepositPaid,
+            cakeServings: draftCakeServings,
+            cakeWeightKilograms: draftCakeWeightKilograms
         )
 
         guard case .success = OrderDraftValidation.validate(input) else {
@@ -630,9 +632,12 @@ final class OrderListViewModel: ObservableObject {
                 updatedAt: now
             )
             try repository.save(template)
-            persistDraftCakeRequirementChoices(at: now)
+            let savedReusableChoices = persistDraftCakeRequirementChoices(at: now)
             orderTemplates = try repository.fetchOrderTemplates()
-            errorMessage = nil
+            errorMessage =
+                savedReusableChoices
+                ? nil
+                : "Template was saved, but a custom cake choice could not be made reusable."
             return true
         } catch is OrderDraftValidationError {
             return false
@@ -922,10 +927,13 @@ final class OrderListViewModel: ObservableObject {
                 },
                 allowInventoryShortage: allowingInventoryShortage
             )
-            persistDraftCakeRequirementChoices(at: now)
+            let savedReusableChoices = persistDraftCakeRequirementChoices(at: now)
             resetDraft()
             draftExtraIngredientRows = []
             load()
+            if !savedReusableChoices {
+                errorMessage = "Order was saved, but a custom cake choice could not be made reusable."
+            }
             pendingInventoryShortages = []
             onReminderDataChanged()
             return true
@@ -1090,7 +1098,7 @@ final class OrderListViewModel: ObservableObject {
                 )
                 savedOrder = order
             }
-            persistDraftCakeRequirementChoices(at: now)
+            let savedReusableChoices = persistDraftCakeRequirementChoices(at: now)
             selectedOrder = savedOrder
             self.editingOrder = nil
             resetDraft()
@@ -1105,6 +1113,9 @@ final class OrderListViewModel: ObservableObject {
             loadSelectedOrderExtraIngredients(for: savedOrder)
             loadSelectedOrderChecklistItems(for: savedOrder)
             loadSelectedOrderPhotos(for: savedOrder)
+            if !savedReusableChoices {
+                errorMessage = "Order was saved, but a custom cake choice could not be made reusable."
+            }
             pendingInventoryShortages = []
             onReminderDataChanged()
             return true
@@ -2201,13 +2212,18 @@ final class OrderListViewModel: ObservableObject {
         draftCakePackaging = specification.packaging ?? ""
     }
 
-    private func persistDraftCakeRequirementChoices(at date: Date) {
+    private func persistDraftCakeRequirementChoices(at date: Date) -> Bool {
         let specification = draftCakeSpecification()
-        try? repository.saveOrderCakeRequirementChoices(
-            specification.reusableChoiceValues,
-            at: date
-        )
-        loadCakeRequirementChoices()
+        do {
+            try repository.saveOrderCakeRequirementChoices(
+                specification.reusableChoiceValues,
+                at: date
+            )
+            loadCakeRequirementChoices()
+            return true
+        } catch {
+            return false
+        }
     }
 
     private func loadCakeRequirementChoices() {
@@ -2234,7 +2250,9 @@ final class OrderListViewModel: ObservableObject {
             customerName: draftCustomerName,
             recipeScaleMultiplier: draftRecipeScaleMultiplier,
             quotedPrice: draftQuotedPrice,
-            depositPaid: draftDepositPaid
+            depositPaid: draftDepositPaid,
+            cakeServings: draftCakeServings,
+            cakeWeightKilograms: draftCakeWeightKilograms
         )
 
         switch OrderDraftValidation.validate(input) {

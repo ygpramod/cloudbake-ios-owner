@@ -59,6 +59,27 @@ final class OrderCakeSpecificationTests: XCTestCase {
         )
     }
 
+    func testOnlyCustomAndFreeFormValuesBecomeReusableChoices() {
+        let specification = OrderCakeSpecification(
+            occasion: "Birthday",
+            shape: "Hexagon",
+            spongeFlavour: "Pandan",
+            colourPalette: "Sage and ivory",
+            theme: "Botanical",
+            topperRequirements: "None",
+            packaging: "Standard Box"
+        )
+
+        XCTAssertEqual(
+            specification.reusableChoiceValues.map(\.field),
+            [.shape, .spongeFlavour, .colourPalette, .theme]
+        )
+        XCTAssertEqual(
+            specification.reusableChoiceValues.map(\.value),
+            ["Hexagon", "Pandan", "Sage and ivory", "Botanical"]
+        )
+    }
+
     func testInvalidNumericValuesAreNotRetained() {
         let specification = OrderCakeSpecification(servings: -1, weightKilograms: -2)
 

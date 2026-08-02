@@ -84,7 +84,8 @@ func makeOrder(
     createdAt: Date = Date(timeIntervalSince1970: 1_800_060_000),
     quotedPrice: Decimal? = nil,
     depositPaid: Decimal? = nil,
-    completedAt: Date? = nil
+    completedAt: Date? = nil,
+    cakeSpecification: OrderCakeSpecification = .empty
 ) -> Order {
     return Order(
         id: id,
@@ -99,6 +100,7 @@ func makeOrder(
         fulfillmentType: .pickup,
         deliveryAddress: nil,
         cakeNotes: nil,
+        cakeSpecification: cakeSpecification,
         quotedPrice: quotedPrice,
         depositPaid: depositPaid,
         completedAt: completedAt,

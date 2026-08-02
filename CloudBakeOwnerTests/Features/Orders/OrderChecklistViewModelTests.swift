@@ -16,7 +16,12 @@ final class OrderChecklistViewModelTests: XCTestCase {
             customerId: "customer-amy",
             dueAt: Date(timeIntervalSince1970: 1_800_140_000),
             quotedPrice: 120,
-            depositPaid: 40
+            depositPaid: 40,
+            cakeSpecification: OrderCakeSpecification(
+                occasion: "Birthday",
+                spongeFlavour: "Pandan",
+                packaging: "Tall Box"
+            )
         )
         repository.orders = [order]
         repository.customers = [makeCustomer(id: "customer-amy", name: "Amy")]
@@ -30,6 +35,9 @@ final class OrderChecklistViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftStatus, .draft)
         XCTAssertEqual(viewModel.draftQuotedPrice, "")
         XCTAssertEqual(viewModel.draftDepositPaid, "")
+        XCTAssertEqual(viewModel.draftCakeOccasion, "Birthday")
+        XCTAssertEqual(viewModel.draftCakeSpongeFlavour, "Pandan")
+        XCTAssertEqual(viewModel.draftCakePackaging, "Tall Box")
     }
 
     func testPreviousOrderDuplicationPreservesDraftWhenRequiredDataCannotLoad() {
@@ -79,6 +87,15 @@ final class OrderChecklistViewModelTests: XCTestCase {
             deliveryAddress: "1 Bakery Street",
             cakeNotes: "Two tiers",
             cakeMessage: "Happy birthday",
+            cakeSpecification: OrderCakeSpecification(
+                occasion: "Birthday",
+                servings: 42,
+                weightKilograms: 3,
+                shape: "Circle",
+                tiers: "2",
+                theme: "Floral",
+                packaging: "Tall Box"
+            ),
             quotedPrice: 180,
             depositPaid: 80,
             paymentNotes: "Cash",
@@ -149,6 +166,12 @@ final class OrderChecklistViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftDeliveryAddress, "1 Bakery Street")
         XCTAssertEqual(viewModel.draftCakeNotes, "Two tiers")
         XCTAssertEqual(viewModel.draftCakeMessage, "Happy birthday")
+        XCTAssertEqual(viewModel.draftCakeOccasion, "Birthday")
+        XCTAssertEqual(viewModel.draftCakeServings, "42")
+        XCTAssertEqual(viewModel.draftCakeWeightKilograms, "3")
+        XCTAssertEqual(viewModel.draftCakeTiers, "2")
+        XCTAssertEqual(viewModel.draftCakeTheme, "Floral")
+        XCTAssertEqual(viewModel.draftCakePackaging, "Tall Box")
         XCTAssertEqual(viewModel.draftStatus, .draft)
         XCTAssertEqual(
             viewModel.draftDueAt,

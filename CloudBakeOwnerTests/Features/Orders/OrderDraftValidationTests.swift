@@ -81,12 +81,33 @@ final class OrderDraftValidationTests: XCTestCase {
         )
     }
 
+    func testValidateRejectsInvalidCakeCapacity() {
+        XCTAssertEqual(
+            validationMessage(cakeServings: "3.5"),
+            "Servings must be a positive whole number."
+        )
+        XCTAssertEqual(
+            validationMessage(cakeServings: "0"),
+            "Servings must be a positive whole number."
+        )
+        XCTAssertEqual(
+            validationMessage(cakeWeightKilograms: "abc"),
+            "Weight must be greater than zero."
+        )
+        XCTAssertEqual(
+            validationMessage(cakeWeightKilograms: "-1"),
+            "Weight must be greater than zero."
+        )
+    }
+
     private func validationMessage(
         title: String = "Vanilla Birthday",
         customerName: String = "Amy",
         recipeScaleMultiplier: String = "1",
         quotedPrice: String = "",
-        depositPaid: String = ""
+        depositPaid: String = "",
+        cakeServings: String = "",
+        cakeWeightKilograms: String = ""
     ) -> String? {
         let result = OrderDraftValidation.validate(
             OrderDraftValidationInput(
@@ -94,7 +115,9 @@ final class OrderDraftValidationTests: XCTestCase {
                 customerName: customerName,
                 recipeScaleMultiplier: recipeScaleMultiplier,
                 quotedPrice: quotedPrice,
-                depositPaid: depositPaid
+                depositPaid: depositPaid,
+                cakeServings: cakeServings,
+                cakeWeightKilograms: cakeWeightKilograms
             )
         )
 
