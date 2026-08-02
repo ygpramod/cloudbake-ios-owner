@@ -848,6 +848,17 @@ extension GRDBCoreDataRepository {
         var values: [(any DatabaseValueConvertible)?] = []
 
         switch query {
+        case .all(let searchText):
+            let normalizedSearch = TextInputFormatting.trimmed(searchText).lowercased()
+            if normalizedSearch.isEmpty {
+                predicates.append("1 = 1")
+            } else {
+                predicates.append(
+                    "(instr(lower(title), ?) > 0 OR instr(lower(customer_name), ?) > 0)"
+                )
+                values.append(normalizedSearch)
+                values.append(normalizedSearch)
+            }
         case .active(let dueAtRange):
             predicates.append("status IN (?, ?, ?, ?)")
             values.append(contentsOf: [
@@ -910,11 +921,14 @@ extension GRDBCoreDataRepository {
             var predicates = filter.predicates
             var values = filter.values
             let direction = query.isDescending ? "DESC" : "ASC"
-            let indexName: String
-            if case .customer = query {
-                indexName = "orders_on_customer_due_id"
-            } else {
-                indexName = "orders_on_status_due_id"
+            let indexedBy: String
+            switch query {
+            case .all:
+                indexedBy = ""
+            case .customer:
+                indexedBy = "INDEXED BY orders_on_customer_due_id"
+            default:
+                indexedBy = "INDEXED BY orders_on_status_due_id"
             }
             if let cursor {
                 let comparison = query.isDescending ? "<" : ">"
@@ -936,7 +950,7 @@ extension GRDBCoreDataRepository {
                 db,
                 sql: """
                     SELECT *
-                    FROM orders INDEXED BY \(indexName)
+                    FROM orders \(indexedBy)
                     WHERE \(predicates.joined(separator: " AND "))
                     ORDER BY due_at_unix_time \(direction), id \(direction)
                     LIMIT ?

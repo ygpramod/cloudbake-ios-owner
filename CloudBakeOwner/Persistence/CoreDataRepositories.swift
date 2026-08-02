@@ -174,6 +174,7 @@ extension CakeDesignOrderUsageRepository where Self: OrderRepository {
 }
 
 enum OrderPageQuery: Equatable {
+    case all(searchText: String)
     case active(dueAtRange: ClosedRange<Date>?)
     case completed
     case upcoming(from: Date, through: Date)
@@ -182,6 +183,9 @@ enum OrderPageQuery: Equatable {
 
     var isDescending: Bool {
         if case .completed = self {
+            return true
+        }
+        if case .all = self {
             return true
         }
         return false
@@ -195,6 +199,11 @@ enum OrderPageQuery: Equatable {
 
     func includes(_ order: Order) -> Bool {
         switch self {
+        case .all(let searchText):
+            let query = TextInputFormatting.trimmed(searchText)
+            return query.isEmpty
+                || order.title.localizedCaseInsensitiveContains(query)
+                || order.customerName.localizedCaseInsensitiveContains(query)
         case .active(let range):
             return order.hasActiveReminderState
                 && (range?.contains(order.dueAt) ?? true)
