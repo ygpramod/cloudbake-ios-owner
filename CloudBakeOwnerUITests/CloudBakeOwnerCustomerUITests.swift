@@ -20,7 +20,9 @@ extension CloudBakeOwnerUITests {
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
         XCTAssertEqual(app.textFields["orders.form.title"].value as? String, "Vanilla Birthday")
-        XCTAssertEqual(app.textFields["orders.form.customerName"].value as? String, "Amy")
+        let customerName = app.textFields["orders.form.customerName"]
+        scrollToHittable(customerName, in: app, timeout: transitionTimeout)
+        XCTAssertEqual(customerName.value as? String, "Amy")
         scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: transitionTimeout)
         XCTAssertNotEqual(app.textFields["orders.form.quotedPrice"].value as? String, "0")
     }
@@ -61,7 +63,7 @@ extension CloudBakeOwnerUITests {
         newOrderButton.tap()
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: 5))
         let customerRecord = app.buttons["orders.form.customerRecord"]
-        XCTAssertTrue(customerRecord.waitForExistence(timeout: 5))
+        scrollToHittable(customerRecord, in: app, timeout: 10)
         XCTAssertTrue(customerRecord.label.contains("Amy"))
     }
 
