@@ -284,6 +284,7 @@ private struct CloudBakeDetailHeaderButton: View {
 
 private struct CloudBakeHeaderActionButton: View {
     let action: CloudBakeScreenAction
+    @State private var longPressFeedbackTrigger = 0
 
     @ViewBuilder
     var body: some View {
@@ -298,6 +299,7 @@ private struct CloudBakeHeaderActionButton: View {
                         .onEnded { gesture in
                             switch gesture {
                             case .first:
+                                longPressFeedbackTrigger += 1
                                 longPressAction()
                             case .second:
                                 action.action()
@@ -314,6 +316,10 @@ private struct CloudBakeHeaderActionButton: View {
                 .accessibilityAction(named: Text(longPressTitle)) {
                     longPressAction()
                 }
+                .sensoryFeedback(
+                    .impact(weight: .medium),
+                    trigger: longPressFeedbackTrigger
+                )
         } else {
             Button(action: action.action) {
                 actionLabel
