@@ -236,6 +236,10 @@ The app currently supports:
     notifications suppressed.
 143. next-day nearest-hour defaults for new order due times and uninterrupted Ready/Completed
     status progression for orders without recipes or inventory ingredients.
+144. order duplication from detail into an unsaved standard Add Order draft, copying safe reusable
+    customer, cake, fulfilment, recipe, extra-ingredient, design, reminder, and checklist details
+    while resetting due time and excluding price, payment, photo, inventory, status, and completion
+    history.
 
 ## Partially Prepared
 

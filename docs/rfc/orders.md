@@ -61,6 +61,8 @@ notes, and changing customer requests without forcing the owner into a rigid ret
   descending, with cancelled orders visibly marked.
 - The owner must be able to view a single order with all business-critical details.
 - The owner must be able to edit an order while it is active.
+- The owner must be able to open an existing order as a new, unsaved Draft while excluding quoted
+  price, payments, photos, inventory history, and completion history.
 - The owner must be able to create a new customer from order customer selection when the customer
   does not already exist.
 - Each order must have a status.
@@ -355,6 +357,11 @@ pricing, and recipe links.
 - Orders can now store owner checklist items in order detail. Checklist items remain in entry order
   and support add, edit, complete/incomplete toggle, and deletion; reorder, templates, and
   checklist-driven status changes remain future work.
+- Orders can now be duplicated from order detail through
+  `docs/rfc/slices/0128-duplicate-orders.md`. The standard Add Order form receives safe reusable
+  details, fresh extra-ingredient and checklist identifiers, an incomplete checklist, and the
+  normal next-day due default. Price, payments, photos, reservations, consumption, actual costs,
+  status, and completion history are deliberately excluded.
 - iPad order split view is deferred while the initial owner app targets iPhone only. Orders keep the
   modal detail flow on supported iPhones.
 - Orders now expose only Active and Completed tabs. Active work is always shown as due-day groups
@@ -381,7 +388,7 @@ pricing, and recipe links.
 The following Orders RFC items are intentionally deferred until after other MVP areas are stronger:
 
 - reminder snooze, preparation-start reminders, and calendar integration,
-- checklist reordering, checklist templates, and checklist-driven status suggestions,
+- checklist reordering, reusable order templates, and checklist-driven status suggestions,
 - partial recipe usage, multi-recipe orders, inventory reservation, and serving/yield modeling,
 - pricing calculator and recipe-cost suggestions,
 - multiple design references and broader design library management,
