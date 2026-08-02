@@ -156,6 +156,52 @@ final class OrderListViewModelTests: XCTestCase {
         XCTAssertTrue(repository.orderTemplates.isEmpty)
     }
 
+    func testEditingTemplateReplacesItWithoutChangingIdentityOrCreationDate() throws {
+        let repository = FakeOrderRepository()
+        let createdAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let updatedAt = Date(timeIntervalSince1970: 1_800_060_000)
+        let existing = OrderTemplate(
+            id: "template-existing",
+            name: "Birthday Standard",
+            cakeTitle: "Vanilla Cake",
+            cakeDesignId: nil,
+            recipeId: nil,
+            recipeScaleMultiplier: 1,
+            fulfillmentType: .pickup,
+            cakeNotes: nil,
+            cakeMessage: nil,
+            reminderConfiguration: .initialDefault,
+            extraIngredients: [],
+            checklistItems: [],
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        repository.orderTemplates = [existing]
+        let viewModel = OrderListViewModel(
+            repository: repository,
+            idGenerator: { "unused-new-id" },
+            dateProvider: { updatedAt }
+        )
+
+        viewModel.beginAddingOrder()
+        viewModel.applyOrderTemplate(existing)
+        viewModel.draftTitle = "Chocolate Cake"
+
+        XCTAssertTrue(
+            viewModel.saveCurrentDraftAsTemplate(
+                named: "Birthday Celebration",
+                replacing: existing
+            )
+        )
+        XCTAssertEqual(repository.orderTemplates.count, 1)
+        let saved = try XCTUnwrap(repository.orderTemplates.first)
+        XCTAssertEqual(saved.id, existing.id)
+        XCTAssertEqual(saved.name, "Birthday Celebration")
+        XCTAssertEqual(saved.cakeTitle, "Chocolate Cake")
+        XCTAssertEqual(saved.createdAt, createdAt)
+        XCTAssertEqual(saved.updatedAt, updatedAt)
+    }
+
     func testCakeCapacitySuggestionsNeverOverwriteEnteredValues() {
         let viewModel = OrderListViewModel(repository: FakeOrderRepository())
 

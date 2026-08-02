@@ -9,7 +9,13 @@ extension CloudBakeOwnerUITests {
         openDashboardDestination("Orders", in: app)
         let addOrder = app.buttons["orders.add"]
         XCTAssertTrue(addOrder.waitForExistence(timeout: transitionTimeout))
-        addOrder.press(forDuration: 1)
+        addOrder.press(forDuration: 1.5)
+
+        let createTemplate = nativeDialogAction(labeled: "Create Template", in: app)
+        XCTAssertTrue(createTemplate.waitForExistence(timeout: transitionTimeout))
+        XCTAssertTrue(nativeDialogAction(labeled: "Edit Template", in: app).exists)
+        XCTAssertFalse(app.navigationBars["Add Order"].exists)
+        tapWhenReady(createTemplate, timeout: transitionTimeout)
 
         let blankTemplate = nativeDialogAction(labeled: "Blank Template", in: app)
         XCTAssertTrue(blankTemplate.waitForExistence(timeout: transitionTimeout))
@@ -71,6 +77,25 @@ extension CloudBakeOwnerUITests {
             app.textFields["orders.form.title"].value as? String,
             "Two-Tier Wedding Cake"
         )
+        tapWhenReady(app.buttons["orders.form.cancel"], timeout: transitionTimeout)
+
+        assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
+        let addOrder = app.buttons["orders.add"]
+        addOrder.press(forDuration: 1)
+        tapWhenReady(nativeDialogAction(labeled: "Edit Template", in: app), timeout: transitionTimeout)
+        XCTAssertTrue(app.navigationBars["Edit Template"].waitForExistence(timeout: transitionTimeout))
+        let search = app.textFields["orders.template.source.search"]
+        typeText("Two-Tier", into: search, timeout: transitionTimeout)
+        dismissKeyboard(in: app)
+        tapWhenReady(
+            app.buttons["orders.template.source.template.starter-template-two-tier-wedding"],
+            timeout: transitionTimeout
+        )
+        XCTAssertTrue(app.navigationBars["Edit Template"].waitForExistence(timeout: transitionTimeout))
+        XCTAssertEqual(
+            app.textFields["orders.template.form.name"].value as? String,
+            "Two-Tier Wedding Cake"
+        )
     }
 
     private func openTemplateSource(
@@ -81,6 +106,7 @@ extension CloudBakeOwnerUITests {
         let addOrder = app.buttons["orders.add"]
         XCTAssertTrue(addOrder.waitForExistence(timeout: timeout))
         addOrder.press(forDuration: 1)
+        tapWhenReady(nativeDialogAction(labeled: "Create Template", in: app), timeout: timeout)
         tapWhenReady(nativeDialogAction(labeled: source, in: app), timeout: timeout)
     }
 
