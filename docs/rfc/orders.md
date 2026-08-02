@@ -168,6 +168,8 @@ Order add/edit can link one saved recipe for preparation context through
 Structured cake requirements, reusable custom choices, servings/weight suggestions, and the derived
 plain-English order summary are specified in
 `docs/rfc/slices/0131-structured-order-requirements.md`.
+A once-seeded, fully editable starter order-template catalogue is specified in
+`docs/rfc/slices/0132-starter-order-template-catalogue.md`.
 Order detail can change status without opening the full edit form. Moving an order with an unused
 linked recipe to Ready or Completed records one-time recipe usage and deducts recipe
 ingredients from inventory through
