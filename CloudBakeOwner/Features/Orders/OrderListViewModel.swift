@@ -379,8 +379,71 @@ final class OrderListViewModel: ObservableObject {
             return false
         }
 
+        return beginDuplicatingOrder(id: sourceOrder.id)
+    }
+
+    func beginDuplicatingOrder(id: String) -> Bool {
+        do {
+            guard let source = try loadDuplicationSource(orderId: id) else {
+                errorMessage = "Previous order could not be found."
+                return false
+            }
+            prepareDuplicateDraft(from: source)
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = "Order could not be duplicated because its details could not be loaded."
+            return false
+        }
+    }
+
+    private func loadDuplicationSource(orderId: String) throws -> OrderDuplicationSource? {
+        guard let order = try repository.fetchOrder(id: orderId) else {
+            return nil
+        }
+
+        let customers = try repository.fetchCustomers()
+        let recipes = try repository.fetchRecipes()
+        var cakeDesigns = try repository.fetchCakeDesigns().filter {
+            $0.sourceKind == .ownerMade || $0.sourceKind == .customerReference
+        }
+        if let linkedDesignId = order.cakeDesignId,
+            !cakeDesigns.contains(where: { $0.id == linkedDesignId }),
+            let linkedDesign = try repository.fetchCakeDesign(id: linkedDesignId)
+        {
+            cakeDesigns.append(linkedDesign)
+        }
+        let inventoryItems = try repository.fetchInventoryItems()
+
+        return OrderDuplicationSource(
+            order: order,
+            reminderConfiguration: try repository.fetchOrderReminderConfiguration(
+                orderId: orderId
+            ) ?? .initialDefault,
+            extraIngredients: try repository.fetchOrderExtraIngredients(orderId: orderId),
+            checklistItems: try repository.fetchOrderChecklistItems(orderId: orderId)
+                .sorted(by: OrderListPresentation.checklistItemWasEnteredBefore),
+            customers: customers,
+            recipes: recipes,
+            cakeDesigns: cakeDesigns,
+            inventoryItems: inventoryItems,
+            orderTemplates: try repository.fetchOrderTemplates()
+        )
+    }
+
+    private func prepareDuplicateDraft(from source: OrderDuplicationSource) {
+        let sourceOrder = source.order
+        let inventoryItemNames = Dictionary(
+            uniqueKeysWithValues: source.inventoryItems.map { ($0.id, $0.name) }
+        )
+
         resetDraft()
-        loadFormReferences()
+        editingOrder = nil
+        customers = source.customers
+        recipes = source.recipes
+        cakeDesigns = source.cakeDesigns
+        availableInventoryItems = source.inventoryItems
+        orderTemplates = source.orderTemplates
         draftTitle = sourceOrder.title
         draftCustomerName = sourceOrder.customerName
         draftCustomerId = sourceOrder.customerId ?? ""
@@ -393,21 +456,20 @@ final class OrderListViewModel: ObservableObject {
         draftDeliveryAddress = sourceOrder.deliveryAddress ?? ""
         draftCakeNotes = sourceOrder.cakeNotes ?? ""
         draftCakeMessage = sourceOrder.cakeMessage ?? ""
-        applyReminderConfiguration(
-            orderReminderConfigurations[sourceOrder.id] ?? .initialDefault
-        )
-        draftExtraIngredientRows = selectedOrderExtraIngredients.map { row in
+        applyReminderConfiguration(source.reminderConfiguration)
+        draftExtraIngredientRows = source.extraIngredients.map { ingredient in
             OrderExtraIngredientDraftRow(
                 id: idGenerator(),
                 existingIngredient: nil,
-                inventoryItemId: row.ingredient.inventoryItemId,
-                inventoryItemName: row.inventoryItemName,
-                quantity: row.ingredient.quantity,
-                unit: row.ingredient.unit,
-                note: row.ingredient.note
+                inventoryItemId: ingredient.inventoryItemId,
+                inventoryItemName: inventoryItemNames[ingredient.inventoryItemId]
+                    ?? "Inventory item unavailable",
+                quantity: ingredient.quantity,
+                unit: ingredient.unit,
+                note: ingredient.note
             )
         }
-        draftChecklistItems = selectedOrderChecklistItems.map { item in
+        draftChecklistItems = source.checklistItems.map { item in
             OrderChecklistDraftItem(
                 id: idGenerator(),
                 title: item.title
@@ -415,23 +477,6 @@ final class OrderListViewModel: ObservableObject {
         }
         refreshDraftIngredientCost()
         pendingInventoryShortages = []
-        return true
-    }
-
-    func beginDuplicatingOrder(id: String) -> Bool {
-        do {
-            guard let order = try repository.fetchOrder(id: id) else {
-                errorMessage = "Previous order could not be found."
-                return false
-            }
-            beginViewingOrder(order)
-            let didPrepareDraft = beginDuplicatingSelectedOrder()
-            closeOrderDetail()
-            return didPrepareDraft
-        } catch {
-            errorMessage = "Previous order could not be loaded."
-            return false
-        }
     }
 
     func applyOrderTemplate(_ template: OrderTemplate) {
@@ -2146,6 +2191,18 @@ final class OrderListViewModel: ObservableObject {
             note: TextInputFormatting.optionalText(draftExtraIngredientNote)
         )
     }
+}
+
+private struct OrderDuplicationSource {
+    let order: Order
+    let reminderConfiguration: OrderReminderConfiguration
+    let extraIngredients: [OrderExtraIngredient]
+    let checklistItems: [OrderChecklistItem]
+    let customers: [Customer]
+    let recipes: [Recipe]
+    let cakeDesigns: [CakeDesign]
+    let inventoryItems: [InventoryItem]
+    let orderTemplates: [OrderTemplate]
 }
 
 struct OrderExtraIngredientRow: Identifiable, Equatable {

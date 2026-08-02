@@ -360,6 +360,7 @@ final class FakeOrderRepository: OrderRepository,
     var recordRecipeUsageError: Error?
     var changeOrderStatusError: Error?
     var saveOrderOverrideError: Error?
+    var fetchOrderChecklistItemsError: Error?
     var allowInventoryShortageRequests: [Bool] = []
     var savePromotedDesignError: Error?
     var pendingDesignPhotoCleanupPaths: [String] = []
@@ -891,7 +892,10 @@ final class FakeOrderRepository: OrderRepository,
     }
 
     func fetchOrderChecklistItems(orderId: String) throws -> [OrderChecklistItem] {
-        checklistItems
+        if let fetchOrderChecklistItemsError {
+            throw fetchOrderChecklistItemsError
+        }
+        return checklistItems
             .filter { $0.orderId == orderId }
             .sorted {
                 if $0.sortOrder == $1.sortOrder {
