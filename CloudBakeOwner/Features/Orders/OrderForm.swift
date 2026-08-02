@@ -11,6 +11,9 @@ struct OrderForm: View {
     @State private var isSelectingRecipe = false
     @State private var isSelectingDesign = false
     @State private var isAddingExtraIngredient = false
+    @State private var isSelectingTemplate = false
+    @State private var isNamingTemplate = false
+    @State private var templateName = ""
 
     init(
         title: String = "Add Order",
@@ -30,6 +33,37 @@ struct OrderForm: View {
 
     var body: some View {
         Form {
+            if viewModel.editingOrder == nil {
+                Section("Template") {
+                    Button {
+                        isSelectingTemplate = true
+                    } label: {
+                        Label(
+                            viewModel.orderTemplates.isEmpty
+                                ? "Manage Templates" : "Use Order Template",
+                            systemImage: "square.on.square"
+                        )
+                    }
+                    .accessibilityIdentifier("orders.form.template.choose")
+                    .sheet(isPresented: $isSelectingTemplate) {
+                        NavigationStack {
+                            OrderTemplateLibraryView(
+                                viewModel: viewModel,
+                                isPresented: $isSelectingTemplate
+                            )
+                        }
+                    }
+
+                    Button {
+                        templateName = ""
+                        isNamingTemplate = true
+                    } label: {
+                        Label("Save Current as Template", systemImage: "square.and.arrow.down")
+                    }
+                    .accessibilityIdentifier("orders.form.template.save")
+                }
+            }
+
             Section("Cake") {
                 TextField("Cake Name", text: $viewModel.draftTitle)
                     .accessibilityIdentifier("orders.form.title")
@@ -333,6 +367,17 @@ struct OrderForm: View {
                 )
             }
         }
+        .alert("Save Order Template", isPresented: $isNamingTemplate) {
+            TextField("Template Name", text: $templateName)
+                .accessibilityIdentifier("orders.form.template.name")
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                _ = viewModel.saveCurrentDraftAsTemplate(named: templateName)
+            }
+            .accessibilityIdentifier("orders.form.template.confirmSave")
+        } message: {
+            Text("Customer, due date, quoted price, payments, and photos are not included.")
+        }
     }
 
     @ViewBuilder
@@ -362,6 +407,112 @@ struct OrderForm: View {
             }
             .foregroundStyle(Color.cloudBakePink)
             .accessibilityIdentifier("orders.form.extraIngredient.add")
+        }
+    }
+}
+
+private struct OrderTemplateLibraryView: View {
+    @ObservedObject var viewModel: OrderListViewModel
+    @Binding var isPresented: Bool
+    @State private var templateBeingRenamed: OrderTemplate?
+    @State private var renamedTemplateName = ""
+    @State private var templatePendingDeletion: OrderTemplate?
+
+    var body: some View {
+        List {
+            if viewModel.orderTemplates.isEmpty {
+                ContentUnavailableView(
+                    "No Order Templates",
+                    systemImage: "square.on.square",
+                    description: Text("Configure an order and save it as a named template.")
+                )
+            } else {
+                ForEach(viewModel.orderTemplates) { template in
+                    Button {
+                        viewModel.applyOrderTemplate(template)
+                        isPresented = false
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(template.name)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            if !template.cakeTitle.isEmpty {
+                                Text(template.cakeTitle)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("orders.template.use.\(template.id)")
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button("Delete", role: .destructive) {
+                            templatePendingDeletion = template
+                        }
+                        .accessibilityIdentifier("orders.template.delete.\(template.id)")
+
+                        Button("Rename") {
+                            renamedTemplateName = template.name
+                            templateBeingRenamed = template
+                        }
+                        .tint(Color.cloudBakePink)
+                        .accessibilityIdentifier("orders.template.rename.\(template.id)")
+                    }
+                }
+            }
+        }
+        .navigationTitle("Order Templates")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    isPresented = false
+                }
+                .accessibilityIdentifier("orders.template.done")
+            }
+        }
+        .alert(
+            "Rename Order Template",
+            isPresented: Binding(
+                get: { templateBeingRenamed != nil },
+                set: { if !$0 { templateBeingRenamed = nil } }
+            )
+        ) {
+            TextField("Template Name", text: $renamedTemplateName)
+                .accessibilityIdentifier("orders.template.rename.name")
+            Button("Cancel", role: .cancel) {
+                templateBeingRenamed = nil
+            }
+            Button("Save") {
+                if let templateBeingRenamed,
+                    viewModel.renameOrderTemplate(templateBeingRenamed, to: renamedTemplateName)
+                {
+                    self.templateBeingRenamed = nil
+                }
+            }
+            .accessibilityIdentifier("orders.template.rename.save")
+        }
+        .alert(
+            "Delete Order Template?",
+            isPresented: Binding(
+                get: { templatePendingDeletion != nil },
+                set: { if !$0 { templatePendingDeletion = nil } }
+            )
+        ) {
+            Button("Cancel", role: .cancel) {
+                templatePendingDeletion = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let templatePendingDeletion,
+                    viewModel.deleteOrderTemplate(templatePendingDeletion)
+                {
+                    self.templatePendingDeletion = nil
+                }
+            }
+            .accessibilityIdentifier("orders.template.delete.confirm")
+        } message: {
+            Text("Existing orders are not changed.")
         }
     }
 }
