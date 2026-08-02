@@ -27,6 +27,8 @@ history.
 
 - the source order is fetched directly by identifier even when it is outside the first Orders page,
 - customer and reusable cake details are copied,
+- required reminder, checklist, ingredient, and form-reference data is loaded as one preparation
+  step; any read failure leaves the current draft unchanged and does not open a partial duplicate,
 - quoted price, payments, photos, status, completion, inventory, and transaction history are not
   copied,
 - checklist rows restart incomplete with fresh identifiers,
