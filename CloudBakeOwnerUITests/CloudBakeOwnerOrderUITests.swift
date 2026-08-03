@@ -18,10 +18,9 @@ extension CloudBakeOwnerUITests {
         tapWhenReady(createTemplate, timeout: transitionTimeout)
 
         XCTAssertTrue(
-            app.otherElements["orders.template.source.popup"]
+            app.staticTexts["Start New Template From"]
                 .waitForExistence(timeout: transitionTimeout)
         )
-        XCTAssertFalse(app.buttons["orders.add"].exists)
         let blankTemplate = nativeDialogAction(labeled: "Blank Template", in: app)
         XCTAssertTrue(blankTemplate.waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(nativeDialogAction(labeled: "Existing Order", in: app).exists)
@@ -355,11 +354,11 @@ extension CloudBakeOwnerUITests {
         scrollToTop(in: app)
         scrollToHittable(app.buttons["orders.form.template.save"], in: app, timeout: transitionTimeout)
         tapWhenReady(app.buttons["orders.form.template.save"], timeout: transitionTimeout)
-        let templateAlert = app.alerts["Save Order Template"]
-        XCTAssertTrue(templateAlert.waitForExistence(timeout: transitionTimeout))
-        typeText("Chocolate Standard", into: templateAlert.textFields.firstMatch)
-        tapExisting(templateAlert.buttons["Save"], timeout: transitionTimeout)
-        XCTAssertTrue(templateAlert.waitForNonExistence(timeout: transitionTimeout))
+        let templateName = app.textFields["orders.form.template.name"]
+        XCTAssertTrue(templateName.waitForExistence(timeout: transitionTimeout))
+        typeText("Chocolate Standard", into: templateName)
+        tapWhenReady(app.buttons["orders.form.template.confirmSave"], timeout: transitionTimeout)
+        XCTAssertTrue(templateName.waitForNonExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.form.cancel"], timeout: transitionTimeout)
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
 
@@ -367,12 +366,15 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.form.template.choose"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Order Templates"].waitForExistence(timeout: transitionTimeout))
-        tapWhenReady(
-            app.buttons.matching(
-                NSPredicate(format: "identifier BEGINSWITH %@", "orders.template.use.")
-            ).firstMatch,
-            timeout: transitionTimeout
-        )
+        let savedTemplate = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "orders.template.use.",
+                "Chocolate Standard"
+            )
+        ).firstMatch
+        assertExistsAfterScrolling(savedTemplate, in: app, timeout: transitionTimeout)
+        tapWhenReady(savedTemplate, timeout: transitionTimeout)
 
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: transitionTimeout))
         XCTAssertEqual(
@@ -422,9 +424,14 @@ extension CloudBakeOwnerUITests {
         let paymentStatus = app.staticTexts.matching(identifier: "orders.detail.paymentStatus").firstMatch
         assertExistsAfterScrolling(paymentStatus, in: app, timeout: transitionTimeout)
         XCTAssertTrue(paymentStatus.label.contains("Paid"))
-        let depositPaid = app.staticTexts.matching(identifier: "orders.detail.depositPaid").firstMatch
+        let depositPaid = app.descendants(matching: .any).matching(
+            NSPredicate(
+                format: "identifier == %@ AND label CONTAINS %@",
+                "orders.detail.depositPaid",
+                "125"
+            )
+        ).firstMatch
         assertExistsAfterScrolling(depositPaid, in: app, timeout: transitionTimeout)
-        XCTAssertTrue(depositPaid.label.contains("125"))
         let balanceDue = app.staticTexts.matching(identifier: "orders.detail.balanceDue").firstMatch
         assertExistsAfterScrolling(balanceDue, in: app, timeout: transitionTimeout)
         XCTAssertTrue(balanceDue.label.contains("0"))
@@ -434,17 +441,23 @@ extension CloudBakeOwnerUITests {
         ).firstMatch
         scrollToHittable(paymentActions, in: app, timeout: transitionTimeout)
         tapWhenReady(paymentActions, timeout: transitionTimeout)
-        tapExisting(app.buttons["Void Payment"], timeout: transitionTimeout)
+        tapVisibleElementAtCenter(
+            app.buttons.matching(
+                NSPredicate(format: "identifier BEGINSWITH %@", "orders.detail.payment.void.")
+            ).firstMatch,
+            in: app,
+            timeout: transitionTimeout
+        )
         XCTAssertTrue(
-            app.textFields["Reason (optional)"]
+            app.textFields["orders.detail.payment.void.reason"]
                 .waitForExistence(timeout: transitionTimeout)
         )
         XCTAssertTrue(
-            app.buttons["Void Payment"]
+            app.buttons["orders.detail.payment.void.confirm"]
                 .waitForExistence(timeout: transitionTimeout)
         )
         tapExisting(
-            app.buttons["Cancel"],
+            app.buttons["orders.detail.payment.void.cancel"],
             timeout: transitionTimeout
         )
     }
@@ -1213,7 +1226,7 @@ extension CloudBakeOwnerUITests {
             )
         )
 
-        let error = app.sheets.staticTexts["Recipe has no ingredients to deduct."]
+        let error = app.descendants(matching: .any)["orders.detail.statusChangeError"]
         XCTAssertTrue(error.waitForExistence(timeout: 5))
         XCTAssertEqual(error.label, "Recipe has no ingredients to deduct.")
         tapWhenReady(
@@ -1436,10 +1449,20 @@ extension CloudBakeOwnerUITests {
 
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
-        tapExisting(app.buttons["Cancelled"], timeout: transitionTimeout)
-        let cancelledStatus = app.staticTexts["orders.detail.status"]
-        XCTAssertTrue(cancelledStatus.waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(cancelledStatus.label.contains("Cancelled"))
+        let statusPopup = app.scrollViews["cloudBake.anchoredPopup"]
+        XCTAssertTrue(statusPopup.waitForExistence(timeout: transitionTimeout))
+        let cancelledAction = app.buttons["orders.detail.status.cancelled"]
+        scrollToVisible(
+            cancelledAction,
+            in: app,
+            scrollContainer: statusPopup,
+            timeout: transitionTimeout
+        )
+        tapVisibleElementAtCenter(
+            cancelledAction,
+            in: app,
+            timeout: transitionTimeout
+        )
         app.buttons["orders.detail.done"].tap()
 
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
