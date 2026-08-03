@@ -559,7 +559,6 @@ private struct CloudBakeConfirmationDialogModifier<Actions: View>: ViewModifier 
 
             VStack(spacing: CloudBakeTheme.Spacing.compactControl) {
                 actions()
-                    .environment(\.cloudBakeDialogDismiss, dismissAfterSelection)
             }
 
             if showsCancelButton {
@@ -600,21 +599,6 @@ private struct CloudBakeConfirmationDialogModifier<Actions: View>: ViewModifier 
             onCancel()
         }
     }
-
-    private func dismissAfterSelection() {
-        isPresented = false
-    }
-}
-
-private struct CloudBakeDialogDismissKey: EnvironmentKey {
-    static let defaultValue: (() -> Void)? = nil
-}
-
-private extension EnvironmentValues {
-    var cloudBakeDialogDismiss: (() -> Void)? {
-        get { self[CloudBakeDialogDismissKey.self] }
-        set { self[CloudBakeDialogDismissKey.self] = newValue }
-    }
 }
 
 func optionalPresentationBinding<Value>(_ value: Binding<Value?>) -> Binding<Bool> {
@@ -650,8 +634,6 @@ func nativeDialogSelectionButton(
 }
 
 private struct NativeDialogButton: View {
-    @Environment(\.cloudBakeDialogDismiss) private var dismiss
-
     let title: String
     var role: ButtonRole? = nil
     let action: () -> Void
@@ -659,7 +641,6 @@ private struct NativeDialogButton: View {
     var body: some View {
         Button(role: role) {
             action()
-            dismiss?()
         } label: {
             HStack(spacing: CloudBakeTheme.Spacing.compactControl) {
                 Image(systemName: role == .destructive ? "exclamationmark.triangle" : "checkmark.circle")
