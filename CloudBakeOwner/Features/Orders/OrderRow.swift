@@ -94,25 +94,51 @@ struct OrderRow: View {
 
             HStack(spacing: 6) {
                 if order.hasActiveReminderState {
-                    CloudBakeAdaptiveActionPopup(
+                    CloudBakeAdaptiveActionMenu(
                         title: "Status",
                         systemImage: "arrow.triangle.2.circlepath",
                         tint: .cloudBakePurple,
                         accessibilityIdentifier: "orders.item.status.\(order.id)",
-                        isCompact: true,
-                        actions: statusActions
-                    )
+                        isCompact: true
+                    ) {
+                        ForEach(OrderStatus.allCases, id: \.self) { status in
+                            Button {
+                                onChangeStatus(status)
+                            } label: {
+                                if status == order.status {
+                                    Label(status.displayName, systemImage: "checkmark")
+                                } else {
+                                    Text(status.displayName)
+                                }
+                            }
+                            .accessibilityIdentifier("orders.row.status.\(status.rawValue).\(order.id)")
+                        }
+                    }
 
                 }
 
-                CloudBakeAdaptiveActionPopup(
+                CloudBakeAdaptiveActionMenu(
                     title: "Payment",
                     systemImage: "banknote",
                     tint: .cloudBakeMint,
                     accessibilityIdentifier: "orders.item.payment.\(order.id)",
-                    isCompact: true,
-                    actions: paymentActions
-                )
+                    isCompact: true
+                ) {
+                    if order.isPaidInFull {
+                        Button(action: {}) {
+                            Text("Paid Already")
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .multilineTextAlignment(.center)
+                        }
+                        .disabled(true)
+                        .accessibilityIdentifier("orders.row.payment.alreadyPaid.\(order.id)")
+                    } else {
+                        Button("Mark Paid", action: onMarkPaid)
+                            .accessibilityIdentifier("orders.row.payment.paid.\(order.id)")
+                        Button("Add Partial Payment", action: onAddPartialPayment)
+                            .accessibilityIdentifier("orders.row.payment.partial.\(order.id)")
+                    }
+                }
 
                 if let onSendMessage {
                     CloudBakeAdaptiveActionButton(
@@ -150,56 +176,6 @@ struct OrderRow: View {
         }
     }
 
-    private var statusActions: [CloudBakeScreenMenuAction] {
-        OrderStatus.allCases.map { status in
-            CloudBakeScreenMenuAction(
-                title: status.displayName,
-                systemImage: status.popupSystemImage,
-                tint: status == .cancelled ? .red : .cloudBakePurple,
-                isSelected: status == order.status,
-                accessibilityIdentifier: "orders.row.status.\(status.rawValue).\(order.id)",
-                action: { onChangeStatus(status) }
-            )
-        }
-    }
-
-    private var paymentActions: [CloudBakeScreenMenuAction] {
-        [
-            CloudBakeScreenMenuAction(
-                title: "Mark Paid",
-                systemImage: "checkmark.circle",
-                tint: CloudBakeTheme.ColorToken.success,
-                accessibilityIdentifier: "orders.row.payment.paid.\(order.id)",
-                action: onMarkPaid
-            ),
-            CloudBakeScreenMenuAction(
-                title: "Add Partial Payment",
-                systemImage: "plus.circle",
-                tint: CloudBakeTheme.ColorToken.recipeAccent,
-                accessibilityIdentifier: "orders.row.payment.partial.\(order.id)",
-                action: onAddPartialPayment
-            ),
-        ]
-    }
-}
-
-extension OrderStatus {
-    var popupSystemImage: String {
-        switch self {
-        case .draft:
-            return "doc"
-        case .confirmed:
-            return "checkmark.seal"
-        case .inProgress:
-            return "arrow.triangle.2.circlepath"
-        case .ready:
-            return "shippingbox"
-        case .completed:
-            return "checkmark.circle"
-        case .cancelled:
-            return "xmark.circle"
-        }
-    }
 }
 
 extension OrderRow {

@@ -13,6 +13,7 @@ struct OrderDetailView: View {
     @State private var statusChangeErrorMessage: String?
     @State private var isConfirmingEditedOrderInventoryDeduction = false
     @State private var isConfirmingEditedOrderInventoryShortage = false
+    @State private var isConfirmingMarkPaid = false
     @State private var isAddingPartialPayment = false
     @State private var selectedCustomerReferencePhotoItem: PhotosPickerItem?
     @State private var selectedFinalCakePhotoItem: PhotosPickerItem?
@@ -28,6 +29,7 @@ struct OrderDetailView: View {
     @State private var receiptPendingVoid: PaymentReceipt?
     @State private var paymentVoidReason = ""
     @FocusState private var isChecklistTitleFocused: Bool
+    @FocusState private var isPartialPaymentAmountFocused: Bool
 
     init(
         viewModel: OrderListViewModel,
@@ -134,16 +136,27 @@ struct OrderDetailView: View {
                         CloudBakeDetailRow("Status") {
                             HStack(spacing: 8) {
                                 Text(order.status.displayName)
-                                CloudBakeAnchoredPopupButton(
-                                    title: "Status",
-                                    actions: statusPopupActions(for: order),
-                                    accessibilityLabel: "Change Status",
-                                    accessibilityIdentifier: "orders.detail.statusMenu"
-                                ) {
+                                Menu {
+                                    ForEach(OrderStatus.allCases, id: \.self) { status in
+                                        Button {
+                                            changeStatus(status, for: order)
+                                        } label: {
+                                            if status == order.status {
+                                                Label(status.displayName, systemImage: "checkmark")
+                                            } else {
+                                                Text(status.displayName)
+                                            }
+                                        }
+                                        .accessibilityIdentifier("orders.detail.status.\(status.rawValue)")
+                                    }
+                                } label: {
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                         .imageScale(.small)
-                                        .foregroundStyle(Color.cloudBakePink)
                                 }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(Color.cloudBakePink)
+                                .accessibilityLabel("Change Status")
+                                .accessibilityIdentifier("orders.detail.statusMenu")
                             }
                         }
                         CloudBakeDetailDivider()
@@ -424,6 +437,19 @@ struct OrderDetailView: View {
                 .accessibilityIdentifier("orders.detail.confirmInventoryDeduction")
             }
         }
+        .cloudBakeConfirmationDialog(
+            isPresented: $isConfirmingMarkPaid,
+            title: "Mark as Paid?",
+            message: selectedOrderPaymentConfirmationMessage,
+            cancelAccessibilityIdentifier: "orders.detail.payment.paid.cancel",
+            onCancel: { isConfirmingMarkPaid = false }
+        ) {
+            nativeDialogButton("Mark Paid") {
+                _ = viewModel.markSelectedOrderPaid()
+                isConfirmingMarkPaid = false
+            }
+            .accessibilityIdentifier("orders.detail.payment.paid.confirm")
+        }
         .cloudBakeInputPopup(
             isPresented: optionalPresentationBinding($receiptPendingVoid),
             title: "Void Payment",
@@ -497,6 +523,7 @@ struct OrderDetailView: View {
             primaryAccessibilityIdentifier: "orders.detail.payment.partial.save",
             cancelAccessibilityIdentifier: "orders.detail.payment.partial.cancel",
             onCancel: {
+                isPartialPaymentAmountFocused = false
                 isAddingPartialPayment = false
                 partialPaymentAmount = ""
                 partialPaymentNote = ""
@@ -506,6 +533,7 @@ struct OrderDetailView: View {
                     amountText: partialPaymentAmount,
                     note: partialPaymentNote
                 ) {
+                    isPartialPaymentAmountFocused = false
                     isAddingPartialPayment = false
                     partialPaymentAmount = ""
                     partialPaymentNote = ""
@@ -514,10 +542,22 @@ struct OrderDetailView: View {
         ) {
             TextField("Amount", text: $partialPaymentAmount)
                 .keyboardType(.decimalPad)
+                .focused($isPartialPaymentAmountFocused)
                 .accessibilityIdentifier("orders.detail.payment.partial.amount")
 
             TextField("Note (optional)", text: $partialPaymentNote)
                 .accessibilityIdentifier("orders.detail.payment.partial.note")
+        }
+        .onChange(of: isAddingPartialPayment) { _, isPresented in
+            guard isPresented else {
+                isPartialPaymentAmountFocused = false
+                return
+            }
+
+            Task { @MainActor in
+                await Task.yield()
+                isPartialPaymentAmountFocused = true
+            }
         }
         .sheet(isPresented: $isEditingOrder, onDismiss: cancelEditingOrder) {
             NavigationStack {
@@ -924,42 +964,6 @@ struct OrderDetailView: View {
         }
     }
 
-    private func statusPopupActions(for order: Order) -> [CloudBakeScreenMenuAction] {
-        OrderStatus.allCases.map { status in
-            CloudBakeScreenMenuAction(
-                title: status.displayName,
-                systemImage: status.popupSystemImage,
-                tint: status == .cancelled ? .red : .cloudBakePurple,
-                isSelected: status == order.status,
-                accessibilityIdentifier: "orders.detail.status.\(status.rawValue)",
-                action: { changeStatus(status, for: order) }
-            )
-        }
-    }
-
-    private var paymentPopupActions: [CloudBakeScreenMenuAction] {
-        [
-            CloudBakeScreenMenuAction(
-                title: "Mark Paid",
-                systemImage: "checkmark.circle",
-                tint: CloudBakeTheme.ColorToken.success,
-                accessibilityIdentifier: "orders.detail.payment.paid",
-                action: { _ = viewModel.markSelectedOrderPaid() }
-            ),
-            CloudBakeScreenMenuAction(
-                title: "Add Partial Payment",
-                systemImage: "plus.circle",
-                tint: CloudBakeTheme.ColorToken.recipeAccent,
-                accessibilityIdentifier: "orders.detail.payment.partial",
-                action: {
-                    partialPaymentAmount = ""
-                    partialPaymentNote = ""
-                    isAddingPartialPayment = true
-                }
-            ),
-        ]
-    }
-
     private func paymentSection(order: Order) -> some View {
         CloudBakeSection("Pricing And Payment") {
             CloudBakeDetailCard {
@@ -968,16 +972,36 @@ struct OrderDetailView: View {
                         Text(order.paymentStatus)
                             .foregroundStyle(.green)
                             .accessibilityIdentifier("orders.detail.paymentStatus")
-                        CloudBakeAnchoredPopupButton(
-                            title: "Payment",
-                            actions: paymentPopupActions,
-                            accessibilityLabel: "Change Payment Status",
-                            accessibilityIdentifier: "orders.detail.paymentStatusMenu"
-                        ) {
+                        Menu {
+                            if order.isPaidInFull {
+                                Button(action: {}) {
+                                    Text("Paid Already")
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .disabled(true)
+                                .accessibilityIdentifier("orders.detail.payment.alreadyPaid")
+                            } else {
+                                Button("Mark Paid") {
+                                    isConfirmingMarkPaid = true
+                                }
+                                .accessibilityIdentifier("orders.detail.payment.paid")
+
+                                Button("Add Partial Payment") {
+                                    partialPaymentAmount = ""
+                                    partialPaymentNote = ""
+                                    isAddingPartialPayment = true
+                                }
+                                .accessibilityIdentifier("orders.detail.payment.partial")
+                            }
+                        } label: {
                             Image(systemName: "banknote")
                                 .imageScale(.small)
-                                .foregroundStyle(Color.cloudBakePink)
                         }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.cloudBakePink)
+                        .accessibilityLabel("Change Payment Status")
+                        .accessibilityIdentifier("orders.detail.paymentStatusMenu")
                     }
                 }
 
@@ -1088,25 +1112,18 @@ struct OrderDetailView: View {
                 .strikethrough(isVoided)
                 .foregroundStyle(isVoided ? .secondary : .primary)
             if let receipt, !receipt.isVoided {
-                CloudBakeAnchoredPopupButton(
-                    title: "Payment Actions",
-                    actions: [
-                        CloudBakeScreenMenuAction(
-                            title: "Void Payment",
-                            systemImage: "xmark.circle",
-                            tint: .red,
-                            accessibilityIdentifier: "orders.detail.payment.void.\(receipt.id)"
-                        ) {
-                            paymentVoidReason = ""
-                            receiptPendingVoid = receipt
-                        }
-                    ],
-                    accessibilityLabel: "Payment Actions",
-                    accessibilityIdentifier: "orders.detail.payment.actions.\(receipt.id)"
-                ) {
+                Menu {
+                    Button("Void Payment", role: .destructive) {
+                        paymentVoidReason = ""
+                        receiptPendingVoid = receipt
+                    }
+                    .accessibilityIdentifier("orders.detail.payment.void.\(receipt.id)")
+                } label: {
                     Image(systemName: "ellipsis")
                         .frame(width: 32, height: 32)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Payment Actions")
             }
         }
         .padding(.vertical, 12)
@@ -1261,6 +1278,13 @@ struct OrderDetailView: View {
         }
 
         return formattedMoney(balanceDue)
+    }
+
+    private var selectedOrderPaymentConfirmationMessage: String {
+        guard let balanceDue = viewModel.selectedOrder?.balanceDue, balanceDue > 0 else {
+            return "Record this order as fully paid?"
+        }
+        return "Record the remaining balance of \(MoneyDisplay.formatted(balanceDue)) as paid?"
     }
 
     private func formattedMoney(_ amount: Decimal) -> String {

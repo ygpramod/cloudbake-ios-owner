@@ -161,6 +161,7 @@ final class CoreModelsTests: XCTestCase {
 
         XCTAssertEqual(order.balanceDue, Decimal(100))
         XCTAssertEqual(order.paymentStatus, "Part Paid")
+        XCTAssertFalse(order.isPaidInFull)
 
         let paidOrder = Order(
             id: "order-paid",
@@ -181,6 +182,7 @@ final class CoreModelsTests: XCTestCase {
 
         XCTAssertEqual(paidOrder.balanceDue, Decimal(0))
         XCTAssertEqual(paidOrder.paymentStatus, "Paid")
+        XCTAssertTrue(paidOrder.isPaidInFull)
     }
 
     func testConsumerOrderPreviewProjectsCustomerSafeOrderFields() {
