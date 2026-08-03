@@ -212,7 +212,7 @@ extension CloudBakeOwnerUITests {
             "Customer add action was not available."
         )
 
-        let addModeDialog = app.sheets.firstMatch
+        let addModeDialog = app.otherElements["cloudBake.confirmationPopup"]
         for attempt in 0..<2 {
             addButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             if addModeDialog.waitForExistence(timeout: min(5, timeout)) {
