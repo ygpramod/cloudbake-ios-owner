@@ -714,11 +714,25 @@ extension CloudBakeOwnerUITests {
         )
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
 
+        let detailScroll = app.scrollViews.containing(
+            .staticText,
+            identifier: "orders.detail.cake"
+        ).firstMatch
         let checklistTitle = app.textFields["orders.detail.checklist.title"]
-        scrollToHittable(checklistTitle, in: app, timeout: transitionTimeout)
+        positionScrollableElementForInteraction(
+            checklistTitle,
+            in: detailScroll,
+            app: app,
+            timeout: transitionTimeout
+        )
         typeText("Crumb coat", into: checklistTitle, timeout: transitionTimeout)
         let addChecklistButton = app.buttons["orders.detail.checklist.add"]
-        scrollToHittable(addChecklistButton, in: app, timeout: transitionTimeout)
+        positionScrollableElementForInteraction(
+            addChecklistButton,
+            in: detailScroll,
+            app: app,
+            timeout: transitionTimeout
+        )
         tapExisting(addChecklistButton, timeout: transitionTimeout)
 
         let checklistItem = app.descendants(matching: .any).matching(
@@ -1262,10 +1276,20 @@ extension CloudBakeOwnerUITests {
                 "Status failure cake"
             )
         ).firstMatch
-        tapWhenReady(orderRow)
+        tapScrollableAction(
+            orderRow,
+            in: app.scrollViews["screen.orders"],
+            waitingFor: app.staticTexts["orders.detail.cake"],
+            in: app
+        )
 
-        assertExistsAfterScrolling(app.buttons["orders.detail.statusMenu"], in: app)
-        tapWhenReady(app.buttons["orders.detail.statusMenu"])
+        let statusMenu = app.buttons["orders.detail.statusMenu"]
+        let detailScroll = app.scrollViews.containing(
+            .staticText,
+            identifier: "orders.detail.cake"
+        ).firstMatch
+        positionScrollableElementForInteraction(statusMenu, in: detailScroll, app: app)
+        tapWhenReady(statusMenu)
         tapExisting(app.buttons["Ready"])
         tapWhenReady(
             nativeDialogAction(
