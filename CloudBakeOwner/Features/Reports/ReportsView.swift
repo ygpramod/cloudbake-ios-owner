@@ -130,7 +130,7 @@ struct ReportsView: View {
                                 }
                             } label: {
                                 if viewModel.selectedStatuses.contains(status) {
-                                    Label(status.displayName, systemImage: "checkmark")
+                                    CloudBakeMenuSelectionLabel(title: status.displayName)
                                 } else {
                                     Text(status.displayName)
                                 }
@@ -157,7 +157,7 @@ struct ReportsView: View {
                                     viewModel.grouping = grouping
                                 } label: {
                                     if viewModel.grouping == grouping {
-                                        Label(grouping.title, systemImage: "checkmark")
+                                        CloudBakeMenuSelectionLabel(title: grouping.title)
                                     } else {
                                         Text(grouping.title)
                                     }

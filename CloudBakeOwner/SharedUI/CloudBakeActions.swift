@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct CloudBakeFullWidthActionButtonStyle: ButtonStyle {
     let tint: Color
@@ -141,6 +142,29 @@ extension View {
     func cloudBakeNativeMenuStyle() -> some View {
         tint(CloudBakeTheme.ColorToken.primaryAction)
     }
+}
+
+struct CloudBakeMenuSelectionLabel: View {
+    let title: String
+
+    var body: some View {
+        Label {
+            Text(title)
+        } icon: {
+            if let checkmarkImage = Self.checkmarkImage {
+                Image(uiImage: checkmarkImage)
+            } else {
+                Image(systemName: "checkmark")
+                    .foregroundStyle(CloudBakeTheme.ColorToken.primaryAction)
+            }
+        }
+    }
+
+    private static let checkmarkImage =
+        UIImage(systemName: "checkmark")?.withTintColor(
+            UIColor(red: 0.93, green: 0.22, blue: 0.47, alpha: 1),
+            renderingMode: .alwaysOriginal
+        )
 }
 
 struct CloudBakeAdaptiveActionMenu<Content: View>: View {

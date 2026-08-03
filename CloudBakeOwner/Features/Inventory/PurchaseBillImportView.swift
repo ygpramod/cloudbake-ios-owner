@@ -412,7 +412,7 @@ private struct PurchaseBillDraftRow: View {
                         draft.unit = unit
                     } label: {
                         if draft.unit == unit {
-                            Label(unit.displayName, systemImage: "checkmark")
+                            CloudBakeMenuSelectionLabel(title: unit.displayName)
                         } else {
                             Text(unit.displayName)
                         }
