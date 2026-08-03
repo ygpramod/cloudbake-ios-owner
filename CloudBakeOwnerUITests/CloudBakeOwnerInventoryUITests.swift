@@ -459,12 +459,7 @@ extension CloudBakeOwnerUITests {
         ).firstMatch
         XCTAssertTrue(includeControl.waitForExistence(timeout: 5))
 
-        let destinationButton = app.buttons.matching(
-            NSPredicate(
-                format: "identifier BEGINSWITH %@",
-                "inventory.purchaseBill.draft.destination."
-            )
-        ).firstMatch
+        let destinationButton = app.buttons["Map to Existing Inventory"]
         scrollToHittable(destinationButton, in: app, timeout: 10)
         tapWhenReady(destinationButton)
         tapWhenReady(
