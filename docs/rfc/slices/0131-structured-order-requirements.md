@@ -30,7 +30,8 @@ mandatory questionnaire.
    - packaging.
 2. Keep Cake Name as the only required cake field. Every new structured field may remain empty.
 3. Present the fields in small related groups so the form remains calm and does not show one long
-   undifferentiated list.
+   undifferentiated list. Size And Shape starts collapsed whenever Add Order or Edit Order opens,
+   matching the other optional cake-requirement groups.
 4. Use compact initial choices:
    - occasion: Birthday, Wedding, Anniversary, Baby Shower, Celebration, Other;
    - size: 4 in, 6 in, 8 in, 10 in, 12 in, Other;
@@ -83,8 +84,9 @@ Fondant frosting, a pink-and-gold palette, floral theme, name topper, candles, a
 2. Persistence tests cover migration defaults, full order round trips, template round trips, custom
    choices, and backup/restore representation.
 3. View-model tests cover fresh, edit, duplicate, customer-history, and template-application drafts.
-4. A focused acceptance journey creates an order with structured requirements, verifies its summary,
-   and reopens it for editing.
+4. A focused acceptance journey verifies the Size And Shape group starts collapsed, expands it to
+   create an order with structured requirements, verifies the summary, and confirms it starts
+   collapsed again when reopening the order for editing.
 
 ## Out Of Scope
 
