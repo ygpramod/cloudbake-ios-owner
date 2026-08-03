@@ -699,11 +699,10 @@ extension CloudBakeOwnerUITests {
     }
 
     func testOrderChecklistItemCanBeAddedAndCompleted() throws {
-        let app = makeApp()
+        let app = makeApp(initialDestination: "orders")
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         addOrder(named: "Vanilla Birthday", notes: "Pink flowers", customerName: "Amy", in: app)
 
@@ -719,20 +718,16 @@ extension CloudBakeOwnerUITests {
             identifier: "orders.detail.cake"
         ).firstMatch
         let checklistTitle = app.textFields["orders.detail.checklist.title"]
-        positionScrollableElementForInteraction(
-            checklistTitle,
-            in: detailScroll,
-            app: app,
-            timeout: transitionTimeout
-        )
+        for _ in 0..<12 where !checklistTitle.isHittable {
+            detailScroll.swipeUp()
+        }
+        XCTAssertTrue(checklistTitle.isHittable)
         typeText("Crumb coat", into: checklistTitle, timeout: transitionTimeout)
+        dismissKeyboard(in: app)
         let addChecklistButton = app.buttons["orders.detail.checklist.add"]
-        positionScrollableElementForInteraction(
-            addChecklistButton,
-            in: detailScroll,
-            app: app,
-            timeout: transitionTimeout
-        )
+        for _ in 0..<4 where !addChecklistButton.isHittable {
+            detailScroll.swipeUp()
+        }
         tapExisting(addChecklistButton, timeout: transitionTimeout)
 
         let checklistItem = app.descendants(matching: .any).matching(
