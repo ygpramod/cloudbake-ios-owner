@@ -89,7 +89,7 @@ extension CloudBakeOwnerUITests {
         let positioningDeadline = Date().addingTimeInterval(timeout)
         let scrollFrame = scrollContainer.frame
         let reliableTop = scrollFrame.minY + 100
-        let reliableBottom = scrollFrame.maxY - 140
+        let reliableBottom = scrollFrame.maxY - 80
 
         while element.exists, Date() < positioningDeadline {
             if element.frame.midY > reliableBottom {
@@ -118,6 +118,48 @@ extension CloudBakeOwnerUITests {
                 && element.frame.midY >= reliableTop
                 && element.frame.midY <= reliableBottom,
             "Element was not positioned safely between navigation overlays.",
+            file: file,
+            line: line
+        )
+    }
+
+    func positionTextInputForInteraction(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let collectionView = visibleElement(in: app.collectionViews)
+        if collectionView.exists {
+            positionScrollableElementForInteraction(
+                element,
+                in: collectionView,
+                app: app,
+                timeout: timeout,
+                file: file,
+                line: line
+            )
+            return
+        }
+
+        let scrollView = visibleElement(in: app.scrollViews)
+        if scrollView.exists {
+            positionScrollableElementForInteraction(
+                element,
+                in: scrollView,
+                app: app,
+                timeout: timeout,
+                file: file,
+                line: line
+            )
+            return
+        }
+
+        scrollToHittable(
+            element,
+            in: app,
+            timeout: timeout,
             file: file,
             line: line
         )
@@ -395,8 +437,8 @@ extension CloudBakeOwnerUITests {
     }
 
     func scrollToTop(in app: XCUIApplication) {
-        for _ in 0..<3 {
-            app.swipeDown()
+        for _ in 0..<5 {
+            swipeDownInPrimaryScrollableArea(in: app)
         }
     }
 
