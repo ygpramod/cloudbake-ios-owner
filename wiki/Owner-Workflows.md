@@ -346,9 +346,10 @@ custom back button. CloudBake keeps a short recent section history, so tapping a
 section behaves like going back to that screen instead of opening a duplicate copy.
 
 Detail screens use a focused version of the same visual language: custom compact header, hero
-summary card, titled card sections, visible row actions, native menus for compact choices, and
-native iOS alerts or confirmation dialogs for protected mutations and short input. Workflows that
-need richer controls use a native sheet rather than a custom popup overlay.
+summary card, titled card sections, and visible row actions. Compact choices use the shared
+CloudBake anchored popover; protected mutations and acknowledgements use the fitted confirmation
+card; and short text entry uses the keyboard-safe input card. Apple-owned permission, photo, file,
+share, and keyboard surfaces remain native, while richer app workflows use a native sheet.
 
 Order detail overview focuses on balance due and delivery address when the order is a delivery.
 Notes and cake message content are shown as left-aligned block text below their labels so longer
