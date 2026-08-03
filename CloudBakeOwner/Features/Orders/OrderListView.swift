@@ -12,6 +12,7 @@ struct OrderListView: View {
     @State private var orderScope: OrderScope = .active
     @State private var pendingStatusChange: OrderStatusChangeRequest?
     @State private var shortageOverrideRequest: OrderStatusChangeRequest?
+    @State private var orderPendingMarkPaid: Order?
     @State private var orderAddingPartialPayment: Order?
     @State private var partialPaymentAmount = ""
     @State private var canOpenWhatsApp = false
@@ -23,6 +24,7 @@ struct OrderListView: View {
     @State private var existingTemplateBeingEdited: OrderTemplate?
     @State private var templateDraftName = ""
     @FocusState private var isSearchFocused: Bool
+    @FocusState private var isPartialPaymentAmountFocused: Bool
 
     init(viewModel: OrderListViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -278,6 +280,21 @@ struct OrderListView: View {
                 .accessibilityIdentifier("orders.row.inventoryShortage.continue")
             }
         }
+        .cloudBakeConfirmationDialog(
+            isPresented: optionalPresentationBinding($orderPendingMarkPaid),
+            title: "Mark as Paid?",
+            message: orderPendingMarkPaid.map(paymentConfirmationMessage) ?? "",
+            cancelAccessibilityIdentifier: "orders.row.payment.paid.cancel",
+            onCancel: { orderPendingMarkPaid = nil }
+        ) {
+            if let orderPendingMarkPaid {
+                nativeDialogButton("Mark Paid") {
+                    _ = viewModel.markOrderPaid(orderPendingMarkPaid)
+                    self.orderPendingMarkPaid = nil
+                }
+                .accessibilityIdentifier("orders.row.payment.paid.confirm")
+            }
+        }
         .cloudBakeInputPopup(
             isPresented: optionalPresentationBinding($orderAddingPartialPayment),
             title: "Add Partial Payment",
@@ -286,6 +303,7 @@ struct OrderListView: View {
             primaryAccessibilityIdentifier: "orders.row.payment.partial.save",
             cancelAccessibilityIdentifier: "orders.row.payment.partial.cancel",
             onCancel: {
+                isPartialPaymentAmountFocused = false
                 orderAddingPartialPayment = nil
                 partialPaymentAmount = ""
             },
@@ -293,6 +311,7 @@ struct OrderListView: View {
                 if let order = orderAddingPartialPayment,
                     viewModel.addPayment(to: order, amountText: partialPaymentAmount)
                 {
+                    isPartialPaymentAmountFocused = false
                     orderAddingPartialPayment = nil
                     partialPaymentAmount = ""
                 }
@@ -300,7 +319,19 @@ struct OrderListView: View {
         ) {
             TextField("Amount", text: $partialPaymentAmount)
                 .keyboardType(.decimalPad)
+                .focused($isPartialPaymentAmountFocused)
                 .accessibilityIdentifier("orders.row.payment.partial.amount")
+        }
+        .onChange(of: orderAddingPartialPayment?.id) { _, orderID in
+            guard orderID != nil else {
+                isPartialPaymentAmountFocused = false
+                return
+            }
+
+            Task { @MainActor in
+                await Task.yield()
+                isPartialPaymentAmountFocused = true
+            }
         }
     }
 
@@ -466,7 +497,7 @@ struct OrderListView: View {
                 }
             },
             onMarkPaid: {
-                _ = viewModel.markOrderPaid(order)
+                orderPendingMarkPaid = order
             },
             onAddPartialPayment: {
                 partialPaymentAmount = ""
@@ -477,6 +508,13 @@ struct OrderListView: View {
                 openOrder(order)
             }
         )
+    }
+
+    private func paymentConfirmationMessage(for order: Order) -> String {
+        guard let balanceDue = order.balanceDue, balanceDue > 0 else {
+            return "Record this order as fully paid?"
+        }
+        return "Record the remaining balance of \(MoneyDisplay.formatted(balanceDue)) as paid?"
     }
 
     private func messageAction(for order: Order) -> (() -> Void)? {

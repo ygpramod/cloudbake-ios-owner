@@ -456,6 +456,13 @@ struct Order: Equatable {
         return "Part Paid"
     }
 
+    var isPaidInFull: Bool {
+        guard let quotedPrice, quotedPrice > 0 else {
+            return false
+        }
+        return (depositPaid ?? 0) >= quotedPrice
+    }
+
     func hasPaymentPending(at date: Date) -> Bool {
         status == .completed
             && dueAt <= date
