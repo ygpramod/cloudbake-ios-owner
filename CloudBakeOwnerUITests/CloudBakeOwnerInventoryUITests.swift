@@ -465,6 +465,7 @@ extension CloudBakeOwnerUITests {
                 "inventory.purchaseBill.draft.destination."
             )
         ).firstMatch
+        scrollToHittable(destinationButton, in: app, timeout: 10)
         tapWhenReady(destinationButton)
         tapWhenReady(
             nativeDialogAction(
