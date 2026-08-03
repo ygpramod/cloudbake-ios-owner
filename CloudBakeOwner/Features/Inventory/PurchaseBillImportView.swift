@@ -175,28 +175,12 @@ struct PurchaseBillImportView: View {
                 )
             }
         }
-        .confirmationDialog(
-            "Choose How to Save",
+        .cloudBakeActionPopup(
             isPresented: purchaseBillActionPresented,
-            titleVisibility: .visible
-        ) {
-            Button("Create New Inventory") {
-                if let actionDraftId {
-                    viewModel.resolvePurchaseBillDraftAsNew(actionDraftId)
-                }
-                self.actionDraftId = nil
-            }
-            Button("Map to Existing Inventory") {
-                let draftId = actionDraftId
-                actionDraftId = nil
-                DispatchQueue.main.async {
-                    mappingDraftId = draftId
-                }
-            }
-            Button("Cancel", role: .cancel) {
-                actionDraftId = nil
-            }
-        }
+            title: "Choose How to Save",
+            accessibilityIdentifier: "inventory.purchaseBill.destination.popup",
+            actions: purchaseBillDestinationActions
+        )
         .sheet(isPresented: purchaseBillMappingPresented) {
             NavigationStack {
                 List(filteredPurchaseBillInventoryItems, id: \.id) { item in
@@ -270,6 +254,34 @@ struct PurchaseBillImportView: View {
                 catalog: catalogProvider()
             )
         }
+    }
+
+    private var purchaseBillDestinationActions: [CloudBakePopupAction] {
+        [
+            CloudBakePopupAction(
+                title: "Create New Inventory",
+                systemImage: "plus.square",
+                tint: Color.cloudBakePink,
+                accessibilityIdentifier: "inventory.purchaseBill.destination.new"
+            ) {
+                if let actionDraftId {
+                    viewModel.resolvePurchaseBillDraftAsNew(actionDraftId)
+                }
+                self.actionDraftId = nil
+            },
+            CloudBakePopupAction(
+                title: "Map to Existing Inventory",
+                systemImage: "arrow.triangle.merge",
+                tint: .purple,
+                accessibilityIdentifier: "inventory.purchaseBill.destination.existing"
+            ) {
+                let draftId = actionDraftId
+                actionDraftId = nil
+                DispatchQueue.main.async {
+                    mappingDraftId = draftId
+                }
+            },
+        ]
     }
 
     private var purchaseBillActionPresented: Binding<Bool> {
