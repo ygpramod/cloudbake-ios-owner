@@ -10,6 +10,15 @@ struct RecipeListSummary: Equatable {
     }
 }
 
+struct NewRecipeIngredientDraft: Identifiable, Equatable {
+    let id: String
+    let inventoryItemId: String
+    let inventoryItemName: String
+    let quantity: Double
+    let unit: InventoryUnit
+    let note: String?
+}
+
 @MainActor
 final class RecipeListViewModel: ObservableObject {
     @Published private(set) var recipes: [Recipe] = []
@@ -24,6 +33,7 @@ final class RecipeListViewModel: ObservableObject {
     @Published var draftIngredientQuantity = ""
     @Published var draftIngredientUnit: InventoryUnit = .gram
     @Published var draftIngredientNote = ""
+    @Published private(set) var newRecipeIngredientDrafts: [NewRecipeIngredientDraft] = []
     @Published var importIngredientDrafts: [RecipeImportIngredientDraftRow] = []
     @Published var searchText = ""
     @Published var errorMessage: String?
@@ -31,7 +41,9 @@ final class RecipeListViewModel: ObservableObject {
     @Published private(set) var editingIngredient: RecipeIngredient?
     @Published private(set) var pendingInventoryShortages: [OrderInventoryShortage] = []
 
-    private let repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeIngredientReservationMutationRepository & InventoryItemRepository
+    private let repository:
+        any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeIngredientReservationMutationRepository
+            & RecipeCSVImportRepository & InventoryItemRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private var pendingNewIngredientId: String?
@@ -43,8 +55,17 @@ final class RecipeListViewModel: ObservableObject {
         let component: RecipeComponent
     }
 
+    private struct ValidatedIngredientDraft {
+        let inventoryItem: InventoryItem
+        let quantity: Double
+        let unit: InventoryUnit
+        let note: String?
+    }
+
     init(
-        repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeIngredientReservationMutationRepository & InventoryItemRepository,
+        repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository
+            & RecipeIngredientReservationMutationRepository & RecipeCSVImportRepository
+            & InventoryItemRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init
     ) {
@@ -75,7 +96,7 @@ final class RecipeListViewModel: ObservableObject {
                 recipe.name,
                 recipe.notes,
                 summary?.ingredientCountText,
-                summary?.ingredientNames.joined(separator: " ")
+                summary?.ingredientNames.joined(separator: " "),
             ]
             .compactMap { $0 }
             .map(TextInputFormatting.normalizedSearchKey)
@@ -89,12 +110,14 @@ final class RecipeListViewModel: ObservableObject {
 
     var canSubmitIngredientDraft: Bool {
         guard !availableInventoryItems.isEmpty,
-              availableInventoryItems.contains(where: { $0.id == draftIngredientInventoryItemId }) else {
+            availableInventoryItems.contains(where: { $0.id == draftIngredientInventoryItemId })
+        else {
             return false
         }
 
         guard let quantity = RecipeImportDraftValidation.parsedIngredientQuantity(from: draftIngredientQuantity),
-              quantity > 0 else {
+            quantity > 0
+        else {
             return false
         }
 
@@ -140,7 +163,35 @@ final class RecipeListViewModel: ObservableObject {
         )
 
         do {
-            try repository.save(recipe)
+            if newRecipeIngredientDrafts.isEmpty {
+                try repository.save(recipe)
+            } else {
+                let component = RecipeComponent(
+                    id: idGenerator(),
+                    recipeId: recipe.id,
+                    name: "Ingredients",
+                    sortOrder: 0,
+                    createdAt: now,
+                    updatedAt: now
+                )
+                let ingredients = newRecipeIngredientDrafts.map { ingredientDraft in
+                    RecipeIngredient(
+                        id: ingredientDraft.id,
+                        componentId: component.id,
+                        inventoryItemId: ingredientDraft.inventoryItemId,
+                        quantity: ingredientDraft.quantity,
+                        unit: ingredientDraft.unit,
+                        note: ingredientDraft.note,
+                        createdAt: now,
+                        updatedAt: now
+                    )
+                }
+                try repository.saveRecipeCSVImport(
+                    recipes: [recipe],
+                    components: [component],
+                    ingredients: ingredients
+                )
+            }
             resetDraft()
             load()
             return true
@@ -290,6 +341,38 @@ final class RecipeListViewModel: ObservableObject {
         errorMessage = nil
     }
 
+    func beginAddingNewRecipeIngredient() {
+        resetIngredientDraft()
+        loadAvailableInventoryItems()
+        defaultIngredientSelectionIfNeeded()
+        pendingInventoryShortages = []
+        errorMessage = nil
+    }
+
+    func saveNewRecipeIngredientDraft() -> Bool {
+        guard let draft = validatedIngredientDraft() else {
+            return false
+        }
+
+        newRecipeIngredientDrafts.append(
+            NewRecipeIngredientDraft(
+                id: idGenerator(),
+                inventoryItemId: draft.inventoryItem.id,
+                inventoryItemName: draft.inventoryItem.name,
+                quantity: draft.quantity,
+                unit: draft.unit,
+                note: draft.note
+            )
+        )
+        resetIngredientDraft()
+        errorMessage = nil
+        return true
+    }
+
+    func removeNewRecipeIngredientDraft(id: String) {
+        newRecipeIngredientDrafts.removeAll { $0.id == id }
+    }
+
     func beginEditingIngredient(_ ingredient: RecipeIngredient) {
         editingIngredient = ingredient
         pendingNewIngredientId = nil
@@ -320,15 +403,7 @@ final class RecipeListViewModel: ObservableObject {
             return false
         }
 
-        guard !draftIngredientInventoryItemId.isEmpty,
-              availableInventoryItems.contains(where: { $0.id == draftIngredientInventoryItemId }) else {
-            errorMessage = "Choose an inventory item."
-            return false
-        }
-
-        guard let quantity = RecipeImportDraftValidation.parsedIngredientQuantity(from: draftIngredientQuantity),
-              quantity > 0 else {
-            errorMessage = "Ingredient quantity must be greater than zero."
+        guard let draft = validatedIngredientDraft() else {
             return false
         }
 
@@ -337,18 +412,18 @@ final class RecipeListViewModel: ObservableObject {
         do {
             let component = try componentForIngredientMutation(for: selectedRecipe)
             let now = dateProvider()
-            let note = draftIngredientNote.trimmingCharacters(in: .whitespacesAndNewlines)
-            let ingredientId = editingIngredient?.id
+            let ingredientId =
+                editingIngredient?.id
                 ?? pendingNewIngredientId
                 ?? idGenerator()
             pendingNewIngredientId = ingredientId
             let ingredient = RecipeIngredient(
                 id: ingredientId,
                 componentId: component.id,
-                inventoryItemId: draftIngredientInventoryItemId,
-                quantity: quantity,
-                unit: draftIngredientUnit,
-                note: note.isEmpty ? nil : note,
+                inventoryItemId: draft.inventoryItem.id,
+                quantity: draft.quantity,
+                unit: draft.unit,
+                note: draft.note,
                 createdAt: editingIngredient?.createdAt ?? now,
                 updatedAt: now
             )
@@ -378,7 +453,8 @@ final class RecipeListViewModel: ObservableObject {
 
     func confirmPendingIngredientInventoryShortage() -> Bool {
         guard !pendingInventoryShortages.isEmpty,
-              let mutation = pendingIngredientShortageMutation else {
+            let mutation = pendingIngredientShortageMutation
+        else {
             errorMessage = "Review an inventory shortage before continuing."
             return false
         }
@@ -460,6 +536,36 @@ final class RecipeListViewModel: ObservableObject {
     private func resetDraft() {
         draftName = ""
         draftNotes = ""
+        newRecipeIngredientDrafts = []
+        resetIngredientDraft()
+    }
+
+    private func validatedIngredientDraft() -> ValidatedIngredientDraft? {
+        guard !draftIngredientInventoryItemId.isEmpty,
+            let inventoryItem = availableInventoryItems.first(where: {
+                $0.id == draftIngredientInventoryItemId
+            })
+        else {
+            errorMessage = "Choose an inventory item."
+            return nil
+        }
+
+        guard
+            let quantity = RecipeImportDraftValidation.parsedIngredientQuantity(
+                from: draftIngredientQuantity
+            ), quantity > 0
+        else {
+            errorMessage = "Ingredient quantity must be greater than zero."
+            return nil
+        }
+
+        let note = draftIngredientNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ValidatedIngredientDraft(
+            inventoryItem: inventoryItem,
+            quantity: quantity,
+            unit: draftIngredientUnit,
+            note: note.isEmpty ? nil : note
+        )
     }
 
     private func recipeIngredientReservationErrorMessage(
@@ -560,7 +666,8 @@ final class RecipeListViewModel: ObservableObject {
             let ingredients = try repository.fetchRecipeComponents(recipeId: recipe.id).flatMap { component in
                 try repository.fetchRecipeIngredients(componentId: component.id)
             }
-            let ingredientNames = ingredients
+            let ingredientNames =
+                ingredients
                 .compactMap { inventoryItemsById[$0.inventoryItemId]?.name }
                 .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
 
@@ -626,7 +733,8 @@ final class RecipeListViewModel: ObservableObject {
 
     private func defaultIngredientSelectionIfNeeded() {
         guard draftIngredientInventoryItemId.isEmpty,
-              let firstItem = availableInventoryItems.first else {
+            let firstItem = availableInventoryItems.first
+        else {
             return
         }
 

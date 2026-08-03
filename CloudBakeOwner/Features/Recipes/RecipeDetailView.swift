@@ -72,36 +72,36 @@ struct RecipeDetailView: View {
                         )
                     } else {
                         CloudBakeDetailCard {
-                        ForEach(viewModel.recipeIngredients) { row in
-                            HStack(spacing: 12) {
-                                Button {
-                                    viewModel.beginEditingIngredient(row.ingredient)
-                                    isEditingIngredient = true
-                                } label: {
-                                    RecipeIngredientListRow(row: row)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityIdentifier("recipes.ingredient.view.\(row.id)")
+                            ForEach(viewModel.recipeIngredients) { row in
+                                HStack(spacing: 12) {
+                                    Button {
+                                        viewModel.beginEditingIngredient(row.ingredient)
+                                        isEditingIngredient = true
+                                    } label: {
+                                        RecipeIngredientListRow(row: row)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityIdentifier("recipes.ingredient.view.\(row.id)")
 
-                                Button(role: .destructive) {
-                                    pendingDeleteIngredientRow = row
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .frame(width: 34, height: 34)
+                                    Button(role: .destructive) {
+                                        pendingDeleteIngredientRow = row
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .frame(width: 34, height: 34)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(.red)
+                                    .accessibilityLabel("Delete ingredient")
+                                    .accessibilityIdentifier("recipes.ingredient.delete.\(row.id)")
                                 }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(.red)
-                                .accessibilityLabel("Delete ingredient")
-                                .accessibilityIdentifier("recipes.ingredient.delete.\(row.id)")
-                            }
-                            .padding(.vertical, 12)
+                                .padding(.vertical, 12)
 
-                            if row.id != viewModel.recipeIngredients.last?.id {
-                                CloudBakeDetailDivider()
+                                if row.id != viewModel.recipeIngredients.last?.id {
+                                    CloudBakeDetailDivider()
+                                }
                             }
-                        }
                         }
                     }
                 }
@@ -136,7 +136,8 @@ struct RecipeDetailView: View {
                     viewModel: viewModel,
                     isPresented: $isEditingRecipe,
                     onCancel: viewModel.cancelAddRecipe,
-                    onSave: viewModel.saveEditedRecipe
+                    onSave: viewModel.saveEditedRecipe,
+                    allowsIngredientDrafts: false
                 )
             }
         }

@@ -3,7 +3,23 @@ import SwiftUI
 struct RecipeIngredientForm: View {
     @ObservedObject var viewModel: RecipeListViewModel
     @Binding var isPresented: Bool
+    let onSave: () -> Bool
+    let onPrepareForNext: () -> Void
     @State private var isConfirmingInventoryShortage = false
+    @State private var completionAfterSave: SaveCompletion = .close
+    @State private var continuesAddingIngredients = false
+
+    init(
+        viewModel: RecipeListViewModel,
+        isPresented: Binding<Bool>,
+        onSave: (() -> Bool)? = nil,
+        onPrepareForNext: (() -> Void)? = nil
+    ) {
+        self.viewModel = viewModel
+        _isPresented = isPresented
+        self.onSave = onSave ?? viewModel.saveIngredient
+        self.onPrepareForNext = onPrepareForNext ?? viewModel.beginAddingIngredient
+    }
 
     var body: some View {
         Form {
@@ -40,6 +56,13 @@ struct RecipeIngredientForm: View {
                         .lineLimit(2...5)
                         .accessibilityIdentifier("recipes.ingredient.note")
                 }
+
+                if viewModel.editingIngredient == nil {
+                    Section {
+                        Toggle("Continue adding ingredients", isOn: $continuesAddingIngredients)
+                            .accessibilityIdentifier("recipes.ingredient.continueAdding")
+                    }
+                }
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -63,7 +86,7 @@ struct RecipeIngredientForm: View {
             nativeDialogButton("Continue And Save", role: .destructive) {
                 if viewModel.confirmPendingIngredientInventoryShortage() {
                     isConfirmingInventoryShortage = false
-                    isPresented = false
+                    completeSuccessfulSave()
                 } else {
                     isConfirmingInventoryShortage = false
                 }
@@ -83,15 +106,38 @@ struct RecipeIngredientForm: View {
 
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if viewModel.saveIngredient() {
-                        isPresented = false
-                    } else if !viewModel.pendingInventoryShortages.isEmpty {
-                        isConfirmingInventoryShortage = true
-                    }
+                    let completion: SaveCompletion =
+                        viewModel.editingIngredient == nil && continuesAddingIngredients
+                        ? .addAnother
+                        : .close
+                    submit(completion)
                 }
                 .disabled(!viewModel.canSubmitIngredientDraft)
                 .accessibilityIdentifier("recipes.ingredient.save")
             }
         }
+    }
+
+    private func submit(_ completion: SaveCompletion) {
+        completionAfterSave = completion
+        if onSave() {
+            completeSuccessfulSave()
+        } else if !viewModel.pendingInventoryShortages.isEmpty {
+            isConfirmingInventoryShortage = true
+        }
+    }
+
+    private func completeSuccessfulSave() {
+        switch completionAfterSave {
+        case .close:
+            isPresented = false
+        case .addAnother:
+            onPrepareForNext()
+        }
+    }
+
+    private enum SaveCompletion {
+        case close
+        case addAnother
     }
 }
