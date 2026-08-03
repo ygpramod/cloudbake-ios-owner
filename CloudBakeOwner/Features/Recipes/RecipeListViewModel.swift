@@ -43,7 +43,7 @@ final class RecipeListViewModel: ObservableObject {
 
     private let repository:
         any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository & RecipeIngredientReservationMutationRepository
-            & RecipeCSVImportRepository & InventoryItemRepository
+            & RecipeAggregateRepository & InventoryItemRepository
     private let idGenerator: () -> String
     private let dateProvider: () -> Date
     private var pendingNewIngredientId: String?
@@ -64,7 +64,7 @@ final class RecipeListViewModel: ObservableObject {
 
     init(
         repository: any RecipeRepository & RecipeComponentRepository & RecipeIngredientRepository
-            & RecipeIngredientReservationMutationRepository & RecipeCSVImportRepository
+            & RecipeIngredientReservationMutationRepository & RecipeAggregateRepository
             & InventoryItemRepository,
         idGenerator: @escaping () -> String = { UUID().uuidString },
         dateProvider: @escaping () -> Date = Date.init
@@ -186,8 +186,8 @@ final class RecipeListViewModel: ObservableObject {
                         updatedAt: now
                     )
                 }
-                try repository.saveRecipeCSVImport(
-                    recipes: [recipe],
+                try repository.saveRecipeAggregate(
+                    recipe: recipe,
                     components: [component],
                     ingredients: ingredients
                 )

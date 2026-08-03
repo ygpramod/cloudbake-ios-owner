@@ -50,6 +50,14 @@ protocol RecipeIngredientReservationMutationRepository {
     ) throws
 }
 
+protocol RecipeAggregateRepository {
+    func saveRecipeAggregate(
+        recipe: Recipe,
+        components: [RecipeComponent],
+        ingredients: [RecipeIngredient]
+    ) throws
+}
+
 enum RecipeIngredientReservationMutationError: Error, Equatable {
     case componentNotFound
     case recipeReassignmentNotAllowed
