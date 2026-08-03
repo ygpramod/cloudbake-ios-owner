@@ -426,6 +426,7 @@ private struct PurchaseBillDraftRow: View {
                         .font(.caption2)
                 }
             }
+            .cloudBakeNativeMenuStyle()
             .accessibilityLabel("Unit")
             .accessibilityValue(draft.unit.displayName)
             .accessibilityIdentifier("inventory.purchaseBill.draft.unit.\(draft.id)")

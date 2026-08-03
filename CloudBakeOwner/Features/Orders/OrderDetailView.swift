@@ -154,6 +154,7 @@ struct OrderDetailView: View {
                                         .imageScale(.small)
                                 }
                                 .buttonStyle(.plain)
+                                .cloudBakeNativeMenuStyle()
                                 .foregroundStyle(Color.cloudBakePink)
                                 .accessibilityLabel("Change Status")
                                 .accessibilityIdentifier("orders.detail.statusMenu")
@@ -999,6 +1000,7 @@ struct OrderDetailView: View {
                                 .imageScale(.small)
                         }
                         .buttonStyle(.plain)
+                        .cloudBakeNativeMenuStyle()
                         .foregroundStyle(Color.cloudBakePink)
                         .accessibilityLabel("Change Payment Status")
                         .accessibilityIdentifier("orders.detail.paymentStatusMenu")
@@ -1123,6 +1125,7 @@ struct OrderDetailView: View {
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
+                .cloudBakeNativeMenuStyle()
                 .accessibilityLabel("Payment Actions")
             }
         }

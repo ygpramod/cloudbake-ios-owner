@@ -34,6 +34,8 @@ their existing native presentations.
 
 Later product direction keeps native `Menu` presentation for compact choices attached to cards or
 form fields, including status, payment, report filters, inventory units, and cake specifications.
+These menus use the shared CloudBake native-menu style so selected checkmarks retain the primary
+pink accent in every screen.
 Main screen and workflow action lists such as report selection, More Actions, and template
 management use the shared CloudBake-styled action popover while retaining native popover
 presentation and dismissal behavior.

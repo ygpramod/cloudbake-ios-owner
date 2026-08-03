@@ -143,6 +143,7 @@ struct ReportsView: View {
                             systemImage: "line.3.horizontal.decrease.circle"
                         )
                     }
+                    .cloudBakeNativeMenuStyle()
                     .accessibilityLabel("Order statuses")
                     .accessibilityValue("\(viewModel.selectedStatuses.count) selected")
                     .accessibilityIdentifier("reports.statuses")
@@ -166,6 +167,7 @@ struct ReportsView: View {
                         } label: {
                             Label(viewModel.grouping.title, systemImage: "calendar")
                         }
+                        .cloudBakeNativeMenuStyle()
                         .accessibilityLabel("Group report by")
                         .accessibilityValue(viewModel.grouping.title)
                         .accessibilityIdentifier("reports.grouping")

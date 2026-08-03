@@ -262,7 +262,8 @@ The app currently supports:
 149. native iOS menus for compact choices attached to cards and forms, including order status,
     payment, report filters, bill-item units, and cake specifications; shared CloudBake action
     popovers remain for main report selection, More Actions, template management, and other
-    workflow-level choices, alongside content-sized confirmation and short-input cards.
+    workflow-level choices; native menu selection checkmarks consistently use the CloudBake pink
+    accent, alongside content-sized confirmation and short-input cards.
 
 ## Partially Prepared
 

@@ -177,6 +177,7 @@ struct OrderCakeSpecificationSection: View {
                         .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
+                .cloudBakeNativeMenuStyle()
                 .accessibilityLabel("Previous \(label) choices")
                 .accessibilityValue(text.wrappedValue)
                 .accessibilityIdentifier("orders.form.cakeSpecification.previous.\(field.rawValue)")
@@ -245,6 +246,7 @@ private struct OrderCakeChoiceRow: View {
                         .font(.caption2)
                 }
             }
+            .cloudBakeNativeMenuStyle()
             .accessibilityLabel(label)
             .accessibilityValue(value.isEmpty ? "Not Set" : value)
             .accessibilityIdentifier(identifier)

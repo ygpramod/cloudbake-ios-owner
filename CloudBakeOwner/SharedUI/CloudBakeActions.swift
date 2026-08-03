@@ -131,8 +131,15 @@ struct CloudBakeAdaptiveActionButton: View {
             }
         }
         .buttonStyle(.plain)
+        .cloudBakeNativeMenuStyle()
         .accessibilityLabel(title)
         .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
+extension View {
+    func cloudBakeNativeMenuStyle() -> some View {
+        tint(CloudBakeTheme.ColorToken.primaryAction)
     }
 }
 
