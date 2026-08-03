@@ -573,20 +573,23 @@ private struct CakeDesignPreviewView: View {
                 .accessibilityIdentifier("designs.preview.done")
             }
         }
-        .alert("Edit Tags", isPresented: $isEditingTags) {
-            TextField("Comma-separated tags", text: $tagsText)
-                .accessibilityIdentifier("designs.preview.tags.field")
-            Button("Save") {
+        .cloudBakeInputPopup(
+            isPresented: $isEditingTags,
+            title: "Edit Tags",
+            message: "Separate tags with commas.",
+            primaryTitle: "Save",
+            primaryAccessibilityIdentifier: "designs.preview.tags.save",
+            cancelAccessibilityIdentifier: "designs.tags.cancel",
+            onCancel: {
+                isEditingTags = false
+            },
+            onSubmit: {
                 if let updated = onUpdateTags(tagsText, design) { apply(updated) }
                 isEditingTags = false
             }
-            .accessibilityIdentifier("designs.preview.tags.save")
-            Button("Cancel", role: .cancel) {
-                isEditingTags = false
-            }
-            .accessibilityIdentifier("designs.tags.cancel")
-        } message: {
-            Text("Separate tags with commas.")
+        ) {
+            TextField("Comma-separated tags", text: $tagsText)
+                .accessibilityIdentifier("designs.preview.tags.field")
         }
         .cloudBakeConfirmationDialog(
             isPresented: $isConfirmingDelete,
