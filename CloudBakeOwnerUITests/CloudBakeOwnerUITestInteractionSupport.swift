@@ -246,7 +246,7 @@ extension CloudBakeOwnerUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> XCUIElement {
-        let matches = app.sheets.buttons.matching(identifier: identifier)
+        let matches = app.buttons.matching(identifier: identifier)
         XCTAssertTrue(
             matches.firstMatch.waitForExistence(timeout: timeout),
             "Native dialog action \(identifier) did not appear.",
@@ -271,7 +271,7 @@ extension CloudBakeOwnerUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> XCUIElement {
-        let matches = app.sheets.buttons.matching(
+        let matches = app.buttons.matching(
             NSPredicate(format: "label == %@", label)
         )
         XCTAssertTrue(
