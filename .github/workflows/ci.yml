@@ -94,6 +94,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipesCanBeAdded
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeCanBeImportedFromRecognizedTextDraft
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeIngredientCanBeAddedFromInventory
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testNewRecipeCanContinuouslyAddIngredientsBeforeSave
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testRecipeNotesCanBeEditedFromDetail
           - feature: settings
             only_testing: |
