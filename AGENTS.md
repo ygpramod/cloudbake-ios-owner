@@ -51,7 +51,7 @@ It must:
 - Reuse established CloudBake UI primitives before creating new visual structures:
   `CloudBakeScreenScaffold` for second-level screens, `CloudBakeDetailCard` and
   `CloudBakeDetailRow` for detail/settings rows, `cloudBakeFormScreenStyle()` for forms,
-  native `Alert` for supported short text input, `cloudBakeConfirmationDialog` for destructive,
+  `cloudBakeInputPopup` for short text input, `cloudBakeConfirmationDialog` for destructive,
   acknowledgement, or state-changing confirmations, `CloudBakeAnchoredActionPopup` for anchored
   action lists, and `cloudBakeActionPopup` for branded multi-choice selection.
 - Do not ship a user-facing screen, sheet, search surface, or workflow that looks visually detached
@@ -60,8 +60,8 @@ It must:
 - Owner-facing transient decisions must use the matching shared presentation:
   `CloudBakeAnchoredActionPopup` for anchored compact choices, `cloudBakeActionPopup` for branded
   multi-choice selection, `cloudBakeConfirmationDialog` for destructive, acknowledgement, or
-  state-changing confirmations, `Alert` for supported short text input, and a sheet only for richer
-  controls.
+  state-changing confirmations, `cloudBakeInputPopup` for short text input, and a sheet only for
+  richer controls.
 - Preserve destructive roles, clear cancel behavior, concise system copy, and stable accessibility
   identifiers. Do not introduce a feature-local popup overlay or one-off dialog style.
 - Avoid force unwraps, `try!`, `as!`, ignored errors, blocking the main thread, hardcoded API URLs,

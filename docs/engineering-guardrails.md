@@ -70,7 +70,8 @@ A slice is done only when:
 - Branded multi-choice selection may use only the shared `cloudBakeActionPopup` component, with
   full-row tap targets, semantic icon colors, outside-tap and accessibility-escape dismissal.
 - Destructive decisions, acknowledgements, and state-changing confirmations must use the shared,
-  content-sized `cloudBakeConfirmationDialog`; supported short text input must use `Alert`.
+  content-sized `cloudBakeConfirmationDialog`; short app-owned text input must use the keyboard-safe
+  `cloudBakeInputPopup`.
 - Use a native sheet when a workflow needs richer controls that an alert cannot safely host.
   Preserve destructive roles, explicit cancel behavior, concise copy, and accessibility
   identifiers for acceptance-testable actions.
