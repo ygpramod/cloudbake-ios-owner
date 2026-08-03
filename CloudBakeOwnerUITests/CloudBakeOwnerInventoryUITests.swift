@@ -458,6 +458,21 @@ extension CloudBakeOwnerUITests {
             NSPredicate(format: "label == %@", "Add to Inventory")
         ).firstMatch
         XCTAssertTrue(includeControl.waitForExistence(timeout: 5))
+
+        let destinationButton = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@",
+                "inventory.purchaseBill.draft.destination."
+            )
+        ).firstMatch
+        tapWhenReady(destinationButton)
+        tapWhenReady(
+            nativeDialogAction(
+                identifiedBy: "inventory.purchaseBill.destination.existing",
+                in: app
+            )
+        )
+        XCTAssertTrue(app.navigationBars["Map Inventory"].waitForExistence(timeout: 5))
     }
 
     func testVoiceInventoryDraftsCanUpdateExistingAndCreateUnknownItems() throws {

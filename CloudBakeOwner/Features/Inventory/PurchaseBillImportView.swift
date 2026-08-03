@@ -257,15 +257,16 @@ struct PurchaseBillImportView: View {
     }
 
     private var purchaseBillDestinationActions: [CloudBakePopupAction] {
-        [
+        let draftId = actionDraftId
+        return [
             CloudBakePopupAction(
                 title: "Create New Inventory",
                 systemImage: "plus.square",
                 tint: Color.cloudBakePink,
                 accessibilityIdentifier: "inventory.purchaseBill.destination.new"
             ) {
-                if let actionDraftId {
-                    viewModel.resolvePurchaseBillDraftAsNew(actionDraftId)
+                if let draftId {
+                    viewModel.resolvePurchaseBillDraftAsNew(draftId)
                 }
                 self.actionDraftId = nil
             },
@@ -275,7 +276,6 @@ struct PurchaseBillImportView: View {
                 tint: .purple,
                 accessibilityIdentifier: "inventory.purchaseBill.destination.existing"
             ) {
-                let draftId = actionDraftId
                 actionDraftId = nil
                 DispatchQueue.main.async {
                     mappingDraftId = draftId
