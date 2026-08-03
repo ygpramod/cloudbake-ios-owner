@@ -155,6 +155,34 @@ extension View {
         )
     }
 
+    func cloudBakeInputPopup<Fields: View>(
+        isPresented: Binding<Bool>,
+        title: String,
+        message: String = "",
+        primaryTitle: String,
+        primaryRole: ButtonRole? = nil,
+        primaryAccessibilityIdentifier: String,
+        cancelAccessibilityIdentifier: String,
+        onCancel: @escaping () -> Void,
+        onSubmit: @escaping () -> Void,
+        @ViewBuilder fields: @escaping () -> Fields
+    ) -> some View {
+        modifier(
+            CloudBakeInputPopupModifier(
+                isPresented: isPresented,
+                title: title,
+                message: message,
+                primaryTitle: primaryTitle,
+                primaryRole: primaryRole,
+                primaryAccessibilityIdentifier: primaryAccessibilityIdentifier,
+                cancelAccessibilityIdentifier: cancelAccessibilityIdentifier,
+                onCancel: onCancel,
+                onSubmit: onSubmit,
+                fields: fields
+            )
+        )
+    }
+
     func orderConfirmationDialog<Actions: View>(
         isPresented: Binding<Bool>,
         title: String,
@@ -175,6 +203,126 @@ extension View {
             onCancel: onCancel,
             actions: actions
         )
+    }
+}
+
+private struct CloudBakeInputPopupModifier<Fields: View>: ViewModifier {
+    @Binding var isPresented: Bool
+    let title: String
+    let message: String
+    let primaryTitle: String
+    let primaryRole: ButtonRole?
+    let primaryAccessibilityIdentifier: String
+    let cancelAccessibilityIdentifier: String
+    let onCancel: () -> Void
+    let onSubmit: () -> Void
+    let fields: () -> Fields
+    @AccessibilityFocusState private var isPopupFocused: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .accessibilityHidden(isPresented)
+            .overlay {
+                if isPresented {
+                    GeometryReader { proxy in
+                        ZStack {
+                            Rectangle()
+                                .fill(.ultraThinMaterial)
+                                .ignoresSafeArea()
+                                .contentShape(Rectangle())
+                                .onTapGesture(perform: cancel)
+                                .accessibilityHidden(true)
+
+                            ScrollView {
+                                popupCard
+                            }
+                            .scrollBounceBehavior(.basedOnSize)
+                            .frame(maxHeight: max(220, proxy.size.height - 48))
+                            .padding(CloudBakeTheme.Spacing.screenHorizontal)
+                            .transition(.scale(scale: 0.96).combined(with: .opacity))
+                        }
+                    }
+                    .zIndex(1)
+                }
+            }
+            .animation(.easeOut(duration: 0.18), value: isPresented)
+            .onChange(of: isPresented) { _, presented in
+                guard presented else {
+                    isPopupFocused = false
+                    return
+                }
+                Task { @MainActor in
+                    await Task.yield()
+                    isPopupFocused = true
+                }
+            }
+    }
+
+    private var popupCard: some View {
+        VStack(alignment: .leading, spacing: CloudBakeTheme.Spacing.sectionContent) {
+            Text(title)
+                .font(.title3.weight(.bold))
+
+            if !message.isEmpty {
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(spacing: CloudBakeTheme.Spacing.compactControl) {
+                fields()
+                    .textFieldStyle(.plain)
+                    .padding(.horizontal, CloudBakeTheme.Spacing.sectionContent)
+                    .frame(minHeight: 48)
+                    .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14))
+
+                Button(role: primaryRole) {
+                    onSubmit()
+                } label: {
+                    Text(primaryTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(primaryTint)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .background(primaryTint.opacity(0.11), in: RoundedRectangle(cornerRadius: 14))
+                        .contentShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(primaryAccessibilityIdentifier)
+            }
+
+            Button("Cancel", action: cancel)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .contentShape(Rectangle())
+                .accessibilityIdentifier(cancelAccessibilityIdentifier)
+        }
+        .padding(CloudBakeTheme.Spacing.cardPadding)
+        .frame(maxWidth: 340)
+        .background(CloudBakeTheme.ColorToken.surface.opacity(0.97), in: RoundedRectangle(cornerRadius: 26))
+        .overlay {
+            RoundedRectangle(cornerRadius: 26)
+                .stroke(CloudBakeTheme.ColorToken.primaryAction.opacity(0.18), lineWidth: 1)
+        }
+        .shadow(
+            color: CloudBakeTheme.Elevation.softShadow,
+            radius: CloudBakeTheme.Elevation.softRadius,
+            y: CloudBakeTheme.Elevation.softYOffset
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("cloudBake.inputPopup")
+        .accessibilityFocused($isPopupFocused)
+        .accessibilityAction(.escape, cancel)
+    }
+
+    private var primaryTint: Color {
+        primaryRole == .destructive ? .red : CloudBakeTheme.ColorToken.primaryAction
+    }
+
+    private func cancel() {
+        isPresented = false
+        onCancel()
     }
 }
 

@@ -216,15 +216,24 @@ private struct OrderCakeChoiceRow: View {
                 }
             }
         }
-        .alert("Other \(label)", isPresented: $isEnteringCustomValue) {
-            TextField(label, text: $customValue)
-            Button("Cancel", role: .cancel) {}
-            Button("Use") {
+        .cloudBakeInputPopup(
+            isPresented: $isEnteringCustomValue,
+            title: "Other \(label)",
+            primaryTitle: "Use",
+            primaryAccessibilityIdentifier: "\(identifier).other.use",
+            cancelAccessibilityIdentifier: "\(identifier).other.cancel",
+            onCancel: {
+                isEnteringCustomValue = false
+            },
+            onSubmit: {
                 let trimmed = customValue.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !trimmed.isEmpty {
                     value = trimmed
+                    isEnteringCustomValue = false
                 }
             }
+        ) {
+            TextField(label, text: $customValue)
         }
     }
 

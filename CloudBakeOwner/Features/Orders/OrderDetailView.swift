@@ -424,20 +424,19 @@ struct OrderDetailView: View {
                 .accessibilityIdentifier("orders.detail.confirmInventoryDeduction")
             }
         }
-        .alert(
-            "Void Payment",
-            isPresented: optionalPresentationBinding($receiptPendingVoid)
-        ) {
-            TextField("Reason (optional)", text: $paymentVoidReason)
-                .accessibilityIdentifier("orders.detail.payment.void.reason")
-
-            Button("Cancel", role: .cancel) {
+        .cloudBakeInputPopup(
+            isPresented: optionalPresentationBinding($receiptPendingVoid),
+            title: "Void Payment",
+            message: "The original payment stays in history and is excluded from totals.",
+            primaryTitle: "Void Payment",
+            primaryRole: .destructive,
+            primaryAccessibilityIdentifier: "orders.detail.payment.void.confirm",
+            cancelAccessibilityIdentifier: "orders.detail.payment.void.cancel",
+            onCancel: {
                 receiptPendingVoid = nil
                 paymentVoidReason = ""
-            }
-            .accessibilityIdentifier("orders.detail.payment.void.cancel")
-
-            Button("Void Payment", role: .destructive) {
+            },
+            onSubmit: {
                 if let receiptPendingVoid {
                     _ = viewModel.voidPaymentReceipt(
                         receiptPendingVoid,
@@ -447,10 +446,9 @@ struct OrderDetailView: View {
                 self.receiptPendingVoid = nil
                 paymentVoidReason = ""
             }
-            .accessibilityIdentifier("orders.detail.payment.void.confirm")
-        } message: {
-            Text("The original payment stays in history and is excluded from totals.")
-                .accessibilityIdentifier("orders.detail.payment.void.message")
+        ) {
+            TextField("Reason (optional)", text: $paymentVoidReason)
+                .accessibilityIdentifier("orders.detail.payment.void.reason")
         }
         .orderConfirmationDialog(
             isPresented: optionalPresentationBinding($statusPendingInventoryShortage),
@@ -491,22 +489,19 @@ struct OrderDetailView: View {
             }
             .accessibilityIdentifier("orders.detail.statusChangeError.dismiss")
         }
-        .alert("Add Partial Payment", isPresented: $isAddingPartialPayment) {
-            TextField("Amount", text: $partialPaymentAmount)
-                .keyboardType(.decimalPad)
-                .accessibilityIdentifier("orders.detail.payment.partial.amount")
-
-            TextField("Note (optional)", text: $partialPaymentNote)
-                .accessibilityIdentifier("orders.detail.payment.partial.note")
-
-            Button("Cancel", role: .cancel) {
+        .cloudBakeInputPopup(
+            isPresented: $isAddingPartialPayment,
+            title: "Add Partial Payment",
+            message: "Add the amount received.",
+            primaryTitle: "Save",
+            primaryAccessibilityIdentifier: "orders.detail.payment.partial.save",
+            cancelAccessibilityIdentifier: "orders.detail.payment.partial.cancel",
+            onCancel: {
                 isAddingPartialPayment = false
                 partialPaymentAmount = ""
                 partialPaymentNote = ""
-            }
-            .accessibilityIdentifier("orders.detail.payment.partial.cancel")
-
-            Button("Save") {
+            },
+            onSubmit: {
                 if viewModel.addPaymentToSelectedOrder(
                     amountText: partialPaymentAmount,
                     note: partialPaymentNote
@@ -516,9 +511,13 @@ struct OrderDetailView: View {
                     partialPaymentNote = ""
                 }
             }
-            .accessibilityIdentifier("orders.detail.payment.partial.save")
-        } message: {
-            Text("Add the amount received.")
+        ) {
+            TextField("Amount", text: $partialPaymentAmount)
+                .keyboardType(.decimalPad)
+                .accessibilityIdentifier("orders.detail.payment.partial.amount")
+
+            TextField("Note (optional)", text: $partialPaymentNote)
+                .accessibilityIdentifier("orders.detail.payment.partial.note")
         }
         .sheet(isPresented: $isEditingOrder, onDismiss: cancelEditingOrder) {
             NavigationStack {
@@ -530,12 +529,14 @@ struct OrderDetailView: View {
                     onCancel: viewModel.cancelEditingOrder,
                     onSave: saveEditedOrder
                 )
-                .confirmationDialog(
-                    "Deduct inventory?",
+                .orderConfirmationDialog(
                     isPresented: $isConfirmingEditedOrderInventoryDeduction,
-                    titleVisibility: .visible
+                    title: "Deduct Inventory?",
+                    onCancel: {
+                        isConfirmingEditedOrderInventoryDeduction = false
+                    }
                 ) {
-                    Button("Save And Deduct") {
+                    nativeDialogButton("Save And Deduct") {
                         let didSave = viewModel.saveEditedOrder(confirmingRecipeUsage: true)
                         isConfirmingEditedOrderInventoryDeduction = false
                         if didSave {
@@ -545,8 +546,6 @@ struct OrderDetailView: View {
                         }
                     }
                     .accessibilityIdentifier("orders.form.confirmInventoryDeduction")
-
-                    Button("Cancel", role: .cancel) {}
                 }
                 .orderConfirmationDialog(
                     isPresented: $isConfirmingEditedOrderInventoryShortage,

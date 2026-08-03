@@ -278,21 +278,18 @@ struct OrderListView: View {
                 .accessibilityIdentifier("orders.row.inventoryShortage.continue")
             }
         }
-        .alert(
-            "Add Partial Payment",
-            isPresented: optionalPresentationBinding($orderAddingPartialPayment)
-        ) {
-            TextField("Amount", text: $partialPaymentAmount)
-                .keyboardType(.decimalPad)
-                .accessibilityIdentifier("orders.row.payment.partial.amount")
-
-            Button("Cancel", role: .cancel) {
+        .cloudBakeInputPopup(
+            isPresented: optionalPresentationBinding($orderAddingPartialPayment),
+            title: "Add Partial Payment",
+            message: "Add the amount received.",
+            primaryTitle: "Save",
+            primaryAccessibilityIdentifier: "orders.row.payment.partial.save",
+            cancelAccessibilityIdentifier: "orders.row.payment.partial.cancel",
+            onCancel: {
                 orderAddingPartialPayment = nil
                 partialPaymentAmount = ""
-            }
-            .accessibilityIdentifier("orders.row.payment.partial.cancel")
-
-            Button("Save") {
+            },
+            onSubmit: {
                 if let order = orderAddingPartialPayment,
                     viewModel.addPayment(to: order, amountText: partialPaymentAmount)
                 {
@@ -300,9 +297,10 @@ struct OrderListView: View {
                     partialPaymentAmount = ""
                 }
             }
-            .accessibilityIdentifier("orders.row.payment.partial.save")
-        } message: {
-            Text("Add the amount received.")
+        ) {
+            TextField("Amount", text: $partialPaymentAmount)
+                .keyboardType(.decimalPad)
+                .accessibilityIdentifier("orders.row.payment.partial.amount")
         }
     }
 

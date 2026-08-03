@@ -385,16 +385,23 @@ struct OrderForm: View {
                 )
             }
         }
-        .alert("Save Order Template", isPresented: $isNamingTemplate) {
+        .cloudBakeInputPopup(
+            isPresented: $isNamingTemplate,
+            title: "Save Order Template",
+            message: "Customer, due date, quoted price, payments, and photos are not included.",
+            primaryTitle: "Save",
+            primaryAccessibilityIdentifier: "orders.form.template.confirmSave",
+            cancelAccessibilityIdentifier: "orders.form.template.cancelSave",
+            onCancel: {
+                isNamingTemplate = false
+            },
+            onSubmit: {
+                _ = viewModel.saveCurrentDraftAsTemplate(named: savedTemplateName)
+                isNamingTemplate = false
+            }
+        ) {
             TextField("Template Name", text: $savedTemplateName)
                 .accessibilityIdentifier("orders.form.template.name")
-            Button("Cancel", role: .cancel) {}
-            Button("Save") {
-                _ = viewModel.saveCurrentDraftAsTemplate(named: savedTemplateName)
-            }
-            .accessibilityIdentifier("orders.form.template.confirmSave")
-        } message: {
-            Text("Customer, due date, quoted price, payments, and photos are not included.")
         }
     }
 
@@ -490,38 +497,42 @@ private struct OrderTemplateLibraryView: View {
                 .accessibilityIdentifier("orders.template.done")
             }
         }
-        .alert(
-            "Rename Order Template",
+        .cloudBakeInputPopup(
             isPresented: Binding(
                 get: { templateBeingRenamed != nil },
                 set: { if !$0 { templateBeingRenamed = nil } }
-            )
-        ) {
-            TextField("Template Name", text: $renamedTemplateName)
-                .accessibilityIdentifier("orders.template.rename.name")
-            Button("Cancel", role: .cancel) {
+            ),
+            title: "Rename Order Template",
+            primaryTitle: "Save",
+            primaryAccessibilityIdentifier: "orders.template.rename.save",
+            cancelAccessibilityIdentifier: "orders.template.rename.cancel",
+            onCancel: {
                 templateBeingRenamed = nil
-            }
-            Button("Save") {
+            },
+            onSubmit: {
                 if let templateBeingRenamed,
                     viewModel.renameOrderTemplate(templateBeingRenamed, to: renamedTemplateName)
                 {
                     self.templateBeingRenamed = nil
                 }
             }
-            .accessibilityIdentifier("orders.template.rename.save")
+        ) {
+            TextField("Template Name", text: $renamedTemplateName)
+                .accessibilityIdentifier("orders.template.rename.name")
         }
-        .alert(
-            "Delete Order Template?",
+        .cloudBakeConfirmationDialog(
             isPresented: Binding(
                 get: { templatePendingDeletion != nil },
                 set: { if !$0 { templatePendingDeletion = nil } }
-            )
-        ) {
-            Button("Cancel", role: .cancel) {
+            ),
+            title: "Delete Order Template?",
+            message: "Existing orders are not changed.",
+            cancelAccessibilityIdentifier: "orders.template.delete.cancel",
+            onCancel: {
                 templatePendingDeletion = nil
             }
-            Button("Delete", role: .destructive) {
+        ) {
+            nativeDialogButton("Delete", role: .destructive) {
                 if let templatePendingDeletion,
                     viewModel.deleteOrderTemplate(templatePendingDeletion)
                 {
@@ -529,8 +540,6 @@ private struct OrderTemplateLibraryView: View {
                 }
             }
             .accessibilityIdentifier("orders.template.delete.confirm")
-        } message: {
-            Text("Existing orders are not changed.")
         }
     }
 }
