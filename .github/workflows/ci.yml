@@ -152,7 +152,7 @@ jobs:
           - feature: order-links
             only_testing: |
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderShowsLinkedCustomerContext
-              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCustomerCreationOffersNativeEntryChoices
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCustomerCreationOffersBrandedEntryChoices
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanCreateAndLinkNewCustomerFromSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkRecipeFromSearchableSelection
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testOrderCanLinkDesignFromSearchableSelection
