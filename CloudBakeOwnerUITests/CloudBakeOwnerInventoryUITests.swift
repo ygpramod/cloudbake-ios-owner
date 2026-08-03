@@ -59,13 +59,27 @@ extension CloudBakeOwnerUITests {
             waitingFor: app.navigationBars["Add Item"]
         )
 
-        app.textFields["inventory.form.name"].tap()
-        app.textFields["inventory.form.name"].typeText("cake flours")
-        app.textFields["inventory.form.currentQuantity"].tap()
-        app.textFields["inventory.form.currentQuantity"].typeText("100")
-        app.textFields["inventory.form.minimumQuantity"].tap()
-        app.textFields["inventory.form.minimumQuantity"].typeText("250")
-        app.buttons["inventory.form.save"].tap()
+        let formScroll = app.descendants(matching: .any)["inventory.form.scroll"]
+        XCTAssertTrue(formScroll.waitForExistence(timeout: 10))
+
+        let nameField = app.textFields["inventory.form.name"]
+        scrollToHittable(nameField, in: app, scrollContainer: formScroll)
+        typeText("cake flours", into: nameField)
+        dismissKeyboard(in: app)
+
+        let currentQuantityField = app.textFields["inventory.form.currentQuantity"]
+        scrollToHittable(currentQuantityField, in: app, scrollContainer: formScroll)
+        typeText("100", into: currentQuantityField)
+        dismissKeyboard(in: app)
+
+        let minimumQuantityField = app.textFields["inventory.form.minimumQuantity"]
+        scrollToHittable(minimumQuantityField, in: app, scrollContainer: formScroll)
+        typeText("250", into: minimumQuantityField)
+        dismissKeyboard(in: app)
+
+        let saveButton = app.buttons["inventory.form.save"]
+        scrollToHittable(saveButton, in: app, scrollContainer: formScroll)
+        tapWhenReady(saveButton)
 
         XCTAssertTrue(
             app.staticTexts["Possible duplicate: Cake flour already exists. Tap Save again to add a separate item."].waitForExistence(
