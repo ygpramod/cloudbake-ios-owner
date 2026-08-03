@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+
 @testable import CloudBakeOwner
 
 struct RecipeIngredientMutationRequest: Equatable {
@@ -10,15 +11,17 @@ struct RecipeIngredientMutationRequest: Equatable {
 
 func placeholderCGImage() -> CGImage? {
     let colorSpace = CGColorSpaceCreateDeviceRGB()
-    guard let context = CGContext(
-        data: nil,
-        width: 1,
-        height: 1,
-        bitsPerComponent: 8,
-        bytesPerRow: 4,
-        space: colorSpace,
-        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else {
+    guard
+        let context = CGContext(
+            data: nil,
+            width: 1,
+            height: 1,
+            bitsPerComponent: 8,
+            bytesPerRow: 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+    else {
         return nil
     }
 
@@ -29,14 +32,17 @@ final class FakeRecipeRepository: RecipeRepository,
     RecipeComponentRepository,
     RecipeIngredientRepository,
     RecipeIngredientReservationMutationRepository,
+    RecipeAggregateRepository,
     RecipeCSVImportRepository,
-    InventoryItemRepository {
+    InventoryItemRepository
+{
     var recipes: [Recipe] = []
     var components: [RecipeComponent] = []
     var ingredients: [RecipeIngredient] = []
     var inventoryItems: [InventoryItem] = []
     var archivedInventoryItems: [InventoryItem] = []
     var recipeCSVImportError: Error?
+    var recipeAggregateSaveError: Error?
     var recipeIngredientMutationError: Error?
     var allowInventoryShortageRequests: [Bool] = []
     var recipeIngredientMutationRequests: [RecipeIngredientMutationRequest] = []
@@ -48,6 +54,17 @@ final class FakeRecipeRepository: RecipeRepository,
     ) throws {
         if let recipeCSVImportError { throw recipeCSVImportError }
         self.recipes.append(contentsOf: recipes)
+        self.components.append(contentsOf: components)
+        self.ingredients.append(contentsOf: ingredients)
+    }
+
+    func saveRecipeAggregate(
+        recipe: Recipe,
+        components: [RecipeComponent],
+        ingredients: [RecipeIngredient]
+    ) throws {
+        if let recipeAggregateSaveError { throw recipeAggregateSaveError }
+        recipes.append(recipe)
         self.components.append(contentsOf: components)
         self.ingredients.append(contentsOf: ingredients)
     }
@@ -98,7 +115,8 @@ final class FakeRecipeRepository: RecipeRepository,
         )
         if let recipeIngredientMutationError {
             if case .insufficientStock = recipeIngredientMutationError as? OrderRecipeUsageError,
-               allowInventoryShortage {
+                allowInventoryShortage
+            {
                 try save(component)
                 try save(ingredient)
                 return

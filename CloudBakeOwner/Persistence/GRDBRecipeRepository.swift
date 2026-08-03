@@ -8,7 +8,7 @@ extension GRDBCoreDataRepository {
         }
     }
 
-    private func save(_ recipe: Recipe, in db: Database) throws {
+    func save(_ recipe: Recipe, in db: Database) throws {
         try db.execute(
             sql: """
                 INSERT INTO recipes

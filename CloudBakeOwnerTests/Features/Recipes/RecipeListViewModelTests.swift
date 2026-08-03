@@ -324,7 +324,7 @@ final class RecipeListViewModelTests: XCTestCase {
         viewModel.draftIngredientQuantity = "250"
         XCTAssertTrue(viewModel.saveNewRecipeIngredientDraft())
         viewModel.draftName = "Vanilla Sponge"
-        repository.recipeCSVImportError = ExpectedError.save
+        repository.recipeAggregateSaveError = ExpectedError.save
 
         XCTAssertFalse(viewModel.addRecipe())
 
