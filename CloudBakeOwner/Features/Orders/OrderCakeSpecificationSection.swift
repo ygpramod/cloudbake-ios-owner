@@ -165,7 +165,7 @@ struct OrderCakeSpecificationSection: View {
                             text.wrappedValue = choice
                         } label: {
                             if text.wrappedValue == choice {
-                                Label(choice, systemImage: "checkmark")
+                                CloudBakeMenuSelectionLabel(title: choice)
                             } else {
                                 Text(choice)
                             }
@@ -210,7 +210,7 @@ private struct OrderCakeChoiceRow: View {
                     value = ""
                 } label: {
                     if value.isEmpty {
-                        Label("Not Set", systemImage: "checkmark")
+                        CloudBakeMenuSelectionLabel(title: "Not Set")
                     } else {
                         Text("Not Set")
                     }
@@ -222,7 +222,7 @@ private struct OrderCakeChoiceRow: View {
                         value = choice
                     } label: {
                         if value == choice {
-                            Label(choice, systemImage: "checkmark")
+                            CloudBakeMenuSelectionLabel(title: choice)
                         } else {
                             Text(choice)
                         }

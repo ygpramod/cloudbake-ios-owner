@@ -142,7 +142,7 @@ struct OrderDetailView: View {
                                             changeStatus(status, for: order)
                                         } label: {
                                             if status == order.status {
-                                                Label(status.displayName, systemImage: "checkmark")
+                                                CloudBakeMenuSelectionLabel(title: status.displayName)
                                             } else {
                                                 Text(status.displayName)
                                             }
