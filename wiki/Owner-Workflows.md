@@ -347,8 +347,8 @@ section behaves like going back to that screen instead of opening a duplicate co
 
 Detail screens use a focused version of the same visual language: custom compact header, hero
 summary card, titled card sections, and visible row actions. Compact choices attached to cards or
-form fields use native iOS menus; main screen and workflow action lists use the shared CloudBake
-anchored popover. Protected mutations and acknowledgements use the fitted confirmation card, and
+form fields use native iOS menus with pink selection checkmarks; main screen and workflow action
+lists use the shared CloudBake anchored popover. Protected mutations and acknowledgements use the fitted confirmation card, and
 short text entry uses the keyboard-safe input card. Apple-owned permission, photo, file, share, and
 keyboard surfaces remain native, while richer app workflows use a native sheet.
 

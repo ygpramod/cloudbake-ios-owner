@@ -66,7 +66,8 @@ A slice is done only when:
   an explicit UX reason to introduce a different form shell.
 - Compact choices attached to a card or form field must use native SwiftUI `Menu`. This includes
   status, payment, report-filter, unit, and cake-specification choices and preserves the system's
-  sizing, automatic placement, overflow behavior, dismissal, and accessibility.
+  sizing, automatic placement, overflow behavior, dismissal, and accessibility. Apply the shared
+  `cloudBakeNativeMenuStyle()` so selection checkmarks consistently use the CloudBake pink accent.
 - Main screen and workflow action lists, such as report selection, screen-level More Actions, and
   template management, must use the shared
   `CloudBakeAnchoredActionPopup` inside a native popover, preserving the pointer-attached
