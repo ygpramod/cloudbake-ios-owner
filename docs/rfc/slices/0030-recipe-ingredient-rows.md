@@ -50,13 +50,6 @@ deduct inventory accurately when used.
 - The owner must be able to tap a recipe to view its detail.
 - Recipe detail must show an empty ingredient state when no ingredients exist.
 - The owner must be able to add an ingredient row linked to an active inventory item.
-- Add Recipe must expose an Ingredients header action so ingredient drafts can be entered before
-  the recipe itself is saved.
-- A new ingredient form must show a Continue adding ingredients toggle and retain the native
-  top-toolbar Save action used by Edit Ingredient. When the toggle is off, Save returns to the
-  parent recipe. When it is on, Save persists the current row, clears the ingredient fields, and
-  remains in the ingredient form for continuous entry. Save remains disabled until the ingredient
-  draft is valid.
 - Ingredient quantity must be greater than zero.
 - Ingredient rows must show inventory item name, quantity, unit, and note when present.
 - The owner must be able to edit an ingredient row.
@@ -101,7 +94,7 @@ Unit and integration coverage:
 Acceptance coverage:
 
 - owner creates inventory,
-- owner creates a recipe and can add multiple ingredient drafts continuously before saving it,
+- owner creates a recipe,
 - owner opens recipe detail,
 - owner adds a linked ingredient quantity,
 - saved ingredient appears in recipe detail.
