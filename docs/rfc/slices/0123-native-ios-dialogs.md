@@ -30,6 +30,14 @@ mapping choices, backup/restore decisions, and Settings data-management prefligh
 Photo and file pickers, cameras, full editors, and navigation destinations are not popups and keep
 their existing native presentations.
 
+## Subsequent Presentation Boundary
+
+Later product direction keeps native `Menu` presentation for compact choices attached to cards or
+form fields, including status, payment, report filters, inventory units, and cake specifications.
+Main screen and workflow action lists such as report selection, More Actions, and template
+management use the shared CloudBake-styled action popover while retaining native popover
+presentation and dismissal behavior.
+
 ## Validation
 
 1. The owner-app Debug build succeeds for a generic iPhone Simulator.

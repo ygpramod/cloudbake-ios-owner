@@ -120,31 +120,55 @@ struct ReportsView: View {
                 .font(.subheadline)
 
                 HStack {
-                    CloudBakeAnchoredPopupButton(
-                        title: "Statuses",
-                        actions: statusActions,
-                        accessibilityLabel: "Order statuses",
-                        accessibilityValue: "\(viewModel.selectedStatuses.count) selected",
-                        accessibilityIdentifier: "reports.statuses"
-                    ) {
+                    Menu {
+                        ForEach(OrderStatus.allCases, id: \.self) { status in
+                            Button {
+                                if viewModel.selectedStatuses.contains(status) {
+                                    viewModel.selectedStatuses.remove(status)
+                                } else {
+                                    viewModel.selectedStatuses.insert(status)
+                                }
+                            } label: {
+                                if viewModel.selectedStatuses.contains(status) {
+                                    Label(status.displayName, systemImage: "checkmark")
+                                } else {
+                                    Text(status.displayName)
+                                }
+                            }
+                            .accessibilityIdentifier("reports.statuses.\(status.rawValue)")
+                        }
+                    } label: {
                         Label(
                             "\(viewModel.selectedStatuses.count) Statuses",
                             systemImage: "line.3.horizontal.decrease.circle"
                         )
                     }
+                    .accessibilityLabel("Order statuses")
+                    .accessibilityValue("\(viewModel.selectedStatuses.count) selected")
+                    .accessibilityIdentifier("reports.statuses")
 
                     Spacer()
 
                     if viewModel.selectedReport != .orderProfitability {
-                        CloudBakeAnchoredPopupButton(
-                            title: "Group Report By",
-                            actions: groupingActions,
-                            accessibilityLabel: "Group report by",
-                            accessibilityValue: viewModel.grouping.title,
-                            accessibilityIdentifier: "reports.grouping"
-                        ) {
+                        Menu {
+                            ForEach(ReportGrouping.allCases, id: \.self) { grouping in
+                                Button {
+                                    viewModel.grouping = grouping
+                                } label: {
+                                    if viewModel.grouping == grouping {
+                                        Label(grouping.title, systemImage: "checkmark")
+                                    } else {
+                                        Text(grouping.title)
+                                    }
+                                }
+                                .accessibilityIdentifier("reports.grouping.\(grouping.rawValue)")
+                            }
+                        } label: {
                             Label(viewModel.grouping.title, systemImage: "calendar")
                         }
+                        .accessibilityLabel("Group report by")
+                        .accessibilityValue(viewModel.grouping.title)
+                        .accessibilityIdentifier("reports.grouping")
                     }
 
                     Button("Apply", action: viewModel.load)
@@ -168,39 +192,6 @@ struct ReportsView: View {
                 accessibilityIdentifier: "reports.kind.\(report.rawValue)"
             ) {
                 viewModel.selectedReport = report
-            }
-        }
-    }
-
-    private var statusActions: [CloudBakeScreenMenuAction] {
-        OrderStatus.allCases.map { status in
-            CloudBakeScreenMenuAction(
-                title: status.displayName,
-                systemImage: status.popupSystemImage,
-                tint: status == .cancelled ? .red : .purple,
-                isSelected: viewModel.selectedStatuses.contains(status),
-                dismissesPopup: false,
-                accessibilityIdentifier: "reports.statuses.\(status.rawValue)"
-            ) {
-                if viewModel.selectedStatuses.contains(status) {
-                    viewModel.selectedStatuses.remove(status)
-                } else {
-                    viewModel.selectedStatuses.insert(status)
-                }
-            }
-        }
-    }
-
-    private var groupingActions: [CloudBakeScreenMenuAction] {
-        ReportGrouping.allCases.map { grouping in
-            CloudBakeScreenMenuAction(
-                title: grouping.title,
-                systemImage: grouping.popupSystemImage,
-                tint: Color.cloudBakePink,
-                isSelected: viewModel.grouping == grouping,
-                accessibilityIdentifier: "reports.grouping.\(grouping.rawValue)"
-            ) {
-                viewModel.grouping = grouping
             }
         }
     }
@@ -538,16 +529,6 @@ private extension ReportKind {
     }
 }
 
-private extension ReportGrouping {
-    var popupSystemImage: String {
-        switch self {
-        case .day: "calendar.day.timeline.left"
-        case .week: "calendar.badge.clock"
-        case .month: "calendar"
-        }
-    }
-}
-
 private struct SalesOrderDrillDownView: View {
     let title: String
     let orders: [Order]
@@ -584,6 +565,10 @@ private struct SalesOrderDrillDownView: View {
                 )
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(CloudBakeScreenBackground())
+        .tint(CloudBakeTheme.ColorToken.primaryAction)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
     }

@@ -115,7 +115,8 @@ The app currently supports:
 86. owner-entered order quoted price, deposit paid, derived balance due, payment status, and payment
     notes,
 87. visible order row actions with native menus for quick status changes and payment recording,
-88. order detail payment status actions for marking Paid or adding a partial payment,
+    with confirmation before Mark Paid and a non-mutating Paid Already state for fully paid orders,
+88. matching order-detail payment actions for confirmed Mark Paid or adding a partial payment,
 89. scheduled local owner notifications for Confirmed, In Progress, and Ready orders using each
     order's saved reminder plan,
 90. due-time order notifications that route back to the matching order,
@@ -222,8 +223,9 @@ The app currently supports:
     whose dates are unknown.
 138. a Reports screen with Payment Ledger, Order Profitability, and Sales & Orders; a rolling
     one-year default ending today; custom date ranges up to 366 days; status filters; Day, Week, and
-    Month grouping where applicable; bounded row and sales-bucket drill-down; payment delay from
-    order due date; partial ingredient-cost warnings; and exact receipt/sales totals.
+    Month grouping where applicable; bounded row and sales-bucket drill-down using the shared
+    CloudBake screen background; payment delay from order due date; partial ingredient-cost
+    warnings; and exact receipt/sales totals.
 139. user-confirmed purchase-bill cropping before local Vision recognition, geometric reconstruction
     of recognized receipt lines from top to bottom and left to right, and readable shared headings
     throughout the purchase-bill and voice-inventory forms.
@@ -257,9 +259,10 @@ The app currently supports:
     without creating an order, while edit
     opens a searchable template list and updates the selected template in place; source searches
     use CloudBake styling and repository-backed paginated order results.
-149. shared CloudBake action, confirmation, and short-input popups across order status, payments,
-    templates, reports, bill import decisions, and cake choices, with content-sized cards,
-    full-row tap targets, Dynamic Type fallback scrolling, and background accessibility isolation.
+149. native iOS menus for compact choices attached to cards and forms, including order status,
+    payment, report filters, bill-item units, and cake specifications; shared CloudBake action
+    popovers remain for main report selection, More Actions, template management, and other
+    workflow-level choices, alongside content-sized confirmation and short-input cards.
 
 ## Partially Prepared
 
