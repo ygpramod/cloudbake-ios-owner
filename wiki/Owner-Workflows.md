@@ -346,10 +346,11 @@ custom back button. CloudBake keeps a short recent section history, so tapping a
 section behaves like going back to that screen instead of opening a duplicate copy.
 
 Detail screens use a focused version of the same visual language: custom compact header, hero
-summary card, titled card sections, and visible row actions. Compact choices use the shared
-CloudBake anchored popover; protected mutations and acknowledgements use the fitted confirmation
-card; and short text entry uses the keyboard-safe input card. Apple-owned permission, photo, file,
-share, and keyboard surfaces remain native, while richer app workflows use a native sheet.
+summary card, titled card sections, and visible row actions. Compact choices attached to cards or
+form fields use native iOS menus; main screen and workflow action lists use the shared CloudBake
+anchored popover. Protected mutations and acknowledgements use the fitted confirmation card, and
+short text entry uses the keyboard-safe input card. Apple-owned permission, photo, file, share, and
+keyboard surfaces remain native, while richer app workflows use a native sheet.
 
 Order detail overview focuses on balance due and delivery address when the order is a delivery.
 Notes and cake message content are shown as left-aligned block text below their labels so longer
@@ -494,11 +495,12 @@ Today, the owner can:
 28. capture optional occasion, servings, size, weight, shape, tiers, flavours, decoration, and
     packaging requirements, then review a generated plain-English cake summary.
 
-In Add or Edit Order, expand Cake Requirements only as needed. Compact menus offer common choices,
-while Other accepts a custom value. A custom value saved with an order or template becomes available
-as a future choice. Entering servings offers a 14-servings-per-kilogram weight suggestion, and
-entering weight offers a servings suggestion. Suggestions are explicit actions and never replace a
-value already entered. Empty values and None are omitted from the generated summary.
+In Add or Edit Order, expand Cake Requirements only as needed. Size And Shape, Flavours And Finish,
+and Decoration And Packaging all start collapsed. Compact menus offer common choices, while Other
+accepts a custom value. A custom value saved with an order or template becomes available as a future
+choice. Entering servings offers a 14-servings-per-kilogram weight suggestion, and entering weight
+offers a servings suggestion. Suggestions are explicit actions and never replace a value already
+entered. Empty values and None are omitted from the generated summary.
 
 A new order starts with a due time one calendar day after creation, rounded to the nearest whole
 hour. For example, 12:23 PM defaults to 12:00 PM the next day, while 12:31 PM defaults to 1:00 PM
@@ -673,6 +675,8 @@ consumption cost. Partial cost remains visible with a missing-price warning.
 Sales & Orders shows each selected period's order count, quoted total, average quoted value,
 received, outstanding, and status breakdown. Periods with no matching orders are omitted. Tap a
 period for its bounded order drill-down. Tap payment or profitability rows to open the order.
+The period drill-down retains the CloudBake background and visual language used by the Reports
+screen.
 
 When a linked recipe has inventory-backed ingredients, the order form shows Estimated Ingredient
 Cost beside the quoted-price input so the owner can use it while preparing a quote. The estimate
@@ -688,8 +692,11 @@ CloudBake keeps separately entered priced purchases as separate batches, even wh
 and amount match. This preserves the purchase quantity and unit cost used by order costing.
 
 Order rows also expose visible action chips with compact native menus for quick status changes and
-payment recording. Ordinary status and Mark Paid choices apply directly. Partial-payment input and
-status transitions that deduct recipe inventory retain explicit centered confirmation. Pricing
+payment recording. Mark Paid asks for confirmation before recording the remaining balance. Once an
+order is fully paid, opening Payment shows Paid Already and cannot record another payment.
+Add Partial Payment immediately focuses its amount field and opens the decimal keyboard. Partial-
+payment input and status transitions that deduct recipe inventory retain explicit centered
+confirmation. Pricing
 suggestions,
 discounts, refunds, and online payment processing remain future work.
 

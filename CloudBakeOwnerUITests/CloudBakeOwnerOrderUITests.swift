@@ -157,6 +157,11 @@ extension CloudBakeOwnerUITests {
         typeText("Floral Celebration", into: app.textFields["orders.form.title"])
         dismissKeyboard(in: app)
         let servings = app.textFields["orders.form.cakeSpecification.servings"]
+        XCTAssertFalse(servings.exists)
+        tapWhenReady(
+            app.buttons["orders.form.cakeSpecification.sizeAndShape.disclosure"],
+            timeout: transitionTimeout
+        )
         scrollToHittable(servings, in: app, timeout: transitionTimeout)
         typeText("28", into: servings)
         dismissKeyboard(in: app)
@@ -185,6 +190,11 @@ extension CloudBakeOwnerUITests {
         tapWhenReady(app.buttons["orders.detail.edit"], timeout: transitionTimeout)
         XCTAssertTrue(app.navigationBars["Edit Order"].waitForExistence(timeout: transitionTimeout))
         let reopenedServings = app.textFields["orders.form.cakeSpecification.servings"]
+        XCTAssertFalse(reopenedServings.exists)
+        tapWhenReady(
+            app.buttons["orders.form.cakeSpecification.sizeAndShape.disclosure"],
+            timeout: transitionTimeout
+        )
         scrollToHittable(reopenedServings, in: app, timeout: transitionTimeout)
         XCTAssertEqual(reopenedServings.value as? String, "28")
         XCTAssertEqual(
@@ -419,7 +429,36 @@ extension CloudBakeOwnerUITests {
         let paymentMenu = app.buttons["orders.detail.paymentStatusMenu"]
         scrollToHittable(paymentMenu, in: app, timeout: transitionTimeout)
         tapWhenReady(paymentMenu, timeout: transitionTimeout)
+        tapExisting(app.buttons["orders.detail.payment.partial"], timeout: transitionTimeout)
+
+        let partialPaymentAmount = app.textFields["orders.detail.payment.partial.amount"]
+        XCTAssertTrue(partialPaymentAmount.waitForExistence(timeout: transitionTimeout))
+        let amountFocusExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hasKeyboardFocus == true"),
+            object: partialPaymentAmount
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [amountFocusExpectation], timeout: transitionTimeout),
+            .completed,
+            "The partial-payment amount should receive keyboard focus automatically."
+        )
+        XCTAssertTrue(app.keyboards.firstMatch.exists)
+        tapWhenReady(
+            app.buttons["orders.detail.payment.partial.cancel"],
+            timeout: transitionTimeout
+        )
+
+        scrollToHittable(paymentMenu, in: app, timeout: transitionTimeout)
+        tapWhenReady(paymentMenu, timeout: transitionTimeout)
         tapExisting(app.buttons["orders.detail.payment.paid"], timeout: transitionTimeout)
+        XCTAssertTrue(
+            app.buttons["orders.detail.payment.paid.confirm"]
+                .waitForExistence(timeout: transitionTimeout)
+        )
+        tapWhenReady(
+            app.buttons["orders.detail.payment.paid.confirm"],
+            timeout: transitionTimeout
+        )
 
         let paymentStatus = app.staticTexts.matching(identifier: "orders.detail.paymentStatus").firstMatch
         assertExistsAfterScrolling(paymentStatus, in: app, timeout: transitionTimeout)
@@ -435,6 +474,14 @@ extension CloudBakeOwnerUITests {
         let balanceDue = app.staticTexts.matching(identifier: "orders.detail.balanceDue").firstMatch
         assertExistsAfterScrolling(balanceDue, in: app, timeout: transitionTimeout)
         XCTAssertTrue(balanceDue.label.contains("0"))
+
+        scrollToHittable(paymentMenu, in: app, timeout: transitionTimeout)
+        tapWhenReady(paymentMenu, timeout: transitionTimeout)
+        XCTAssertTrue(
+            app.buttons["orders.detail.payment.alreadyPaid"]
+                .waitForExistence(timeout: transitionTimeout)
+        )
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.1)).tap()
 
         let paymentActions = app.buttons.matching(
             NSPredicate(format: "label == %@", "Payment Actions")
