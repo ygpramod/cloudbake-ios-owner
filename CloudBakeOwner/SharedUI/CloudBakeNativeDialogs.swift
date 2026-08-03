@@ -57,8 +57,10 @@ struct CloudBakeAnchoredActionPopup: View {
                             .frame(width: 30)
 
                         Text(action.title)
-                            .font(.body.weight(.medium))
+                            .font(.body.weight(.medium).leading(.tight))
                             .foregroundStyle(.primary)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Spacer(minLength: CloudBakeTheme.Spacing.compactControl)
 
@@ -67,6 +69,7 @@ struct CloudBakeAnchoredActionPopup: View {
                             .foregroundStyle(action.isSelected ? action.tint : .secondary)
                     }
                     .padding(.horizontal, CloudBakeTheme.Spacing.rowContent)
+                    .padding(.vertical, CloudBakeTheme.Spacing.compactControl)
                     .frame(maxWidth: .infinity, minHeight: 56)
                     .contentShape(Rectangle())
                 }
@@ -452,8 +455,10 @@ private struct CloudBakeActionPopupModifier: ViewModifier {
                     .frame(width: 34)
 
                 Text(action.title)
-                    .font(.body.weight(.medium))
+                    .font(.body.weight(.medium).leading(.tight))
                     .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: CloudBakeTheme.Spacing.compactControl)
 
@@ -462,6 +467,7 @@ private struct CloudBakeActionPopupModifier: ViewModifier {
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, CloudBakeTheme.Spacing.rowContent)
+            .padding(.vertical, CloudBakeTheme.Spacing.compactControl)
             .frame(maxWidth: .infinity, minHeight: 64)
             .contentShape(Rectangle())
         }
@@ -647,12 +653,15 @@ private struct NativeDialogButton: View {
                     .font(.subheadline.weight(.semibold))
 
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.subheadline.weight(.semibold).leading(.tight))
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 0)
             }
             .foregroundStyle(actionTint)
             .padding(.horizontal, CloudBakeTheme.Spacing.sectionContent)
+            .padding(.vertical, CloudBakeTheme.Spacing.compactControl)
             .frame(maxWidth: .infinity, minHeight: 48)
             .background(actionTint.opacity(0.11), in: RoundedRectangle(cornerRadius: 14))
             .contentShape(RoundedRectangle(cornerRadius: 14))

@@ -64,9 +64,16 @@ A slice is done only when:
   `CloudBakeDetailDivider`.
 - Data-entry flows should keep native controls and use `cloudBakeFormScreenStyle()` unless there is
   an explicit UX reason to introduce a different form shell.
-- Anchored/in-place action lists must use the shared `CloudBakeAnchoredActionPopup` inside a native
-  popover, preserving the compact pointer-attached presentation, semantic icons, separators,
-  chevrons, full-row tap targets, outside-tap dismissal, and accessibility escape.
+- Compact choices attached to a card or form field must use native SwiftUI `Menu`. This includes
+  status, payment, report-filter, unit, and cake-specification choices and preserves the system's
+  sizing, automatic placement, overflow behavior, dismissal, and accessibility.
+- Main screen and workflow action lists, such as report selection, screen-level More Actions, and
+  template management, must use the shared
+  `CloudBakeAnchoredActionPopup` inside a native popover, preserving the pointer-attached
+  presentation, semantic icons, separators, chevrons, full-row tap targets, outside-tap dismissal,
+  and accessibility escape.
+- Multi-line popup option labels must use tight leading and clear row padding so wrapped text reads
+  as one option rather than as a second adjacent action.
 - Branded multi-choice selection may use only the shared `cloudBakeActionPopup` component, with
   full-row tap targets, semantic icon colors, outside-tap and accessibility-escape dismissal.
 - Destructive decisions, acknowledgements, and state-changing confirmations must use the shared,
@@ -76,8 +83,8 @@ A slice is done only when:
   Preserve destructive roles, explicit cancel behavior, concise copy, and accessibility
   identifiers for acceptance-testable actions.
 - Native iOS presentation and CloudBake styling are complementary: Apple-owned permission, photo,
-  file, share, and keyboard surfaces remain native, while app-owned transient actions use the
-  shared CloudBake popup family.
+  file, share, and keyboard surfaces and compact attached choices remain native, while main
+  app-owned transient action lists use the shared CloudBake popup family.
 - Popup cancellation must run the same cleanup exactly once whether the owner chooses Cancel, uses
   the accessibility escape action, or dismisses by tapping outside.
 - Do not introduce feature-local popup overlays, one-off dialog styling, nested cards inside system
