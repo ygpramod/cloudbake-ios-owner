@@ -11,11 +11,28 @@ struct CloudBakePopupAction: Identifiable {
 }
 
 struct CloudBakeAnchoredActionPopup: View {
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
     let title: String
     let actions: [CloudBakeScreenMenuAction]
     @Binding var isPresented: Bool
 
     var body: some View {
+        ScrollView {
+            popupContent
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(width: 270)
+        .frame(maxHeight: verticalSizeClass == .compact ? 320 : 520)
+        .presentationBackground(CloudBakeTheme.ColorToken.surface.opacity(0.97))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("cloudBake.anchoredPopup")
+        .accessibilityAction(.escape) {
+            isPresented = false
+        }
+    }
+
+    private var popupContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
                 .font(.headline.weight(.bold))
@@ -65,14 +82,8 @@ struct CloudBakeAnchoredActionPopup: View {
                 }
             }
         }
-        .frame(width: 270)
+        .frame(maxWidth: .infinity)
         .padding(.bottom, CloudBakeTheme.Spacing.compactControl)
-        .presentationBackground(CloudBakeTheme.ColorToken.surface.opacity(0.97))
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("cloudBake.anchoredPopup")
-        .accessibilityAction(.escape) {
-            isPresented = false
-        }
     }
 }
 
@@ -294,7 +305,7 @@ private struct CloudBakeInputPopupModifier<Fields: View>: ViewModifier {
             Button("Cancel", action: cancel)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 40)
+                .frame(maxWidth: .infinity, minHeight: 44)
                 .contentShape(Rectangle())
                 .accessibilityIdentifier(cancelAccessibilityIdentifier)
         }
@@ -402,7 +413,7 @@ private struct CloudBakeActionPopupModifier: ViewModifier {
             Button("Cancel", action: dismiss)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 40)
+                .frame(maxWidth: .infinity, minHeight: 44)
                 .contentShape(Rectangle())
                 .accessibilityIdentifier("\(accessibilityIdentifier).cancel")
         }
@@ -473,13 +484,14 @@ private struct CloudBakeConfirmationDialogModifier<Actions: View>: ViewModifier 
     let onCancel: () -> Void
     let actions: () -> Actions
 
+    @State private var isPresented = false
     @AccessibilityFocusState private var isPopupFocused: Bool
 
     func body(content: Content) -> some View {
         content
-            .accessibilityHidden(externalIsPresented)
+            .accessibilityHidden(isPresented)
             .overlay {
-                if externalIsPresented {
+                if isPresented {
                     GeometryReader { proxy in
                         ZStack {
                             Rectangle()
@@ -509,8 +521,14 @@ private struct CloudBakeConfirmationDialogModifier<Actions: View>: ViewModifier 
                     .zIndex(1)
                 }
             }
-            .animation(.easeOut(duration: 0.18), value: externalIsPresented)
+            .animation(.easeOut(duration: 0.18), value: isPresented)
+            .onAppear {
+                isPresented = externalIsPresented
+            }
             .onChange(of: externalIsPresented) { _, presented in
+                isPresented = presented
+            }
+            .onChange(of: isPresented) { _, presented in
                 guard presented else {
                     isPopupFocused = false
                     return
@@ -548,7 +566,7 @@ private struct CloudBakeConfirmationDialogModifier<Actions: View>: ViewModifier 
                 Button("Cancel", action: dismissAsCancellation)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 40)
+                    .frame(maxWidth: .infinity, minHeight: 44)
                     .contentShape(Rectangle())
                     .accessibilityIdentifier(cancelAccessibilityIdentifier)
             }
@@ -576,7 +594,7 @@ private struct CloudBakeConfirmationDialogModifier<Actions: View>: ViewModifier 
     }
 
     private func dismissAsCancellation() {
-        externalIsPresented = false
+        isPresented = false
         Task { @MainActor in
             await Task.yield()
             onCancel()
@@ -584,7 +602,7 @@ private struct CloudBakeConfirmationDialogModifier<Actions: View>: ViewModifier 
     }
 
     private func dismissAfterSelection() {
-        externalIsPresented = false
+        isPresented = false
     }
 }
 
