@@ -19,7 +19,7 @@ extension CloudBakeOwnerUITests {
                 NSPredicate(format: "label CONTAINS %@", "image remains in Photos")
             ).firstMatch.exists
         )
-        dismissNativeDialog(titled: "Remove Design?", in: app)
+        tapWhenReady(app.buttons["designs.delete.cancel"])
         XCTAssertTrue(app.buttons["designs.preview.done"].exists)
 
         tapWhenReady(remove)
@@ -126,26 +126,22 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.buttons["Remove Favorite"].exists)
 
         tapWhenReady(app.navigationBars.buttons["Tags"])
-        let tagsAlert = app.alerts["Edit Tags"]
-        XCTAssertTrue(tagsAlert.waitForExistence(timeout: 5))
-        let tagsField = tagsAlert.textFields.firstMatch
+        let tagsPopup = app.otherElements["cloudBake.inputPopup"]
+        XCTAssertTrue(tagsPopup.waitForExistence(timeout: 5))
+        let tagsField = app.textFields["designs.preview.tags.field"]
         XCTAssertTrue(tagsField.waitForExistence(timeout: 5))
         tagsField.tap()
         tagsField.typeText(", Wedding")
-        tapVisibleElementAtCenter(nativeAlertAction(labeled: "Save", in: tagsAlert), in: app)
+        tapWhenReady(app.buttons["designs.preview.tags.save"])
         tapWhenReady(app.buttons["Next Design"])
         tapWhenReady(app.buttons["Previous Design"])
         tapWhenReady(app.navigationBars.buttons["Tags"])
-        let updatedTagsAlert = app.alerts["Edit Tags"]
-        XCTAssertTrue(updatedTagsAlert.waitForExistence(timeout: 5))
+        XCTAssertTrue(tagsPopup.waitForExistence(timeout: 5))
         XCTAssertTrue(
-            String(describing: updatedTagsAlert.textFields.firstMatch.value)
+            String(describing: app.textFields["designs.preview.tags.field"].value)
                 .contains("Wedding")
         )
-        tapVisibleElementAtCenter(
-            nativeAlertAction(labeled: "Cancel", in: updatedTagsAlert),
-            in: app
-        )
+        tapWhenReady(app.buttons["designs.tags.cancel"])
     }
 
     func testDesignLandingCanScrollFromBottomBackToTop() throws {

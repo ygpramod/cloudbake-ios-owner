@@ -824,7 +824,7 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(allergyText.label.contains("Nuts"))
     }
 
-    func testOrderCustomerCreationOffersNativeEntryChoices() throws {
+    func testOrderCustomerCreationOffersBrandedEntryChoices() throws {
         let app = makeApp()
         let transitionTimeout: TimeInterval = 25
         app.launch()
@@ -848,9 +848,10 @@ extension CloudBakeOwnerUITests {
 
         tapWhenReady(app.buttons["orders.customerSelection.newCustomer"], timeout: transitionTimeout)
         XCTAssertTrue(app.staticTexts["Add Customer"].waitForExistence(timeout: transitionTimeout))
-        XCTAssertTrue(nativeDialogAction(labeled: "Import From Contacts", in: app).exists)
-        XCTAssertTrue(nativeDialogAction(labeled: "Enter Manually", in: app).exists)
-        dismissNativeDialog(titled: "Add Customer", in: app)
+        XCTAssertTrue(app.otherElements["cloudBake.confirmationPopup"].exists)
+        XCTAssertTrue(app.buttons["orders.customerSelection.add.importContacts"].exists)
+        XCTAssertTrue(app.buttons["orders.customerSelection.add.manual"].exists)
+        tapWhenReady(app.buttons["orders.customerSelection.add.cancel"])
     }
 
     func testOrderCanCreateAndLinkNewCustomerFromSelection() throws {
