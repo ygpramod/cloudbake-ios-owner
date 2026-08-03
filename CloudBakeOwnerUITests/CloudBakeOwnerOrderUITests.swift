@@ -784,6 +784,7 @@ extension CloudBakeOwnerUITests {
             )
         )
         .firstMatch
+        scrollToHittable(orderRow, in: app, timeout: transitionTimeout)
         tapWhenReady(orderRow, timeout: transitionTimeout)
 
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
