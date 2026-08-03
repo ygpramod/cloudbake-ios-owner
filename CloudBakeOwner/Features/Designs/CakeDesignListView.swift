@@ -7,7 +7,7 @@ import UIKit
 struct CakeDesignListView: View {
     private let designGridColumns = [
         GridItem(.flexible(), spacing: 14),
-        GridItem(.flexible(), spacing: 14)
+        GridItem(.flexible(), spacing: 14),
     ]
 
     @StateObject private var viewModel: CakeDesignListViewModel
@@ -109,7 +109,8 @@ struct CakeDesignListView: View {
     private var designResults: some View {
         if viewModel.visibleDesigns.isEmpty
             && viewModel.visibleReferences.isEmpty
-            && (viewModel.hasEffectiveSearchQuery || viewModel.selectedFilter != .all) {
+            && (viewModel.hasEffectiveSearchQuery || viewModel.selectedFilter != .all)
+        {
             CloudBakeEmptyState(
                 title: "No matching designs",
                 systemImage: "magnifyingglass",
@@ -142,7 +143,9 @@ struct CakeDesignListView: View {
                             .font(CloudBakeTheme.Typography.sectionTitle)
                             .accessibilityIdentifier("designs.myDesigns.title")
                         Spacer()
-                        Button { isAddingOwnerDesign = true } label: {
+                        Button {
+                            isAddingOwnerDesign = true
+                        } label: {
                             Label("Add owner design", systemImage: "plus")
                                 .labelStyle(.iconOnly)
                                 .frame(minWidth: 44, minHeight: 36)
@@ -187,15 +190,17 @@ struct CakeDesignListView: View {
                         .accessibilityLabel("Import Reference Photo")
                         .accessibilityIdentifier("designs.references.add")
                     }
-                        .padding(.top, 10)
-                        .padding(.bottom, 10)
+                    .padding(.top, 10)
+                    .padding(.bottom, 10)
                 }
             }
         }
     }
 
     private func referenceTile(_ reference: CakeDesign) -> some View {
-        Button { previewingReference = reference } label: {
+        Button {
+            previewingReference = reference
+        } label: {
             photoTile(
                 source: viewModel.availablePhotoSource(for: reference),
                 isFavorite: reference.isFavorite,
@@ -554,7 +559,9 @@ private struct CakeDesignPreviewView: View {
                 }
             }
             ToolbarItem(placement: .primaryAction) {
-                Button(role: .destructive) { isConfirmingDelete = true } label: {
+                Button(role: .destructive) {
+                    isConfirmingDelete = true
+                } label: {
                     Image(systemName: "trash")
                 }
                 .accessibilityLabel("Remove \(CakeDesignPresentation.itemName(for: design))")
@@ -584,7 +591,8 @@ private struct CakeDesignPreviewView: View {
         .cloudBakeConfirmationDialog(
             isPresented: $isConfirmingDelete,
             title: "Remove \(CakeDesignPresentation.itemName(for: design))?",
-            message: "Remove this \(CakeDesignPresentation.itemName(for: design).lowercased()) from CloudBake. The image remains in Photos.",
+            message:
+                "Remove this \(CakeDesignPresentation.itemName(for: design).lowercased()) from CloudBake. The image remains in Photos.",
             cancelAccessibilityIdentifier: "designs.delete.cancel",
             onCancel: { isConfirmingDelete = false }
         ) {
@@ -607,9 +615,10 @@ private struct CakeDesignPreviewView: View {
         DragGesture(minimumDistance: 40)
             .onEnded { value in
                 guard !isPhotoZoomed,
-                      abs(value.translation.width) > abs(value.translation.height) * 1.4,
-                      abs(value.translation.width) >= 72,
-                      currentDesignIndex != nil else {
+                    abs(value.translation.width) > abs(value.translation.height) * 1.4,
+                    abs(value.translation.width) >= 72,
+                    currentDesignIndex != nil
+                else {
                     return
                 }
                 moveDesign(by: value.translation.width < 0 ? 1 : -1)
@@ -630,7 +639,9 @@ private struct CakeDesignPreviewView: View {
     }
 
     private func adjacentButton(systemImage: String, label: String, offset: Int) -> some View {
-        Button { moveDesign(by: offset) } label: {
+        Button {
+            moveDesign(by: offset)
+        } label: {
             Image(systemName: systemImage).frame(minWidth: 44, minHeight: 32)
         }
         .buttonStyle(.bordered)
@@ -820,16 +831,17 @@ actor DesignThumbnailLoader {
         case .legacyFile(let url):
             image = await Task<UIImage?, Never>.detached(priority: .utility) {
                 guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
-                  let cgImage = CGImageSourceCreateThumbnailAtIndex(
-                    imageSource,
-                    0,
-                    [
-                        kCGImageSourceCreateThumbnailFromImageAlways: true,
-                        kCGImageSourceCreateThumbnailWithTransform: true,
-                        kCGImageSourceThumbnailMaxPixelSize: maximumPixelSize,
-                        kCGImageSourceShouldCacheImmediately: true
-                    ] as CFDictionary
-                  ) else { return nil }
+                    let cgImage = CGImageSourceCreateThumbnailAtIndex(
+                        imageSource,
+                        0,
+                        [
+                            kCGImageSourceCreateThumbnailFromImageAlways: true,
+                            kCGImageSourceCreateThumbnailWithTransform: true,
+                            kCGImageSourceThumbnailMaxPixelSize: maximumPixelSize,
+                            kCGImageSourceShouldCacheImmediately: true,
+                        ] as CFDictionary
+                    )
+                else { return nil }
                 return UIImage(cgImage: cgImage)
             }.value
         case .photosAsset(let identifier):
