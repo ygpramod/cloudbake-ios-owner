@@ -105,32 +105,39 @@ extension CloudBakeOwnerUITests {
     ) {
         tapWhenReady(app.buttons["orders.add"])
         XCTAssertTrue(app.navigationBars["Add Order"].waitForExistence(timeout: timeout))
-        typeText(name, into: app.textFields["orders.form.title"])
-        typeText(notes, into: app.textFields["orders.form.cakeNotes"])
+        let titleField = app.textFields["orders.form.title"]
+        positionTextInputForInteraction(titleField, in: app, timeout: timeout)
+        typeText(name, into: titleField, timeout: timeout)
+        let notesField = app.textFields["orders.form.cakeNotes"]
+        positionTextInputForInteraction(notesField, in: app, timeout: timeout)
+        typeText(notes, into: notesField, timeout: timeout)
         dismissKeyboard(in: app)
         if let cakeMessage {
             let cakeMessageField = app.textFields["orders.form.cakeMessage"]
-            scrollToHittable(cakeMessageField, in: app, timeout: timeout)
+            positionTextInputForInteraction(cakeMessageField, in: app, timeout: timeout)
             typeText(cakeMessage, into: cakeMessageField, timeout: timeout)
             dismissKeyboard(in: app)
         }
         let customerNameField = app.textFields["orders.form.customerName"]
-        scrollToHittable(customerNameField, in: app, timeout: timeout)
+        positionTextInputForInteraction(customerNameField, in: app, timeout: timeout)
         typeText(customerName, into: customerNameField, timeout: timeout)
         dismissKeyboard(in: app)
         if let quotedPrice {
-            scrollToHittable(app.textFields["orders.form.quotedPrice"], in: app, timeout: timeout)
-            typeText(quotedPrice, into: app.textFields["orders.form.quotedPrice"])
+            let quotedPriceField = app.textFields["orders.form.quotedPrice"]
+            positionTextInputForInteraction(quotedPriceField, in: app, timeout: timeout)
+            typeText(quotedPrice, into: quotedPriceField, timeout: timeout)
             dismissKeyboard(in: app)
         }
         if let depositPaid {
-            scrollToHittable(app.textFields["orders.form.depositPaid"], in: app, timeout: timeout)
-            typeText(depositPaid, into: app.textFields["orders.form.depositPaid"])
+            let depositPaidField = app.textFields["orders.form.depositPaid"]
+            positionTextInputForInteraction(depositPaidField, in: app, timeout: timeout)
+            typeText(depositPaid, into: depositPaidField, timeout: timeout)
             dismissKeyboard(in: app)
         }
         if let paymentNotes {
-            scrollToHittable(app.textFields["orders.form.paymentNotes"], in: app, timeout: timeout)
-            typeText(paymentNotes, into: app.textFields["orders.form.paymentNotes"])
+            let paymentNotesField = app.textFields["orders.form.paymentNotes"]
+            positionTextInputForInteraction(paymentNotesField, in: app, timeout: timeout)
+            typeText(paymentNotes, into: paymentNotesField, timeout: timeout)
             dismissKeyboard(in: app)
         }
         tapWhenReady(app.buttons["orders.form.save"])

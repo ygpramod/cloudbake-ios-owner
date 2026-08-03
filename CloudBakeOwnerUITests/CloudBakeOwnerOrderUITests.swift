@@ -1131,11 +1131,11 @@ extension CloudBakeOwnerUITests {
 
         let titleField = app.textFields["orders.form.title"]
         scrollToTop(in: app)
-        scrollToHittable(titleField, in: app, timeout: transitionTimeout)
+        positionTextInputForInteraction(titleField, in: app, timeout: transitionTimeout)
         typeText("Customer Reference Cake", into: titleField, timeout: transitionTimeout)
         dismissKeyboard(in: app)
         let customerNameField = app.textFields["orders.form.customerName"]
-        scrollToHittable(customerNameField, in: app, timeout: transitionTimeout)
+        positionTextInputForInteraction(customerNameField, in: app, timeout: transitionTimeout)
         typeText("Beth", into: customerNameField, timeout: transitionTimeout)
         dismissKeyboard(in: app)
         scrollToHittable(app.buttons["orders.form.save"], in: app, timeout: transitionTimeout)
@@ -1496,20 +1496,7 @@ extension CloudBakeOwnerUITests {
 
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         tapWhenReady(app.buttons["orders.detail.statusMenu"], timeout: transitionTimeout)
-        let statusPopup = app.scrollViews["cloudBake.anchoredPopup"]
-        XCTAssertTrue(statusPopup.waitForExistence(timeout: transitionTimeout))
-        let cancelledAction = app.buttons["orders.detail.status.cancelled"]
-        scrollToVisible(
-            cancelledAction,
-            in: app,
-            scrollContainer: statusPopup,
-            timeout: transitionTimeout
-        )
-        tapVisibleElementAtCenter(
-            cancelledAction,
-            in: app,
-            timeout: transitionTimeout
-        )
+        tapExisting(app.buttons["Cancelled"], timeout: transitionTimeout)
         app.buttons["orders.detail.done"].tap()
 
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
