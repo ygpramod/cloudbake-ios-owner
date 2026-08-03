@@ -1476,11 +1476,10 @@ extension CloudBakeOwnerUITests {
     }
 
     func testCancelledOrderAppearsInCompletedTabWithBadge() throws {
-        let app = makeApp()
+        let app = makeApp(initialDestination: "orders")
         let transitionTimeout: TimeInterval = 15
         app.launch()
 
-        openDashboardDestination("Orders", in: app, timeout: transitionTimeout)
         assertScreenVisible("screen.orders", in: app, timeout: transitionTimeout)
         addOrder(named: "Cancelled Birthday", notes: "Customer changed date", customerName: "Amy", in: app)
 
