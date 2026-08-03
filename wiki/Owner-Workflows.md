@@ -28,6 +28,11 @@ The current recipe workflow stores:
 2. owner notes,
 3. linked ingredient rows with inventory item, quantity, unit, and optional note.
 
+While creating a recipe, use the `+` beside Ingredients to add linked ingredient rows before saving
+the recipe. The top Save action returns to the recipe form by default. Turn on Continue adding
+ingredients to make Save store the current row, clear the ingredient fields, and keep Add
+Ingredient open for continuous entry.
+
 The owner can also import a recipe from paper or a recipe book by taking a photo, retaking the
 photo, choosing an image from the photo library, or manually entering recognized text. The app reads
 the image locally with Apple Vision OCR, creates an editable draft, parses likely ingredient rows,

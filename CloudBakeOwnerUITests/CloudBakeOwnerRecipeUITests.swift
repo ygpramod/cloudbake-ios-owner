@@ -57,7 +57,9 @@ extension CloudBakeOwnerUITests {
         XCTAssertEqual(app.textFields["recipes.import.notes"].value as? String, "Bake until set")
         XCTAssertTrue(ingredientName.exists)
         XCTAssertTrue(app.staticTexts["Flour"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.import.ingredient.quantity.")).firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recipes.import.ingredient.quantity.")).firstMatch
+                .waitForExistence(timeout: 5))
         let importedRecipe = app.staticTexts["Chocolate Fudge"]
         tapWhenReady(
             app.buttons["recipes.import.save"],
@@ -120,6 +122,58 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.staticTexts["No ingredients yet"].waitForExistence(timeout: 5))
     }
 
+    func testNewRecipeCanContinuouslyAddIngredientsBeforeSave() throws {
+        let app = makeApp()
+        app.launch()
+
+        openDashboardDestination("Inventory", in: app)
+        addInventoryItem(named: "Cake flour", currentQuantity: "1000", minimumQuantity: "500", in: app)
+        returnToDashboard(in: app)
+
+        openDashboardDestination("Recipes", in: app)
+        tapWhenReady(app.buttons["recipes.add"])
+        typeText("Continuous Sponge", into: app.textFields["recipes.form.name"])
+        dismissKeyboard(in: app)
+        tapWhenReady(app.buttons["recipes.form.ingredient.add"])
+
+        let quantity = app.textFields["recipes.ingredient.quantity"]
+        XCTAssertTrue(quantity.waitForExistence(timeout: 5))
+        typeText("250", into: quantity)
+        dismissKeyboard(in: app)
+        let continueAdding = app.switches["recipes.ingredient.continueAdding"]
+        XCTAssertTrue(continueAdding.waitForExistence(timeout: 5))
+        continueAdding.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        expectation(
+            for: NSPredicate(format: "value == %@", "1"),
+            evaluatedWith: continueAdding
+        )
+        waitForExpectations(timeout: 5)
+        tapWhenReady(app.buttons["recipes.ingredient.save"])
+
+        XCTAssertTrue(app.navigationBars["Add Ingredient"].waitForExistence(timeout: 5))
+        let nextQuantity = app.textFields["recipes.ingredient.quantity"]
+        XCTAssertEqual(nextQuantity.value as? String, "Quantity")
+        typeText("100", into: nextQuantity)
+        dismissKeyboard(in: app)
+        continueAdding.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        expectation(
+            for: NSPredicate(format: "value == %@", "0"),
+            evaluatedWith: continueAdding
+        )
+        waitForExpectations(timeout: 5)
+        tapWhenReady(app.buttons["recipes.ingredient.save"])
+
+        XCTAssertTrue(app.navigationBars["Add Recipe"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Cake flour")).count, 2)
+        tapWhenReady(app.buttons["recipes.form.save"])
+
+        let recipe = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "recipes.item.")
+        ).firstMatch
+        tapWhenReady(recipe)
+        XCTAssertTrue(app.staticTexts["2 ingredients"].waitForExistence(timeout: 5))
+    }
+
     func testRecipeNotesCanBeEditedFromDetail() throws {
         let app = makeApp()
         app.launch()
@@ -141,6 +195,7 @@ extension CloudBakeOwnerUITests {
         app.buttons["recipes.form.save"].tap()
 
         XCTAssertTrue(app.buttons["recipes.detail.done"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Use two tins")).firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Use two tins")).firstMatch.waitForExistence(timeout: 5))
     }
 }

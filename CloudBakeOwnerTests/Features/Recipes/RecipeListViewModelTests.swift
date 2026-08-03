@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import CloudBakeOwner
 
 @MainActor
@@ -110,7 +111,7 @@ final class RecipeListViewModelTests: XCTestCase {
                 note: nil,
                 createdAt: timestamp,
                 updatedAt: timestamp
-            )
+            ),
         ]
         let viewModel = RecipeListViewModel(repository: repository)
 
@@ -254,6 +255,84 @@ final class RecipeListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.draftName, "")
         XCTAssertEqual(viewModel.draftNotes, "")
         XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testAddRecipePersistsContinuouslyEnteredIngredientDrafts() {
+        let repository = FakeRecipeRepository()
+        let now = Date(timeIntervalSince1970: 1_800_031_000)
+        let flour = InventoryItem(
+            id: "inventory-flour",
+            name: "Cake Flour",
+            unit: .gram,
+            currentQuantity: 1_000,
+            minimumQuantity: 500,
+            createdAt: now,
+            updatedAt: now
+        )
+        repository.inventoryItems = [flour]
+        var generatedIds = [
+            "ingredient-flour-1",
+            "ingredient-flour-2",
+            "recipe-vanilla",
+            "component-ingredients",
+        ].makeIterator()
+        let viewModel = RecipeListViewModel(
+            repository: repository,
+            idGenerator: { generatedIds.next() ?? "unexpected-id" },
+            dateProvider: { now }
+        )
+
+        viewModel.beginAddingNewRecipeIngredient()
+        viewModel.draftIngredientQuantity = "250"
+        XCTAssertTrue(viewModel.saveNewRecipeIngredientDraft())
+        XCTAssertEqual(viewModel.newRecipeIngredientDrafts.count, 1)
+        XCTAssertEqual(viewModel.draftIngredientQuantity, "")
+
+        viewModel.beginAddingNewRecipeIngredient()
+        viewModel.draftIngredientQuantity = "100"
+        XCTAssertTrue(viewModel.saveNewRecipeIngredientDraft())
+
+        viewModel.draftName = "Vanilla Sponge"
+        XCTAssertTrue(viewModel.addRecipe())
+
+        XCTAssertEqual(repository.recipes.map(\.id), ["recipe-vanilla"])
+        XCTAssertEqual(repository.components.map(\.id), ["component-ingredients"])
+        XCTAssertEqual(repository.ingredients.map(\.quantity), [250, 100])
+        XCTAssertTrue(viewModel.newRecipeIngredientDrafts.isEmpty)
+    }
+
+    func testAddRecipeKeepsIngredientDraftsWhenAtomicSaveFails() {
+        enum ExpectedError: Error {
+            case save
+        }
+
+        let repository = FakeRecipeRepository()
+        let now = Date(timeIntervalSince1970: 1_800_031_000)
+        repository.inventoryItems = [
+            InventoryItem(
+                id: "inventory-flour",
+                name: "Cake Flour",
+                unit: .gram,
+                currentQuantity: 1_000,
+                minimumQuantity: 500,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
+        let viewModel = RecipeListViewModel(repository: repository)
+        viewModel.beginAddingNewRecipeIngredient()
+        viewModel.draftIngredientQuantity = "250"
+        XCTAssertTrue(viewModel.saveNewRecipeIngredientDraft())
+        viewModel.draftName = "Vanilla Sponge"
+        repository.recipeCSVImportError = ExpectedError.save
+
+        XCTAssertFalse(viewModel.addRecipe())
+
+        XCTAssertTrue(repository.recipes.isEmpty)
+        XCTAssertTrue(repository.components.isEmpty)
+        XCTAssertTrue(repository.ingredients.isEmpty)
+        XCTAssertEqual(viewModel.newRecipeIngredientDrafts.count, 1)
+        XCTAssertEqual(viewModel.errorMessage, "Recipe could not be saved.")
     }
 
     func testAddRecipeRejectsBlankName() {

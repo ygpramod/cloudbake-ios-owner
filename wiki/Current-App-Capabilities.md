@@ -65,7 +65,8 @@ The app currently supports:
 44. recipe paper/book photo import into editable drafts,
 45. local Apple Vision OCR service for recipe text recognition,
 46. recipe detail view,
-47. manually linked recipe ingredient rows with quantity, unit, and note,
+47. manually linked recipe ingredient rows with quantity, unit, and note, including optional
+    continuous ingredient entry directly while creating a recipe,
 48. recipe ingredient editing and deletion,
 49. structured recipe import drafts with parsed ingredient rows,
 50. simple inventory matching for imported recipe ingredients,
