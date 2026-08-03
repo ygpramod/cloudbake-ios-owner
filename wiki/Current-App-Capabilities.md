@@ -257,6 +257,9 @@ The app currently supports:
     without creating an order, while edit
     opens a searchable template list and updates the selected template in place; source searches
     use CloudBake styling and repository-backed paginated order results.
+149. shared CloudBake action, confirmation, and short-input popups across order status, payments,
+    templates, reports, bill import decisions, and cake choices, with content-sized cards,
+    full-row tap targets, Dynamic Type fallback scrolling, and background accessibility isolation.
 
 ## Partially Prepared
 
