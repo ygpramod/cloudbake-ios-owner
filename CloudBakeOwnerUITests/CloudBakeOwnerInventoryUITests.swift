@@ -11,7 +11,7 @@ extension CloudBakeOwnerUITests {
             waitingFor: app.navigationBars["Add Item"]
         )
 
-        let formScroll = app.descendants(matching: .any)["inventory.form.scroll"]
+        let formScroll = app.collectionViews["inventory.form.scroll"]
         XCTAssertTrue(formScroll.waitForExistence(timeout: 10))
         fillInventoryItemForm(
             name: "Cake flour",
@@ -22,7 +22,7 @@ extension CloudBakeOwnerUITests {
         )
 
         let continueAdding = app.switches["inventory.form.continueAdding"]
-        positionScrollableElementForInteraction(
+        positionInventoryFormToggle(
             continueAdding,
             in: formScroll,
             app: app
@@ -50,7 +50,7 @@ extension CloudBakeOwnerUITests {
             in: app,
             formScroll: formScroll
         )
-        positionScrollableElementForInteraction(
+        positionInventoryFormToggle(
             continueAdding,
             in: formScroll,
             app: app
@@ -175,6 +175,21 @@ extension CloudBakeOwnerUITests {
         scrollToHittable(minimumQuantityField, in: app, scrollContainer: formScroll)
         typeText(minimumQuantity, into: minimumQuantityField)
         dismissKeyboard(in: app)
+    }
+
+    private func positionInventoryFormToggle(
+        _ toggle: XCUIElement,
+        in formScroll: XCUIElement,
+        app: XCUIApplication
+    ) {
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        let visibleBottom = formScroll.frame.isEmpty ? app.frame.maxY - 12 : formScroll.frame.maxY - 12
+        for _ in 0..<4
+        where !toggle.isHittable || toggle.frame.maxY > visibleBottom {
+            formScroll.swipeUp()
+        }
+        XCTAssertTrue(toggle.isHittable)
+        XCTAssertLessThanOrEqual(toggle.frame.maxY, visibleBottom)
     }
 
     func testInventoryOwnerJourneyShowsDetailEditsStockHistoryAndDashboard() throws {
