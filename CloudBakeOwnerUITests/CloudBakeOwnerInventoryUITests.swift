@@ -1,6 +1,74 @@
 import XCTest
 
 extension CloudBakeOwnerUITests {
+    func testInventoryCanContinueAddingItemsWithoutLeavingForm() throws {
+        let app = makeApp(initialDestination: "inventory")
+        app.launch()
+
+        tapInventoryHeaderAction(
+            "inventory.add",
+            in: app,
+            waitingFor: app.navigationBars["Add Item"]
+        )
+
+        let formScroll = app.collectionViews["inventory.form.scroll"]
+        XCTAssertTrue(formScroll.waitForExistence(timeout: 10))
+        fillInventoryItemForm(
+            name: "Cake flour",
+            currentQuantity: "500",
+            minimumQuantity: "100",
+            in: app,
+            formScroll: formScroll
+        )
+
+        let continueAdding = app.switches["inventory.form.continueAdding"]
+        positionInventoryFormToggle(
+            continueAdding,
+            in: formScroll,
+            app: app
+        )
+        continueAdding.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        expectation(
+            for: NSPredicate(format: "value == %@", "1"),
+            evaluatedWith: continueAdding
+        )
+        waitForExpectations(timeout: 5)
+        XCTAssertEqual(continueAdding.value as? String, "1")
+        let saveButton = app.buttons["inventory.form.save"]
+        tapWhenReady(saveButton)
+
+        XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
+        let resetNameField = app.textFields["inventory.form.name"]
+        XCTAssertTrue(resetNameField.waitForExistence(timeout: 5))
+        XCTAssertEqual(resetNameField.value as? String, "Name")
+        XCTAssertTrue(resetNameField.isHittable)
+
+        fillInventoryItemForm(
+            name: "Caster sugar",
+            currentQuantity: "300",
+            minimumQuantity: "50",
+            in: app,
+            formScroll: formScroll
+        )
+        positionInventoryFormToggle(
+            continueAdding,
+            in: formScroll,
+            app: app
+        )
+        continueAdding.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        expectation(
+            for: NSPredicate(format: "value == %@", "0"),
+            evaluatedWith: continueAdding
+        )
+        waitForExpectations(timeout: 5)
+        scrollToHittable(app.buttons["inventory.form.save"], in: app, scrollContainer: formScroll)
+        tapWhenReady(app.buttons["inventory.form.save"])
+
+        assertScreenVisible("screen.inventory", in: app, timeout: 10)
+        XCTAssertTrue(app.staticTexts["Cake flour"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Caster sugar"].waitForExistence(timeout: 5))
+    }
+
     func testInventoryNotificationColdLaunchOpensRelevantItem() {
         let app = makeApp()
         app.launchEnvironment["CLOUDBAKE_SEED_INVENTORY_FIXTURE"] = "1"
@@ -81,9 +149,47 @@ extension CloudBakeOwnerUITests {
         scrollToHittable(saveButton, in: app, scrollContainer: formScroll)
         tapWhenReady(saveButton)
 
-        XCTAssertTrue(
-            app.staticTexts["Possible duplicate: Cake flour already exists. Tap Save again to add a separate item."].waitForExistence(
-                timeout: 5))
+        let duplicateWarning = app.staticTexts["inventory.form.duplicateWarning"]
+        scrollToHittable(duplicateWarning, in: app, scrollContainer: formScroll)
+        XCTAssertTrue(duplicateWarning.label.contains("Cake flour already exists"))
+    }
+
+    private func fillInventoryItemForm(
+        name: String,
+        currentQuantity: String,
+        minimumQuantity: String,
+        in app: XCUIApplication,
+        formScroll: XCUIElement
+    ) {
+        let nameField = app.textFields["inventory.form.name"]
+        scrollToHittable(nameField, in: app, scrollContainer: formScroll)
+        typeText(name, into: nameField)
+        dismissKeyboard(in: app)
+
+        let currentQuantityField = app.textFields["inventory.form.currentQuantity"]
+        scrollToHittable(currentQuantityField, in: app, scrollContainer: formScroll)
+        typeText(currentQuantity, into: currentQuantityField)
+        dismissKeyboard(in: app)
+
+        let minimumQuantityField = app.textFields["inventory.form.minimumQuantity"]
+        scrollToHittable(minimumQuantityField, in: app, scrollContainer: formScroll)
+        typeText(minimumQuantity, into: minimumQuantityField)
+        dismissKeyboard(in: app)
+    }
+
+    private func positionInventoryFormToggle(
+        _ toggle: XCUIElement,
+        in formScroll: XCUIElement,
+        app: XCUIApplication
+    ) {
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        let visibleBottom = formScroll.frame.isEmpty ? app.frame.maxY - 12 : formScroll.frame.maxY - 12
+        for _ in 0..<4
+        where !toggle.isHittable || toggle.frame.maxY > visibleBottom {
+            formScroll.swipeUp()
+        }
+        XCTAssertTrue(toggle.isHittable)
+        XCTAssertLessThanOrEqual(toggle.frame.maxY, visibleBottom)
     }
 
     func testInventoryOwnerJourneyShowsDetailEditsStockHistoryAndDashboard() throws {

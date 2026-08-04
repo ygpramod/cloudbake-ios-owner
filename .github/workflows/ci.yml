@@ -168,6 +168,7 @@ jobs:
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testCustomerCanBeDeletedFromDetail
           - feature: inventory
             only_testing: |
+              CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryCanContinueAddingItemsWithoutLeavingForm
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryNotificationColdLaunchOpensRelevantItem
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryDuplicateNameShowsWarningBeforeAdding
               CloudBakeOwnerUITests/CloudBakeOwnerUITests/testInventoryOwnerJourneyShowsDetailEditsStockHistoryAndDashboard

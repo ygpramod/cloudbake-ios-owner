@@ -73,6 +73,9 @@ ingredients are kept as recipe notes.
 
 Use the `+` beside the Items heading when a new ingredient or supply needs to be tracked.
 
+Turn on **Continue adding inventory** to save the current item, clear the form, and immediately
+enter another item. Turn it off before Save when the final item should return to Inventory.
+
 Before adding, the app warns when an existing item has the same or similar name. This helps avoid
 duplicates like multiple cake flour rows.
 
