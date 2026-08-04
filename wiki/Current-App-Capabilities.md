@@ -20,7 +20,7 @@ The app currently supports:
    quick navigation for Home, Orders, Inventory, and More,
 3. inventory navigation,
 4. local SQLite persistence,
-5. inventory item creation,
+5. inventory item creation, including optional continuous entry without reopening the form,
 6. current quantity and minimum quantity tracking,
 7. low-inventory detection,
 8. duplicate inventory warning,
