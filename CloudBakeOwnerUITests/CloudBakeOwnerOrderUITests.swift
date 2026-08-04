@@ -1361,6 +1361,12 @@ extension CloudBakeOwnerUITests {
                 "Inventory shortage cake"
             )
         ).firstMatch
+        scrollToHittable(
+            orderRow,
+            in: app,
+            scrollContainer: app.scrollViews["screen.orders"],
+            timeout: 10
+        )
         tapWhenReady(orderRow)
 
         assertExistsAfterScrolling(app.buttons["orders.detail.statusMenu"], in: app)
