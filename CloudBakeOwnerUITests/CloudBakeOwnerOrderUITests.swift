@@ -754,15 +754,24 @@ extension CloudBakeOwnerUITests {
         XCTAssertTrue(app.staticTexts["orders.detail.cake"].waitForExistence(timeout: transitionTimeout))
         XCTAssertTrue(checklistItem.label.contains("Final photo"))
 
-        tapExisting(checklistItem, timeout: transitionTimeout)
+        let updatedChecklistItem = app.descendants(matching: .any).matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@",
+                "orders.detail.checklist.item."
+            )
+        )
+        .firstMatch
+        scrollToHittable(
+            updatedChecklistItem,
+            in: app,
+            scrollContainer: detailScroll,
+            timeout: transitionTimeout
+        )
+        tapWhenReady(updatedChecklistItem, timeout: transitionTimeout)
         let completedState = NSPredicate(format: "value == %@", "Complete")
-        let completedExpectation = XCTNSPredicateExpectation(predicate: completedState, object: checklistItem)
-        if XCTWaiter.wait(for: [completedExpectation], timeout: 2) != .completed {
-            tapExisting(checklistItem, timeout: transitionTimeout)
-        }
         XCTAssertEqual(
             XCTWaiter.wait(
-                for: [XCTNSPredicateExpectation(predicate: completedState, object: checklistItem)],
+                for: [XCTNSPredicateExpectation(predicate: completedState, object: updatedChecklistItem)],
                 timeout: transitionTimeout
             ),
             .completed
