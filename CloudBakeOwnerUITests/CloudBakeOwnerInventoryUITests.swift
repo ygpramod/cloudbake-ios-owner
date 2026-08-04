@@ -13,15 +13,6 @@ extension CloudBakeOwnerUITests {
 
         let formScroll = app.descendants(matching: .any)["inventory.form.scroll"]
         XCTAssertTrue(formScroll.waitForExistence(timeout: 10))
-        let continueAdding = app.switches["inventory.form.continueAdding"]
-        scrollToHittable(continueAdding, in: app, scrollContainer: formScroll)
-        continueAdding.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
-        expectation(
-            for: NSPredicate(format: "value == %@", "1"),
-            evaluatedWith: continueAdding
-        )
-        waitForExpectations(timeout: 5)
-
         fillInventoryItemForm(
             name: "Cake flour",
             currentQuantity: "500",
@@ -29,12 +20,28 @@ extension CloudBakeOwnerUITests {
             in: app,
             formScroll: formScroll
         )
+
+        let continueAdding = app.switches["inventory.form.continueAdding"]
+        positionScrollableElementForInteraction(
+            continueAdding,
+            in: formScroll,
+            app: app
+        )
+        continueAdding.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        expectation(
+            for: NSPredicate(format: "value == %@", "1"),
+            evaluatedWith: continueAdding
+        )
+        waitForExpectations(timeout: 5)
         XCTAssertEqual(continueAdding.value as? String, "1")
-        tapWhenReady(app.buttons["inventory.form.save"])
+        let saveButton = app.buttons["inventory.form.save"]
+        tapWhenReady(saveButton)
 
         XCTAssertTrue(app.navigationBars["Add Item"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.textFields["inventory.form.name"].value as? String, "Name")
-        XCTAssertTrue(app.textFields["inventory.form.name"].isHittable)
+        let resetNameField = app.textFields["inventory.form.name"]
+        XCTAssertTrue(resetNameField.waitForExistence(timeout: 5))
+        XCTAssertEqual(resetNameField.value as? String, "Name")
+        XCTAssertTrue(resetNameField.isHittable)
 
         fillInventoryItemForm(
             name: "Caster sugar",
@@ -43,7 +50,11 @@ extension CloudBakeOwnerUITests {
             in: app,
             formScroll: formScroll
         )
-        scrollToHittable(continueAdding, in: app, scrollContainer: formScroll)
+        positionScrollableElementForInteraction(
+            continueAdding,
+            in: formScroll,
+            app: app
+        )
         continueAdding.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
         expectation(
             for: NSPredicate(format: "value == %@", "0"),
@@ -138,9 +149,9 @@ extension CloudBakeOwnerUITests {
         scrollToHittable(saveButton, in: app, scrollContainer: formScroll)
         tapWhenReady(saveButton)
 
-        XCTAssertTrue(
-            app.staticTexts["Possible duplicate: Cake flour already exists. Tap Save again to add a separate item."].waitForExistence(
-                timeout: 5))
+        let duplicateWarning = app.staticTexts["inventory.form.duplicateWarning"]
+        scrollToHittable(duplicateWarning, in: app, scrollContainer: formScroll)
+        XCTAssertTrue(duplicateWarning.label.contains("Cake flour already exists"))
     }
 
     private func fillInventoryItemForm(
