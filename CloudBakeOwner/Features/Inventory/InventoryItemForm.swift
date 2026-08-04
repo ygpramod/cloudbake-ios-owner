@@ -9,6 +9,8 @@ struct InventoryItemForm: View {
     let showsExpiryDate: Bool
     let onCancel: () -> Void
     let onSave: () -> Bool
+    @State private var continuesAddingInventory = false
+    @FocusState private var focusedField: Field?
 
     var body: some View {
         Form {
@@ -19,6 +21,7 @@ struct InventoryItemForm: View {
                         .foregroundStyle(.secondary)
                     TextField("Name", text: $viewModel.draftName)
                         .textInputAutocapitalization(.words)
+                        .focused($focusedField, equals: .name)
                         .accessibilityIdentifier("inventory.form.name")
                 }
 
@@ -54,15 +57,17 @@ struct InventoryItemForm: View {
                         text: $viewModel.draftDefaultExpiryDays,
                         prompt: Text("Use type default")
                     )
-                        .keyboardType(.numberPad)
-                        .accessibilityLabel("Default Expiry (Days)")
-                        .accessibilityIdentifier("inventory.form.defaultExpiryDays")
-                        .onChange(of: viewModel.draftDefaultExpiryDays) { _, _ in
-                            viewModel.updateDraftExpiryFromDefault()
-                        }
-                    Text("Leave blank to use the inventory type default. You can still change or remove a batch expiry before saving stock.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .keyboardType(.numberPad)
+                    .accessibilityLabel("Default Expiry (Days)")
+                    .accessibilityIdentifier("inventory.form.defaultExpiryDays")
+                    .onChange(of: viewModel.draftDefaultExpiryDays) { _, _ in
+                        viewModel.updateDraftExpiryFromDefault()
+                    }
+                    Text(
+                        "Leave blank to use the inventory type default. You can still change or remove a batch expiry before saving stock."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
 
                 if showsUnit {
@@ -116,6 +121,11 @@ struct InventoryItemForm: View {
                         .accessibilityIdentifier("inventory.form.expiryDate")
                     }
                 }
+
+                if viewModel.editingItem == nil {
+                    Toggle("Continue adding inventory", isOn: $continuesAddingInventory)
+                        .accessibilityIdentifier("inventory.form.continueAdding")
+                }
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -147,7 +157,13 @@ struct InventoryItemForm: View {
 
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
+                    let shouldContinueAdding =
+                        continuesAddingInventory && viewModel.editingItem == nil
                     if onSave() {
+                        if shouldContinueAdding {
+                            focusedField = .name
+                            return
+                        }
                         isPresented = false
                     }
                 }
@@ -155,5 +171,9 @@ struct InventoryItemForm: View {
                 .accessibilityIdentifier("inventory.form.save")
             }
         }
+    }
+
+    private enum Field {
+        case name
     }
 }
